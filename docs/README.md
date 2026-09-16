@@ -1,0 +1,1 @@
+`architecture/`: layers, interfaces, decisions. `hardware/`: inventory, pinout and wiring tables. `measurements/`: latency, jitter, memory results. `meeting-notes/`: professor and team decisions. `diagrams/`: exported figures.
