@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0.0",
+  "template": "first_prototype",
+  "node_id": "prototype-node-01",
+  "parameters": {
+    "environment_interval_ms": 2000,
+    "distance_interval_ms": 1000,
+    "distance_sensor_enabled": true,
+    "health_report_interval_ms": 5000
+  },
+  "metadata": {
+    "source": "member4",
+    "confidence": 0.9
+  }
+}

@@ -1,0 +1,52 @@
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-2);
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  min-width: 0;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  box-shadow: var(--shadow);
+}
+
+.tile__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.tile__body { min-width: 0; flex: 1; }
+
+.tile__name {
+  font-weight: 500;
+  font-size: var(--text-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tile__state {
+  font-size: var(--text-sm);
+  color: hsl(var(--muted-foreground));
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tile__state code { font-size: var(--text-xs); }
+
+/* tiles whose detail line carries bus + pins + speed must not clip it */
+.tile--wrap .tile__state {
+  white-space: normal;
+  overflow: visible;
+  line-height: 1.45;
+}
