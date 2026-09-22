@@ -119,3 +119,115 @@ All team members will:
 ## Workload Principle
 
 The responsibilities are separated by subsystem rather than by isolated device driver. Members 2 and 3 make different hardware accessible through common interfaces. Member 1 converts descriptions into runtime behaviour. Member 4 recommends suitable profiles and parameters. Member 5 validates, deploys, and monitors the resulting configuration. This arrangement supports the project's central objective: one reusable firmware image with peripheral behaviour determined through configuration.
+
+## First Prototype: Configuration-Driven Multi-Protocol Node
+
+### Prototype Objective
+
+The first prototype will demonstrate that one μT-Home firmware image can support different peripherals through configuration. Device behaviour will be described using JSON rather than hard-coded application logic. The μT-Home runtime will interpret the configuration and create the required μT-Kernel tasks, timers, and message queues.
+
+The prototype will focus on communication abstraction and runtime behaviour. It will not attempt to support every possible peripheral or parse arbitrary datasheets.
+
+### Hardware Selection
+
+| Function            | Hardware           | Protocol | Prototype Role                                   |
+| ------------------- | ------------------ | -------- | ------------------------------------------------ |
+| Central controller  | ESP32-S3 SuperMini | —        | Runs μT-Kernel and the μT-Home runtime           |
+| Environmental input | BMP388             | I²C      | Provides pressure and temperature readings       |
+| Status output       | 0.96-inch OLED     | SPI      | Displays readings and system status              |
+| Presence detection  | HLK-LD2450         | UART     | Reports detected targets and movement            |
+| Distance input      | HC-SR04            | GPIO     | Measures distance using Trigger and Echo signals |
+
+The HC-SR04 operates at 5 V. A voltage divider will reduce its Echo signal to a safe 3.3 V level before it reaches the ESP32-S3. All components will share a common ground.
+
+The USB connection will initially be used only for power, configuration transfer, and serial monitoring through existing board functionality. A custom USB driver is outside the first prototype’s scope.
+
+### Prototype Operation
+
+```mermaid
+flowchart TB
+    U["User or AI recommendation"] --> J["Validated JSON profile"]
+    J --> R["μT-Home runtime"]
+    R --> K["μT-Kernel tasks and queues"]
+    K --> P["I²C, SPI, UART and GPIO adapters"]
+    P --> H["Attached peripherals"]
+    K --> M["Display and system monitoring"]
+```
+
+The prototype will operate as follows:
+
+1. The user selects an attached peripheral or supplies its structured specifications.
+2. The configuration system produces a JSON device profile.
+3. The validator checks the protocol, parameters, pins, addresses, and timing values.
+4. The μT-Home runtime interprets the validated profile.
+5. μT-Kernel creates the required periodic or event-driven tasks.
+6. A common communication interface directs operations to the correct protocol adapter.
+7. Sensor results are passed through message queues to the OLED and monitoring interface.
+8. Communication errors and task failures are reported through system-health monitoring.
+
+For example, the BMP388 can be configured as a periodic input:
+
+```json
+{
+  "device_id": "environment_sensor",
+  "adapter": "bmp388",
+  "profile": "periodic_sensor",
+  "interface": {
+    "protocol": "i2c",
+    "address": "0x76"
+  },
+  "behaviour": {
+    "operation": "read",
+    "interval_ms": 2000,
+    "destination": "oled_status"
+  }
+}
+```
+
+Changing `interval_ms` from `2000` to `5000` will change the sampling interval without modifying or recompiling the main firmware.
+
+### AI-Assisted Configuration
+
+The first embedded AI model will be limited to the supported prototype devices. It will receive structured information such as:
+
+* Communication protocol
+* Peripheral category
+* Payload size
+* Sampling-rate limits
+* Input or output behaviour
+* Timing and buffer requirements
+
+The model will recommend a supported behaviour profile and parameters such as sampling interval, timeout, buffer size, and task priority. A deterministic template generator will convert these recommendations into JSON.
+
+The AI model will not generate unrestricted JSON text. It will only recommend values within permitted ranges. The JSON validator and user confirmation step will remain responsible for safety.
+
+Initial testing will use manually prepared JSON profiles. Once the communication and runtime layers are stable, the compact AI model will be inserted into the same configuration pipeline.
+
+### Expected Demonstration
+
+The completed first prototype will demonstrate the following:
+
+* The BMP388 is read periodically through I²C.
+* BMP388 measurements are displayed on the SPI OLED.
+* The LD2450 sends presence and target data through UART.
+* The HC-SR04 provides distance measurements through GPIO.
+* Each peripheral runs as a separate μT-Kernel task.
+* Data is transferred between tasks through queues.
+* Sampling intervals can be changed through JSON.
+* A peripheral can be enabled or disabled without recompiling the firmware.
+* Disconnected or unresponsive devices produce a visible error.
+* Task state, memory usage, and communication health are reported to the monitoring interface.
+
+### Evaluation Criteria
+
+The prototype will be considered successful if:
+
+1. All four communication protocols operate under one reusable firmware image.
+2. Configuration changes take effect without rebuilding the firmware.
+3. Multiple peripheral tasks operate concurrently without system failure.
+4. Invalid JSON and conflicting pin assignments are rejected.
+5. Device disconnection and communication timeouts are detected.
+6. The AI model recommends valid profiles for the supported devices.
+7. Memory usage, task timing, and inference latency remain within the ESP32-S3’s available resources.
+
+This prototype establishes the minimum viable μT-Home architecture. Additional devices, automation scenarios, and dynamic model updates can be introduced after the core configuration-driven runtime has been validated.
