@@ -2,10 +2,36 @@
 
 #include <string.h>
 
+
 static uthome_runtime_device_t g_devices[UTHOME_RUNTIME_MAX_DEVICES];
 static uthome_runtime_status_t g_status[UTHOME_RUNTIME_MAX_DEVICES];
 static size_t g_device_count;
 
+
+/*
+ * Represents one bounded runtime task resource.
+ *
+ * This is not yet a real μT-Kernel task.
+ * Later, this can hold the μT-Kernel task ID/handle.
+ */
+typedef struct {
+    bool in_use;
+
+    size_t device_index;
+
+    uint8_t priority;
+    size_t stack_size_bytes;
+    uint32_t period_ms;
+} runtime_task_slot_t;
+
+
+static runtime_task_slot_t
+    g_tasks[UTHOME_RUNTIME_MAX_DEVICE_TASKS];
+
+
+/*
+ * Find a registered device using its ID.
+ */
 static int find_device(const char *id)
 {
     if (id == NULL) {
@@ -21,33 +47,129 @@ static int find_device(const char *id)
     return -1;
 }
 
-static int valid_device(const uthome_runtime_device_t *device)
-{
-    return device != NULL
-        && device->id[0] != '\0'
-        && memchr(device->id, '\0', sizeof(device->id)) != NULL;
-}
 
-static size_t running_device_count(void)
+/*
+ * Find the task belonging to a device.
+ */
+static int find_task_for_device(size_t device_index)
 {
-    size_t running = 0;
+    for (size_t i = 0;
+         i < UTHOME_RUNTIME_MAX_DEVICE_TASKS;
+         ++i) {
 
-    for (size_t i = 0; i < g_device_count; ++i) {
-        if (g_status[i].state == UTHOME_RUNTIME_RUNNING) {
-            ++running;
+        if (g_tasks[i].in_use &&
+            g_tasks[i].device_index == device_index) {
+
+            return (int)i;
         }
     }
 
-    return running;
+    return -1;
 }
+
+
+/*
+ * Allocate one bounded task slot.
+ */
+static int allocate_task(size_t device_index)
+{
+    for (size_t i = 0;
+         i < UTHOME_RUNTIME_MAX_DEVICE_TASKS;
+         ++i) {
+
+        if (!g_tasks[i].in_use) {
+
+            g_tasks[i].in_use = true;
+            g_tasks[i].device_index = device_index;
+
+            g_tasks[i].priority =
+                g_devices[device_index].priority;
+
+            g_tasks[i].stack_size_bytes =
+                g_devices[device_index].stack_size_bytes;
+
+            g_tasks[i].period_ms =
+                g_devices[device_index].period_ms;
+
+            return (int)i;
+        }
+    }
+
+    return -1;
+}
+
+
+/*
+ * Release a task slot when a device stops.
+ */
+static void release_task(size_t device_index)
+{
+    int task_index =
+        find_task_for_device(device_index);
+
+    if (task_index < 0) {
+        return;
+    }
+
+    memset(
+        &g_tasks[task_index],
+        0,
+        sizeof(g_tasks[task_index])
+    );
+}
+
+
+/*
+ * Update an existing task slot when configuration changes.
+ */
+static void update_task_configuration(
+    size_t device_index)
+{
+    int task_index =
+        find_task_for_device(device_index);
+
+    if (task_index < 0) {
+        return;
+    }
+
+    g_tasks[task_index].priority =
+        g_devices[device_index].priority;
+
+    g_tasks[task_index].stack_size_bytes =
+        g_devices[device_index].stack_size_bytes;
+
+    g_tasks[task_index].period_ms =
+        g_devices[device_index].period_ms;
+}
+
+
+/*
+ * Basic validation for a device definition.
+ */
+static int valid_device(
+    const uthome_runtime_device_t *device)
+{
+    return device != NULL
+        && device->id[0] != '\0'
+        && memchr(
+            device->id,
+            '\0',
+            sizeof(device->id)
+        ) != NULL;
+}
+
 
 int uthome_runtime_init(void)
 {
     memset(g_devices, 0, sizeof(g_devices));
     memset(g_status, 0, sizeof(g_status));
+    memset(g_tasks, 0, sizeof(g_tasks));
+
     g_device_count = 0;
+
     return 0;
 }
+
 
 int uthome_runtime_register_device(
     const uthome_runtime_device_t *device)
@@ -56,7 +178,9 @@ int uthome_runtime_register_device(
         return -1;
     }
 
-    if (g_device_count >= UTHOME_RUNTIME_MAX_DEVICES) {
+    if (g_device_count >=
+        UTHOME_RUNTIME_MAX_DEVICES) {
+
         return -2;
     }
 
@@ -65,13 +189,17 @@ int uthome_runtime_register_device(
     }
 
     g_devices[g_device_count] = *device;
-    g_status[g_device_count].state = device->enabled
-        ? UTHOME_RUNTIME_READY
-        : UTHOME_RUNTIME_STOPPED;
+
+    g_status[g_device_count].state =
+        device->enabled
+            ? UTHOME_RUNTIME_READY
+            : UTHOME_RUNTIME_STOPPED;
+
     ++g_device_count;
 
     return 0;
 }
+
 
 int uthome_runtime_start_device(const char *id)
 {
@@ -85,17 +213,29 @@ int uthome_runtime_start_device(const char *id)
         return -2;
     }
 
-    if (g_status[index].state == UTHOME_RUNTIME_RUNNING) {
+    /*
+     * Starting an already-running device
+     * is treated as success.
+     */
+    if (g_status[index].state ==
+        UTHOME_RUNTIME_RUNNING) {
+
         return 0;
     }
 
-    if (running_device_count() >= UTHOME_RUNTIME_MAX_DEVICE_TASKS) {
+    /*
+     * No task resource available.
+     */
+    if (allocate_task((size_t)index) < 0) {
         return -3;
     }
 
-    g_status[index].state = UTHOME_RUNTIME_RUNNING;
+    g_status[index].state =
+        UTHOME_RUNTIME_RUNNING;
+
     return 0;
 }
+
 
 int uthome_runtime_stop_device(const char *id)
 {
@@ -105,9 +245,14 @@ int uthome_runtime_stop_device(const char *id)
         return -1;
     }
 
-    g_status[index].state = UTHOME_RUNTIME_STOPPED;
+    release_task((size_t)index);
+
+    g_status[index].state =
+        UTHOME_RUNTIME_STOPPED;
+
     return 0;
 }
+
 
 int uthome_runtime_update_device(
     const char *id,
@@ -115,20 +260,70 @@ int uthome_runtime_update_device(
 {
     int index = find_device(id);
 
-    if (index < 0 || !valid_device(device) || strcmp(device->id, id) != 0) {
+    /*
+     * Check:
+     * - existing device
+     * - valid new configuration
+     * - ID cannot change during update
+     */
+    if (index < 0 ||
+        !valid_device(device) ||
+        strcmp(device->id, id) != 0) {
+
         return -1;
     }
 
+    bool was_running =
+        g_status[index].state ==
+        UTHOME_RUNTIME_RUNNING;
+
+    /*
+     * Store the new configuration.
+     */
     g_devices[index] = *device;
 
+
+    /*
+     * Disabling a device stops it
+     * and releases its task resource.
+     */
     if (!device->enabled) {
-        g_status[index].state = UTHOME_RUNTIME_STOPPED;
-    } else if (g_status[index].state == UTHOME_RUNTIME_STOPPED) {
-        g_status[index].state = UTHOME_RUNTIME_READY;
+
+        release_task((size_t)index);
+
+        g_status[index].state =
+            UTHOME_RUNTIME_STOPPED;
+
+        return 0;
     }
+
+
+    /*
+     * If the device was already running,
+     * update the task configuration.
+     */
+    if (was_running) {
+
+        update_task_configuration(
+            (size_t)index
+        );
+
+        g_status[index].state =
+            UTHOME_RUNTIME_RUNNING;
+
+        return 0;
+    }
+
+
+    /*
+     * Enabled but not currently running.
+     */
+    g_status[index].state =
+        UTHOME_RUNTIME_READY;
 
     return 0;
 }
+
 
 int uthome_runtime_get_status(
     const char *id,
@@ -141,8 +336,10 @@ int uthome_runtime_get_status(
     }
 
     *status = g_status[index];
+
     return 0;
 }
+
 
 size_t uthome_runtime_device_count(void)
 {

@@ -58,6 +58,23 @@ int main(void)
 assert(uthome_runtime_register_device(&device) == 0);
 assert(uthome_runtime_start_device("overflow") == -3);
 
+/*
+ * Stop one running device.
+ * This should release one task slot.
+ */
+assert(uthome_runtime_stop_device("device_0") == 0);
+
+/*
+ * The previously rejected device should now be able to start.
+ */
+assert(uthome_runtime_start_device("overflow") == 0);
+
+assert(
+    uthome_runtime_get_status("overflow", &status) == 0
+);
+
+assert(status.state == UTHOME_RUNTIME_RUNNING);
+
 printf("All runtime tests passed!\n");
 
 return 0;
