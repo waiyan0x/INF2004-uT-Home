@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "uthome/msgbus.h"
 
 
 /*
@@ -104,5 +105,14 @@ int uthome_health_get_event_count(
     uint32_t *count
 );
 
+/*
+ * Observe a message queue and report newly
+ * detected queue-overflow events.
+ */
+int uthome_health_check_queue(
+    uthome_msgbus_queue_id_t queue_id,
+    uint32_t now_ms,
+    uint32_t *previous_drop_count
+);
 
 #endif
