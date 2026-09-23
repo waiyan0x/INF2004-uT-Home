@@ -11,6 +11,9 @@
 #define UTHOME_DEVICE_ID_MAX 32
 
 
+/*
+ * Runtime lifecycle state.
+ */
 typedef enum {
     UTHOME_RUNTIME_STOPPED = 0,
     UTHOME_RUNTIME_READY,
@@ -20,6 +23,9 @@ typedef enum {
 } uthome_runtime_state_t;
 
 
+/*
+ * Generic configured device.
+ */
 typedef struct {
     char id[UTHOME_DEVICE_ID_MAX];
 
@@ -32,6 +38,9 @@ typedef struct {
 } uthome_runtime_device_t;
 
 
+/*
+ * Runtime status for one device.
+ */
 typedef struct {
     uthome_runtime_state_t state;
 
@@ -46,13 +55,11 @@ typedef struct {
 
 
 /*
- * Snapshot of current bounded runtime resources.
+ * Snapshot of bounded runtime resources.
  *
- * Note:
- * configured_stack_bytes is the total configured
- * stack budget of active tasks.
- *
- * It is NOT actual stack high-water usage yet.
+ * configured_stack_bytes represents
+ * configured stack budget, not actual
+ * μT-Kernel stack high-water usage.
  */
 typedef struct {
     size_t registered_devices;
@@ -67,18 +74,18 @@ typedef struct {
 
 
 /*
- * Initialise the runtime.
+ * Initialise runtime state.
  */
 int uthome_runtime_init(void);
 
 
 /*
- * Register one device.
+ * Register a device.
  *
  * Returns:
  *   0  success
  *  -1  invalid device
- *  -2  device registry full
+ *  -2  registry full
  *  -3  duplicate device ID
  */
 int uthome_runtime_register_device(
@@ -87,13 +94,27 @@ int uthome_runtime_register_device(
 
 
 /*
- * Start a registered device.
+ * Prepare a device.
+ *
+ * Reserves its bounded task resource
+ * without starting execution.
  *
  * Returns:
  *   0  success
  *  -1  device not found
  *  -2  device disabled
- *  -3  no task slot available
+ *  -3  no task resource available
+ */
+int uthome_runtime_prepare_device(
+    const char *id
+);
+
+
+/*
+ * Start a prepared device.
+ *
+ * If it has not already been prepared,
+ * start performs preparation automatically.
  */
 int uthome_runtime_start_device(
     const char *id
@@ -101,7 +122,8 @@ int uthome_runtime_start_device(
 
 
 /*
- * Stop a registered device.
+ * Stop a device and release its
+ * prepared task resource.
  */
 int uthome_runtime_stop_device(
     const char *id
@@ -109,9 +131,10 @@ int uthome_runtime_stop_device(
 
 
 /*
- * Update an existing device.
+ * Update an existing device configuration.
  *
- * The device ID must remain unchanged.
+ * Kept for compatibility with the
+ * existing runtime API/tests.
  */
 int uthome_runtime_update_device(
     const char *id,
@@ -120,7 +143,34 @@ int uthome_runtime_update_device(
 
 
 /*
- * Retrieve runtime status for one device.
+ * Lifecycle-facing reconfiguration API.
+ *
+ * Saves the previous known-good
+ * configuration for possible rollback.
+ */
+int uthome_runtime_reconfigure_device(
+    const char *id,
+    const uthome_runtime_device_t *device
+);
+
+
+/*
+ * Restore the last-known-good
+ * configuration.
+ *
+ * Returns:
+ *   0  success
+ *  -1  device not found
+ *  -2  no rollback configuration available
+ *  -3  unable to restore task resource
+ */
+int uthome_runtime_rollback_device(
+    const char *id
+);
+
+
+/*
+ * Retrieve runtime status.
  */
 int uthome_runtime_get_status(
     const char *id,
@@ -130,8 +180,6 @@ int uthome_runtime_get_status(
 
 /*
  * Advance the simulated runtime clock.
- *
- * Used for host-side timer testing.
  */
 int uthome_runtime_tick(
     uint32_t elapsed_ms
@@ -139,10 +187,8 @@ int uthome_runtime_tick(
 
 
 /*
- * Record the actual execution timestamp
- * of a running device.
- *
- * Used to calculate scheduling jitter.
+ * Record an actual execution timestamp
+ * for jitter measurement.
  */
 int uthome_runtime_record_execution(
     const char *id,
@@ -151,8 +197,7 @@ int uthome_runtime_record_execution(
 
 
 /*
- * Retrieve current bounded runtime
- * resource usage.
+ * Retrieve bounded runtime resource usage.
  */
 int uthome_runtime_get_resources(
     uthome_runtime_resource_snapshot_t *snapshot

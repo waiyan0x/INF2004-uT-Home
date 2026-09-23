@@ -9,11 +9,13 @@
 static uthome_runtime_device_t
     g_devices[UTHOME_RUNTIME_MAX_DEVICES];
 
+
 /*
  * Runtime status for each registered device.
  */
 static uthome_runtime_status_t
     g_status[UTHOME_RUNTIME_MAX_DEVICES];
+
 
 /*
  * Number of registered devices.
@@ -22,11 +24,35 @@ static size_t g_device_count;
 
 
 /*
- * Represents one bounded runtime task resource.
+ * Whether each device currently owns
+ * a prepared task resource.
+ */
+static bool
+    g_prepared[UTHOME_RUNTIME_MAX_DEVICES];
+
+
+/*
+ * Last-known-good configuration/state
+ * used for rollback.
+ */
+static uthome_runtime_device_t
+    g_rollback_devices[UTHOME_RUNTIME_MAX_DEVICES];
+
+static uthome_runtime_state_t
+    g_rollback_states[UTHOME_RUNTIME_MAX_DEVICES];
+
+static bool
+    g_rollback_prepared[UTHOME_RUNTIME_MAX_DEVICES];
+
+static bool
+    g_has_rollback[UTHOME_RUNTIME_MAX_DEVICES];
+
+
+/*
+ * One bounded runtime task resource.
  *
- * This is currently platform-independent.
- * Later this structure can hold the real
- * μT-Kernel task ID / task handle.
+ * This is currently host/platform independent.
+ * Later it can hold the actual μT-Kernel task ID.
  */
 typedef struct {
     bool in_use;
@@ -36,17 +62,9 @@ typedef struct {
     uint8_t priority;
     size_t stack_size_bytes;
 
-    /*
-     * Periodic scheduling information.
-     */
     uint32_t period_ms;
     uint32_t elapsed_ms;
 
-    /*
-     * Timing measurement information.
-     *
-     * Used to calculate execution jitter.
-     */
     uint32_t last_execution_time_ms;
     bool has_execution_time;
 
@@ -54,20 +72,17 @@ typedef struct {
 
 
 /*
- * Fixed number of task resources.
+ * Fixed task-resource pool.
  */
 static runtime_task_slot_t
     g_tasks[UTHOME_RUNTIME_MAX_DEVICE_TASKS];
 
 
 /*
- * Find a registered device using its ID.
- *
- * Returns:
- *   >= 0 : device array index
- *   -1   : device not found / invalid ID
+ * Find a registered device.
  */
-static int find_device(const char *id)
+static int find_device(
+    const char *id)
 {
     if (id == NULL) {
         return -1;
@@ -91,8 +106,7 @@ static int find_device(const char *id)
 
 
 /*
- * Find the runtime task belonging
- * to a registered device.
+ * Find the task belonging to a device.
  */
 static int find_task_for_device(
     size_t device_index)
@@ -115,29 +129,37 @@ static int find_task_for_device(
 
 /*
  * Allocate one bounded task slot.
+ *
+ * A device must never own more than
+ * one task slot.
  */
 static int allocate_task(
     size_t device_index)
 {
+    /*
+     * Prevent duplicate task allocation.
+     */
+    int existing_task =
+        find_task_for_device(
+            device_index
+        );
+
+    if (existing_task >= 0) {
+        return existing_task;
+    }
+
+
     for (size_t i = 0;
          i < UTHOME_RUNTIME_MAX_DEVICE_TASKS;
          ++i) {
 
         if (!g_tasks[i].in_use) {
 
-            /*
-             * Claim this task slot.
-             */
             g_tasks[i].in_use = true;
 
             g_tasks[i].device_index =
                 device_index;
 
-
-            /*
-             * Copy the configured runtime
-             * parameters into the task.
-             */
             g_tasks[i].priority =
                 g_devices[device_index].priority;
 
@@ -146,43 +168,35 @@ static int allocate_task(
                     .stack_size_bytes;
 
             g_tasks[i].period_ms =
-                g_devices[device_index].period_ms;
+                g_devices[device_index]
+                    .period_ms;
 
-
-            /*
-             * Start the periodic timer
-             * from zero.
-             */
             g_tasks[i].elapsed_ms = 0;
 
+            g_tasks[i]
+                .last_execution_time_ms = 0;
 
-            /*
-             * No real execution timestamp
-             * has been recorded yet.
-             */
-            g_tasks[i].last_execution_time_ms = 0;
-            g_tasks[i].has_execution_time = false;
+            g_tasks[i]
+                .has_execution_time = false;
 
             return (int)i;
         }
     }
 
-    /*
-     * No task resources available.
-     */
     return -1;
 }
 
 
 /*
- * Release a task slot when a device
- * stops or becomes disabled.
+ * Release the task owned by a device.
  */
 static void release_task(
     size_t device_index)
 {
     int task_index =
-        find_task_for_device(device_index);
+        find_task_for_device(
+            device_index
+        );
 
     if (task_index < 0) {
         return;
@@ -197,23 +211,22 @@ static void release_task(
 
 
 /*
- * Update the runtime configuration
- * of an already-running task.
+ * Update an existing task slot using
+ * the latest device configuration.
  */
 static void update_task_configuration(
     size_t device_index)
 {
     int task_index =
-        find_task_for_device(device_index);
+        find_task_for_device(
+            device_index
+        );
 
     if (task_index < 0) {
         return;
     }
 
 
-    /*
-     * Copy updated configuration.
-     */
     g_tasks[task_index].priority =
         g_devices[device_index].priority;
 
@@ -222,24 +235,20 @@ static void update_task_configuration(
             .stack_size_bytes;
 
     g_tasks[task_index].period_ms =
-        g_devices[device_index].period_ms;
+        g_devices[device_index]
+            .period_ms;
 
 
     /*
-     * Begin a fresh timing interval
-     * after configuration changes.
-     *
-     * Example:
-     * period changes from 2000 ms
-     * to 5000 ms.
+     * Restart timer tracking after
+     * reconfiguration.
      */
     g_tasks[task_index].elapsed_ms = 0;
 
 
     /*
-     * Reset execution timing reference
-     * because the configured period
-     * may have changed.
+     * Reset jitter reference because
+     * the period may have changed.
      */
     g_tasks[task_index]
         .last_execution_time_ms = 0;
@@ -250,23 +259,16 @@ static void update_task_configuration(
 
 
 /*
- * Validate a device configuration.
+ * Validate a device definition.
  */
 static int valid_device(
     const uthome_runtime_device_t *device)
 {
     return device != NULL
-
-        /*
-         * Device ID must not be empty.
-         */
-        && device->id[0] != '\0'
-
-        /*
-         * The fixed-size ID buffer must
-         * contain a null terminator.
-         */
-        && memchr(
+        &&
+        device->id[0] != '\0'
+        &&
+        memchr(
             device->id,
             '\0',
             sizeof(device->id)
@@ -275,7 +277,7 @@ static int valid_device(
 
 
 /*
- * Initialise the runtime manager.
+ * Initialise runtime.
  */
 int uthome_runtime_init(void)
 {
@@ -297,6 +299,36 @@ int uthome_runtime_init(void)
         sizeof(g_tasks)
     );
 
+    memset(
+        g_prepared,
+        0,
+        sizeof(g_prepared)
+    );
+
+    memset(
+        g_rollback_devices,
+        0,
+        sizeof(g_rollback_devices)
+    );
+
+    memset(
+        g_rollback_states,
+        0,
+        sizeof(g_rollback_states)
+    );
+
+    memset(
+        g_rollback_prepared,
+        0,
+        sizeof(g_rollback_prepared)
+    );
+
+    memset(
+        g_has_rollback,
+        0,
+        sizeof(g_has_rollback)
+    );
+
     g_device_count = 0;
 
     return 0;
@@ -304,22 +336,16 @@ int uthome_runtime_init(void)
 
 
 /*
- * Register one configured device.
+ * Register one device.
  */
 int uthome_runtime_register_device(
     const uthome_runtime_device_t *device)
 {
-    /*
-     * Invalid configuration.
-     */
     if (!valid_device(device)) {
         return -1;
     }
 
 
-    /*
-     * Device registry is full.
-     */
     if (g_device_count >=
         UTHOME_RUNTIME_MAX_DEVICES) {
 
@@ -327,27 +353,15 @@ int uthome_runtime_register_device(
     }
 
 
-    /*
-     * Duplicate device IDs are not allowed.
-     */
     if (find_device(device->id) >= 0) {
         return -3;
     }
 
 
-    /*
-     * Copy the device configuration into
-     * bounded runtime storage.
-     */
     g_devices[g_device_count] =
         *device;
 
 
-    /*
-     * Enabled devices begin READY.
-     *
-     * Disabled devices begin STOPPED.
-     */
     g_status[g_device_count].state =
         device->enabled
             ? UTHOME_RUNTIME_READY
@@ -355,6 +369,55 @@ int uthome_runtime_register_device(
 
 
     ++g_device_count;
+
+    return 0;
+}
+
+
+/*
+ * Prepare a device.
+ *
+ * Reserve a bounded task resource without
+ * beginning execution.
+ */
+int uthome_runtime_prepare_device(
+    const char *id)
+{
+    int index =
+        find_device(id);
+
+
+    if (index < 0) {
+        return -1;
+    }
+
+
+    if (!g_devices[index].enabled) {
+        return -2;
+    }
+
+
+    /*
+     * Already prepared.
+     */
+    if (g_prepared[index]) {
+        return 0;
+    }
+
+
+    if (allocate_task(
+            (size_t)index
+        ) < 0) {
+
+        return -3;
+    }
+
+
+    g_prepared[index] = true;
+
+    g_status[index].state =
+        UTHOME_RUNTIME_READY;
+
 
     return 0;
 }
@@ -370,25 +433,18 @@ int uthome_runtime_start_device(
         find_device(id);
 
 
-    /*
-     * Device does not exist.
-     */
     if (index < 0) {
         return -1;
     }
 
 
-    /*
-     * Disabled devices cannot start.
-     */
     if (!g_devices[index].enabled) {
         return -2;
     }
 
 
     /*
-     * Starting an already-running device
-     * is treated as successful.
+     * Already running.
      */
     if (g_status[index].state ==
         UTHOME_RUNTIME_RUNNING) {
@@ -398,21 +454,27 @@ int uthome_runtime_start_device(
 
 
     /*
-     * Allocate one bounded task resource.
+     * Automatically prepare if needed.
+     *
+     * IMPORTANT:
+     * Do not allocate another task here.
      */
-    if (allocate_task(
-            (size_t)index
-        ) < 0) {
+    if (!g_prepared[index]) {
 
-        /*
-         * No task slot available.
-         */
-        return -3;
+        int result =
+            uthome_runtime_prepare_device(
+                id
+            );
+
+        if (result != 0) {
+            return result;
+        }
     }
 
 
     g_status[index].state =
         UTHOME_RUNTIME_RUNNING;
+
 
     return 0;
 }
@@ -427,29 +489,33 @@ int uthome_runtime_stop_device(
     int index =
         find_device(id);
 
+
     if (index < 0) {
         return -1;
     }
 
 
-    /*
-     * Release its task resource.
-     */
     release_task(
         (size_t)index
     );
 
 
+    g_prepared[index] = false;
+
+
     g_status[index].state =
         UTHOME_RUNTIME_STOPPED;
+
 
     return 0;
 }
 
 
 /*
- * Update a registered device's
- * configuration.
+ * Update an existing device configuration.
+ *
+ * Saves the current configuration for
+ * possible rollback.
  */
 int uthome_runtime_update_device(
     const char *id,
@@ -459,13 +525,6 @@ int uthome_runtime_update_device(
         find_device(id);
 
 
-    /*
-     * Validate:
-     *
-     * - device exists
-     * - new configuration is valid
-     * - device ID cannot change during update
-     */
     if (index < 0 ||
         !valid_device(device) ||
         strcmp(
@@ -481,23 +540,42 @@ int uthome_runtime_update_device(
         g_status[index].state ==
         UTHOME_RUNTIME_RUNNING;
 
+    bool was_prepared =
+        g_prepared[index];
+
 
     /*
-     * Store the new configuration.
+     * Save previous known-good state.
+     */
+    g_rollback_devices[index] =
+        g_devices[index];
+
+    g_rollback_states[index] =
+        g_status[index].state;
+
+    g_rollback_prepared[index] =
+        g_prepared[index];
+
+    g_has_rollback[index] = true;
+
+
+    /*
+     * Apply new configuration.
      */
     g_devices[index] =
         *device;
 
 
     /*
-     * Disabling a device immediately
-     * stops it and releases its task slot.
+     * Disabled configuration.
      */
     if (!device->enabled) {
 
         release_task(
             (size_t)index
         );
+
+        g_prepared[index] = false;
 
         g_status[index].state =
             UTHOME_RUNTIME_STOPPED;
@@ -507,35 +585,187 @@ int uthome_runtime_update_device(
 
 
     /*
-     * If the device was already running,
-     * update its task configuration.
+     * Device already owned a prepared task.
      */
-    if (was_running) {
+    if (was_running ||
+        was_prepared) {
 
-        update_task_configuration(
-            (size_t)index
-        );
+        int task_index =
+            find_task_for_device(
+                (size_t)index
+            );
+
+
+        if (task_index < 0) {
+
+            if (allocate_task(
+                    (size_t)index
+                ) < 0) {
+
+                g_status[index].state =
+                    UTHOME_RUNTIME_ERROR;
+
+                ++g_status[index]
+                    .failure_count;
+
+                return -2;
+            }
+
+        } else {
+
+            /*
+             * Update priority, stack size,
+             * period and timer state.
+             */
+            update_task_configuration(
+                (size_t)index
+            );
+        }
+
+
+        g_prepared[index] = true;
+
 
         g_status[index].state =
-            UTHOME_RUNTIME_RUNNING;
+            was_running
+                ? UTHOME_RUNTIME_RUNNING
+                : UTHOME_RUNTIME_READY;
+
 
         return 0;
     }
 
 
     /*
-     * Device is enabled but not running.
+     * Registered but not prepared.
      */
+    g_prepared[index] = false;
+
     g_status[index].state =
         UTHOME_RUNTIME_READY;
+
 
     return 0;
 }
 
 
 /*
- * Retrieve the runtime status
- * for one device.
+ * Lifecycle-facing reconfiguration API.
+ */
+int uthome_runtime_reconfigure_device(
+    const char *id,
+    const uthome_runtime_device_t *device)
+{
+    return uthome_runtime_update_device(
+        id,
+        device
+    );
+}
+
+
+/*
+ * Restore last-known-good configuration.
+ */
+int uthome_runtime_rollback_device(
+    const char *id)
+{
+    int index =
+        find_device(id);
+
+
+    if (index < 0) {
+        return -1;
+    }
+
+
+    if (!g_has_rollback[index]) {
+        return -2;
+    }
+
+
+    /*
+     * Restore old configuration first.
+     */
+    g_devices[index] =
+        g_rollback_devices[index];
+
+
+    uthome_runtime_state_t restored_state =
+        g_rollback_states[index];
+
+    bool restored_prepared =
+        g_rollback_prepared[index];
+
+
+    bool needs_task =
+        restored_prepared ||
+        restored_state ==
+            UTHOME_RUNTIME_RUNNING;
+
+
+    if (needs_task) {
+
+        int task_index =
+            find_task_for_device(
+                (size_t)index
+            );
+
+
+        if (task_index < 0) {
+
+            if (allocate_task(
+                    (size_t)index
+                ) < 0) {
+
+                g_status[index].state =
+                    UTHOME_RUNTIME_ERROR;
+
+                ++g_status[index]
+                    .failure_count;
+
+                return -3;
+            }
+
+        } else {
+
+            /*
+             * Existing task must be returned
+             * to the old configuration.
+             */
+            update_task_configuration(
+                (size_t)index
+            );
+        }
+
+
+        g_prepared[index] = true;
+
+    } else {
+
+        release_task(
+            (size_t)index
+        );
+
+        g_prepared[index] = false;
+    }
+
+
+    g_status[index].state =
+        restored_state;
+
+
+    /*
+     * Rollback point has been consumed.
+     */
+    g_has_rollback[index] = false;
+
+
+    return 0;
+}
+
+
+/*
+ * Retrieve status for one device.
  */
 int uthome_runtime_get_status(
     const char *id,
@@ -543,6 +773,7 @@ int uthome_runtime_get_status(
 {
     int index =
         find_device(id);
+
 
     if (index < 0 ||
         status == NULL) {
@@ -554,18 +785,13 @@ int uthome_runtime_get_status(
     *status =
         g_status[index];
 
+
     return 0;
 }
 
 
 /*
- * Advance the simulated runtime clock.
- *
- * This is used for host-side testing.
- *
- * Later, the same behaviour can be
- * implemented using μT-Kernel timer /
- * cyclic-handler facilities.
+ * Advance simulated runtime time.
  */
 int uthome_runtime_tick(
     uint32_t elapsed_ms)
@@ -575,28 +801,31 @@ int uthome_runtime_tick(
          ++i) {
 
 
-        /*
-         * Ignore unused task slots.
-         */
         if (!g_tasks[i].in_use) {
             continue;
         }
 
 
+        size_t device_index =
+            g_tasks[i].device_index;
+
+
         /*
-         * period_ms == 0 means there is
-         * currently no periodic schedule.
+         * A prepared-but-not-started task
+         * must not execute.
          */
+        if (g_status[device_index].state !=
+            UTHOME_RUNTIME_RUNNING) {
+
+            continue;
+        }
+
+
         if (g_tasks[i].period_ms == 0) {
             continue;
         }
 
 
-        /*
-         * Use 64-bit arithmetic so adding
-         * elapsed times cannot overflow
-         * before division.
-         */
         uint64_t total_elapsed =
             (uint64_t)
                 g_tasks[i].elapsed_ms
@@ -604,10 +833,6 @@ int uthome_runtime_tick(
             elapsed_ms;
 
 
-        /*
-         * Determine how many complete
-         * periods have elapsed.
-         */
         uint32_t executions =
             (uint32_t)(
                 total_elapsed /
@@ -615,10 +840,6 @@ int uthome_runtime_tick(
             );
 
 
-        /*
-         * Preserve the remaining partial
-         * interval for the next tick.
-         */
         g_tasks[i].elapsed_ms =
             (uint32_t)(
                 total_elapsed %
@@ -626,30 +847,21 @@ int uthome_runtime_tick(
             );
 
 
-        /*
-         * Record how many executions
-         * became due.
-         */
         if (executions > 0) {
-
-            size_t device_index =
-                g_tasks[i].device_index;
 
             g_status[device_index]
                 .run_count += executions;
         }
     }
 
+
     return 0;
 }
 
 
 /*
- * Record the real execution time
- * of a running device.
- *
- * This allows the runtime to calculate
- * scheduling jitter.
+ * Record an actual task execution time
+ * and calculate scheduling jitter.
  */
 int uthome_runtime_record_execution(
     const char *id,
@@ -659,18 +871,11 @@ int uthome_runtime_record_execution(
         find_device(id);
 
 
-    /*
-     * Device does not exist.
-     */
     if (device_index < 0) {
         return -1;
     }
 
 
-    /*
-     * Timing measurements are only valid
-     * for currently running devices.
-     */
     if (g_status[device_index].state !=
         UTHOME_RUNTIME_RUNNING) {
 
@@ -678,14 +883,11 @@ int uthome_runtime_record_execution(
     }
 
 
-    /*
-     * Find the task resource associated
-     * with this device.
-     */
     int task_index =
         find_task_for_device(
             (size_t)device_index
         );
+
 
     if (task_index < 0) {
         return -3;
@@ -697,12 +899,8 @@ int uthome_runtime_record_execution(
 
 
     /*
-     * First execution:
-     *
-     * There is no previous execution
-     * timestamp to compare against,
-     * therefore we simply establish
-     * the reference time.
+     * First execution establishes
+     * the reference timestamp.
      */
     if (!task->has_execution_time) {
 
@@ -715,34 +913,17 @@ int uthome_runtime_record_execution(
     }
 
 
-    /*
-     * Measure actual time between
-     * executions.
-     */
     uint32_t actual_interval =
         now_ms -
         task->last_execution_time_ms;
 
 
-    /*
-     * Store current execution time for
-     * the next measurement.
-     */
     task->last_execution_time_ms =
         now_ms;
 
 
-    /*
-     * Jitter is the absolute difference
-     * between:
-     *
-     * actual execution interval
-     *
-     * and
-     *
-     * configured expected period.
-     */
     uint32_t jitter_ms;
+
 
     if (actual_interval >=
         task->period_ms) {
@@ -759,17 +940,11 @@ int uthome_runtime_record_execution(
     }
 
 
-    /*
-     * Record the latest jitter value.
-     */
     g_status[device_index]
         .last_jitter_ms =
         jitter_ms;
 
 
-    /*
-     * Record worst observed jitter.
-     */
     if (jitter_ms >
         g_status[device_index]
             .max_jitter_ms) {
@@ -783,9 +958,9 @@ int uthome_runtime_record_execution(
     return 0;
 }
 
+
 /*
- * Retrieve current bounded runtime
- * resource usage.
+ * Retrieve bounded runtime-resource usage.
  */
 int uthome_runtime_get_resources(
     uthome_runtime_resource_snapshot_t *snapshot)
@@ -794,13 +969,11 @@ int uthome_runtime_get_resources(
         return -1;
     }
 
+
     size_t active_tasks = 0;
     size_t configured_stack_bytes = 0;
 
-    /*
-     * Count active task slots and
-     * total configured stack budget.
-     */
+
     for (size_t i = 0;
          i < UTHOME_RUNTIME_MAX_DEVICE_TASKS;
          ++i) {
@@ -809,11 +982,14 @@ int uthome_runtime_get_resources(
             continue;
         }
 
+
         ++active_tasks;
+
 
         configured_stack_bytes +=
             g_tasks[i].stack_size_bytes;
     }
+
 
     snapshot->registered_devices =
         g_device_count;
@@ -831,10 +1007,13 @@ int uthome_runtime_get_resources(
     snapshot->configured_stack_bytes =
         configured_stack_bytes;
 
+
     return 0;
 }
+
+
 /*
- * Return the number of registered devices.
+ * Return number of registered devices.
  */
 size_t uthome_runtime_device_count(void)
 {
