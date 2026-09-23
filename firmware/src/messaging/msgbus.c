@@ -12,6 +12,9 @@ typedef struct {
     size_t item_size;
     size_t depth;
 
+    uthome_msgbus_overflow_policy_t
+        overflow_policy;
+
     size_t head;
     size_t tail;
     size_t count;
@@ -21,6 +24,7 @@ typedef struct {
         [UTHOME_MSGBUS_MAX_ITEM_SIZE];
 
     uthome_msgbus_stats_t stats;
+
 } msgbus_queue_t;
 
 
@@ -29,7 +33,8 @@ static msgbus_queue_t
 
 
 /*
- * Validate a queue ID and return its slot.
+ * Validate queue ID and return
+ * the corresponding queue.
  */
 static msgbus_queue_t *get_queue(
     uthome_msgbus_queue_id_t queue_id)
@@ -73,6 +78,7 @@ int uthome_msgbus_create_queue(
         return UTHOME_MSGBUS_ERR_INVALID;
     }
 
+
     if (config->item_size == 0 ||
         config->item_size >
             UTHOME_MSGBUS_MAX_ITEM_SIZE) {
@@ -80,12 +86,23 @@ int uthome_msgbus_create_queue(
         return UTHOME_MSGBUS_ERR_SIZE;
     }
 
+
     if (config->depth == 0 ||
         config->depth >
             UTHOME_MSGBUS_MAX_DEPTH) {
 
         return UTHOME_MSGBUS_ERR_INVALID;
     }
+
+
+    if (config->overflow_policy !=
+            UTHOME_MSGBUS_DROP_OLDEST &&
+        config->overflow_policy !=
+            UTHOME_MSGBUS_REJECT_NEWEST) {
+
+        return UTHOME_MSGBUS_ERR_INVALID;
+    }
+
 
     for (size_t i = 0;
          i < UTHOME_MSGBUS_MAX_QUEUES;
@@ -103,11 +120,18 @@ int uthome_msgbus_create_queue(
             );
 
             queue->in_use = true;
-            queue->type = config->type;
+
+            queue->type =
+                config->type;
+
             queue->item_size =
                 config->item_size;
+
             queue->depth =
                 config->depth;
+
+            queue->overflow_policy =
+                config->overflow_policy;
 
             *queue_id =
                 (uthome_msgbus_queue_id_t)i;
@@ -115,6 +139,7 @@ int uthome_msgbus_create_queue(
             return UTHOME_MSGBUS_OK;
         }
     }
+
 
     return UTHOME_MSGBUS_ERR_NO_RESOURCE;
 }
@@ -129,48 +154,82 @@ int uthome_msgbus_publish(
     msgbus_queue_t *queue =
         get_queue(queue_id);
 
+
     if (queue == NULL ||
         item == NULL) {
 
         return UTHOME_MSGBUS_ERR_INVALID;
     }
 
+
     if (type != queue->type) {
         return UTHOME_MSGBUS_ERR_TYPE;
     }
+
 
     if (item_size != queue->item_size) {
         return UTHOME_MSGBUS_ERR_SIZE;
     }
 
+
     /*
-     * Queue is full.
-     *
-     * Do not block indefinitely.
-     * Reject the new item and count it.
+     * Queue is already full.
      */
     if (queue->count >= queue->depth) {
 
         ++queue->stats.dropped_count;
 
-        return UTHOME_MSGBUS_ERR_FULL;
+
+        /*
+         * Policy 1:
+         *
+         * Reject the newly published item.
+         */
+        if (queue->overflow_policy ==
+            UTHOME_MSGBUS_REJECT_NEWEST) {
+
+            return UTHOME_MSGBUS_ERR_FULL;
+        }
+
+
+        /*
+         * Policy 2:
+         *
+         * Drop the oldest queued item.
+         *
+         * Move head forward one position,
+         * creating room for the new item.
+         */
+        queue->head =
+            (queue->head + 1) %
+            queue->depth;
+
+        --queue->count;
     }
 
+
+    /*
+     * Store the new item at the tail.
+     */
     memcpy(
         queue->storage[queue->tail],
         item,
         queue->item_size
     );
 
+
     queue->tail =
         (queue->tail + 1) %
         queue->depth;
 
+
     ++queue->count;
     ++queue->stats.published_count;
 
+
     queue->stats.current_depth =
         queue->count;
+
 
     if (queue->count >
         queue->stats.high_water_mark) {
@@ -178,6 +237,7 @@ int uthome_msgbus_publish(
         queue->stats.high_water_mark =
             queue->count;
     }
+
 
     return UTHOME_MSGBUS_OK;
 }
@@ -192,23 +252,28 @@ int uthome_msgbus_consume(
     msgbus_queue_t *queue =
         get_queue(queue_id);
 
+
     if (queue == NULL ||
         item == NULL) {
 
         return UTHOME_MSGBUS_ERR_INVALID;
     }
 
+
     if (expected_type != queue->type) {
         return UTHOME_MSGBUS_ERR_TYPE;
     }
+
 
     if (item_capacity < queue->item_size) {
         return UTHOME_MSGBUS_ERR_SIZE;
     }
 
+
     if (queue->count == 0) {
         return UTHOME_MSGBUS_ERR_EMPTY;
     }
+
 
     memcpy(
         item,
@@ -216,15 +281,19 @@ int uthome_msgbus_consume(
         queue->item_size
     );
 
+
     queue->head =
         (queue->head + 1) %
         queue->depth;
 
+
     --queue->count;
     ++queue->stats.consumed_count;
 
+
     queue->stats.current_depth =
         queue->count;
+
 
     return UTHOME_MSGBUS_OK;
 }
@@ -239,33 +308,40 @@ int uthome_msgbus_consume_latest(
     msgbus_queue_t *queue =
         get_queue(queue_id);
 
+
     if (queue == NULL ||
         item == NULL) {
 
         return UTHOME_MSGBUS_ERR_INVALID;
     }
 
+
     if (expected_type != queue->type) {
         return UTHOME_MSGBUS_ERR_TYPE;
     }
+
 
     if (item_capacity < queue->item_size) {
         return UTHOME_MSGBUS_ERR_SIZE;
     }
 
+
     if (queue->count == 0) {
         return UTHOME_MSGBUS_ERR_EMPTY;
     }
 
+
     /*
-     * tail points to the next free slot,
-     * therefore the newest item is one
-     * position before tail.
+     * tail points to the next free slot.
+     *
+     * Therefore the newest item is the
+     * position immediately before tail.
      */
     size_t newest_index =
         (queue->tail +
          queue->depth - 1) %
         queue->depth;
+
 
     memcpy(
         item,
@@ -273,16 +349,24 @@ int uthome_msgbus_consume_latest(
         queue->item_size
     );
 
+
     /*
-     * Consuming latest clears all queued
-     * stale items.
+     * The consumer requested only the
+     * newest item.
+     *
+     * Older queued samples are stale,
+     * therefore clear the queue.
      */
-    queue->head = queue->tail;
+    queue->head =
+        queue->tail;
+
     queue->count = 0;
+
 
     ++queue->stats.consumed_count;
 
     queue->stats.current_depth = 0;
+
 
     return UTHOME_MSGBUS_OK;
 }
@@ -295,13 +379,17 @@ int uthome_msgbus_get_stats(
     msgbus_queue_t *queue =
         get_queue(queue_id);
 
+
     if (queue == NULL ||
         stats == NULL) {
 
         return UTHOME_MSGBUS_ERR_INVALID;
     }
 
-    *stats = queue->stats;
+
+    *stats =
+        queue->stats;
+
 
     return UTHOME_MSGBUS_OK;
 }

@@ -12,17 +12,20 @@ typedef struct {
 int main(void)
 {
     uthome_msgbus_queue_id_t queue_id;
-    uthome_msgbus_stats_t stats;
 
     uthome_msgbus_queue_config_t config = {
         .type = 1,
         .item_size = sizeof(sample_t),
-        .depth = 3
+        .depth = 3,
+        .overflow_policy =
+            UTHOME_MSGBUS_DROP_OLDEST
     };
+
+    uthome_msgbus_stats_t stats;
+    sample_t output;
 
 
     /*
-     * TEST 1:
      * Initialise message bus.
      */
     assert(
@@ -32,8 +35,7 @@ int main(void)
 
 
     /*
-     * TEST 2:
-     * Create bounded queue.
+     * Create queue.
      */
     assert(
         uthome_msgbus_create_queue(
@@ -44,10 +46,9 @@ int main(void)
 
 
     /*
-     * TEST 3:
-     * Publish one item.
+     * Basic publish / consume test.
      */
-    sample_t sample = {
+    sample_t first = {
         .temperature = 25
     };
 
@@ -55,17 +56,11 @@ int main(void)
         uthome_msgbus_publish(
             queue_id,
             1,
-            &sample,
-            sizeof(sample)
+            &first,
+            sizeof(first)
         ) == UTHOME_MSGBUS_OK
     );
 
-
-    /*
-     * TEST 4:
-     * Consume it.
-     */
-    sample_t output = {0};
 
     assert(
         uthome_msgbus_consume(
@@ -76,11 +71,12 @@ int main(void)
         ) == UTHOME_MSGBUS_OK
     );
 
-    assert(output.temperature == 25);
+    assert(
+        output.temperature == 25
+    );
 
 
     /*
-     * TEST 5:
      * Queue should now be empty.
      */
     assert(
@@ -94,63 +90,84 @@ int main(void)
 
 
     /*
-     * TEST 6:
-     * Fill the bounded queue.
+     * Fill queue:
+     *
+     * [30] [31] [32]
      */
-    sample.temperature = 30;
+    sample_t a = {
+        .temperature = 30
+    };
+
+    sample_t b = {
+        .temperature = 31
+    };
+
+    sample_t c = {
+        .temperature = 32
+    };
+
+    sample_t d = {
+        .temperature = 33
+    };
+
 
     assert(
         uthome_msgbus_publish(
             queue_id,
             1,
-            &sample,
-            sizeof(sample)
+            &a,
+            sizeof(a)
         ) == UTHOME_MSGBUS_OK
     );
 
-    sample.temperature = 31;
-
     assert(
         uthome_msgbus_publish(
             queue_id,
             1,
-            &sample,
-            sizeof(sample)
+            &b,
+            sizeof(b)
         ) == UTHOME_MSGBUS_OK
     );
 
-    sample.temperature = 32;
-
     assert(
         uthome_msgbus_publish(
             queue_id,
             1,
-            &sample,
-            sizeof(sample)
+            &c,
+            sizeof(c)
         ) == UTHOME_MSGBUS_OK
     );
 
 
     /*
-     * TEST 7:
-     * Fourth item must fail because
-     * queue depth is only three.
+     * Queue is now full:
+     *
+     * [30] [31] [32]
+     *
+     * Publish 33.
+     *
+     * DROP_OLDEST means:
+     *
+     * 30 is discarded
+     *
+     * resulting queue:
+     *
+     * [31] [32] [33]
+     *
+     * Publish itself succeeds.
      */
-    sample.temperature = 33;
-
     assert(
         uthome_msgbus_publish(
             queue_id,
             1,
-            &sample,
-            sizeof(sample)
-        ) == UTHOME_MSGBUS_ERR_FULL
+            &d,
+            sizeof(d)
+        ) == UTHOME_MSGBUS_OK
     );
 
 
     /*
-     * TEST 8:
-     * Verify health statistics.
+     * Verify overflow statistics.
      */
     assert(
         uthome_msgbus_get_stats(
@@ -159,17 +176,44 @@ int main(void)
         ) == UTHOME_MSGBUS_OK
     );
 
-    assert(stats.current_depth == 3);
-    assert(stats.high_water_mark == 3);
-    assert(stats.dropped_count == 1);
+    assert(
+        stats.current_depth == 3
+    );
+
+    assert(
+        stats.high_water_mark == 3
+    );
+
+    assert(
+        stats.dropped_count == 1
+    );
 
 
     /*
-     * TEST 9:
-     * Request newest sample.
+     * The oldest remaining item
+     * should now be 31.
+     */
+    assert(
+        uthome_msgbus_consume(
+            queue_id,
+            1,
+            &output,
+            sizeof(output)
+        ) == UTHOME_MSGBUS_OK
+    );
+
+    assert(
+        output.temperature == 31
+    );
+
+
+    /*
+     * Queue now contains:
      *
-     * Should return temperature 32
-     * and clear older queued samples.
+     * [32] [33]
+     *
+     * consume_latest should return 33
+     * and clear the queue.
      */
     assert(
         uthome_msgbus_consume_latest(
@@ -180,9 +224,14 @@ int main(void)
         ) == UTHOME_MSGBUS_OK
     );
 
-    assert(output.temperature == 32);
+    assert(
+        output.temperature == 33
+    );
 
 
+    /*
+     * Queue should now be empty.
+     */
     assert(
         uthome_msgbus_get_stats(
             queue_id,
@@ -190,11 +239,13 @@ int main(void)
         ) == UTHOME_MSGBUS_OK
     );
 
-    assert(stats.current_depth == 0);
+    assert(
+        stats.current_depth == 0
+    );
 
 
     printf(
-        "All message bus tests passed!\n"
+        "All drop-oldest message bus tests passed!\n"
     );
 
     return 0;
