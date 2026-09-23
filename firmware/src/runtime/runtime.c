@@ -21,7 +21,9 @@ typedef struct {
 
     uint8_t priority;
     size_t stack_size_bytes;
+
     uint32_t period_ms;
+    uint32_t elapsed_ms;
 } runtime_task_slot_t;
 
 
@@ -91,6 +93,8 @@ static int allocate_task(size_t device_index)
             g_tasks[i].period_ms =
                 g_devices[device_index].period_ms;
 
+            g_tasks[i].elapsed_ms = 0;
+
             return (int)i;
         }
     }
@@ -140,6 +144,18 @@ static void update_task_configuration(
 
     g_tasks[task_index].period_ms =
         g_devices[device_index].period_ms;
+
+    /*
+     * Reset the elapsed time whenever
+     * the runtime configuration changes.
+     *
+     * Example:
+     * 2000 ms period -> 5000 ms period
+     *
+     * The new 5000 ms interval begins
+     * from zero.
+     */
+    g_tasks[task_index].elapsed_ms = 0;
 }
 
 
@@ -261,9 +277,9 @@ int uthome_runtime_update_device(
     int index = find_device(id);
 
     /*
-     * Check:
-     * - existing device
-     * - valid new configuration
+     * Validate:
+     * - device exists
+     * - new configuration is valid
      * - ID cannot change during update
      */
     if (index < 0 ||
@@ -336,6 +352,77 @@ int uthome_runtime_get_status(
     }
 
     *status = g_status[index];
+
+    return 0;
+}
+
+
+/*
+ * Advance the simulated runtime clock.
+ *
+ * For every running task:
+ * - accumulate elapsed time
+ * - determine how many periods expired
+ * - increase run_count accordingly
+ */
+int uthome_runtime_tick(uint32_t elapsed_ms)
+{
+    for (size_t i = 0;
+         i < UTHOME_RUNTIME_MAX_DEVICE_TASKS;
+         ++i) {
+
+        /*
+         * Ignore unused task slots.
+         */
+        if (!g_tasks[i].in_use) {
+            continue;
+        }
+
+        /*
+         * period_ms == 0 means this task
+         * currently has no periodic schedule.
+         */
+        if (g_tasks[i].period_ms == 0) {
+            continue;
+        }
+
+        /*
+         * Use 64-bit arithmetic here so the
+         * addition does not overflow uint32_t
+         * before the division takes place.
+         */
+        uint64_t total_elapsed =
+            (uint64_t)g_tasks[i].elapsed_ms +
+            elapsed_ms;
+
+        /*
+         * Determine how many full periods
+         * have passed.
+         */
+        uint32_t executions =
+            (uint32_t)(
+                total_elapsed /
+                g_tasks[i].period_ms
+            );
+
+        /*
+         * Keep the remaining partial period.
+         */
+        g_tasks[i].elapsed_ms =
+            (uint32_t)(
+                total_elapsed %
+                g_tasks[i].period_ms
+            );
+
+        if (executions > 0) {
+
+            size_t device_index =
+                g_tasks[i].device_index;
+
+            g_status[device_index].run_count +=
+                executions;
+        }
+    }
 
     return 0;
 }

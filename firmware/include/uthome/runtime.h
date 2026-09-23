@@ -52,5 +52,12 @@ int uthome_runtime_get_status(
 );
 
 size_t uthome_runtime_device_count(void);
+/*
+ * Advance the simulated runtime clock.
+ *
+ * Running devices become due according
+ * to their configured period_ms.
+ */
+int uthome_runtime_tick(uint32_t elapsed_ms);
 
 #endif

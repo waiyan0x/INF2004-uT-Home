@@ -104,6 +104,51 @@ int main(void)
 
     /*
      * TEST 4:
+     * Timer with a 2000 ms period.
+     *
+     * After only 1000 ms, the task
+     * should not be due yet.
+     */
+    assert(
+        uthome_runtime_tick(1000) == 0
+    );
+
+    assert(
+        uthome_runtime_get_status(
+            "environment_sensor",
+            &status
+        ) == 0
+    );
+
+    assert(
+        status.run_count == 0
+    );
+
+
+    /*
+     * Another 1000 ms means a total
+     * of 2000 ms has passed.
+     *
+     * The task should now be due once.
+     */
+    assert(
+        uthome_runtime_tick(1000) == 0
+    );
+
+    assert(
+        uthome_runtime_get_status(
+            "environment_sensor",
+            &status
+        ) == 0
+    );
+
+    assert(
+        status.run_count == 1
+    );
+
+
+    /*
+     * TEST 5:
      * Update the running device.
      *
      * Change its period from
@@ -136,7 +181,50 @@ int main(void)
 
 
     /*
-     * TEST 5:
+     * TEST 6:
+     * Verify the new 5000 ms period.
+     *
+     * 4999 ms is not enough to
+     * trigger another execution.
+     */
+    assert(
+        uthome_runtime_tick(4999) == 0
+    );
+
+    assert(
+        uthome_runtime_get_status(
+            "environment_sensor",
+            &status
+        ) == 0
+    );
+
+    assert(
+        status.run_count == 1
+    );
+
+
+    /*
+     * One additional millisecond
+     * completes the 5000 ms period.
+     */
+    assert(
+        uthome_runtime_tick(1) == 0
+    );
+
+    assert(
+        uthome_runtime_get_status(
+            "environment_sensor",
+            &status
+        ) == 0
+    );
+
+    assert(
+        status.run_count == 2
+    );
+
+
+    /*
+     * TEST 7:
      * Disable the running device.
      *
      * This should stop the device
@@ -165,6 +253,26 @@ int main(void)
 
 
     /*
+     * Once stopped, advancing the clock
+     * should NOT increase run_count.
+     */
+    assert(
+        uthome_runtime_tick(5000) == 0
+    );
+
+    assert(
+        uthome_runtime_get_status(
+            "environment_sensor",
+            &status
+        ) == 0
+    );
+
+    assert(
+        status.run_count == 2
+    );
+
+
+    /*
      * A disabled device must not start.
      */
     assert(
@@ -175,7 +283,7 @@ int main(void)
 
 
     /*
-     * TEST 6:
+     * TEST 8:
      * Fill every available runtime
      * task slot.
      */
@@ -213,7 +321,7 @@ int main(void)
 
 
     /*
-     * TEST 7:
+     * TEST 9:
      * Register one additional device.
      *
      * Registration is allowed,
@@ -239,7 +347,7 @@ int main(void)
 
 
     /*
-     * TEST 8:
+     * TEST 10:
      * Stop one existing device.
      *
      * This should release one task slot.
@@ -276,7 +384,7 @@ int main(void)
 
 
     printf(
-        "All runtime tests passed!\n"
+        "All runtime and timer tests passed!\n"
     );
 
     return 0;
