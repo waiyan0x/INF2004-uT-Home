@@ -115,4 +115,37 @@ int uthome_health_check_queue(
     uint32_t *previous_drop_count
 );
 
+/*
+ * Initialise bounded task-watchdog resources.
+ */
+int uthome_health_watchdog_init(void);
+
+
+/*
+ * Register one task for heartbeat monitoring.
+ */
+int uthome_health_watch_task(
+    const char *task_id,
+    uint32_t timeout_ms,
+    uint32_t now_ms
+);
+
+
+/*
+ * Record a heartbeat from a watched task.
+ */
+int uthome_health_task_heartbeat(
+    const char *task_id,
+    uint32_t now_ms
+);
+
+
+/*
+ * Check all watched tasks for missed
+ * heartbeat deadlines.
+ */
+int uthome_health_check_heartbeats(
+    uint32_t now_ms
+);
+
 #endif
