@@ -613,10 +613,6 @@ int uthome_runtime_update_device(
 
         } else {
 
-            /*
-             * Update priority, stack size,
-             * period and timer state.
-             */
             update_task_configuration(
                 (size_t)index
             );
@@ -728,10 +724,6 @@ int uthome_runtime_rollback_device(
 
         } else {
 
-            /*
-             * Existing task must be returned
-             * to the old configuration.
-             */
             update_task_configuration(
                 (size_t)index
             );
@@ -758,6 +750,141 @@ int uthome_runtime_rollback_device(
      * Rollback point has been consumed.
      */
     g_has_rollback[index] = false;
+
+
+    return 0;
+}
+
+
+/*
+ * Record one runtime failure.
+ *
+ * The device enters ERROR state and
+ * failure_count is increased.
+ */
+int uthome_runtime_record_failure(
+    const char *id)
+{
+    int index =
+        find_device(id);
+
+
+    /*
+     * Device does not exist.
+     */
+    if (index < 0) {
+        return -1;
+    }
+
+
+    /*
+     * Count runtime failure.
+     */
+    ++g_status[index].failure_count;
+
+
+    /*
+     * Move device into ERROR state.
+     */
+    g_status[index].state =
+        UTHOME_RUNTIME_ERROR;
+
+
+    return 0;
+}
+
+
+/*
+ * Restart a device after a runtime failure.
+ *
+ * The old task resource is released,
+ * a fresh task is prepared and the
+ * device returns to RUNNING.
+ */
+int uthome_runtime_restart_device(
+    const char *id)
+{
+    int index =
+        find_device(id);
+
+
+    /*
+     * Device does not exist.
+     */
+    if (index < 0) {
+        return -1;
+    }
+
+
+    /*
+     * Disabled devices cannot restart.
+     */
+    if (!g_devices[index].enabled) {
+        return -2;
+    }
+
+
+    /*
+     * Release the old task resource.
+     */
+    release_task(
+        (size_t)index
+    );
+
+
+    g_prepared[index] = false;
+
+
+    /*
+     * Prepare a fresh bounded task slot.
+     */
+    int result =
+        uthome_runtime_prepare_device(
+            id
+        );
+
+
+    if (result != 0) {
+
+        g_status[index].state =
+            UTHOME_RUNTIME_ERROR;
+
+        return -3;
+    }
+
+
+    /*
+     * Start the newly prepared task.
+     */
+    result =
+        uthome_runtime_start_device(
+            id
+        );
+
+
+    if (result != 0) {
+
+        /*
+         * Clean up the newly prepared
+         * resource if starting fails.
+         */
+        release_task(
+            (size_t)index
+        );
+
+        g_prepared[index] = false;
+
+        g_status[index].state =
+            UTHOME_RUNTIME_ERROR;
+
+        return -3;
+    }
+
+
+    /*
+     * Successful restart.
+     */
+    ++g_status[index].restart_count;
 
 
     return 0;
@@ -811,7 +938,7 @@ int uthome_runtime_tick(
 
 
         /*
-         * A prepared-but-not-started task
+         * Prepared-but-not-running tasks
          * must not execute.
          */
         if (g_status[device_index].state !=
