@@ -1,4 +1,5 @@
 #include "uthome/runtime.h"
+#include "runtime_port.h"
 
 #include <string.h>
 
@@ -51,13 +52,22 @@ static bool
 /*
  * One bounded runtime task resource.
  *
- * This is currently host/platform independent.
- * Later it can hold the actual μT-Kernel task ID.
+ * The runtime itself remains independent
+ * from the actual operating system/kernel.
+ *
+ * port_task_id represents the task in
+ * whichever runtime port is selected.
  */
 typedef struct {
     bool in_use;
 
     size_t device_index;
+
+    /*
+     * ID of the task owned by the
+     * selected runtime-port backend.
+     */
+    uthome_runtime_port_task_id_t port_task_id;
 
     uint8_t priority;
     size_t stack_size_bytes;
@@ -72,7 +82,7 @@ typedef struct {
 
 
 /*
- * Fixed task-resource pool.
+ * Fixed bounded task-resource pool.
  */
 static runtime_task_slot_t
     g_tasks[UTHOME_RUNTIME_MAX_DEVICE_TASKS];
@@ -130,14 +140,25 @@ static int find_task_for_device(
 /*
  * Allocate one bounded task slot.
  *
- * A device must never own more than
- * one task slot.
+ * At this stage this still allocates the
+ * runtime-side task slot only.
+ *
+ * The next integration step will make
+ * this function call:
+ *
+ * uthome_runtime_port_task_prepare()
+ */
+/*
+ * Allocate one bounded runtime task slot
+ * and prepare the corresponding task in
+ * the selected runtime-port backend.
  */
 static int allocate_task(
     size_t device_index)
 {
     /*
-     * Prevent duplicate task allocation.
+     * A device must never own more
+     * than one task slot.
      */
     int existing_task =
         find_task_for_device(
@@ -155,21 +176,83 @@ static int allocate_task(
 
         if (!g_tasks[i].in_use) {
 
+            /*
+             * Build the platform-independent
+             * task configuration that will be
+             * passed to the runtime port.
+             */
+            uthome_runtime_port_task_config_t
+                port_config = {
+
+                    .priority =
+                        g_devices[
+                            device_index
+                        ].priority,
+
+                    .stack_size_bytes =
+                        g_devices[
+                            device_index
+                        ].stack_size_bytes,
+
+                    .period_ms =
+                        g_devices[
+                            device_index
+                        ].period_ms
+                };
+
+
+            uthome_runtime_port_task_id_t
+                port_task_id;
+
+
+            /*
+             * Ask the selected runtime backend
+             * to reserve/create the task.
+             *
+             * On Mac this currently calls the
+             * host simulation.
+             *
+             * Later the μT-Kernel backend will
+             * implement the same operation.
+             */
+            if (uthome_runtime_port_task_prepare(
+                    &port_config,
+                    &port_task_id
+                ) != 0) {
+
+                return -1;
+            }
+
+
+            /*
+             * Port preparation succeeded.
+             * Initialise our runtime-side slot.
+             */
+            memset(
+                &g_tasks[i],
+                0,
+                sizeof(g_tasks[i])
+            );
+
+
             g_tasks[i].in_use = true;
 
             g_tasks[i].device_index =
                 device_index;
 
+            g_tasks[i].port_task_id =
+                port_task_id;
+
+
             g_tasks[i].priority =
-                g_devices[device_index].priority;
+                port_config.priority;
 
             g_tasks[i].stack_size_bytes =
-                g_devices[device_index]
-                    .stack_size_bytes;
+                port_config.stack_size_bytes;
 
             g_tasks[i].period_ms =
-                g_devices[device_index]
-                    .period_ms;
+                port_config.period_ms;
+
 
             g_tasks[i].elapsed_ms = 0;
 
@@ -179,9 +262,11 @@ static int allocate_task(
             g_tasks[i]
                 .has_execution_time = false;
 
+
             return (int)i;
         }
     }
+
 
     return -1;
 }
@@ -189,6 +274,17 @@ static int allocate_task(
 
 /*
  * Release the task owned by a device.
+ *
+ * The next integration stage will also
+ * invoke the runtime-port stop/release
+ * operation here.
+ */
+/*
+ * Release the task owned by a device.
+ *
+ * Both the runtime-side slot and the
+ * selected runtime-port resource are
+ * released.
  */
 static void release_task(
     size_t device_index)
@@ -202,11 +298,33 @@ static void release_task(
         return;
     }
 
+
+    /*
+     * Release the platform/backend task.
+     */
+    if (g_tasks[task_index].port_task_id >= 0) {
+
+        (void)uthome_runtime_port_task_stop(
+            g_tasks[task_index].port_task_id
+        );
+    }
+
+
+    /*
+     * Release the local runtime slot.
+     */
     memset(
         &g_tasks[task_index],
         0,
         sizeof(g_tasks[task_index])
     );
+
+
+    /*
+     * Keep an obvious invalid value for
+     * the unused port task identifier.
+     */
+    g_tasks[task_index].port_task_id = -1;
 }
 
 
@@ -214,7 +332,12 @@ static void release_task(
  * Update an existing task slot using
  * the latest device configuration.
  */
-static void update_task_configuration(
+/*
+ * Update an existing task slot and propagate
+ * the new configuration to the selected
+ * runtime-port backend.
+ */
+static int update_task_configuration(
     size_t device_index)
 {
     int task_index =
@@ -223,38 +346,80 @@ static void update_task_configuration(
         );
 
     if (task_index < 0) {
-        return;
+        return -1;
     }
 
 
-    g_tasks[task_index].priority =
-        g_devices[device_index].priority;
+    /*
+     * Build the new configuration for
+     * the backend task.
+     */
+    uthome_runtime_port_task_config_t
+        port_config = {
 
-    g_tasks[task_index].stack_size_bytes =
-        g_devices[device_index]
-            .stack_size_bytes;
+            .priority =
+                g_devices[
+                    device_index
+                ].priority,
 
-    g_tasks[task_index].period_ms =
-        g_devices[device_index]
-            .period_ms;
+            .stack_size_bytes =
+                g_devices[
+                    device_index
+                ].stack_size_bytes,
+
+            .period_ms =
+                g_devices[
+                    device_index
+                ].period_ms
+        };
 
 
     /*
-     * Restart timer tracking after
-     * reconfiguration.
+     * Reconfigure the selected backend.
+     */
+    if (uthome_runtime_port_task_reconfigure(
+            g_tasks[task_index].port_task_id,
+            &port_config
+        ) != 0) {
+
+        return -1;
+    }
+
+
+    /*
+     * Backend update succeeded.
+     *
+     * Update the runtime-side copy too.
+     */
+    g_tasks[task_index].priority =
+        port_config.priority;
+
+    g_tasks[task_index].stack_size_bytes =
+        port_config.stack_size_bytes;
+
+    g_tasks[task_index].period_ms =
+        port_config.period_ms;
+
+
+    /*
+     * Restart timer tracking because
+     * the period may have changed.
      */
     g_tasks[task_index].elapsed_ms = 0;
 
 
     /*
-     * Reset jitter reference because
-     * the period may have changed.
+     * Reset jitter reference after
+     * reconfiguration.
      */
     g_tasks[task_index]
         .last_execution_time_ms = 0;
 
     g_tasks[task_index]
         .has_execution_time = false;
+
+
+    return 0;
 }
 
 
@@ -329,7 +494,26 @@ int uthome_runtime_init(void)
         sizeof(g_has_rollback)
     );
 
+
+    /*
+     * Initialise the selected runtime-port
+     * backend.
+     *
+     * Currently:
+     *
+     * runtime_port_host.c
+     *
+     * Later:
+     *
+     * runtime_port_utkernel.c
+     */
+    if (uthome_runtime_port_init() != 0) {
+        return -1;
+    }
+
+
     g_device_count = 0;
+
 
     return 0;
 }
@@ -369,6 +553,7 @@ int uthome_runtime_register_device(
 
 
     ++g_device_count;
+
 
     return 0;
 }
@@ -415,6 +600,7 @@ int uthome_runtime_prepare_device(
 
     g_prepared[index] = true;
 
+
     g_status[index].state =
         UTHOME_RUNTIME_READY;
 
@@ -426,6 +612,9 @@ int uthome_runtime_prepare_device(
 /*
  * Start a registered device.
  */
+/*
+ * Start a registered device.
+ */
 int uthome_runtime_start_device(
     const char *id)
 {
@@ -433,11 +622,17 @@ int uthome_runtime_start_device(
         find_device(id);
 
 
+    /*
+     * Device does not exist.
+     */
     if (index < 0) {
         return -1;
     }
 
 
+    /*
+     * Disabled devices cannot start.
+     */
     if (!g_devices[index].enabled) {
         return -2;
     }
@@ -454,10 +649,9 @@ int uthome_runtime_start_device(
 
 
     /*
-     * Automatically prepare if needed.
-     *
-     * IMPORTANT:
-     * Do not allocate another task here.
+     * Automatically prepare the device
+     * if it does not already own a
+     * task resource.
      */
     if (!g_prepared[index]) {
 
@@ -472,6 +666,53 @@ int uthome_runtime_start_device(
     }
 
 
+    /*
+     * Locate the runtime-side task slot.
+     */
+    int task_index =
+        find_task_for_device(
+            (size_t)index
+        );
+
+
+    if (task_index < 0) {
+
+        g_status[index].state =
+            UTHOME_RUNTIME_ERROR;
+
+        ++g_status[index]
+            .failure_count;
+
+        return -3;
+    }
+
+
+    /*
+     * Start the task through the selected
+     * runtime-port backend.
+     *
+     * Currently this calls the host port.
+     *
+     * Later the μT-Kernel port will
+     * implement this same operation.
+     */
+    if (uthome_runtime_port_task_start(
+            g_tasks[task_index].port_task_id
+        ) != 0) {
+
+        g_status[index].state =
+            UTHOME_RUNTIME_ERROR;
+
+        ++g_status[index]
+            .failure_count;
+
+        return -3;
+    }
+
+
+    /*
+     * Backend task started successfully.
+     */
     g_status[index].state =
         UTHOME_RUNTIME_RUNNING;
 
@@ -613,10 +854,19 @@ int uthome_runtime_update_device(
 
         } else {
 
-            update_task_configuration(
-                (size_t)index
-            );
-        }
+    if (update_task_configuration(
+            (size_t)index
+        ) != 0) {
+
+        g_status[index].state =
+            UTHOME_RUNTIME_ERROR;
+
+        ++g_status[index]
+            .failure_count;
+
+        return -2;
+    }
+}
 
 
         g_prepared[index] = true;
@@ -636,6 +886,7 @@ int uthome_runtime_update_device(
      * Registered but not prepared.
      */
     g_prepared[index] = false;
+
 
     g_status[index].state =
         UTHOME_RUNTIME_READY;
@@ -680,7 +931,7 @@ int uthome_runtime_rollback_device(
 
 
     /*
-     * Restore old configuration first.
+     * Restore old configuration.
      */
     g_devices[index] =
         g_rollback_devices[index];
@@ -688,6 +939,7 @@ int uthome_runtime_rollback_device(
 
     uthome_runtime_state_t restored_state =
         g_rollback_states[index];
+
 
     bool restored_prepared =
         g_rollback_prepared[index];
@@ -722,13 +974,21 @@ int uthome_runtime_rollback_device(
                 return -3;
             }
 
-        } else {
+       } else {
 
-            update_task_configuration(
-                (size_t)index
-            );
-        }
+    if (update_task_configuration(
+            (size_t)index
+        ) != 0) {
 
+        g_status[index].state =
+            UTHOME_RUNTIME_ERROR;
+
+        ++g_status[index]
+            .failure_count;
+
+        return -3;
+    }
+}
 
         g_prepared[index] = true;
 
@@ -746,9 +1006,6 @@ int uthome_runtime_rollback_device(
         restored_state;
 
 
-    /*
-     * Rollback point has been consumed.
-     */
     g_has_rollback[index] = false;
 
 
@@ -758,9 +1015,6 @@ int uthome_runtime_rollback_device(
 
 /*
  * Record one runtime failure.
- *
- * The device enters ERROR state and
- * failure_count is increased.
  */
 int uthome_runtime_record_failure(
     const char *id)
@@ -769,23 +1023,14 @@ int uthome_runtime_record_failure(
         find_device(id);
 
 
-    /*
-     * Device does not exist.
-     */
     if (index < 0) {
         return -1;
     }
 
 
-    /*
-     * Count runtime failure.
-     */
     ++g_status[index].failure_count;
 
 
-    /*
-     * Move device into ERROR state.
-     */
     g_status[index].state =
         UTHOME_RUNTIME_ERROR;
 
@@ -796,10 +1041,6 @@ int uthome_runtime_record_failure(
 
 /*
  * Restart a device after a runtime failure.
- *
- * The old task resource is released,
- * a fresh task is prepared and the
- * device returns to RUNNING.
  */
 int uthome_runtime_restart_device(
     const char *id)
@@ -808,17 +1049,11 @@ int uthome_runtime_restart_device(
         find_device(id);
 
 
-    /*
-     * Device does not exist.
-     */
     if (index < 0) {
         return -1;
     }
 
 
-    /*
-     * Disabled devices cannot restart.
-     */
     if (!g_devices[index].enabled) {
         return -2;
     }
@@ -836,7 +1071,7 @@ int uthome_runtime_restart_device(
 
 
     /*
-     * Prepare a fresh bounded task slot.
+     * Prepare a fresh task.
      */
     int result =
         uthome_runtime_prepare_device(
@@ -854,7 +1089,7 @@ int uthome_runtime_restart_device(
 
 
     /*
-     * Start the newly prepared task.
+     * Start the freshly prepared task.
      */
     result =
         uthome_runtime_start_device(
@@ -864,10 +1099,6 @@ int uthome_runtime_restart_device(
 
     if (result != 0) {
 
-        /*
-         * Clean up the newly prepared
-         * resource if starting fails.
-         */
         release_task(
             (size_t)index
         );
@@ -881,9 +1112,6 @@ int uthome_runtime_restart_device(
     }
 
 
-    /*
-     * Successful restart.
-     */
     ++g_status[index].restart_count;
 
 
@@ -1121,15 +1349,19 @@ int uthome_runtime_get_resources(
     snapshot->registered_devices =
         g_device_count;
 
+
     snapshot->active_tasks =
         active_tasks;
+
 
     snapshot->max_tasks =
         UTHOME_RUNTIME_MAX_DEVICE_TASKS;
 
+
     snapshot->free_task_slots =
         UTHOME_RUNTIME_MAX_DEVICE_TASKS -
         active_tasks;
+
 
     snapshot->configured_stack_bytes =
         configured_stack_bytes;
