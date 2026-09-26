@@ -1,0 +1,28 @@
+/* The circular tinted glyph that fronts every tile and pill.
+   Colour comes from --tint / --tint-bg, which [data-accent] sets. */
+
+.icon-badge {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: var(--radius-full);
+  background: hsl(var(--tint-bg, var(--idle-bg)));
+  color: hsl(var(--tint, var(--idle)));
+}
+
+.icon-badge svg { width: 19px; height: 19px; }
+.icon-badge--sm { width: 28px; height: 28px; }
+.icon-badge--sm svg { width: 15px; height: 15px; }
+
+[data-accent='amber']  { --tint: var(--c-amber);  --tint-bg: var(--c-amber-bg); }
+[data-accent='orange'] { --tint: var(--c-orange); --tint-bg: var(--c-orange-bg); }
+[data-accent='rose']   { --tint: var(--c-rose);   --tint-bg: var(--c-rose-bg); }
+[data-accent='violet'] { --tint: var(--c-violet); --tint-bg: var(--c-violet-bg); }
+[data-accent='indigo'] { --tint: var(--c-indigo); --tint-bg: var(--c-indigo-bg); }
+[data-accent='blue']   { --tint: var(--c-blue);   --tint-bg: var(--c-blue-bg); }
+[data-accent='cyan']   { --tint: var(--c-cyan);   --tint-bg: var(--c-cyan-bg); }
+[data-accent='teal']   { --tint: var(--c-teal);   --tint-bg: var(--c-teal-bg); }
+[data-accent='green']  { --tint: var(--c-green);  --tint-bg: var(--c-green-bg); }
+[data-accent='slate']  { --tint: var(--c-slate);  --tint-bg: var(--c-slate-bg); }

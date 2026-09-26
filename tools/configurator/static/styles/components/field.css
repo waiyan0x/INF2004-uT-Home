@@ -1,0 +1,42 @@
+.field { display: grid; gap: 6px; }
+
+.field__label { font-size: var(--text-base); font-weight: 500; line-height: 1; }
+
+.hint { margin: 0; font-size: var(--text-sm); color: hsl(var(--muted-foreground)); }
+
+.input,
+.textarea {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid hsl(var(--input));
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font: inherit;
+  padding: var(--space-2) var(--space-3);
+}
+
+.input { height: var(--control-height); font-size: var(--text-sm); }
+
+.textarea {
+  min-height: 320px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+}
+
+.input:focus-visible,
+.textarea:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.field-row { display: grid; gap: var(--space-3); grid-template-columns: 1fr; }
+
+@media (min-width: 560px) {
+  .field-row { grid-template-columns: 1fr 1fr; }
+}

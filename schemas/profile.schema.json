@@ -1,0 +1,199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ut-home.local/schemas/profile.schema.json",
+  "title": "μT-Home node profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "node_id", "board", "interfaces", "devices"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "node_id": {"$ref": "#/$defs/id"},
+    "board": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform", "variant"],
+      "properties": {
+        "platform": {"const": "esp32-s3"},
+        "variant": {"type": "string", "minLength": 1, "maxLength": 64}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["health_report_interval_ms", "max_device_tasks", "queue_depth", "configuration_source", "rollback_on_error"],
+      "properties": {
+        "health_report_interval_ms": {"type": "integer", "minimum": 100, "maximum": 60000},
+        "max_device_tasks": {"type": "integer", "minimum": 1, "maximum": 16},
+        "queue_depth": {"type": "integer", "minimum": 1, "maximum": 64},
+        "configuration_source": {"enum": ["usb_serial", "filesystem", "embedded_default"]},
+        "rollback_on_error": {"type": "boolean"}
+      }
+    },
+    "interfaces": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {"$ref": "#/$defs/interface"}
+    },
+    "queues": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "item_type", "depth", "overflow_policy"],
+        "properties": {
+          "id": {"$ref": "#/$defs/id"},
+          "item_type": {"$ref": "#/$defs/id"},
+          "depth": {"type": "integer", "minimum": 1, "maximum": 64},
+          "overflow_policy": {"enum": ["drop_oldest", "drop_newest", "reject"]}
+        }
+      }
+    },
+    "devices": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {"$ref": "#/$defs/device"}
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$"
+    },
+    "gpio": {"type": "integer", "minimum": 0, "maximum": 48},
+    "interface": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "protocol", "port", "sda_gpio", "scl_gpio", "clock_hz"],
+          "properties": {
+            "id": {"$ref": "#/$defs/id"},
+            "protocol": {"const": "i2c"},
+            "port": {"type": "integer", "minimum": 0, "maximum": 1},
+            "sda_gpio": {"$ref": "#/$defs/gpio"},
+            "scl_gpio": {"$ref": "#/$defs/gpio"},
+            "clock_hz": {"type": "integer", "minimum": 10000, "maximum": 1000000}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "protocol", "host", "mosi_gpio", "sclk_gpio", "clock_hz"],
+          "properties": {
+            "id": {"$ref": "#/$defs/id"},
+            "protocol": {"const": "spi"},
+            "host": {"type": "integer", "minimum": 1, "maximum": 3},
+            "mosi_gpio": {"$ref": "#/$defs/gpio"},
+            "miso_gpio": {"$ref": "#/$defs/gpio"},
+            "sclk_gpio": {"$ref": "#/$defs/gpio"},
+            "clock_hz": {"type": "integer", "minimum": 10000, "maximum": 40000000}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "protocol", "port", "rx_gpio", "tx_gpio", "baud_rate", "data_bits", "parity", "stop_bits", "rx_buffer_bytes"],
+          "properties": {
+            "id": {"$ref": "#/$defs/id"},
+            "protocol": {"const": "uart"},
+            "port": {"type": "integer", "minimum": 0, "maximum": 2},
+            "rx_gpio": {"$ref": "#/$defs/gpio"},
+            "tx_gpio": {"$ref": "#/$defs/gpio"},
+            "baud_rate": {"type": "integer", "minimum": 1200, "maximum": 3000000},
+            "data_bits": {"enum": [5, 6, 7, 8]},
+            "parity": {"enum": ["none", "even", "odd"]},
+            "stop_bits": {"enum": [1, 2]},
+            "rx_buffer_bytes": {"type": "integer", "minimum": 32, "maximum": 8192}
+          }
+        }
+      ]
+    },
+    "device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["device_id", "driver", "enabled", "interface"],
+      "properties": {
+        "device_id": {"$ref": "#/$defs/id"},
+        "driver": {"enum": ["bmp388", "ssd1306_spi", "hlk_ld2450", "hc_sr04"]},
+        "enabled": {"type": "boolean"},
+        "interface": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["ref"],
+              "properties": {
+                "ref": {"$ref": "#/$defs/id"},
+                "address": {"type": "string", "pattern": "^0x[0-9A-Fa-f]{2}$"},
+                "cs_gpio": {"$ref": "#/$defs/gpio"},
+                "dc_gpio": {"$ref": "#/$defs/gpio"},
+                "reset_gpio": {"$ref": "#/$defs/gpio"}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["protocol", "trigger_gpio", "echo_gpio", "echo_voltage_divider_required"],
+              "properties": {
+                "protocol": {"const": "gpio"},
+                "trigger_gpio": {"$ref": "#/$defs/gpio"},
+                "echo_gpio": {"$ref": "#/$defs/gpio"},
+                "echo_voltage_divider_required": {"type": "boolean"}
+              }
+            }
+          ]
+        },
+        "display": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width_px", "height_px"],
+          "properties": {
+            "width_px": {"type": "integer", "minimum": 1, "maximum": 1024},
+            "height_px": {"type": "integer", "minimum": 1, "maximum": 1024}
+          }
+        },
+        "behaviour": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["profile", "operation"],
+          "anyOf": [
+            {"required": ["timeout_ms"]},
+            {"required": ["timeout_us"]}
+          ],
+          "properties": {
+            "profile": {"enum": ["periodic_sensor", "queue_display", "stream_sensor"]},
+            "operation": {"enum": ["read", "render", "read_frames", "measure_distance"]},
+            "interval_ms": {"type": "integer", "minimum": 10, "maximum": 3600000},
+            "refresh_interval_ms": {"type": "integer", "minimum": 10, "maximum": 60000},
+            "timeout_ms": {"type": "integer", "minimum": 1, "maximum": 60000},
+            "timeout_us": {"type": "integer", "minimum": 1, "maximum": 1000000},
+            "destination": {"$ref": "#/$defs/id"},
+            "sources": {"type": "array", "items": {"$ref": "#/$defs/id"}, "maxItems": 32},
+            "frame": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["header_hex", "footer_hex", "size_bytes", "report_rate_hz"],
+              "properties": {
+                "header_hex": {"type": "string", "pattern": "^[0-9A-Fa-f]+$"},
+                "footer_hex": {"type": "string", "pattern": "^[0-9A-Fa-f]+$"},
+                "size_bytes": {"type": "integer", "minimum": 1, "maximum": 4096},
+                "report_rate_hz": {"type": "integer", "minimum": 1, "maximum": 1000}
+              }
+            }
+          }
+        },
+        "task": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "priority", "stack_size_bytes"],
+          "properties": {
+            "name": {"$ref": "#/$defs/id"},
+            "priority": {"type": "integer", "minimum": 1, "maximum": 31},
+            "stack_size_bytes": {"type": "integer", "minimum": 1024, "maximum": 32768}
+          }
+        }
+      }
+    }
+  }
+}

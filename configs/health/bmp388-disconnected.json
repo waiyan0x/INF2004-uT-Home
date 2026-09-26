@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0.0",
+  "node_id": "prototype-node-01",
+  "overall": "degraded",
+  "uptime_ms": 141000,
+  "configuration_state": "active",
+  "tasks": [
+    {"name": "bmp388_reader", "state": "fault"},
+    {"name": "oled_renderer", "state": "running"},
+    {"name": "ld2450_reader", "state": "running"},
+    {"name": "hc_sr04_reader", "state": "running"}
+  ],
+  "queues": [
+    {"id": "telemetry.environment", "used": 0, "depth": 8},
+    {"id": "presence.targets", "used": 1, "depth": 8},
+    {"id": "distance.front", "used": 1, "depth": 8},
+    {"id": "system.health", "used": 1, "depth": 8}
+  ],
+  "devices": [
+    {"device_id": "environment_sensor", "state": "fault", "error": "I2C timeout reading BMP388"},
+    {"device_id": "oled_status", "state": "ready", "error": null},
+    {"device_id": "presence_sensor", "state": "ready", "error": null},
+    {"device_id": "distance_sensor", "state": "ready", "error": null}
+  ],
+  "counters": [
+    {"name": "configuration_reloads", "value": 1},
+    {"name": "device_errors", "value": 1}
+  ],
+  "readings": [
+    {"device_id": "presence_sensor", "metric": "presence", "value": 1, "unit": "targets"},
+    {"device_id": "distance_sensor", "metric": "distance", "value": 78.2, "unit": "cm"}
+  ]
+}

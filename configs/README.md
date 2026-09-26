@@ -10,8 +10,11 @@ firmware image.
 - `nodes/first-prototype.json` is the runtime profile loaded by the prototype.
 - `scenarios/first-prototype.json` describes the end-to-end demonstration and
   the observable results used by integration tests.
+- `recommendations/` contains structured inputs for the bounded profile generator.
+- `health/` contains healthy and fault snapshots for the monitoring view; these
+  are sample data, not measurements from attached hardware.
 - `invalid/` contains profiles that a validator must reject. They document
-  required semantic checks before the validator is implemented.
+  required semantic checks enforced by the host validator.
 
 All JSON files use UTF-8, two-space indentation, and a `schema_version`. Device
 IDs, interface IDs, task names, and queue names must be unique within a node.
