@@ -48,6 +48,18 @@ class WebAppTests(unittest.TestCase):
             self.request("/api/candidate", profile)
         self.assertEqual(422, context.exception.code)
 
+    def test_structured_recommendation_generates_valid_profile(self):
+        recommendation = json.loads((ROOT / "configs/recommendations/first-prototype.json").read_text())
+        _, profile = self.request("/api/generate", recommendation)
+        self.assertEqual("prototype-node-01", profile["node_id"])
+        _, validation = self.request("/api/validate", profile)
+        self.assertTrue(validation["valid"])
+
+    def test_health_api_accepts_imported_snapshot(self):
+        snapshot = json.loads((ROOT / "configs/health/first-prototype.json").read_text())
+        _, normalised = self.request("/api/health", snapshot)
+        self.assertEqual("healthy", normalised["overall"])
+
 
 if __name__ == "__main__":
     unittest.main()

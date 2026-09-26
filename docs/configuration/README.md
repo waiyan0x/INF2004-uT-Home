@@ -28,6 +28,7 @@ mkdir -p build
 python3 -m tools.configurator generate configs/recommendations/first-prototype.json --output build/candidate.json
 python3 -m tools.configurator approve build/candidate.json --reviewer member5 --output build/approved.json
 python3 -m tools.configurator bundle build/approved.json --output build/deployment
+python3 -m tools.configurator verify-bundle build/deployment
 ```
 
 To include the current model without modifying its bytes, add `--model PATH` to the bundle command. To test the transfer boundary locally:
@@ -36,13 +37,15 @@ To include the current model without modifying its bytes, add `--model PATH` to 
 python3 -m tools.configurator deploy-filesystem build/deployment build/mock-device
 ```
 
+Bundle and transfer destinations must be new paths. This prevents an existing directory from being overwritten. Bundle format `1.1.0` records the approved profile digest, file sizes, and SHA-256 hashes.
+
 Run the review and monitoring UI:
 
 ```bash
 python3 -m tools.configurator serve --host 127.0.0.1 --port 8080
 ```
 
-Then open `http://127.0.0.1:8080`. The UI can load/import, edit, validate, approve/reject, export a reviewed artifact, and display a bounded health snapshot. It intentionally does not activate hardware.
+Then open `http://127.0.0.1:8080`. The UI can load a profile, import structured recommendations, edit and validate, approve/reject, and export a reviewed artifact. Editing after validation clears the pending decision. The Health section labels its built-in data as a sample and also accepts an imported JSON snapshot. Try `configs/health/bmp388-disconnected.json` to see a fault state. The UI does not activate hardware.
 
 Generate host-side integration evidence:
 
@@ -51,6 +54,19 @@ python3 -m tools.integration_runner configs/scenarios/first-prototype.json --out
 ```
 
 The report distinguishes passed host checks from manual hardware steps.
+
+After a real hardware rehearsal, supply an evidence file with the scenario ID and observations for the steps actually performed:
+
+```json
+{
+  "scenario_id": "first-prototype",
+  "steps": [
+    {"id": "boot", "status": "passed", "observed": "Four tasks appeared in the captured serial log."}
+  ]
+}
+```
+
+Run with `--evidence PATH`; add `--require-complete` when every demonstration step must have a passed observation. Reported outcomes are labeled `manual_reported_passed` or `manual_reported_failed`, so they cannot be mistaken for automated host checks. The example observation above is a format illustration, not recorded project evidence.
 
 ## Exit codes
 
@@ -66,6 +82,11 @@ The report distinguishes passed host checks from manual hardware steps.
 - `INTERFACE_NOT_FOUND`, `QUEUE_NOT_FOUND`: broken reference.
 - `VOLTAGE_DIVIDER_REQUIRED`: HC-SR04 Echo safety declaration is absent.
 - `TASK_LIMIT_EXCEEDED`, `STACK_BUDGET_EXCEEDED`, `QUEUE_BUDGET_EXCEEDED`, `BUFFER_BUDGET_EXCEEDED`: configured resource budget is exceeded.
+- `RUNTIME_DEVICE_CAPACITY_EXCEEDED`: more than eight devices are declared, including disabled devices.
+- `RUNTIME_TASK_CAPACITY_EXCEEDED`: more than four devices are enabled, or the requested task limit exceeds four.
+- `RUNTIME_DEVICE_ID_TOO_LONG`: a device ID cannot fit in the runtime's 32-byte ID buffer, including its terminating byte.
+
+The three runtime limits above mirror `firmware/include/uthome/runtime.h`. A test compares them with the C header so a future runtime change cannot silently leave the host validator behind.
 
 ## Hardware integration contract
 
@@ -78,3 +99,5 @@ Still awaiting agreement with the firmware owners:
 - acknowledgement containing profile digest and activation state;
 - live telemetry framing for health snapshots;
 - model format, compatibility identifier, and activation rules.
+
+The team has proposed `sirfonzie/esp32c3-mtk3` as a possible μT-Kernel starting point. Its documented target is ESP32-C3, while this prototype profile targets ESP32-S3. It has not been integrated or verified for the S3 board; the firmware team must settle the S3 port and build process before a device transfer adapter can be implemented.

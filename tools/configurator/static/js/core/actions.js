@@ -33,6 +33,27 @@ export async function importProfile(file) {
   loadProfileText(await file.text(), `Imported ${file.name}`);
 }
 
+export async function importRecommendation(file) {
+  try {
+    const recommendation = JSON.parse(await file.text());
+    const profile = await api.generate(recommendation);
+    loadProfileText(JSON.stringify(profile, null, 2), `Generated from ${file.name}`);
+  } catch (error) {
+    store.set({ validation: { tone: 'bad', title: 'Recommendation rejected', text: error.message, errors: [] } });
+  }
+}
+
+export function markProfileEdited() {
+  const parsed = editor.parse();
+  store.set({
+    profile: parsed.ok ? parsed.profile : null,
+    candidate: null,
+    reviewed: null,
+    review: null,
+    validation: { tone: 'neutral', title: 'Profile changed', text: 'Validate the edited profile before review.', errors: [] },
+  });
+}
+
 export function formatProfile() {
   const parsed = editor.parse();
   if (!parsed.ok) {
@@ -43,6 +64,7 @@ export function formatProfile() {
 }
 
 export async function validateProfile() {
+  const sourceText = editor.getText();
   const parsed = editor.parse();
   if (!parsed.ok) {
     store.set({
@@ -58,6 +80,7 @@ export async function validateProfile() {
   store.set({ profile: parsed.profile, candidate: null, reviewed: null, review: null });
 
   const result = await api.validate(parsed.profile);
+  if (editor.getText() !== sourceText) return;
   if (!result.valid) {
     store.set({
       validation: {
@@ -70,8 +93,10 @@ export async function validateProfile() {
     return;
   }
 
+  const candidate = await api.createCandidate(parsed.profile);
+  if (editor.getText() !== sourceText) return;
   store.set({
-    candidate: await api.createCandidate(parsed.profile),
+    candidate,
     validation: {
       tone: 'ok',
       title: 'Profile is valid',
@@ -94,9 +119,11 @@ export async function decide(decision, reviewer, note) {
   try {
     reviewed = await api.review(decision, { candidate, reviewer: reviewer.trim(), note });
   } catch (error) {
+    if (store.get().candidate !== candidate) return;
     store.set({ review: { tone: 'bad', title: 'Decision was not recorded', text: error.message } });
     return;
   }
+  if (store.get().candidate !== candidate) return;
 
   const approved = reviewed.status === 'approved';
   store.set({
@@ -125,8 +152,17 @@ export function exportReviewed() {
 
 export async function loadHealthSnapshot() {
   try {
-    store.set({ health: await api.normaliseHealth(await api.sampleHealth()) });
+    store.set({ health: await api.normaliseHealth(await api.sampleHealth()), healthSource: 'sample fixture', healthError: null });
   } catch (error) {
-    store.set({ health: null, healthError: error.message });
+    store.set({ health: null, healthSource: null, healthError: error.message });
+  }
+}
+
+export async function importHealthSnapshot(file) {
+  try {
+    const snapshot = JSON.parse(await file.text());
+    store.set({ health: await api.normaliseHealth(snapshot), healthSource: `imported ${file.name}`, healthError: null });
+  } catch (error) {
+    store.set({ health: null, healthSource: null, healthError: error.message });
   }
 }

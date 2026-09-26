@@ -30,6 +30,8 @@ export const store = createStore({
   candidate: null,    // validated candidate awaiting a decision
   reviewed: null,     // candidate after approve or reject
   health: null,       // normalised health snapshot, when loaded
+  healthSource: null, // sample fixture or an imported file
+  healthError: null,
   validation: null,   // { tone, title, text, errors }
   review: null,       // { tone, title, text }
 });

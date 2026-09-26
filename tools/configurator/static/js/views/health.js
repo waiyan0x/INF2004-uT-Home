@@ -5,16 +5,21 @@ import { tile } from '../ui/tile.js';
 import { alert } from '../ui/alert.js';
 import { empty } from '../ui/empty.js';
 import { formatUptime } from '../core/format.js';
-import { loadHealthSnapshot } from '../core/actions.js';
+import { importHealthSnapshot, loadHealthSnapshot } from '../core/actions.js';
 
 const OVERALL_TONE = { healthy: 'ok', degraded: 'warn', fault: 'bad', offline: 'warn' };
 
 export default {
   mount() {
     $('#loadHealth').addEventListener('click', loadHealthSnapshot);
+    $('#healthFileInput').addEventListener('change', async (event) => {
+      const [file] = event.target.files;
+      if (file) await importHealthSnapshot(file);
+      event.target.value = '';
+    });
   },
 
-  render({ health, healthError }) {
+  render({ health, healthError, healthSource }) {
     if (!health) {
       render($('#healthStatus'), healthError
         ? alert({ tone: 'bad', title: 'Snapshot rejected', text: healthError })
@@ -22,7 +27,7 @@ export default {
       render($('#health'), empty({
         icon: 'activity',
         title: 'No snapshot loaded',
-        text: 'Load a bounded health fixture to inspect node state.',
+        text: 'Load the sample fixture or import a bounded health snapshot.',
       }));
       return;
     }
@@ -36,7 +41,7 @@ export default {
     render($('#healthStatus'), alert({
       tone,
       title: `Node reports ${health.overall}`,
-      text: `Snapshot for ${health.node_id}; configuration ${health.configuration_state}.`,
+      text: `${healthSource ?? 'snapshot'} for ${health.node_id}; configuration ${health.configuration_state}.`,
     }));
 
     render($('#health'), [

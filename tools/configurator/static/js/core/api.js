@@ -22,6 +22,7 @@ async function request(path, body) {
 export const api = {
   sampleProfile: () => request('/api/sample/profile'),
   sampleHealth: () => request('/api/sample/health'),
+  generate: (recommendation) => request('/api/generate', recommendation),
   validate: (profile) => request('/api/validate', profile),
   createCandidate: (profile) => request('/api/candidate', profile),
   review: (decision, payload) => request(`/api/${decision}`, payload),

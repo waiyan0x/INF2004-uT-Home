@@ -83,6 +83,11 @@
               Import JSON
               <input id="fileInput" type="file" accept="application/json">
             </label>
+            <label class="btn btn--file">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-layers"/></svg>
+              Import recommendation
+              <input id="recommendationInput" type="file" accept="application/json">
+            </label>
             <button class="btn" id="format" type="button">Format</button>
             <button class="btn btn--primary" id="validate" type="button">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-shield"/></svg>
@@ -181,8 +186,13 @@
           <div class="section__meta">
             <button class="btn" id="loadHealth" type="button">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-refresh"/></svg>
-              Refresh snapshot
+              Load sample snapshot
             </button>
+            <label class="btn btn--file">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-upload"/></svg>
+              Import health JSON
+              <input id="healthFileInput" type="file" accept="application/json">
+            </label>
           </div>
         </div>
         <div id="healthStatus"></div>

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from .generator import generate_profile
 from .monitoring import MonitoringError, validate_snapshot
 from .validator import ROOT, validate_profile
 from .workflow import WorkflowError, new_candidate, review_candidate
@@ -78,6 +79,10 @@ class ReviewHandler(BaseHTTPRequestHandler):
             body: Any = json.loads(self.rfile.read(length))
             if self.path == "/api/validate":
                 self._json(200, validate_profile(body).to_dict())
+            elif self.path == "/api/generate":
+                if not isinstance(body, dict):
+                    raise ValueError("Recommendation must be a JSON object.")
+                self._json(200, generate_profile(body))
             elif self.path == "/api/candidate":
                 result = validate_profile(body)
                 if not result.valid:
