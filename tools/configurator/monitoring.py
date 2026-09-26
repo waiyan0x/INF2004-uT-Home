@@ -22,6 +22,14 @@ MAX_READINGS = 32
 MAX_UNIT_LENGTH = 8
 
 
+def _bounded_text(value: object, maximum: int) -> bool:
+    return isinstance(value, str) and 0 < len(value) <= maximum
+
+
+def _bounded_integer(value: object, minimum: int, maximum: int) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and minimum <= value <= maximum
+
+
 def validate_snapshot(snapshot: object) -> dict[str, Any]:
     """Return a normalized bounded snapshot or raise MonitoringError."""
     if not isinstance(snapshot, dict):
@@ -32,20 +40,42 @@ def validate_snapshot(snapshot: object) -> dict[str, Any]:
         raise MonitoringError(f"Missing snapshot fields: {sorted(missing)}.")
     if snapshot["schema_version"] != "1.0.0" or snapshot["overall"] not in ALLOWED_OVERALL:
         raise MonitoringError("Unsupported snapshot version or overall state.")
-    if not isinstance(snapshot["node_id"], str) or len(snapshot["node_id"]) > 64:
+    if not _bounded_text(snapshot["node_id"], 64):
         raise MonitoringError("Invalid node_id.")
-    if not isinstance(snapshot["uptime_ms"], int) or not 0 <= snapshot["uptime_ms"] <= 2**63 - 1:
+    if not _bounded_text(snapshot["configuration_state"], 32):
+        raise MonitoringError("Invalid configuration_state.")
+    if not _bounded_integer(snapshot["uptime_ms"], 0, 2**63 - 1):
         raise MonitoringError("Invalid uptime_ms.")
     limits = {"tasks": 32, "queues": 64, "devices": 32, "counters": 128, "readings": MAX_READINGS}
     for field, maximum in limits.items():
         if not isinstance(snapshot[field], list) or len(snapshot[field]) > maximum:
             raise MonitoringError(f"{field} must be a list with at most {maximum} entries.")
     for index, task in enumerate(snapshot["tasks"]):
-        if not isinstance(task, dict) or task.get("state") not in ALLOWED_TASK or not isinstance(task.get("name"), str):
+        if not isinstance(task, dict) or task.get("state") not in ALLOWED_TASK or not _bounded_text(task.get("name"), 64):
             raise MonitoringError(f"Invalid task at index {index}.")
-    for field in ("queues", "devices", "counters"):
-        if not all(isinstance(item, dict) for item in snapshot[field]):
-            raise MonitoringError(f"Every {field} entry must be an object.")
+    for index, queue in enumerate(snapshot["queues"]):
+        if (
+            not isinstance(queue, dict)
+            or not _bounded_text(queue.get("id"), 64)
+            or not _bounded_integer(queue.get("depth"), 1, 256)
+            or not _bounded_integer(queue.get("used"), 0, queue.get("depth") if isinstance(queue.get("depth"), int) else 0)
+        ):
+            raise MonitoringError(f"Invalid queue at index {index}.")
+    for index, device in enumerate(snapshot["devices"]):
+        if (
+            not isinstance(device, dict)
+            or not _bounded_text(device.get("device_id"), 64)
+            or not _bounded_text(device.get("state"), 32)
+            or (device.get("error") is not None and not _bounded_text(device.get("error"), 512))
+        ):
+            raise MonitoringError(f"Invalid device at index {index}.")
+    for index, counter in enumerate(snapshot["counters"]):
+        if (
+            not isinstance(counter, dict)
+            or not _bounded_text(counter.get("name"), 64)
+            or not _bounded_integer(counter.get("value"), 0, 2**63 - 1)
+        ):
+            raise MonitoringError(f"Invalid counter at index {index}.")
     for index, reading in enumerate(snapshot["readings"]):
         _validate_reading(reading, index)
     return dict(snapshot)

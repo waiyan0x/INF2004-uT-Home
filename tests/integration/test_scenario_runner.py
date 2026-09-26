@@ -30,6 +30,31 @@ class ScenarioRunnerTests(unittest.TestCase):
             self.assertFalse(report["host_checks_passed"])
             self.assertEqual("profile:bad", report["results"][0]["step"])
 
+    def test_manual_evidence_is_reported_separately_from_host_checks(self):
+        with tempfile.TemporaryDirectory() as temp:
+            evidence_path = Path(temp) / "evidence.json"
+            evidence_path.write_text(json.dumps({
+                "scenario_id": "first-prototype",
+                "steps": [{"id": "boot", "status": "passed", "observed": "Four tasks appeared in the serial log."}],
+            }))
+            report = run_scenario(ROOT / "configs/scenarios/first-prototype.json", evidence_path)
+            self.assertTrue(report["host_checks_passed"])
+            self.assertFalse(report["demonstration_complete"])
+            self.assertEqual("manual_reported_passed", report["results"][1]["status"])
+            self.assertEqual("manual_pending", report["results"][2]["status"])
+
+    def test_evidence_for_unknown_step_is_rejected(self):
+        from tools.integration_runner import ScenarioError
+
+        with tempfile.TemporaryDirectory() as temp:
+            evidence_path = Path(temp) / "evidence.json"
+            evidence_path.write_text(json.dumps({
+                "scenario_id": "first-prototype",
+                "steps": [{"id": "not-a-step", "status": "passed", "observed": "x"}],
+            }))
+            with self.assertRaises(ScenarioError):
+                run_scenario(ROOT / "configs/scenarios/first-prototype.json", evidence_path)
+
 
 if __name__ == "__main__":
     unittest.main()
