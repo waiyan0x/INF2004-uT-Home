@@ -40,6 +40,9 @@ class CliTests(unittest.TestCase):
             packaged = self.run_cli("bundle", approved, "--output", bundle)
             self.assertEqual(0, packaged.returncode, packaged.stderr)
             self.assertTrue((bundle / "manifest.json").is_file())
+            verified = self.run_cli("verify-bundle", bundle)
+            self.assertEqual(0, verified.returncode, verified.stderr)
+            self.assertEqual("1.1.0", json.loads(verified.stdout)["bundle_format_version"])
 
     def test_invalid_candidate_cannot_be_approved(self):
         with tempfile.TemporaryDirectory() as temp:

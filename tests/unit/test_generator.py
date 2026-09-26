@@ -43,6 +43,11 @@ class GeneratorTests(unittest.TestCase):
         with self.assertRaises(GenerationError):
             generate_profile(self.recommendation)
 
+    def test_recommendation_must_be_an_object(self):
+        for value in (None, [], "template", 3):
+            with self.subTest(value=value), self.assertRaises(GenerationError):
+                generate_profile(value)
+
     def test_unknown_or_out_of_range_parameter_is_rejected(self):
         self.recommendation["parameters"]["raw_json"] = {}
         with self.assertRaises(GenerationError):

@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from .bundle import BundleError, create_bundle, deploy_to_filesystem
+from .bundle import BundleError, create_bundle, deploy_to_filesystem, verify_bundle
 from .generator import GenerationError, generate_profile
 from .validator import validate_profile
 from .workflow import WorkflowError, new_candidate, review_candidate
@@ -45,6 +45,8 @@ def build_parser() -> argparse.ArgumentParser:
     bundle.add_argument("approved")
     bundle.add_argument("--output", required=True)
     bundle.add_argument("--model")
+    verify = commands.add_parser("verify-bundle")
+    verify.add_argument("bundle")
     deploy = commands.add_parser("deploy-filesystem")
     deploy.add_argument("bundle")
     deploy.add_argument("destination")
@@ -70,6 +72,8 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "bundle":
             manifest = create_bundle(_read(args.approved), Path(args.output), Path(args.model) if args.model else None)
             print(json.dumps(manifest, indent=2))
+        elif args.command == "verify-bundle":
+            print(json.dumps(verify_bundle(Path(args.bundle)), indent=2))
         elif args.command == "deploy-filesystem":
             print(json.dumps(deploy_to_filesystem(Path(args.bundle), Path(args.destination)), indent=2))
         elif args.command == "serve":

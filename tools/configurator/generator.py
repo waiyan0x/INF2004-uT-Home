@@ -25,6 +25,8 @@ def _bounded_integer(value: object, name: str, minimum: int, maximum: int) -> in
 
 def generate_profile(recommendation: dict[str, Any], template_path: Path = TEMPLATE_PATH) -> dict[str, Any]:
     """Create a deterministic profile using only the registered prototype template."""
+    if not isinstance(recommendation, dict):
+        raise GenerationError("A recommendation must be a JSON object.")
     allowed_root = {"schema_version", "template", "node_id", "parameters", "metadata"}
     unknown_root = set(recommendation) - allowed_root
     if unknown_root:
