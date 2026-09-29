@@ -83,3 +83,7 @@ UI tests cover review tokens, state/capability changes, uncertain deployment,
 HTTP boundaries and schema support. Run `python -B -m unittest discover -s tests/target -v` as one line. The combined checkpoint has 151 passing host tests
 across all four suites, plus an offline Edge smoke check; none constitutes
 physical PWM, peripheral, USB or power-loss qualification.
+
+The preserved Member 5 toolkit has its own Python suites and schema-1.0 fixtures.
+Run `python -B -m unittest discover -s tests -v` from `legacy/member5`; this checks
+the legacy host workflow, not C3 deployment. CI runs it separately.

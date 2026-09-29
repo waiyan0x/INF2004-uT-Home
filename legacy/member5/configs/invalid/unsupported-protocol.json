@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "node_id": "invalid-unsupported-protocol",
+  "board": {
+    "platform": "esp32-s3",
+    "variant": "esp32-s3-supermini"
+  },
+  "interfaces": [
+    {
+      "id": "can0",
+      "protocol": "can",
+      "rx_gpio": 16,
+      "tx_gpio": 17
+    }
+  ],
+  "devices": [
+    {
+      "device_id": "unsupported_device",
+      "driver": "generic_can",
+      "enabled": true,
+      "interface": {
+        "ref": "can0"
+      }
+    }
+  ]
+}

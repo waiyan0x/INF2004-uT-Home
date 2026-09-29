@@ -1,0 +1,14 @@
+/* Queue occupancy, drawn like the Lovelace brightness bar. */
+.meter {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: hsl(var(--muted));
+  overflow: hidden;
+}
+
+.meter__fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: hsl(var(--tint, var(--ok)));
+  transition: width 200ms ease;
+}

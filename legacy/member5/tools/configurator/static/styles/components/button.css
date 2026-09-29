@@ -1,0 +1,53 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--control-height);
+  padding-inline: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.btn svg { width: 15px; height: 15px; flex: none; }
+.btn:hover:not(:disabled) { background: hsl(var(--accent)); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn--primary {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+.btn--primary:hover:not(:disabled) { background: hsl(var(--primary) / 0.9); }
+
+.btn--approve {
+  background: hsl(var(--ok));
+  color: hsl(0 0% 100%);
+  border-color: hsl(var(--ok));
+}
+
+.btn--approve:hover:not(:disabled) { background: hsl(var(--ok) / 0.9); }
+
+.btn--danger { border-color: hsl(var(--bad) / 0.4); color: hsl(var(--bad)); }
+.btn--danger:hover:not(:disabled) { background: hsl(var(--bad-bg)); }
+
+.btn--icon { width: var(--control-height); padding-inline: 0; }
+
+/* a file input dressed as a button */
+.btn--file { position: relative; }
+.btn--file input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  cursor: pointer;
+}

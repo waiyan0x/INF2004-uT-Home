@@ -76,3 +76,9 @@ Run `python -B -m tools.configurator` from this directory and open
 Schema 2.1 adds [typed sensor-to-PWM rules](firmware/src/automation/README.md),
 retaining 2.0 sensor/display profiles. Hardware acceptance with the team and AI
 remain the final two checkpoints in [the implementation plan](INTEGRATION_PLAN.md).
+
+## Earlier prototype toolkit
+
+Member 5's schema-1.0/S3 toolkit, including recommendation and health imports,
+is preserved with its examples and tests under [legacy/member5](legacy/member5/README.md).
+Use the root C3 configurator and acceptance guide for the current board.

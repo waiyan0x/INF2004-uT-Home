@@ -1,0 +1,9 @@
+.card {
+  padding: var(--space-4);
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  box-shadow: var(--shadow);
+}
+
+.card > * + * { margin-top: var(--space-3); }

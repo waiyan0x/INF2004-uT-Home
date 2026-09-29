@@ -1,0 +1,30 @@
+.alert {
+  display: flex;
+  gap: 11px;
+  padding: 13px 15px;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--tint, var(--border)) / 0.35);
+  background: hsl(var(--tint-bg, var(--muted)));
+}
+
+.alert > svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  margin-top: 1px;
+  color: hsl(var(--tint, var(--muted-foreground)));
+}
+
+.alert__title {
+  font-weight: 500;
+  font-size: var(--text-base);
+  color: hsl(var(--tint, var(--foreground)));
+}
+
+.alert__text { font-size: var(--text-sm); color: hsl(var(--tint, var(--muted-foreground)) / 0.9); }
+
+/* the neutral variant keeps the page's own foreground, not a hue */
+.alert--neutral { --tint-bg: var(--muted); }
+.alert--neutral .alert__title { color: hsl(var(--foreground)); }
+.alert--neutral .alert__text { color: hsl(var(--muted-foreground)); }
+.alert--neutral > svg { color: hsl(var(--muted-foreground)); }

@@ -33,3 +33,7 @@ jobs:
         run: python -m unittest discover -s tests/runtime -p 'test_*.py' -v
       - name: Run target failure and build-tool tests
         run: python -m unittest discover -s tests/target -p 'test_*.py' -v
+
+      - name: Verify preserved Member 5 toolkit
+        working-directory: legacy/member5
+        run: python -B -m unittest discover -s tests -p 'test_*.py' -v

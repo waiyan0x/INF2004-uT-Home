@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0.0",
+  "node_id": "invalid-pin-conflict",
+  "board": {
+    "platform": "esp32-s3",
+    "variant": "esp32-s3-supermini"
+  },
+  "interfaces": [
+    {
+      "id": "i2c0",
+      "protocol": "i2c",
+      "port": 0,
+      "sda_gpio": 8,
+      "scl_gpio": 9,
+      "clock_hz": 400000
+    }
+  ],
+  "devices": [
+    {
+      "device_id": "environment_sensor",
+      "driver": "bmp388",
+      "enabled": true,
+      "interface": {
+        "ref": "i2c0",
+        "address": "0x76"
+      }
+    },
+    {
+      "device_id": "distance_sensor",
+      "driver": "hc_sr04",
+      "enabled": true,
+      "interface": {
+        "protocol": "gpio",
+        "trigger_gpio": 8,
+        "echo_gpio": 5,
+        "echo_voltage_divider_required": true
+      }
+    }
+  ]
+}

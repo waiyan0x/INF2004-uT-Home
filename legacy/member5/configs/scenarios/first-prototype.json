@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "scenario_id": "first-prototype",
+  "description": "Run the BMP388, OLED, HLK-LD2450, and HC-SR04 concurrently on one ESP32-S3 node.",
+  "nodes": [
+    {
+      "node_id": "prototype-node-01",
+      "profile": "../nodes/first-prototype.json"
+    }
+  ],
+  "demonstration_steps": [
+    {
+      "id": "boot",
+      "action": "load_profile",
+      "expected": "The profile is accepted and four device tasks enter the running state."
+    },
+    {
+      "id": "environment",
+      "action": "observe_environment_readings",
+      "expected": "BMP388 pressure and temperature samples reach the OLED every 2000 ms."
+    },
+    {
+      "id": "presence",
+      "action": "move_in_front_of_ld2450",
+      "expected": "Parsed target data appears on the OLED and monitoring output."
+    },
+    {
+      "id": "distance",
+      "action": "move_an_object_in_front_of_hc_sr04",
+      "expected": "Distance measurements update every 1000 ms."
+    },
+    {
+      "id": "reconfigure",
+      "action": "change_environment_interval_ms_to_5000",
+      "expected": "The BMP388 sampling period changes without rebuilding the firmware."
+    },
+    {
+      "id": "disable_device",
+      "action": "set_distance_sensor_enabled_to_false",
+      "expected": "The HC-SR04 task stops without affecting the other device tasks."
+    },
+    {
+      "id": "fault",
+      "action": "disconnect_bmp388",
+      "expected": "An I²C timeout is published to system health and shown on the OLED."
+    }
+  ]
+}

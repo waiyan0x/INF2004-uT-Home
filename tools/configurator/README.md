@@ -83,3 +83,10 @@ changed board/capabilities, uncertain replies, HTTP boundaries and rule support.
 Existing C/Python fixtures verify capability framing and observation isolation.
 Headless Edge checks exercise review, rules, edits, errors and responsive layout.
 See [fresh evidence](../../firmware/qualification/esp32c3-ui-rules-20260928.json).
+
+## Preserved incoming toolkit
+
+The later `system-integration` changes merged into upstream PR #1 are retained
+under [legacy/member5](../../legacy/member5/README.md), including recommendation
+imports, health snapshots and bundle verification. That schema-1.0/S3 workflow
+is separate from this schema-2.0/2.1 C3 USB application.
