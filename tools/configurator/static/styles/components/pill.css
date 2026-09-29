@@ -1,0 +1,23 @@
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-7);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding-inline: 6px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  box-shadow: var(--shadow);
+  font-size: var(--text-base);
+  font-weight: 500;
+}
+
+.pill__label { color: hsl(var(--muted-foreground)); font-weight: 400; }

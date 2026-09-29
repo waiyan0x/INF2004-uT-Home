@@ -9,7 +9,19 @@ from .workflow import Workflow
 
 STATIC = Path(__file__).with_name("static")
 ASSETS = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
-          "/style.css": ("style.css", "text/css")}
+          "/style.css": ("style.css", "text/css"), "/dashboard.js": ("dashboard.js", "text/javascript")}
+# Explicit assets only: restoring the design must not expose the source tree.
+STYLE_FILES = (
+    "main.css", "tokens.css", "fonts.css", "base.css",
+    "layout/appbar.css", "layout/page.css",
+    "components/alert.css", "components/badge.css", "components/button.css",
+    "components/card.css", "components/empty.css", "components/error-list.css",
+    "components/field.css", "components/icon-badge.css", "components/meter.css",
+    "components/pill.css", "components/tile.css",
+)
+ASSETS.update({"/styles/" + name: ("styles/" + name, "text/css") for name in STYLE_FILES})
+ASSETS.update({"/assets/fonts/" + name: ("assets/fonts/" + name, "font/woff2")
+               for name in ("roboto-latin.woff2", "roboto-greek.woff2")})
 
 class Handler(BaseHTTPRequestHandler):
     def setup(self):
@@ -24,7 +36,7 @@ class Handler(BaseHTTPRequestHandler):
     def send(self, status, data, kind="application/json"):
         content = json.dumps(data, allow_nan=False).encode() if kind == "application/json" else data
         self.send_response(status)
-        self.send_header("Content-Type", kind + "; charset=utf-8")
+        self.send_header("Content-Type", kind if kind == "font/woff2" else kind + "; charset=utf-8")
         self.send_header("Content-Length", str(len(content)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
@@ -37,7 +49,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send(403, {"error": "Local origin required"})
         elif self.path in ASSETS:
             name, kind = ASSETS[self.path]
-            content = (STATIC / name).read_bytes().replace(b"{{TOKEN}}", self.server.token.encode())
+            content = (STATIC / name).read_bytes()
+            if kind == "text/html":
+                content = content.replace(b"{{TOKEN}}", self.server.token.encode())
             self.send(200, content, kind)
         elif self.path == "/api/catalogue":
             self.send(200, {"examples": {p.stem: load_document(p) for p in sorted((ROOT / "configs/nodes").glob("*.json"))},

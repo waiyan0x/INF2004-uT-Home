@@ -1,28 +1,127 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="session" content="{{TOKEN}}"><title>uT-Home · Local configurator</title>
-<link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
-<body><header><div><span class="eyebrow">CONFIGURABLE EMBEDDED PLATFORM</span><h1>uT-Home</h1></div>
-<span id="connection" class="badge">Offline review</span></header>
-<main><section class="connection"><label>Serial port <input id="port" value="COM8" maxlength="128"></label>
-<button id="connect">Connect</button><button id="disconnect" disabled>Disconnect</button>
-<p id="capabilities">Load and review a profile offline, or connect to read the firmware’s capabilities.</p></section>
-<p id="notice" role="status" aria-live="polite">Hardware acceptance and AI are scheduled for later.</p>
-<div class="columns"><section><div class="section-title"><h2>1. Configure</h2><button id="download">Download JSON</button></div>
-<label>Example profile <select id="examples"><option value="">Select a profile</option></select></label>
-<label class="upload">Or open your profile <input id="file" type="file" accept=".json,application/json"></label>
-<label for="profile">Node configuration</label><textarea id="profile" spellcheck="false" rows="23" aria-describedby="editor-help"></textarea>
-<p id="editor-help">Change device instances, wiring, periods and routes here. Review the complete profile before deployment.</p>
-<details><summary>Device catalogue</summary><pre id="catalogue"></pre></details></section>
-<section><h2>2. Review &amp; deploy</h2><button id="review" class="primary">Validate and review</button>
-<p id="review-summary">A review shows the requested resources and configured devices.</p>
-<div id="plan"></div><div id="rule-plan"></div><button id="apply" class="primary" disabled>Apply &amp; save reviewed profile</button>
-<p class="muted">Applying replaces the active configuration and attempts to save it for reboot. Deployment success and saved state are reported separately.</p>
-<h3>Board state</h3><p id="state">Connect to read active and saved revisions.</p>
-<div class="actions"><button id="query" disabled>Refresh state</button><button id="save" disabled>Retry saving active profile</button>
-<button id="recover" disabled>Stop / recover live plan</button></div>
-<p class="muted">Recovery clears the live plan after checked cleanup. The saved profile remains available for the next boot.</p></section></div>
-<section><div class="section-title"><h2>3. Live observations</h2><span id="timestamp" class="muted">Waiting for connection</span></div>
-<p id="health">Monitoring starts after an explicit connection.</p><div id="readings" aria-live="polite"></div>
-<details><summary>Queue and runtime details</summary><pre id="diagnostics"></pre></details></section>
-</main><footer>One firmware · configured hardware · measured capabilities</footer></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="session" content="{{TOKEN}}">
+  <title>μT-Home Configuration Desk</title>
+  <link rel="preload" href="/assets/fonts/roboto-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!--
+  Icon sprite (Lucide, the set shadcn/ui ships with) plus four bus glyphs drawn
+  for this project. Inlined so the first paint needs no network and no script.
+-->
+<svg class="sprite" aria-hidden="true" focusable="false"><defs>
+  <g id="i-cpu"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/></g>
+  <g id="i-node"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></g>
+  <g id="i-thermometer"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></g>
+  <g id="i-monitor"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></g>
+  <g id="i-radar"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4M19.1 4.9C23 8.8 23 15.1 19.1 19"/><circle cx="12" cy="12" r="2"/></g>
+  <g id="i-ruler"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="M14.5 12.5 12 15M11.5 9.5 9 12M8.5 6.5 6 9M17.5 15.5 15 18"/></g>
+
+  <!-- buses -->
+  <g id="i-i2c"><path d="M3 9h18M3 15h18"/><circle cx="8" cy="9" r="1.6"/><circle cx="16" cy="15" r="1.6"/></g>
+  <g id="i-spi"><path d="M3 7h18M3 12h18M3 17h12"/><circle cx="19" cy="17" r="1.6"/></g>
+  <g id="i-uart"><path d="m7 8-4 4 4 4M17 8l4 4-4 4M10 12h4"/></g>
+  <g id="i-gpio"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></g>
+  <g id="i-route"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></g>
+
+  <!-- measurements -->
+  <g id="i-gauge"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></g>
+  <g id="i-droplet"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></g>
+
+  <!-- workflow -->
+  <g id="i-layers"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></g>
+  <g id="i-activity"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></g>
+  <g id="i-braces"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></g>
+  <g id="i-check"><path d="M21.8 10A10 10 0 1 1 17 3.34"/><path d="m9 11 3 3L22 4"/></g>
+  <g id="i-x"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></g>
+  <g id="i-alert"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></g>
+  <g id="i-info"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></g>
+  <g id="i-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></g>
+  <g id="i-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/></g>
+  <g id="i-shield"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g>
+  <g id="i-clock"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></g>
+  <g id="i-refresh"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></g>
+  <g id="i-clipboard"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></g>
+  <g id="i-package"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12m9-4-9 4-9-4"/></g>
+  <g id="i-theme"><path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4"/><path d="M12 2v2M12 20v2m-7.1-17.1 1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></g>
+</defs></svg>
+
+<header class="appbar">
+  <span class="appbar__mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-cpu"/></svg></span>
+  <h1 class="appbar__title">Configuration Desk</h1>
+  <span class="appbar__node" id="appbarNode">no profile loaded</span>
+  <span class="appbar__spacer"></span>
+  <span class="badge" id="connection">Offline review</span>
+  <button class="btn btn--icon" id="themeToggle" type="button" title="Switch theme" aria-label="Switch theme">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-theme"/></svg>
+  </button>
+</header>
+
+<main class="page">
+  <section class="section connection-section" aria-label="Board connection">
+    <div class="card">
+      <div class="connection-row">
+        <div class="field"><label class="field__label" for="port">Serial port</label><input class="input" id="port" placeholder="/dev/cu.usbmodem… or COM8" maxlength="128"></div>
+        <div class="toolbar"><button class="btn" id="connect">Connect</button><button class="btn" id="disconnect" disabled>Disconnect</button></div>
+      </div>
+      <p class="hint" id="capabilities">Review offline, or explicitly connect to read the firmware’s capabilities.</p>
+    </div>
+  </section>
+  <div class="pills" id="pills" aria-label="Live sensor readings"><p class="hint">No live readings · connect to the application firmware to observe sensors.</p></div>
+  <div class="overview">
+    <div class="overview__column">
+      <section class="section">
+        <div class="section__head" data-accent="slate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-braces"/></svg><h2>Profile</h2><div class="section__meta" id="profileMeta"></div></div>
+        <div class="card">
+          <div class="toolbar">
+            <label class="btn btn--file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-upload"/></svg>Import JSON<input id="file" type="file" accept=".json,application/json"></label>
+            <button class="btn" id="format">Format</button><button class="btn" id="download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-download"/></svg>Download JSON</button>
+            <button class="btn btn--primary" id="review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-shield"/></svg>Validate and review</button>
+          </div>
+          <div class="field"><label class="field__label" for="examples">Example profile</label><select class="input" id="examples"><option value="">Select a profile</option></select></div>
+          <div class="field"><label class="field__label" for="profile">Profile JSON</label><textarea class="textarea" id="profile" spellcheck="false" aria-describedby="editor-help"></textarea></div>
+          <p class="hint" id="editor-help">Change device instances, wiring, periods and routes. Review the complete profile before deployment.</p>
+          <p class="hint" id="profileRuntime"></p>
+          <details><summary>Device catalogue</summary><pre id="catalogue"></pre></details>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section__head" data-accent="green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-shield"/></svg><h2>Validation</h2></div>
+        <div class="alert alert--neutral" id="notice" role="status" aria-live="polite">Load a profile, then validate and review it. No hardware action is automatic.</div>
+      </section>
+      <section class="section">
+        <div class="section__head" data-accent="indigo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-clipboard"/></svg><h2>Review & deploy</h2></div>
+        <div class="card">
+          <p class="hint" id="review-summary">A review shows the requested resources, configured devices and rules.</p>
+          <div class="table-scroll" id="plan"></div><div class="table-scroll" id="rule-plan"></div>
+          <div class="toolbar"><button class="btn btn--primary" id="apply" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Apply & save reviewed profile</button></div>
+          <p class="hint">Applying replaces the active configuration and attempts to save it for reboot. Deployment and saved state are reported separately.</p>
+          <h3>Board state</h3><p class="hint" id="state">Connect to read active and saved revisions.</p>
+          <div class="toolbar"><button class="btn" id="query" disabled>Refresh state</button><button class="btn" id="save" disabled>Retry saving</button><button class="btn btn--danger" id="recover" disabled>Stop / recover</button></div>
+          <p class="hint">Recovery clears the live plan after checked cleanup. Its saved profile remains available for the next boot.</p>
+        </div>
+      </section>
+    </div>
+    <div class="overview__column">
+      <section class="section"><div class="section__head" data-accent="orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-package"/></svg><h2>Devices</h2><div class="section__meta" id="devicesMeta"></div></div><div class="tiles" id="devices"></div></section>
+      <section class="section"><div class="section__head" data-accent="violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-route"/></svg><h2>Interfaces</h2><div class="section__meta" id="interfacesMeta"></div></div><div class="tiles" id="interfaces"></div></section>
+      <section class="section"><div class="section__head" data-accent="amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-layers"/></svg><h2>Queues</h2><div class="section__meta" id="queuesMeta"></div></div><div class="tiles" id="queues"></div></section>
+      <section class="section">
+        <div class="section__head" data-accent="cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-activity"/></svg><h2>Health</h2><div class="section__meta" id="timestamp"></div></div>
+        <div class="alert alert--neutral" id="health" role="status">No live observations. Configured devices are not proof of connected hardware.</div>
+        <div class="tiles health-tiles" id="healthTiles"></div>
+        <details class="card observation-details"><summary>Per-source observations</summary><div class="table-scroll" id="readings" aria-live="polite"></div></details>
+        <details class="card observation-details"><summary>Queue and runtime details</summary><pre id="diagnostics"></pre></details>
+      </section>
+    </div>
+  </div>
+  <p class="footnote">μT-Home · one firmware · configured hardware · localhost only · hardware access requires explicit connection</p>
+</main>
+<script type="module" src="/app.js"></script>
+</body>
+</html>
