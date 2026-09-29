@@ -1,13 +1,16 @@
 # SSD1306 SPI display driver
 
-This is the provisional driver for the prototype's 128×64 SPI OLED. Confirm the
-controller marking on the physical module before implementation; replace this
-driver name if the supplied display uses another controller.
+The software provides caller-owned 128x32/128x64 framebuffers and bounded command
+transport through the reusable SPI interface. Each instance borrows one SPI
+device and exclusive D/C/reset outputs. It contains no pin numbers, tasks, text
+layout or sensor-specific presentation.
 
-The driver receives an SPI interface plus CS, D/C, and reset GPIOs. It exposes
-initialise, clear, render, and fault-screen operations. Display formatting stays
-in the display service so the driver remains a controller-specific pixel and
-command transport.
+`oledinst` binds the driver to the registry and periodic worker. Failed refreshes
+retain dirty pixels; failed cleanup retains ownership. See the
+[integration guide](INTEGRATION.md) for setup, limits, source attribution, manual
+C review and pending acceptance. The [display service](../../src/services/DISPLAY.md)
+now renders cached configured sources directly into the same framebuffer.
 
-SPI timeouts or a missing display publish a health event. Display failure must
-not stop sensor acquisition or serial monitoring.
+Hardware tests are deferred to the final stage. Controller identity and power
+still need confirmation. SPI completion cannot detect an unplugged SSD1306:
+its serial interface has no acknowledgement.

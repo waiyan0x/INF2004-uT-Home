@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-09-28T03:13:06.843400+00:00",
+  "example": "tests/target/runtime_port_board",
+  "board_kit": "iote_esp32c3_mini",
+  "target": "esp32c3",
+  "versions": {
+    "kernel_revision": "ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2",
+    "sdk_revision": "fff9895c82d744c7237be8847347bdd1b07c6643",
+    "compiler": "riscv32-esp-elf-gcc.EXE (crosstool-NG esp-15.2.0_20251204) 15.2.0",
+    "idf_version": "ESP-IDF v6.1",
+    "python": "3.14.2",
+    "cmake": "cmake version 4.0.3",
+    "ninja": "1.12.1"
+  },
+  "build_status": "passed",
+  "board_status": "not_tested",
+  "application_runtime_status": "not_tested",
+  "artifacts": {
+    "build/uthome_runtime_port.bin": {
+      "sha256": "dd51229ef4aa937323abd4334187f22f1b2f79a858890ea039482603ee4abd64",
+      "size_bytes": 160032
+    },
+    "build/uthome_runtime_port.elf": {
+      "sha256": "bda9a978f3d9b46678c7cd72a64bffacd163d17fa376567a618e938c2ddeadb2",
+      "size_bytes": 3966080
+    },
+    "build/bootloader/bootloader.bin": {
+      "sha256": "9c0b2a07125aebd78437af96c619de28c007b70a680b3f379fbd4146c40cabc4",
+      "size_bytes": 21232
+    },
+    "build/partition_table/partition-table.bin": {
+      "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820",
+      "size_bytes": 3072
+    },
+    "build/flasher_args.json": {
+      "sha256": "3d8fa411379da7c602c6163efb550377de6db43de2b55aa679833eaf385dc80f",
+      "size_bytes": 953
+    },
+    "sdkconfig": {
+      "sha256": "5777e6b6eadfa295e608bdf7159481c71d5ac3663b3a1886863e837c762f8b27",
+      "size_bytes": 87251
+    },
+    "build.log": {
+      "sha256": "bea793d619ad63f054c67754e3435049340cbc3bf8dcc31c10edd8dbba866327",
+      "size_bytes": 164709
+    }
+  },
+  "kernel_archive_sha256": "005fe17b935e5c1b597fdd4b6c6434cf3a97a21dc583cce12a588099149a9806",
+  "compatibility_patch": {
+    "name": "0002-esp-idf-6.1-build.patch",
+    "sha256": "ce835addd93fb2f36b5a004971580672702879924566d5271539a59268b4677c"
+  },
+  "project_sources": {
+    "tests/target/runtime_port_board/CMakeLists.txt": {
+      "staged_path": "project/CMakeLists.txt",
+      "sha256": "0b17dd70ac7714290ef98f867bd4785a0daf120fd8eca352ed466e6e4b42f53b"
+    },
+    "tests/target/runtime_port_board/main/CMakeLists.txt": {
+      "staged_path": "project/main/CMakeLists.txt",
+      "sha256": "576fd0d42ed8008eefa946b4d3a9118bc78b32c4899fa9134f4480639a7595f8"
+    },
+    "tests/target/runtime_port_board/main/main.c": {
+      "staged_path": "project/main/main.c",
+      "sha256": "9e43582f14bd336cfc768a90ea13404749aa950fda802fa7929762849f8e2afa"
+    },
+    "firmware/src/runtime/runtime_port_utkernel.c": {
+      "staged_path": "project/runtime/runtime_port_utkernel.c",
+      "sha256": "65670aa02a205a09335006465e4b1aca108fd35c6de5db141bbf3461c604d698"
+    },
+    "firmware/src/runtime/runtime_port.h": {
+      "staged_path": "project/runtime/runtime_port.h",
+      "sha256": "47c59cb2a8915b2c193079ed681084e27a452dd755bb68af845fe22890e90975"
+    },
+    "firmware/src/runtime/runtime_port_worker.h": {
+      "staged_path": "project/runtime/runtime_port_worker.h",
+      "sha256": "183e4fc9f3d66dd00bd5e2fea581be049205bfd38b942c71253a8b15295ed1a5"
+    },
+    "firmware/include/uthome/runtime.h": {
+      "staged_path": "project/include/uthome/runtime.h",
+      "sha256": "bcb1b664eef0ddef0b88773f82f166899a4727508bca1212a4f664c316af7b48"
+    },
+    "firmware/include/uthome/component.h": {
+      "staged_path": "project/include/uthome/component.h",
+      "sha256": "ec4f7e93b96baaa45c2860f65a37a42da899a07ad248f286f1cf8d11257b5b7e"
+    },
+    "firmware/third_party/esp32c3-mtk3/examples/tasks/sdkconfig.defaults": {
+      "staged_path": "project/sdkconfig.defaults",
+      "sha256": "b4581a80d073a58c99f88c6330b8000c94c349e3b6340459f96dd640c344e5d0"
+    }
+  },
+  "command": [
+    "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+    "C:\\Users\\kkak4\\esp\\uthome-c3-sdk-v6.1\\tools\\idf.py",
+    "-C",
+    "C:\\Users\\kkak4\\esp\\uthome-runtime-qualification-20260928-final\\project",
+    "-B",
+    "C:\\Users\\kkak4\\esp\\uthome-runtime-qualification-20260928-final\\build",
+    "-DIDF_TARGET=esp32c3",
+    "-DMTK_BOARD=iote_esp32c3_mini",
+    "-DSDKCONFIG=C:\\Users\\kkak4\\esp\\uthome-runtime-qualification-20260928-final\\sdkconfig",
+    "build"
+  ],
+  "environment_overrides": {
+    "IDF_PATH": "C:/Users/kkak4/esp/uthome-c3-sdk-v6.1",
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONUTF8": "1"
+  },
+  "build_exit_code": 0
+}

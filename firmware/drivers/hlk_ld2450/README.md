@@ -14,3 +14,11 @@ The driver must:
 - report framing, receive-overflow, and timeout counters to system health.
 
 The UART receive path must be bounded and must never wait indefinitely.
+
+## Software implementation
+
+`ldparse` decodes reports, `ld2450` performs bounded UART polling, and `ldinst`
+binds an independent instance to the generic registry/worker and typed queue.
+The reusable transport is `uartio`; the C3 backend wraps native UART1.
+See [binding, source attribution, limitations and manual C review](INTEGRATION.md).
+Hardware acceptance remains deferred.

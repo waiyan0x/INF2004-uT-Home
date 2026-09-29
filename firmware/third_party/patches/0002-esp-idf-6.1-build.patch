@@ -1,0 +1,23 @@
+diff --git a/components/freertos/CMakeLists.txt b/components/freertos/CMakeLists.txt
+--- a/components/freertos/CMakeLists.txt
++++ b/components/freertos/CMakeLists.txt
+@@ -57,6 +57,7 @@
+     SRCS              ${srcs}
+     INCLUDE_DIRS      ${include_dirs}
+     PRIV_INCLUDE_DIRS ${private_include_dirs}
++    PRIV_REQUIRES     esp_hal_systimer
+     LDFRAGMENTS       linker_common.lf linker.lf
+ )
+ 
+diff --git a/components/mtkernel/CMakeLists.txt b/components/mtkernel/CMakeLists.txt
+--- a/components/mtkernel/CMakeLists.txt
++++ b/components/mtkernel/CMakeLists.txt
+@@ -83,7 +83,7 @@
+         "${MTK_ROOT}/kernel/sysdepend"
+         "${MTK_ROOT}/device/include"
+         "${MTK_ROOT}/device/common/drvif"
+-    REQUIRES esp_rom esp_system esp_hw_support hal soc esp_hal_uart esp_hal_timg esp_hal_ana_conv)
++    REQUIRES esp_rom esp_system esp_hw_support hal soc esp_hal_uart esp_hal_timg esp_hal_ana_conv esp_hal_systimer)
+ 
+ target_compile_definitions(${COMPONENT_LIB} PUBLIC
+     ${MTK_BOARD_DEFINE}

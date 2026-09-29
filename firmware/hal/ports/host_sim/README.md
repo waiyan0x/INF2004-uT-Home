@@ -1,8 +1,19 @@
 # Host simulation HAL
 
-The host port supplies deterministic fakes for configuration, time, I²C, SPI,
-UART, and GPIO. Tests can inject samples, partial UART frames, timeouts,
-disconnections, and pin-allocation failures without target hardware.
+`i2cfake.c` implements the I2C/time contract with two register fixtures,
+configurable transfer cost, required delays, disconnects and a selected failing
+transfer. Analytic calibration data allows exact compensation assertions.
+
+It is single-threaded and models no electrical timing or physical accuracy.
+`spifake.c` captures bounded transfers, CS/mode/clock and optional D/C levels.
+It injects attach/detach, line and transfer failures with a common fake clock.
+Its full-duplex echo is a software fixture, not an electrical loopback result.
+UART, GPIO timing and storage fakes remain future integration work.
 
 The fake APIs must implement the same contracts and timeout behavior as the
-ESP32-S3 port.
+ESP32-C3 port.
+
+`uartfake` models independent 512-byte receive/transmit buffers, short writes,
+explicit time, overflow and injected setup/read/flush/cleanup failures. It is
+used with the actual streaming parser, driver and activation adapter; it does
+not simulate native kernel UART interrupts or physical timing.

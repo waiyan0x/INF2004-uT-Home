@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:uthome:descriptor:1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "descriptor_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+    },
+    "descriptor_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "driver_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+    },
+    "protocol": {
+      "enum": [
+        "i2c",
+        "spi",
+        "uart",
+        "gpio"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "instance_schema": {
+      "type": "object"
+    },
+    "bus_schema": {
+      "type": "object"
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "periodic",
+            "stream",
+            "queue_consumer"
+          ]
+        },
+        "period_field": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timeout_field": {
+          "type": "string"
+        },
+        "timeout_unit": {
+          "enum": [
+            "ms",
+            "us"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "period_field",
+        "timeout_field",
+        "timeout_unit"
+      ]
+    },
+    "routing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "output_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "input_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        }
+      },
+      "required": [
+        "output_type",
+        "input_types"
+      ]
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min_stack_bytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 8192
+        },
+        "max_instances": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        }
+      },
+      "required": [
+        "min_stack_bytes",
+        "max_instances"
+      ]
+    },
+    "defaults": {
+      "type": "object"
+    },
+    "provenance": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "maxItems": 16
+    }
+  },
+  "required": [
+    "schema_version",
+    "descriptor_id",
+    "descriptor_version",
+    "driver_id",
+    "protocol",
+    "description",
+    "instance_schema",
+    "bus_schema",
+    "execution",
+    "routing",
+    "resources",
+    "defaults",
+    "provenance"
+  ]
+}

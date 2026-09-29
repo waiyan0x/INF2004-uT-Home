@@ -1,12 +1,9 @@
-# Invalid configuration fixtures
+# Rejected node profiles
 
-These files must never be loaded as active node profiles. They are fixtures for
-schema, configuration-manager, and integration tests.
+These schema 2.0.0 fixtures must fail the shared host validator:
 
-| File | Expected rejection |
-|---|---|
-| `pin-conflict.json` | GPIO 8 is assigned to both I²C SDA and the HC-SR04 trigger. |
-| `unsupported-protocol.json` | `can` is outside the first prototype's supported protocol set. |
+- `pin-conflict.json`: sonar Trigger conflicts with the I2C SDA binding.
+- `unsupported-protocol.json`: declares a CAN interface outside the supported bus contract.
 
-Each fixture should contain only the fault named above so a test can verify the
-specific validation error.
+Run `python -B -m unittest discover -s tests/foundation -v` for these and other
+admission failures. Rejection must precede active configuration changes.

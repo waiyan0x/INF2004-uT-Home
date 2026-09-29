@@ -1,0 +1,28 @@
+{
+  "library": "Bosch BMP3 SensorAPI",
+  "version": "2.0.6",
+  "upstream": "https://github.com/boschsensortec/BMP3_SensorAPI",
+  "license": "BSD-3-Clause; full notices preserved in each source file",
+  "imported_from": "waiyan0x/INF2004-uT-Home",
+  "source_commit": "56f718e825674c70716f52d798e5bf011ebaa9f0",
+  "bmp388_increment": "1c0ab7bf2991ee68e49838a7b541c87104da6aba",
+  "member_author": "jx03-9028 (Jian Xuan)",
+  "vendor_files_modified": false,
+  "files": {
+    "bmp3.c": {
+      "git_blob": "c37e9dd0be6be0eceb4eac5fefbf6aa2f1e6b770",
+      "sha256": "339847299c88b1690f23180bfc27e53bfdc42d519f68b5453b9c0786b7b825ff",
+      "bytes": 99514
+    },
+    "bmp3.h": {
+      "git_blob": "886bd51068fe22c4a111d0e5a5d4f42b51b96a0a",
+      "sha256": "0659639d8c32dace30aca37f55c7ba05d57e0001931913486f1b972fa843215d",
+      "bytes": 19275
+    },
+    "bmp3_defs.h": {
+      "git_blob": "f4b7f0cc2df08e7f134835252fc9572800d58873",
+      "sha256": "9c9507cd45907b36a0f2f0cd5faa4402a2a0503a58123f45fea96dae6e6af51f",
+      "bytes": 28920
+    }
+  }
+}

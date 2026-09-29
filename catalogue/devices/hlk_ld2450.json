@@ -1,0 +1,198 @@
+{
+  "schema_version": "1.0.0",
+  "descriptor_id": "hlk_ld2450",
+  "descriptor_version": "1.0.0",
+  "driver_id": "hlk_ld2450",
+  "protocol": "uart",
+  "description": "Initial reviewed device profile; defaults are example policy, not universal runtime rules.",
+  "instance_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "device_id": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+      },
+      "driver": {
+        "const": "hlk_ld2450"
+      },
+      "descriptor": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "const": "hlk_ld2450"
+          },
+          "version": {
+            "const": "1.0.0"
+          }
+        },
+        "required": [
+          "id",
+          "version"
+        ]
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "interface": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          }
+        },
+        "required": [
+          "ref"
+        ]
+      },
+      "behaviour": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "stream_sensor"
+          },
+          "operation": {
+            "const": "read_frames"
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 200,
+            "maximum": 500
+          },
+          "frame": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "header_hex": {
+                "const": "AAFF0300"
+              },
+              "footer_hex": {
+                "const": "55CC"
+              },
+              "size_bytes": {
+                "const": 30
+              },
+              "report_rate_hz": {
+                "const": 10
+              }
+            },
+            "required": [
+              "header_hex",
+              "footer_hex",
+              "size_bytes",
+              "report_rate_hz"
+            ]
+          },
+          "destination": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          }
+        },
+        "required": [
+          "profile",
+          "operation",
+          "timeout_ms",
+          "frame",
+          "destination"
+        ]
+      },
+      "task": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 31
+          },
+          "stack_size_bytes": {
+            "type": "integer",
+            "minimum": 1024,
+            "maximum": 8192
+          }
+        },
+        "required": [
+          "name",
+          "priority",
+          "stack_size_bytes"
+        ]
+      }
+    },
+    "required": [
+      "device_id",
+      "driver",
+      "descriptor",
+      "enabled",
+      "interface",
+      "behaviour",
+      "task"
+    ]
+  },
+  "bus_schema": {
+    "type": "object",
+    "properties": {
+      "protocol": {
+        "const": "uart"
+      },
+      "baud_rate": {
+        "const": 256000
+      },
+      "data_bits": {
+        "const": 8
+      },
+      "parity": {
+        "const": "none"
+      },
+      "stop_bits": {
+        "const": 1
+      },
+      "rx_buffer_bytes": {
+        "type": "integer",
+        "minimum": 512,
+        "maximum": 65536
+      }
+    }
+  },
+  "execution": {
+    "kind": "stream",
+    "period_field": null,
+    "timeout_field": "timeout_ms",
+    "timeout_unit": "ms"
+  },
+  "routing": {
+    "output_type": "target_report",
+    "input_types": []
+  },
+  "resources": {
+    "min_stack_bytes": 4096,
+    "max_instances": 1
+  },
+  "defaults": {
+    "behaviour": {
+      "profile": "stream_sensor",
+      "operation": "read_frames",
+      "timeout_ms": 250,
+      "frame": {
+        "header_hex": "AAFF0300",
+        "footer_hex": "55CC",
+        "size_bytes": 30,
+        "report_rate_hz": 10
+      },
+      "destination": "presence.targets"
+    },
+    "priority": 8,
+    "stack_size_bytes": 4096
+  },
+  "provenance": [
+    "https://github.com/waiyan0x/INF2004-uT-Home/blob/974eb9c/firmware/drivers/hlk_ld2450/ld2450.c",
+    "https://h.hlktech.com/download/HLK-LD2450-24G/1/HLK%20LD2450%201T2R%E8%BF%90%E5%8A%A8%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B%E8%BF%BD%E8%B8%AA%E6%A8%A1%E7%BB%84%E8%AF%B4%E6%98%8E%E4%B9%A6%20V1.02%20.pdf"
+  ]
+}

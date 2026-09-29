@@ -1,0 +1,131 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-09-28T04:17:12.886460+00:00",
+  "example": "tests/target/runtime_port_board",
+  "board_kit": "iote_esp32c3_mini",
+  "target": "esp32c3",
+  "versions": {
+    "kernel_revision": "ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2",
+    "sdk_revision": "fff9895c82d744c7237be8847347bdd1b07c6643",
+    "compiler": "riscv32-esp-elf-gcc.EXE (crosstool-NG esp-15.2.0_20251204) 15.2.0",
+    "idf_version": "ESP-IDF v6.1",
+    "python": "3.14.2",
+    "cmake": "cmake version 4.0.3",
+    "ninja": "1.12.1"
+  },
+  "build_status": "passed",
+  "board_status": "not_tested",
+  "application_runtime_status": "not_tested",
+  "artifacts": {
+    "build/uthome_runtime_port.bin": {
+      "sha256": "ccfa392798a7042ac8dc41487c1050ff62ee2f6c420a9804c74291f116d4f76c",
+      "size_bytes": 159504
+    },
+    "build/uthome_runtime_port.elf": {
+      "sha256": "cec653e57cfba493080d87919822b7e818c2aed6119d8e75984e5e03831930b0",
+      "size_bytes": 3964784
+    },
+    "build/bootloader/bootloader.bin": {
+      "sha256": "6422a52fef8937ff52af3a29e339138d6bb2645f12fb72c94368059626a3e131",
+      "size_bytes": 21232
+    },
+    "build/partition_table/partition-table.bin": {
+      "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820",
+      "size_bytes": 3072
+    },
+    "build/flasher_args.json": {
+      "sha256": "3d8fa411379da7c602c6163efb550377de6db43de2b55aa679833eaf385dc80f",
+      "size_bytes": 953
+    },
+    "sdkconfig": {
+      "sha256": "5777e6b6eadfa295e608bdf7159481c71d5ac3663b3a1886863e837c762f8b27",
+      "size_bytes": 87251
+    },
+    "build.log": {
+      "sha256": "cfd1c8d8a0b20ef32997402e466c27001fbcd478ef230d868abc0a2b74097cf4",
+      "size_bytes": 160273
+    }
+  },
+  "coding_standard": {
+    "status": "passed",
+    "command": [
+      "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+      "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code\\tools\\c_standard\\check.py",
+      "--root",
+      "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code"
+    ],
+    "output": "C standard gate: 63 files, 0 findings, 0 tool/policy errors."
+  },
+  "kernel_archive_sha256": "005fe17b935e5c1b597fdd4b6c6434cf3a97a21dc583cce12a588099149a9806",
+  "compatibility_patch": {
+    "name": "0002-esp-idf-6.1-build.patch",
+    "sha256": "ce835addd93fb2f36b5a004971580672702879924566d5271539a59268b4677c"
+  },
+  "project_sources": {
+    "tests/target/runtime_port_board/CMakeLists.txt": {
+      "staged_path": "project/CMakeLists.txt",
+      "sha256": "0b17dd70ac7714290ef98f867bd4785a0daf120fd8eca352ed466e6e4b42f53b"
+    },
+    "tests/target/runtime_port_board/main/CMakeLists.txt": {
+      "staged_path": "project/main/CMakeLists.txt",
+      "sha256": "0d92f01757fa0111790eb1e7fd3772702e65ba5b0d5a8fb0c1de8cbc2f204929"
+    },
+    "tests/target/runtime_port_board/main/main.c": {
+      "staged_path": "project/main/main.c",
+      "sha256": "16d36a51e8c9dfb5189d4a4759f8c22f4b8d9d41e9396e7c7c3259d9ec1be750"
+    },
+    "tests/target/runtime_port_board/main/main.h": {
+      "staged_path": "project/main/main.h",
+      "sha256": "8512e8a568fd58aa0f488112036d61eba47f806ae3fff9e8ccaf9ea70146812b"
+    },
+    "firmware/src/runtime/tkport.h": {
+      "staged_path": "project/runtime/tkport.h",
+      "sha256": "2bc5bf5ce310dc7fe5f712331f5ec5f7de477337d3133f39e27ab4547855cd67"
+    },
+    "firmware/src/runtime/tkport.c": {
+      "staged_path": "project/runtime/tkport.c",
+      "sha256": "f37b342d34a00f5d393fdfbb51a5e3e4f170ad95d7e5afb2dad9cbc3c4a383bf"
+    },
+    "firmware/src/runtime/rt_port.h": {
+      "staged_path": "project/runtime/rt_port.h",
+      "sha256": "347d2d3b0791f2b6ad1a682eaa2322e56180cba233407ff5905dfa2c4fd5576f"
+    },
+    "firmware/src/runtime/workport.h": {
+      "staged_path": "project/runtime/workport.h",
+      "sha256": "a40b9fcbc023b8ef5262635b4cb84e3a48328c73668340c915f6962bfe942f21"
+    },
+    "firmware/include/uthome/runtime.h": {
+      "staged_path": "project/include/uthome/runtime.h",
+      "sha256": "efde4bbd6b7987e33a9a275c61aa000d9ec852823c9c09101757bbb8143478aa"
+    },
+    "firmware/include/uthome/component.h": {
+      "staged_path": "project/include/uthome/component.h",
+      "sha256": "1a2476082df3264dfa827114a2e043d4335a108238f2740b509ff311717de847"
+    },
+    "firmware/third_party/esp32c3-mtk3/examples/tasks/sdkconfig.defaults": {
+      "staged_path": "project/sdkconfig.defaults",
+      "sha256": "b4581a80d073a58c99f88c6330b8000c94c349e3b6340459f96dd640c344e5d0"
+    }
+  },
+  "source_manifest_sha256": "b52a608e0cfb55dce1542acab83554fe8ec705465e006e4005be6a59389ae7e9",
+  "command": [
+    "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+    "C:\\Users\\kkak4\\esp\\uthome-c3-sdk-v6.1\\tools\\idf.py",
+    "-C",
+    "C:\\Users\\kkak4\\esp\\uthome-barr-qualification-20260928\\project",
+    "-B",
+    "C:\\Users\\kkak4\\esp\\uthome-barr-qualification-20260928\\build",
+    "-DIDF_TARGET=esp32c3",
+    "-DMTK_BOARD=iote_esp32c3_mini",
+    "-DSDKCONFIG=C:\\Users\\kkak4\\esp\\uthome-barr-qualification-20260928\\sdkconfig",
+    "-DUTHOME_SOURCE_ROOT=C:/SIT/Y2/T1/INF2004 - Embedded Systems Programming/Project/Code",
+    "-DUTHOME_CHECK_PYTHON=C:/Users/kkak4/esp/uthome-c3-tools/python_env/idf6.1_py3.14_env/Scripts/python.exe",
+    "build"
+  ],
+  "environment_overrides": {
+    "IDF_PATH": "C:/Users/kkak4/esp/uthome-c3-sdk-v6.1",
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONUTF8": "1"
+  },
+  "build_exit_code": 0
+}

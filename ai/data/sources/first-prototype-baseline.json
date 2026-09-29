@@ -1,0 +1,251 @@
+{
+  "baseline_version": "1.0.0",
+  "ai_contract_version": "0.2.0",
+  "status": "legacy_prototype_fixture_not_platform_contract",
+  "scope": "Historical baseline 1.0.0 fixture for AI 0.2.0 regression tests; superseded for platform work by PROJECT_BASELINE.md and catalogue/. Do not generate new training data from this fixture.",
+  "toolchain": {
+    "kernel_repository": "https://github.com/sirfonzie/esp32c3-mtk3.git",
+    "kernel_commit": "ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2",
+    "esp_idf_tag": "v6.1",
+    "esp_idf_commit": "fff9895c82d744c7237be8847347bdd1b07c6643",
+    "compiler_package": "esp-15.2.0_20251204",
+    "qualification": "source-selected; not yet built/boot-tested here",
+    "json_component": "espressif/cjson",
+    "json_component_version": "1.7.19~2"
+  },
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "flash_requirement_bytes": 4194304,
+    "psram_assumed": false,
+    "wifi_enabled": false,
+    "ble_enabled": false
+  },
+  "runtime": {
+    "max_device_tasks": 4,
+    "max_queues": 4,
+    "max_queue_depth": 8,
+    "max_queue_item_bytes": 64,
+    "max_device_id_characters": 31,
+    "priority_order": "smaller_number_is_higher",
+    "service_priorities": {
+      "health": 4,
+      "usb_configuration": 20,
+      "ai": 24,
+      "idle": 32
+    },
+    "health_report_interval_ms": 5000,
+    "ai_request_interval_ms": 1000,
+    "ai_max_inflight": 1,
+    "application_kernel_heap_target_bytes": 65536
+  },
+  "ai_budget": {
+    "model_flash_max_bytes": 32768,
+    "ram_total_max_bytes": 16384,
+    "stack_bytes_included_in_ram": 4096,
+    "inference_latency_target_us": 10000,
+    "confidence_threshold_per_mille": 800,
+    "first_candidate": "shallow_decision_tree_generated_C",
+    "max_tree_depth": 6,
+    "max_tree_nodes": 127,
+    "qualification": "engineering_acceptance_targets_not_measurements"
+  },
+  "transport": {
+    "version": "1.0.0",
+    "encoding": "UTF-8 NDJSON",
+    "max_line_bytes_including_lf": 16384,
+    "max_profile_bytes_compact_utf8": 8192,
+    "max_ai_payload_bytes_compact_utf8": 2048,
+    "max_inflight": 1,
+    "host_response_deadline_ms": 2000
+  },
+  "devices": {
+    "bmp388": {
+      "device_id": "environment_sensor",
+      "profile": "periodic_sensor",
+      "feature_constants": {
+        "protocol": "i2c",
+        "peripheral_category": "environment_sensor",
+        "io_direction": "input",
+        "data_pattern": "periodic",
+        "payload_size_bytes": 6,
+        "min_period_ms": 200,
+        "max_period_ms": 60000,
+        "native_rate_millihz": 25000,
+        "min_timeout_us": 10000,
+        "max_timeout_us": 100000,
+        "min_buffer_size_bytes": 0,
+        "max_buffer_size_bytes": 0
+      },
+      "payload_meaning": "Six pressure/temperature register bytes per acquisition; not sizeof(environment_sample_t).",
+      "timeout_scope": "Per I2C transaction; startup/reset and multi-transaction operations have separate finite budgets.",
+      "mode_period_ms": {
+        "power_saving": 5000,
+        "balanced": 2000,
+        "responsive": 200
+      },
+      "defaults": {
+        "period_ms": 2000,
+        "timeout_us": 20000,
+        "buffer_size_bytes": 0,
+        "task_priority": 12
+      },
+      "source_ids": [
+        "member2_bmp",
+        "bosch_bmp388"
+      ],
+      "settings": {
+        "address": "0x76",
+        "i2c_hz": 400000,
+        "pressure_oversampling": 4,
+        "temperature_oversampling": 2,
+        "iir_coefficient": 3,
+        "odr_hz": 25,
+        "mode": "normal"
+      }
+    },
+    "ssd1306_spi": {
+      "device_id": "oled_status",
+      "profile": "queue_display",
+      "feature_constants": {
+        "protocol": "spi",
+        "peripheral_category": "status_display",
+        "io_direction": "output",
+        "data_pattern": "queue_consumer",
+        "payload_size_bytes": 1024,
+        "min_period_ms": 100,
+        "max_period_ms": 1000,
+        "native_rate_millihz": 0,
+        "min_timeout_us": 5000,
+        "max_timeout_us": 20000,
+        "min_buffer_size_bytes": 0,
+        "max_buffer_size_bytes": 0
+      },
+      "payload_meaning": "128 x 64 / 8 framebuffer bytes per full refresh, excluding command bytes.",
+      "timeout_scope": "Per SPI transfer; render comprises command and framebuffer transfers.",
+      "mode_period_ms": {
+        "power_saving": 1000,
+        "balanced": 250,
+        "responsive": 100
+      },
+      "defaults": {
+        "period_ms": 250,
+        "timeout_us": 10000,
+        "buffer_size_bytes": 0,
+        "task_priority": 16
+      },
+      "source_ids": [
+        "member2_oled",
+        "solomon_ssd1306"
+      ],
+      "settings": {
+        "width_px": 128,
+        "height_px": 64,
+        "spi_hz": 8000000,
+        "spi_mode": 0,
+        "cs_pullup_ohms": 10000
+      }
+    },
+    "hlk_ld2450": {
+      "device_id": "presence_sensor",
+      "profile": "stream_sensor",
+      "feature_constants": {
+        "protocol": "uart",
+        "peripheral_category": "presence_sensor",
+        "io_direction": "input",
+        "data_pattern": "stream",
+        "payload_size_bytes": 30,
+        "min_period_ms": 0,
+        "max_period_ms": 0,
+        "native_rate_millihz": 10000,
+        "min_timeout_us": 200000,
+        "max_timeout_us": 500000,
+        "min_buffer_size_bytes": 512,
+        "max_buffer_size_bytes": 512
+      },
+      "payload_meaning": "Complete 30-byte UART report including header and footer; decoded queue item is different.",
+      "timeout_scope": "Total deadline to obtain one complete report, including partial reads.",
+      "mode_period_ms": {
+        "power_saving": 0,
+        "balanced": 0,
+        "responsive": 0
+      },
+      "defaults": {
+        "period_ms": 0,
+        "timeout_us": 250000,
+        "buffer_size_bytes": 512,
+        "task_priority": 8
+      },
+      "source_ids": [
+        "member3_radar",
+        "hilink_ld2450"
+      ],
+      "settings": {
+        "baud_rate": 256000,
+        "data_bits": 8,
+        "parity": "none",
+        "stop_bits": 1,
+        "flow_control": "none",
+        "report_rate_hz": 10,
+        "stale_after_ms": 500,
+        "uart_owner": "native_DEV_SER_via_single_owner_HAL",
+        "native_ring_storage_bytes": 513
+      }
+    },
+    "hc_sr04": {
+      "device_id": "distance_sensor",
+      "profile": "periodic_sensor",
+      "feature_constants": {
+        "protocol": "gpio",
+        "peripheral_category": "distance_sensor",
+        "io_direction": "input",
+        "data_pattern": "periodic",
+        "payload_size_bytes": 4,
+        "min_period_ms": 100,
+        "max_period_ms": 2000,
+        "native_rate_millihz": 0,
+        "min_timeout_us": 25000,
+        "max_timeout_us": 30000,
+        "min_buffer_size_bytes": 0,
+        "max_buffer_size_bytes": 0
+      },
+      "payload_meaning": "One uint32 pulse duration from the timing HAL; no byte-oriented sensor bus.",
+      "timeout_scope": "Total trigger plus rising/falling Echo-edge deadline.",
+      "mode_period_ms": {
+        "power_saving": 2000,
+        "balanced": 1000,
+        "responsive": 100
+      },
+      "defaults": {
+        "period_ms": 1000,
+        "timeout_us": 30000,
+        "buffer_size_bytes": 0,
+        "task_priority": 10
+      },
+      "source_ids": [
+        "member3_sonar"
+      ],
+      "settings": {
+        "trigger_us": 10,
+        "driver_min_interval_us": 61000,
+        "min_distance_mm": 20,
+        "max_distance_mm": 4000,
+        "echo_divider_top_ohms": 10000,
+        "echo_divider_bottom_ohms": 15000
+      }
+    }
+  },
+  "sources": {
+    "member2_bmp": "https://github.com/waiyan0x/INF2004-uT-Home/blob/56f718e/firmware/drivers/bmp388/bmp388.c",
+    "member2_oled": "https://github.com/waiyan0x/INF2004-uT-Home/blob/56f718e/firmware/drivers/ssd1306_spi/ssd1306.h",
+    "member3_radar": "https://github.com/waiyan0x/INF2004-uT-Home/blob/974eb9c/firmware/drivers/hlk_ld2450/ld2450.c",
+    "member3_sonar": "https://github.com/waiyan0x/INF2004-uT-Home/blob/974eb9c/firmware/drivers/hc_sr04/hc_sr04.c",
+    "bosch_bmp388": "https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmp388-ds001.pdf",
+    "hilink_ld2450": "https://h.hlktech.com/download/HLK-LD2450-24G/1/HLK%20LD2450%201T2R%E8%BF%90%E5%8A%A8%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B%E8%BF%BD%E8%B8%AA%E6%A8%A1%E7%BB%84%E8%AF%B4%E6%98%8E%E4%B9%A6%20V1.02%20.pdf",
+    "solomon_ssd1306": "https://www.solomon-systech.com/product/ssd1306",
+    "c3_boot": "https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32c3/schematic-checklist.html",
+    "esp_idf_release": "https://github.com/espressif/esp-idf/releases/tag/v6.1",
+    "esp_idf_tools": "https://github.com/espressif/esp-idf/blob/fff9895c82d744c7237be8847347bdd1b07c6643/tools/tools.json",
+    "cjson": "https://components.espressif.com/components/espressif/cjson/versions/1.7.19~2"
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-09-28T07:43:50.181367+00:00",
+  "example": "tests/target/runtime_port_board",
+  "board_kit": "iote_esp32c3_mini",
+  "target": "esp32c3",
+  "versions": {
+    "kernel_revision": "ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2",
+    "sdk_revision": "fff9895c82d744c7237be8847347bdd1b07c6643",
+    "compiler": "riscv32-esp-elf-gcc.EXE (crosstool-NG esp-15.2.0_20251204) 15.2.0",
+    "idf_version": "ESP-IDF v6.1",
+    "python": "3.14.2",
+    "cmake": "cmake version 4.0.3",
+    "ninja": "1.12.1"
+  },
+  "build_status": "passed",
+  "board_status": "not_tested",
+  "application_runtime_status": "not_tested",
+  "artifacts": {
+    "build/uthome_runtime_port.bin": {
+      "sha256": "570f453faee0e9d435f65f79cd59fc8de6a7d006484d3523dd5207dce18b94d3",
+      "size_bytes": 169472
+    },
+    "build/uthome_runtime_port.elf": {
+      "sha256": "b72950bdd8dd940f2f4245282e1978701a5ce2a8fb0011f0def53ce24467638c",
+      "size_bytes": 4042176
+    },
+    "build/bootloader/bootloader.bin": {
+      "sha256": "7da1741d54598eaf02fe0fa7c2e68369274692a361d8fab02dd68bebeee8cf23",
+      "size_bytes": 21232
+    },
+    "build/partition_table/partition-table.bin": {
+      "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820",
+      "size_bytes": 3072
+    },
+    "build/flasher_args.json": {
+      "sha256": "3d8fa411379da7c602c6163efb550377de6db43de2b55aa679833eaf385dc80f",
+      "size_bytes": 953
+    },
+    "sdkconfig": {
+      "sha256": "5777e6b6eadfa295e608bdf7159481c71d5ac3663b3a1886863e837c762f8b27",
+      "size_bytes": 87251
+    },
+    "build.log": {
+      "sha256": "e2b375184d4a91236f326da1d37f15a2623caa0d62e49081a81b0273d25d6836",
+      "size_bytes": 160276
+    }
+  },
+  "coding_standard": {
+    "status": "passed",
+    "command": [
+      "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+      "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-activation-u7552i33\\stage\\tools\\c_standard\\check.py",
+      "--root",
+      "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-activation-u7552i33\\stage"
+    ],
+    "output": "C standard gate: 70 files, 0 findings, 0 tool/policy errors."
+  },
+  "kernel_archive_sha256": "005fe17b935e5c1b597fdd4b6c6434cf3a97a21dc583cce12a588099149a9806",
+  "compatibility_patch": {
+    "name": "0002-esp-idf-6.1-build.patch",
+    "sha256": "ce835addd93fb2f36b5a004971580672702879924566d5271539a59268b4677c"
+  },
+  "project_sources": {
+    "tests/target/runtime_port_board/CMakeLists.txt": {
+      "staged_path": "project/CMakeLists.txt",
+      "sha256": "0b17dd70ac7714290ef98f867bd4785a0daf120fd8eca352ed466e6e4b42f53b"
+    },
+    "tests/target/runtime_port_board/main/CMakeLists.txt": {
+      "staged_path": "project/main/CMakeLists.txt",
+      "sha256": "9ba8f1563f5e513752092468f18fbc98100c645bd9aa1fc07f2d15b129df4b2b"
+    },
+    "tests/target/runtime_port_board/main/main.c": {
+      "staged_path": "project/main/main.c",
+      "sha256": "41fdf6947a1fdd82387517821465dc31fa61b52e03cb23dab0037226b98c9ead"
+    },
+    "tests/target/runtime_port_board/main/main.h": {
+      "staged_path": "project/main/main.h",
+      "sha256": "8512e8a568fd58aa0f488112036d61eba47f806ae3fff9e8ccaf9ea70146812b"
+    },
+    "firmware/src/runtime/tkport.h": {
+      "staged_path": "project/runtime/tkport.h",
+      "sha256": "2bc5bf5ce310dc7fe5f712331f5ec5f7de477337d3133f39e27ab4547855cd67"
+    },
+    "firmware/src/runtime/tkport.c": {
+      "staged_path": "project/runtime/tkport.c",
+      "sha256": "f04ee404f538cbcb9e322ac8aa0cc51f58636ed502325303a76d930bdca3beb8"
+    },
+    "firmware/src/runtime/rt_port.h": {
+      "staged_path": "project/runtime/rt_port.h",
+      "sha256": "347d2d3b0791f2b6ad1a682eaa2322e56180cba233407ff5905dfa2c4fd5576f"
+    },
+    "firmware/src/runtime/workport.h": {
+      "staged_path": "project/runtime/workport.h",
+      "sha256": "f04d6859ce5514e7e5b40bddb82d90d89099ce8d7810313b7aadf0a7cf005aaa"
+    },
+    "firmware/include/uthome/runtime.h": {
+      "staged_path": "project/include/uthome/runtime.h",
+      "sha256": "efde4bbd6b7987e33a9a275c61aa000d9ec852823c9c09101757bbb8143478aa"
+    },
+    "firmware/include/uthome/component.h": {
+      "staged_path": "project/include/uthome/component.h",
+      "sha256": "1a2476082df3264dfa827114a2e043d4335a108238f2740b509ff311717de847"
+    },
+    "firmware/src/runtime/activate.c": {
+      "staged_path": "project/runtime/activate.c",
+      "sha256": "b8152cd5de3f1f7d0f3c4f2553512d393edb0743cebc2cd6872d9037fbe191b6"
+    },
+    "firmware/src/runtime/activate.h": {
+      "staged_path": "project/runtime/activate.h",
+      "sha256": "badf5c9da0b95dabc58d730acfd75929542142363b3e07065793681183134b8d"
+    },
+    "firmware/src/runtime/shared.c": {
+      "staged_path": "project/runtime/shared.c",
+      "sha256": "4bd67ccdad7c54549372111eb93e4cab1434229236bf73c7cb2968e4af69d7d6"
+    },
+    "firmware/src/runtime/shared.h": {
+      "staged_path": "project/runtime/shared.h",
+      "sha256": "4c71fb1fb63103db6ea6a4d2045e9b5abc80a12d2538d6a780529ed3b09c844d"
+    },
+    "firmware/src/runtime/component.c": {
+      "staged_path": "project/runtime/component.c",
+      "sha256": "80dd99deeba5a76197f865e2f7ffd0dc180899f7fbf04f5537da51a9c094189b"
+    },
+    "firmware/src/messaging/msgbus.c": {
+      "staged_path": "project/messaging/msgbus.c",
+      "sha256": "7d5f4c325b1af6d53c52a158018d991a2ddd1a10b83874e9e4745e2490f49fcf"
+    },
+    "firmware/src/health/health.c": {
+      "staged_path": "project/health/health.c",
+      "sha256": "24fd829efbe6a12988b4b622e7ee6b7c2ea547758ed6732d548035f2fb740559"
+    },
+    "firmware/src/health/watchdog.c": {
+      "staged_path": "project/health/watchdog.c",
+      "sha256": "769d59fbd69acfca97a7fe8ec223a6e3e364c4fb9a6fcb805b21b5b0205ef935"
+    },
+    "firmware/include/uthome/msgbus.h": {
+      "staged_path": "project/include/uthome/msgbus.h",
+      "sha256": "c03b73a0c34d269e9a9366c42bbf2de77677c18061dfbec5ee6220d56af2d19d"
+    },
+    "firmware/include/uthome/health.h": {
+      "staged_path": "project/include/uthome/health.h",
+      "sha256": "878a958e260817f739aa8a2fdab64a580c23cfebc35fbfce350aa55276cb29d7"
+    },
+    "firmware/include/uthome/watchdog.h": {
+      "staged_path": "project/include/uthome/watchdog.h",
+      "sha256": "e81ee9229b9522ef5a74e123898a7854c833cd8cea74bb88c40dc8622d7e68ae"
+    },
+    "firmware/include/uthome/sample.h": {
+      "staged_path": "project/include/uthome/sample.h",
+      "sha256": "dc4beca087eccce73642bb80caf4c154e7905667dc1b7753badd511b503ceac6"
+    },
+    "firmware/third_party/esp32c3-mtk3/examples/tasks/sdkconfig.defaults": {
+      "staged_path": "project/sdkconfig.defaults",
+      "sha256": "b4581a80d073a58c99f88c6330b8000c94c349e3b6340459f96dd640c344e5d0"
+    }
+  },
+  "source_manifest_sha256": "8242e6b2d518723fc8c34ae0503ae8b5d09962bd7357ce335e33dbe4c8b28745",
+  "command": [
+    "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+    "C:\\Users\\kkak4\\esp\\uthome-c3-sdk-v6.1\\tools\\idf.py",
+    "-C",
+    "C:\\Users\\kkak4\\esp\\uthome-activation-qualification-20260928\\project",
+    "-B",
+    "C:\\Users\\kkak4\\esp\\uthome-activation-qualification-20260928\\build",
+    "-DIDF_TARGET=esp32c3",
+    "-DMTK_BOARD=iote_esp32c3_mini",
+    "-DSDKCONFIG=C:\\Users\\kkak4\\esp\\uthome-activation-qualification-20260928\\sdkconfig",
+    "-DUTHOME_SOURCE_ROOT=C:/Users/kkak4/AppData/Local/Temp/uthome-activation-u7552i33/stage",
+    "-DUTHOME_CHECK_PYTHON=C:/Users/kkak4/esp/uthome-c3-tools/python_env/idf6.1_py3.14_env/Scripts/python.exe",
+    "build"
+  ],
+  "environment_overrides": {
+    "IDF_PATH": "C:/Users/kkak4/esp/uthome-c3-sdk-v6.1",
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONUTF8": "1"
+  },
+  "build_exit_code": 0
+}

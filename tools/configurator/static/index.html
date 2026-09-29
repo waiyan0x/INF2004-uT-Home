@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="session" content="{{TOKEN}}"><title>uT-Home · Local configurator</title>
+<link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body><header><div><span class="eyebrow">CONFIGURABLE EMBEDDED PLATFORM</span><h1>uT-Home</h1></div>
+<span id="connection" class="badge">Offline review</span></header>
+<main><section class="connection"><label>Serial port <input id="port" value="COM8" maxlength="128"></label>
+<button id="connect">Connect</button><button id="disconnect" disabled>Disconnect</button>
+<p id="capabilities">Load and review a profile offline, or connect to read the firmware’s capabilities.</p></section>
+<p id="notice" role="status" aria-live="polite">Hardware acceptance and AI are scheduled for later.</p>
+<div class="columns"><section><div class="section-title"><h2>1. Configure</h2><button id="download">Download JSON</button></div>
+<label>Example profile <select id="examples"><option value="">Select a profile</option></select></label>
+<label class="upload">Or open your profile <input id="file" type="file" accept=".json,application/json"></label>
+<label for="profile">Node configuration</label><textarea id="profile" spellcheck="false" rows="23" aria-describedby="editor-help"></textarea>
+<p id="editor-help">Change device instances, wiring, periods and routes here. Review the complete profile before deployment.</p>
+<details><summary>Device catalogue</summary><pre id="catalogue"></pre></details></section>
+<section><h2>2. Review &amp; deploy</h2><button id="review" class="primary">Validate and review</button>
+<p id="review-summary">A review shows the requested resources and configured devices.</p>
+<div id="plan"></div><div id="rule-plan"></div><button id="apply" class="primary" disabled>Apply &amp; save reviewed profile</button>
+<p class="muted">Applying replaces the active configuration and attempts to save it for reboot. Deployment success and saved state are reported separately.</p>
+<h3>Board state</h3><p id="state">Connect to read active and saved revisions.</p>
+<div class="actions"><button id="query" disabled>Refresh state</button><button id="save" disabled>Retry saving active profile</button>
+<button id="recover" disabled>Stop / recover live plan</button></div>
+<p class="muted">Recovery clears the live plan after checked cleanup. The saved profile remains available for the next boot.</p></section></div>
+<section><div class="section-title"><h2>3. Live observations</h2><span id="timestamp" class="muted">Waiting for connection</span></div>
+<p id="health">Monitoring starts after an explicit connection.</p><div id="readings" aria-live="polite"></div>
+<details><summary>Queue and runtime details</summary><pre id="diagnostics"></pre></details></section>
+</main><footer>One firmware · configured hardware · measured capabilities</footer></body></html>

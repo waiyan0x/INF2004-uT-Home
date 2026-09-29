@@ -1,0 +1,206 @@
+{
+  "contract_name": "uthome_embedded_recommender_io",
+  "contract_version": "0.2.0",
+  "status": "legacy_prototype_fixture_not_platform_contract",
+  "request_schema": "feature-request.schema.json",
+  "response_schema": "recommendation.schema.json",
+  "categorical_encodings": {
+    "protocol": {
+      "i2c": 0,
+      "spi": 1,
+      "uart": 2,
+      "gpio": 3
+    },
+    "peripheral_category": {
+      "environment_sensor": 0,
+      "status_display": 1,
+      "presence_sensor": 2,
+      "distance_sensor": 3
+    },
+    "io_direction": {
+      "input": 0,
+      "output": 1
+    },
+    "data_pattern": {
+      "periodic": 0,
+      "stream": 1,
+      "queue_consumer": 2
+    },
+    "operating_mode": {
+      "power_saving": 0,
+      "balanced": 1,
+      "responsive": 2
+    },
+    "profile": {
+      "periodic_sensor": 0,
+      "stream_sensor": 1,
+      "queue_display": 2
+    }
+  },
+  "feature_vector": {
+    "raw_dtype": "uint32",
+    "missing_values": "forbidden",
+    "not_included": [
+      "request_id",
+      "device_type",
+      "contract_version"
+    ],
+    "fields": [
+      {
+        "index": 0,
+        "name": "protocol",
+        "source": "features.protocol",
+        "encoding": "categorical_encodings.protocol"
+      },
+      {
+        "index": 1,
+        "name": "peripheral_category",
+        "source": "features.peripheral_category",
+        "encoding": "categorical_encodings.peripheral_category"
+      },
+      {
+        "index": 2,
+        "name": "io_direction",
+        "source": "features.io_direction",
+        "encoding": "categorical_encodings.io_direction"
+      },
+      {
+        "index": 3,
+        "name": "data_pattern",
+        "source": "features.data_pattern",
+        "encoding": "categorical_encodings.data_pattern"
+      },
+      {
+        "index": 4,
+        "name": "payload_size_bytes",
+        "source": "features.payload_size_bytes",
+        "encoding": "identity"
+      },
+      {
+        "index": 5,
+        "name": "min_period_ms",
+        "source": "features.min_period_ms",
+        "encoding": "identity"
+      },
+      {
+        "index": 6,
+        "name": "max_period_ms",
+        "source": "features.max_period_ms",
+        "encoding": "identity"
+      },
+      {
+        "index": 7,
+        "name": "native_rate_millihz",
+        "source": "features.native_rate_millihz",
+        "encoding": "identity"
+      },
+      {
+        "index": 8,
+        "name": "min_timeout_us",
+        "source": "features.min_timeout_us",
+        "encoding": "identity"
+      },
+      {
+        "index": 9,
+        "name": "max_timeout_us",
+        "source": "features.max_timeout_us",
+        "encoding": "identity"
+      },
+      {
+        "index": 10,
+        "name": "min_buffer_size_bytes",
+        "source": "features.min_buffer_size_bytes",
+        "encoding": "identity"
+      },
+      {
+        "index": 11,
+        "name": "max_buffer_size_bytes",
+        "source": "features.max_buffer_size_bytes",
+        "encoding": "identity"
+      },
+      {
+        "index": 12,
+        "name": "operating_mode",
+        "source": "features.operating_mode",
+        "encoding": "categorical_encodings.operating_mode"
+      },
+      {
+        "index": 13,
+        "name": "desired_period_ms",
+        "source": "features.desired_period_ms",
+        "encoding": "identity"
+      },
+      {
+        "index": 14,
+        "name": "active_device_count",
+        "source": "features.active_device_count",
+        "encoding": "identity"
+      },
+      {
+        "index": 15,
+        "name": "queue_depth",
+        "source": "features.queue_depth",
+        "encoding": "identity"
+      }
+    ],
+    "preprocessing": {
+      "rule": "Scaling and quantization parameters are stored in versioned model metadata, not inferred at runtime.",
+      "parity_requirement": "Host and embedded preprocessing must produce identical quantized values for every golden vector."
+    }
+  },
+  "logical_outputs": [
+    {
+      "name": "profile",
+      "type": "classification",
+      "encoding": "categorical_encodings.profile"
+    },
+    {
+      "name": "period_ms",
+      "type": "bounded_parameter"
+    },
+    {
+      "name": "timeout_us",
+      "type": "bounded_parameter"
+    },
+    {
+      "name": "buffer_size_bytes",
+      "type": "bounded_parameter"
+    },
+    {
+      "name": "task_priority",
+      "type": "deterministic_parameter"
+    }
+  ],
+  "wrapper_outputs": [
+    "confidence_per_mille",
+    "period_applicable",
+    "buffer_applicable",
+    "status",
+    "abstain_reason",
+    "warnings",
+    "task_priority"
+  ],
+  "deterministic_fields": [
+    "device_id",
+    "driver",
+    "interface pins",
+    "bus address",
+    "protocol constants",
+    "queue identifiers",
+    "electrical safety requirements",
+    "task_priority"
+  ],
+  "compatibility": {
+    "unknown_contract_version": "abstain",
+    "unknown_category_value": "abstain",
+    "failed_semantic_validation": "abstain"
+  },
+  "baseline_version": "1.0.0",
+  "baseline_source": "../data/sources/first-prototype-baseline.json",
+  "policy_overrides": {
+    "task_priority": "Always set from the selected device policy.",
+    "period_ms": "Copy desired_period_ms exactly when nonzero; predict a mode default only when zero.",
+    "timeout_us": "Use the selected default until evidence justifies tuning.",
+    "buffer_size_bytes": "Use the fixed selected device value for prototype 1."
+  }
+}

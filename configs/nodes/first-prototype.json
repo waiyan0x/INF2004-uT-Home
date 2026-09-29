@@ -1,9 +1,10 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "2.0.0",
   "node_id": "prototype-node-01",
   "board": {
-    "platform": "esp32-s3",
-    "variant": "esp32-s3-supermini"
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
   },
   "runtime": {
     "health_report_interval_ms": 5000,
@@ -17,24 +18,24 @@
       "id": "i2c0",
       "protocol": "i2c",
       "port": 0,
-      "sda_gpio": 8,
-      "scl_gpio": 9,
+      "sda_gpio": 0,
+      "scl_gpio": 1,
       "clock_hz": 400000
     },
     {
       "id": "spi2",
       "protocol": "spi",
       "host": 2,
-      "mosi_gpio": 11,
-      "sclk_gpio": 12,
+      "mosi_gpio": 6,
+      "sclk_gpio": 7,
       "clock_hz": 8000000
     },
     {
       "id": "uart1",
       "protocol": "uart",
       "port": 1,
-      "rx_gpio": 16,
-      "tx_gpio": 17,
+      "rx_gpio": 20,
+      "tx_gpio": 21,
       "baud_rate": 256000,
       "data_bits": 8,
       "parity": "none",
@@ -81,13 +82,17 @@
         "profile": "periodic_sensor",
         "operation": "read",
         "interval_ms": 2000,
-        "timeout_ms": 100,
+        "timeout_ms": 20,
         "destination": "telemetry.environment"
       },
       "task": {
         "name": "bmp388_reader",
-        "priority": 3,
+        "priority": 12,
         "stack_size_bytes": 3072
+      },
+      "descriptor": {
+        "id": "bmp388",
+        "version": "1.0.0"
       }
     },
     {
@@ -96,9 +101,10 @@
       "enabled": true,
       "interface": {
         "ref": "spi2",
-        "cs_gpio": 10,
-        "dc_gpio": 13,
-        "reset_gpio": 14
+        "cs_gpio": 2,
+        "dc_gpio": 3,
+        "reset_gpio": 10,
+        "cs_pullup_ohms": 10000
       },
       "display": {
         "width_px": 128,
@@ -108,7 +114,7 @@
         "profile": "queue_display",
         "operation": "render",
         "refresh_interval_ms": 250,
-        "timeout_ms": 100,
+        "timeout_ms": 10,
         "sources": [
           "telemetry.environment",
           "presence.targets",
@@ -118,8 +124,12 @@
       },
       "task": {
         "name": "oled_renderer",
-        "priority": 2,
+        "priority": 16,
         "stack_size_bytes": 3072
+      },
+      "descriptor": {
+        "id": "ssd1306_spi",
+        "version": "1.0.0"
       }
     },
     {
@@ -143,8 +153,12 @@
       },
       "task": {
         "name": "ld2450_reader",
-        "priority": 4,
+        "priority": 8,
         "stack_size_bytes": 4096
+      },
+      "descriptor": {
+        "id": "hlk_ld2450",
+        "version": "1.0.0"
       }
     },
     {
@@ -166,8 +180,12 @@
       },
       "task": {
         "name": "hc_sr04_reader",
-        "priority": 3,
+        "priority": 10,
         "stack_size_bytes": 3072
+      },
+      "descriptor": {
+        "id": "hc_sr04",
+        "version": "1.0.0"
       }
     }
   ]

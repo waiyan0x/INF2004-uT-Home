@@ -1,0 +1,54 @@
+{
+  "schema_version": "2.0.0",
+  "node_id": "distance-only",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "runtime": {
+    "health_report_interval_ms": 5000,
+    "max_device_tasks": 4,
+    "queue_depth": 8,
+    "configuration_source": "usb_serial",
+    "rollback_on_error": true
+  },
+  "interfaces": [],
+  "queues": [
+    {
+      "id": "distance.front",
+      "item_type": "distance_sample",
+      "depth": 8,
+      "overflow_policy": "drop_oldest"
+    }
+  ],
+  "devices": [
+    {
+      "device_id": "front_range",
+      "driver": "hc_sr04",
+      "enabled": true,
+      "interface": {
+        "protocol": "gpio",
+        "trigger_gpio": 4,
+        "echo_gpio": 5,
+        "echo_voltage_divider_required": true
+      },
+      "behaviour": {
+        "profile": "periodic_sensor",
+        "operation": "measure_distance",
+        "interval_ms": 1000,
+        "timeout_us": 30000,
+        "destination": "distance.front"
+      },
+      "task": {
+        "name": "hc_sr04_reader",
+        "priority": 10,
+        "stack_size_bytes": 3072
+      },
+      "descriptor": {
+        "id": "hc_sr04",
+        "version": "1.0.0"
+      }
+    }
+  ]
+}

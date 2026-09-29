@@ -1,0 +1,151 @@
+{
+  "schema_version": "1.0.0",
+  "date": "2026-09-28",
+  "scope": "Checkpoint 2: periodic typed-plan activation and shared state with memory-only components",
+  "build_record": "esp32c3-activation-20260928-build.json",
+  "board_status": "passed",
+  "device": {
+    "port": "COM8",
+    "chip": "ESP32-C3",
+    "revision": "0.4",
+    "flash_size_bytes": 4194304,
+    "usb_vid_pid": "303A:1001",
+    "usb_serial_mac": "D4:05:92:E6:C3:BC"
+  },
+  "flash": {
+    "app_offset": "0x10000",
+    "application": {
+      "sha256": "570f453faee0e9d435f65f79cd59fc8de6a7d006484d3523dd5207dce18b94d3",
+      "size_bytes": 169472
+    },
+    "esptool_hash_verified": true,
+    "preserved_bootloader_and_partition_table": true,
+    "backup_partition_matches_build": true,
+    "log": {
+      "path": "C:\\Users\\kkak4\\esp\\uthome-activation-qualification-20260928\\flash.log",
+      "sha256": "8311652642b638da00fc8d9cf10111e729c28de30376c64d439bec3aac302b28",
+      "size_bytes": 1236
+    }
+  },
+  "preceding_firmware_backup": {
+    "path": "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-activation-u7552i33\\pre-activation-flash.bin",
+    "sha256": "67546dd121c251f7bac152dbdf0e483b378e10dd4f72bd3ea29a07b7597f26ce",
+    "size_bytes": 4194304
+  },
+  "backup_matches_preceding_app_record": "esp32c3-barr-20260928-build.json",
+  "original_firmware_backup": {
+    "path": "C:\\Users\\kkak4\\esp\\uthome-board-qualification-20260928\\original-flash.bin",
+    "sha256": "1282a3c8522f618e6fe7f2b56e15526a642243115c3aba2e87d6a08113c5524c",
+    "authority": "Previously recorded original backup; see esp32c3-board-20260928.json"
+  },
+  "captures": [
+    {
+      "run": 1,
+      "capture_seconds": 22,
+      "reset": "USB_UART_CHIP_RESET (0x15)",
+      "raw": {
+        "path": "C:\\Users\\kkak4\\esp\\uthome-activation-qualification-20260928\\boot-1.log",
+        "sha256": "8845d33e4ffbb8b3e33c3c5f5faeb44e47515ace5263eee5f9468680b5457715",
+        "size_bytes": 4034
+      },
+      "discarded_pre_reset_bytes": 64,
+      "normalized_path": "firmware/qualification/logs/esp32c3-activation-20260928-boot-1.txt",
+      "normalized_sha256": "5c05c3bfd1dcfbf99a0f1dc5733e7a4d4316f7e7c43cf87274347a4ef1249fe6",
+      "startup_count": 1,
+      "checks_passed": 514,
+      "activation_generation": 15,
+      "alive_first": 0,
+      "alive_last": 19,
+      "kernel_delay_ms": 101,
+      "observed_failures_or_panics": 0,
+      "observed_unexpected_restarts_after_reset": 0
+    },
+    {
+      "run": 2,
+      "capture_seconds": 22,
+      "reset": "USB_UART_CHIP_RESET (0x15)",
+      "raw": {
+        "path": "C:\\Users\\kkak4\\esp\\uthome-activation-qualification-20260928\\boot-2.log",
+        "sha256": "1d351d71e8deac7b3ebe7513e12c3465cf2a6181ab88067c9694c61f9dac17b0",
+        "size_bytes": 3970
+      },
+      "discarded_pre_reset_bytes": 0,
+      "normalized_path": "firmware/qualification/logs/esp32c3-activation-20260928-boot-2.txt",
+      "normalized_sha256": "d6ed2e38a628c10edf62a5bf6bd93ed8455c8181e5041ca9c0d04591e7f4f289",
+      "startup_count": 1,
+      "checks_passed": 514,
+      "activation_generation": 15,
+      "alive_first": 0,
+      "alive_last": 19,
+      "kernel_delay_ms": 101,
+      "observed_failures_or_panics": 0,
+      "observed_unexpected_restarts_after_reset": 0
+    }
+  ],
+  "host_suites": [
+    {
+      "suite": "c_standard",
+      "exit_code": 0,
+      "count": 54
+    },
+    {
+      "suite": "foundation",
+      "exit_code": 0,
+      "count": 26
+    },
+    {
+      "suite": "runtime",
+      "exit_code": 0,
+      "count": 18
+    },
+    {
+      "suite": "target",
+      "exit_code": 0,
+      "count": 15
+    }
+  ],
+  "standard_review": {
+    "gate_files": 70,
+    "findings": 0,
+    "tool_policy_errors": 0,
+    "manual_review": "firmware/src/runtime/ACTIVATION.md",
+    "new_or_expanded_deviations": false
+  },
+  "c99_target_compile": {
+    "modules": [
+      "activate.c",
+      "shared.c"
+    ],
+    "flags": [
+      "-std=c99",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic"
+    ],
+    "status": "passed",
+    "outputs_directory": "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-activation-u7552i33\\checks"
+  },
+  "static_object_symbols": {
+    "source": "riscv32-esp-elf-nm -S --size-sort build/esp-idf/main/libmain.a",
+    "each_plan_bytes": 1704,
+    "retained_plans": 2,
+    "activation_slots_bytes": 96,
+    "activation_status_bytes": 28,
+    "activation_boolean_bytes": 2,
+    "activation_symbol_sum_bytes": 3534,
+    "queue_table_bytes": 2240,
+    "queue_payload_bytes": 2048,
+    "limits": "Object-symbol sizes exclude linker alignment, caller candidate storage, stacks and other services; not a total RAM qualification."
+  },
+  "limits": [
+    "No external peripheral operation or physical rollback qualified.",
+    "No target JSON/descriptor/wiring admission, USB configuration or persistence.",
+    "Periodic workers only; stream readiness is deferred.",
+    "No power-cycle test, jitter/latency bound or independent clock accuracy test.",
+    "Kernel create/start/delete fault injection is host-only.",
+    "SDK startup log timestamps are not accepted as runtime timing evidence.",
+    "Target peripheral manifest stays empty; AI work stays deferred."
+  ],
+  "board_left_running": "uthome_runtime_port activation acceptance application"
+}

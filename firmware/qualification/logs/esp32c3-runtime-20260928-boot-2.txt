@@ -1,0 +1,88 @@
+ESP-ROM:esp32c3-api1-20210207
+Build:Feb  7 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0xd (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4200cc92
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fcd5830,len:0x1598
+load:0x403cbf10,len:0xccc
+load:0x403ce710,len:0x302c
+entry 0x403cbf1a
+I (24) boot: ESP-IDF v6.1 2nd stage bootloader
+I (24) boot: compile time Sep 28 2026 11:15:48
+I (24) boot: chip revision: v0.4
+I (25) boot: efuse block revision: v1.3
+I (25) boot.esp32c3: SPI Speed      : 80MHz
+I (25) boot.esp32c3: SPI Mode       : DIO
+I (26) boot.esp32c3: SPI Flash Size : 4MB
+I (26) boot: Enabling RNG early entropy source...
+I (26) boot: Partition Table:
+I (26) boot: ## Label            Usage          Type ST Offset   Length
+I (27) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (27) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (27) boot:  2 factory          factory app      00 00 00010000 00100000
+I (28) boot: End of partition table
+I (28) esp_image: segment 0: paddr=00010020 vaddr=3c020020 size=07a84h ( 31364) map
+I (33) esp_image: segment 1: paddr=00017aac vaddr=3fc89000 size=01848h (  6216) load
+I (35) esp_image: segment 2: paddr=000192fc vaddr=40380000 size=06d1ch ( 27932) load
+I (40) esp_image: segment 3: paddr=00020020 vaddr=42000020 size=14f78h ( 85880) map
+I (55) esp_image: segment 4: paddr=00034fa0 vaddr=40386d1c size=02128h (  8488) load
+I (57) esp_image: segment 5: paddr=000370d0 vaddr=50000000 size=00024h (    36) load
+I (60) boot: Loaded app from partition at offset 0x10000
+I (60) boot: Disabling RNG early entropy source...
+I (3493566669) cpu_start: Unicore app
+I (3493566669) cpu_start: Pro cpu start user code
+I (3493566669) cpu_start: cpu freq: 160000000 Hz
+I (3493566669) app_init: Application information:
+I (3493566669) app_init: Project name:     uthome_runtime_port
+I (3493566669) app_init: App version:      1
+I (3493566669) app_init: Compile time:     Sep 28 2026 11:15:07
+I (3493566669) app_init: ELF file SHA256:  bda9a978f...
+I (3493566669) app_init: ESP-IDF:          v6.1
+I (3493566669) efuse_init: Min chip rev:     v0.3
+I (3493566669) efuse_init: Max chip rev:     v1.99
+I (3493566669) efuse_init: Chip rev:         v0.4
+I (3493566669) heap_init: Initializing. RAM available for dynamic allocation:
+I (3493566669) heap_init: At 3FC9A1F0 len 00025E10 (151 KiB): RAM
+I (3493566669) heap_init: At 3FCC0000 len 0001C710 (113 KiB): Retention RAM
+I (3493566669) heap_init: At 3FCDC710 len 00002950 (10 KiB): Retention RAM
+I (3493566669) heap_init: At 50000024 len 00001FC4 (7 KiB): RTCRAM
+I (3493566669) spi_flash: detected chip: generic
+I (3493566669) spi_flash: flash io: dio
+I (3493566669) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (3493566669) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+
+[mtkernel] __wrap_esp_startup_start_app: bypassing FreeRTOS
+[mtkernel] heap 0x3fc910c0..0x3fc990c0 (32768 bytes)
+[mtkernel] calling knl_main()
+
+
+microT-Kernel Version 3.00
+
+
+[port-test] BEGIN
+[port-test] monotonic delay=101 ms
+[port-test] independent workers fast=6 slow=3; cleanup verified
+[port-test] sleeping worker cancellation=0 ms
+[port-test] timeout retained ownership; retry cleaned and deleted
+[port-test] step failure and cleanup retry verified
+[port-test] PASS checks=369; 24 four-slot allocation/release cycles
+[port-test] alive 0
+[port-test] alive 1
+[port-test] alive 2
+[port-test] alive 3
+[port-test] alive 4
+[port-test] alive 5
+[port-test] alive 6
+[port-test] alive 7
+[port-test] alive 8
+[port-test] alive 9
+[port-test] alive 10
+[port-test] alive 11
+[port-test] alive 12
+[port-test] alive 13
+[port-test] alive 14
+[port-test] alive 15
+[port-test] alive 16
+[port-test] alive 17
+[port-test] alive 18

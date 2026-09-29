@@ -1,0 +1,22 @@
+{
+  "component": "espressif/cjson",
+  "version": "1.7.19~2",
+  "license": "MIT",
+  "url": "https://components.espressif.com/api/downloads/?object_id=6abd1ce4-76b5-434f-b3c2-e0d51f6734f3&object_type=component",
+  "archive_sha256": "ef510721937270ab89dd5c24821fa941f5e7299d5afb698ddc1b592e932c5874",
+  "purpose": "Exact managed-component source mirror for offline host tests; target resolves the same pinned component.",
+  "files": {
+    "cJSON.c": {
+      "sha256": "607e756460fa0de37d20a7a9181f2de29c97bfb7ce5a0e6c2f548243836cd852",
+      "archive_path": "cjson/cJSON/cJSON.c"
+    },
+    "cJSON.h": {
+      "sha256": "25b0145150d500498e4d209cec69c18c42cf818bffcc54690be3b895a2a16dee",
+      "archive_path": "cjson/cJSON/cJSON.h"
+    },
+    "LICENSE": {
+      "sha256": "a36dda207c36db5818729c54e7ad4e8b0c6fba847491ba64f372c1a2037b6d5c",
+      "archive_path": "cjson/cJSON/LICENSE"
+    }
+  }
+}

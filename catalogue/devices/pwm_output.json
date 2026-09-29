@@ -1,0 +1,156 @@
+{
+  "schema_version": "1.0.0",
+  "descriptor_id": "pwm_output",
+  "descriptor_version": "1.0.0",
+  "driver_id": "pwm_output",
+  "protocol": "gpio",
+  "description": "Generic zero-start PWM output, commanded by one admitted threshold rule.",
+  "instance_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "device_id": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+      },
+      "driver": {
+        "const": "pwm_output"
+      },
+      "descriptor": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "const": "pwm_output"
+          },
+          "version": {
+            "const": "1.0.0"
+          }
+        },
+        "required": [
+          "id",
+          "version"
+        ]
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "interface": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocol": {
+            "const": "gpio"
+          },
+          "output_gpio": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63
+          }
+        },
+        "required": [
+          "protocol",
+          "output_gpio"
+        ]
+      },
+      "behaviour": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "rule_output"
+          },
+          "operation": {
+            "const": "set_duty"
+          },
+          "interval_ms": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 1000
+          },
+          "timeout_ms": {
+            "const": 1
+          },
+          "frequency_hz": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 20000
+          }
+        },
+        "required": [
+          "profile",
+          "operation",
+          "interval_ms",
+          "timeout_ms",
+          "frequency_hz"
+        ]
+      },
+      "task": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 31
+          },
+          "stack_size_bytes": {
+            "type": "integer",
+            "minimum": 1024,
+            "maximum": 8192
+          }
+        },
+        "required": [
+          "name",
+          "priority",
+          "stack_size_bytes"
+        ]
+      }
+    },
+    "required": [
+      "device_id",
+      "driver",
+      "descriptor",
+      "enabled",
+      "interface",
+      "behaviour",
+      "task"
+    ]
+  },
+  "bus_schema": {
+    "type": "object"
+  },
+  "execution": {
+    "kind": "periodic",
+    "period_field": "interval_ms",
+    "timeout_field": "timeout_ms",
+    "timeout_unit": "ms"
+  },
+  "routing": {
+    "output_type": null,
+    "input_types": []
+  },
+  "resources": {
+    "min_stack_bytes": 3072,
+    "max_instances": 4
+  },
+  "defaults": {
+    "behaviour": {
+      "profile": "rule_output",
+      "operation": "set_duty",
+      "interval_ms": 50,
+      "timeout_ms": 1,
+      "frequency_hz": 1000
+    },
+    "priority": 12,
+    "stack_size_bytes": 3072
+  },
+  "provenance": [
+    "firmware/drivers/pwm_output/pwminst.c",
+    "firmware/hal/ports/esp32c3/c3pwm.c"
+  ]
+}

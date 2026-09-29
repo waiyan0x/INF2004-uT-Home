@@ -15,3 +15,8 @@ The first prototype contains:
 Drivers do not create tasks, allocate queues, choose pins, format the complete
 OLED view, or call another driver. They expose initialise, operate, and shutdown
 entry points through the component registry and return common status codes.
+
+`hc_sr04` now includes portable measurement and `hcinst` typed publication.
+`pwm_output/pwminst` is an additional generic output component for the wider
+platform, independent of the first prototype. Neither is hardware-qualified.
+See [GPIO integration](hc_sr04/INTEGRATION.md).

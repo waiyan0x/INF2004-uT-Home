@@ -1,0 +1,23 @@
+--- a/device/ser/ser_cnf.h
++++ b/device/ser/ser_cnf.h
+@@ -21,7 +21,7 @@
+ 
+ #define	DEVCNF_SER_DEVNAME	"ser"		// Device name ("ser")
+ 
+-#define	DEVCONF_SER_BUFFSIZE	50		//  Communication data buffer size
++#define	DEVCONF_SER_BUFFSIZE	513		//  Communication data buffer size
+ 
+ /* Default value for attribute data */
+ #define	DEVCNF_SER_SPEED	115200		// Communication speed (baud rate)
+--- a/config/config_device.h
++++ b/config/config_device.h
+@@ -26,7 +26,7 @@
+  */
+ 
+ #define DEVCNF_USE_SER		1		// Serial communication device 
+-#define DEVCNF_USE_ADC		1		// A/D conversion device
++#define DEVCNF_USE_ADC		0		// A/D conversion device
+ #define DEVCNF_USE_IIC		1		// I2C communication device
+ 
+ #endif	/* __DEV_CONFIG_H__ */
+\ No newline at end of file

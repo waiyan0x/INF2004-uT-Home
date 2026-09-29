@@ -1,0 +1,15 @@
+{
+  "manifest_version": "1.0.0",
+  "build_id": "host-admission-reference",
+  "backend": "host-model",
+  "board": "esp32-c3-supermini",
+  "board_capability_version": "1.0.0",
+  "drivers": [
+    "bmp388",
+    "ssd1306_spi",
+    "hlk_ld2450",
+    "hc_sr04",
+    "pwm_output"
+  ],
+  "qualification": "Contract/planner fixtures only; no claim that hardware adapters are linked or working."
+}

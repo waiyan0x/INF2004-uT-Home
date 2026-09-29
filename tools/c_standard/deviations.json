@@ -1,0 +1,406 @@
+{
+  "schema_version": 1,
+  "deviations": [
+    {
+      "id": "tests-target-tkfake_main.c-6.1.i-tk_ref_sys",
+      "path": "tests/target/tkfake_main.c",
+      "rule": "6.1.i",
+      "symbol": "tk_ref_sys",
+      "reason": "This definition implements the exact external kernel function name for host failure injection; application functions use their own module prefix.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-tkfake_main.c-6.1.i-tk_get_otm",
+      "path": "tests/target/tkfake_main.c",
+      "rule": "6.1.i",
+      "symbol": "tk_get_otm",
+      "reason": "This definition implements the exact external kernel function name for host failure injection; application functions use their own module prefix.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-tkfake_main.c-6.1.i-tk_slp_tsk",
+      "path": "tests/target/tkfake_main.c",
+      "rule": "6.1.i",
+      "symbol": "tk_slp_tsk",
+      "reason": "This definition implements the exact external kernel function name for host failure injection; application functions use their own module prefix.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-tkfake_main.c-6.1.i-tk_ext_tsk",
+      "path": "tests/target/tkfake_main.c",
+      "rule": "6.1.i",
+      "symbol": "tk_ext_tsk",
+      "reason": "This definition implements the exact external kernel function name for host failure injection; application functions use their own module prefix.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-tkfake_main.c-6.1.i-tk_cre_tsk",
+      "path": "tests/target/tkfake_main.c",
+      "rule": "6.1.i",
+      "symbol": "tk_cre_tsk",
+      "reason": "This definition implements the exact external kernel function name for host failure injection; application functions use their own module prefix.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-tkfake_main.c-6.1.i-tk_sta_tsk",
+      "path": "tests/target/tkfake_main.c",
+      "rule": "6.1.i",
+      "symbol": "tk_sta_tsk",
+      "reason": "This definition implements the exact external kernel function name for host failure injection; application functions use their own module prefix.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-tkfake_main.c-6.1.i-tk_ref_tsk",
+      "path": "tests/target/tkfake_main.c",
+      "rule": "6.1.i",
+      "symbol": "tk_ref_tsk",
+      "reason": "This definition implements the exact external kernel function name for host failure injection; application functions use their own module prefix.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-tkfake_main.c-6.1.i-tk_wup_tsk",
+      "path": "tests/target/tkfake_main.c",
+      "rule": "6.1.i",
+      "symbol": "tk_wup_tsk",
+      "reason": "This definition implements the exact external kernel function name for host failure injection; application functions use their own module prefix.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-tkfake_main.c-6.1.i-tk_dly_tsk",
+      "path": "tests/target/tkfake_main.c",
+      "rule": "6.1.i",
+      "symbol": "tk_dly_tsk",
+      "reason": "This definition implements the exact external kernel function name for host failure injection; application functions use their own module prefix.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-tkfake_main.c-6.1.i-tk_del_tsk",
+      "path": "tests/target/tkfake_main.c",
+      "rule": "6.1.i",
+      "symbol": "tk_del_tsk",
+      "reason": "This definition implements the exact external kernel function name for host failure injection; application functions use their own module prefix.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-tkfake_main.c-6.1.i-tk_chg_pri",
+      "path": "tests/target/tkfake_main.c",
+      "rule": "6.1.i",
+      "symbol": "tk_chg_pri",
+      "reason": "This definition implements the exact external kernel function name for host failure injection; application functions use their own module prefix.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-7.1.e-hi",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "7.1.e",
+      "symbol": "hi",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-7.1.e-lo",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "7.1.e",
+      "symbol": "lo",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-7.1.n-runtskid",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "7.1.n",
+      "symbol": "runtskid",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-7.1.k-exinf",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "7.1.k",
+      "symbol": "exinf",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-7.1.k-task",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "7.1.k",
+      "symbol": "task",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.a-ID",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.a",
+      "symbol": "ID",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.c-ID",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.c",
+      "symbol": "ID",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.a-INT",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.a",
+      "symbol": "INT",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.c-INT",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.c",
+      "symbol": "INT",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.a-ER",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.a",
+      "symbol": "ER",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.c-ER",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.c",
+      "symbol": "ER",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.a-TMO",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.a",
+      "symbol": "TMO",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.c-TMO",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.c",
+      "symbol": "TMO",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.a-SZ",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.a",
+      "symbol": "SZ",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.c-SZ",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.c",
+      "symbol": "SZ",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.a-FP",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.a",
+      "symbol": "FP",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.c-FP",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.c",
+      "symbol": "FP",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.a-SYSTIM",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.a",
+      "symbol": "SYSTIM",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.c-SYSTIM",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.c",
+      "symbol": "SYSTIM",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.a-T_RSYS",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.a",
+      "symbol": "T_RSYS",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.c-T_RSYS",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.c",
+      "symbol": "T_RSYS",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.a-T_RTSK",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.a",
+      "symbol": "T_RTSK",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.c-T_RTSK",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.c",
+      "symbol": "T_RTSK",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.a-T_CTSK",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.a",
+      "symbol": "T_CTSK",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-5.1.c-T_CTSK",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "5.1.c",
+      "symbol": "T_CTSK",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-6.1.i-tk_ref_sys",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "6.1.i",
+      "symbol": "tk_ref_sys",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-6.1.i-tk_get_otm",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "6.1.i",
+      "symbol": "tk_get_otm",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-6.1.i-tk_slp_tsk",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "6.1.i",
+      "symbol": "tk_slp_tsk",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-6.1.i-tk_ext_tsk",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "6.1.i",
+      "symbol": "tk_ext_tsk",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-6.1.i-tk_cre_tsk",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "6.1.i",
+      "symbol": "tk_cre_tsk",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-6.1.i-tk_sta_tsk",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "6.1.i",
+      "symbol": "tk_sta_tsk",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-6.1.i-tk_ref_tsk",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "6.1.i",
+      "symbol": "tk_ref_tsk",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-6.1.i-tk_wup_tsk",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "6.1.i",
+      "symbol": "tk_wup_tsk",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-6.1.i-tk_dly_tsk",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "6.1.i",
+      "symbol": "tk_dly_tsk",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-6.1.i-tk_del_tsk",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "6.1.i",
+      "symbol": "tk_del_tsk",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-fake_kernel-tk-tkernel.h-6.1.i-tk_chg_pri",
+      "path": "tests/target/fake_kernel/tk/tkernel.h",
+      "rule": "6.1.i",
+      "symbol": "tk_chg_pri",
+      "reason": "The host double must retain the external kernel declaration name so the unchanged adapter compiles against both the real API and the double. This does not exempt application declarations.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-runtime_port_board-main-main.c-6.3.a-CHECK",
+      "path": "tests/target/runtime_port_board/main/main.c",
+      "rule": "6.3.a",
+      "symbol": "CHECK",
+      "reason": "Stringification supplies the exact failed expression and source line, which a function cannot obtain. The fully parenthesized body calls a function and evaluates its argument exactly once.",
+      "authority": "BARR-C:2018 rule 6.3.a permits a parameterized macro when a function cannot provide the operation; inspect CHECK and check_result together."
+    },
+    {
+      "id": "tests-target-runtime_port_board-main-main.c-6.1.i-usermain",
+      "path": "tests/target/runtime_port_board/main/main.c",
+      "rule": "6.1.i",
+      "symbol": "usermain",
+      "reason": "The pinned kernel invokes the application through the externally fixed usermain entry point.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    },
+    {
+      "id": "tests-target-runtime_port_board-main-main.h-6.1.i-usermain",
+      "path": "tests/target/runtime_port_board/main/main.h",
+      "rule": "6.1.i",
+      "symbol": "usermain",
+      "reason": "The pinned kernel invokes the application through the externally fixed usermain entry point.",
+      "authority": "Pinned esp32c3-mtk3 ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2 kernel interface; see C_CODING_STANDARD.md."
+    }
+  ],
+  "compatibility_approval": "approval-20260928.json"
+}

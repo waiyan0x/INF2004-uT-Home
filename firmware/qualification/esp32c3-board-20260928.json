@@ -1,0 +1,138 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-09-28T01:59:27.875690+00:00",
+  "build_record": "esp32c3-kernel-20260928.json",
+  "board_task_example_status": "passed",
+  "application_runtime_status": "not_tested",
+  "board": {
+    "model": "ESP32-C3 SuperMini (photographed)",
+    "chip": "ESP32-C3 (QFN32)",
+    "revision": "v0.4",
+    "cpu_cores": 1,
+    "cpu_frequency_mhz": 160,
+    "crystal_mhz": 40,
+    "flash_bytes": 4194304,
+    "flash_vendor": "XMC",
+    "flash_manufacturer_id": "46",
+    "flash_device_id": "4016",
+    "usb_vid_pid": "303A:1001",
+    "port": "COM8"
+  },
+  "tool": {
+    "esptool": "5.4.0",
+    "serial_baud": 115200,
+    "flashing_baud": 460800
+  },
+  "backup": {
+    "file": "%USERPROFILE%/esp/uthome-board-qualification-20260928/original-flash.bin",
+    "size_bytes": 4194304,
+    "sha256": "1282a3c8522f618e6fe7f2b56e15526a642243115c3aba2e87d6a08113c5524c",
+    "taken_before_flash": true,
+    "stored_in_git": false
+  },
+  "flash": {
+    "mode": "dio",
+    "frequency": "80m",
+    "size": "4MB",
+    "after": "no-reset",
+    "segments": [
+      {
+        "offset": "0x0",
+        "artifact": "build/bootloader/bootloader.bin"
+      },
+      {
+        "offset": "0x8000",
+        "artifact": "build/partition_table/partition-table.bin"
+      },
+      {
+        "offset": "0x10000",
+        "artifact": "build/mtk3c3_tasks.bin"
+      }
+    ],
+    "source_artifact_hashes_checked_against_build_record": true,
+    "esptool_hash_verifications": 3,
+    "log_sha256": "56f21822264b8e95198c3308f6074a1d832cdc1618aaab206850f3b1a7f63ff1",
+    "bootloader_note": "esptool updated the image header/digest for explicit flash parameters; build record identifies the original artifact."
+  },
+  "captures": [
+    {
+      "capture": "boot-3.log",
+      "reset": "esptool.reset.HardReset(uses_usb=True)",
+      "requested_capture_seconds": 25,
+      "reset_reason": "USB_UART_CHIP_RESET",
+      "boot_mode": "SPI_FAST_FLASH_BOOT",
+      "startup_markers": [
+        "SPI_FAST_FLASH_BOOT",
+        "__wrap_esp_startup_start_app: bypassing FreeRTOS",
+        "[mtkernel] calling knl_main()",
+        "microT-Kernel Version 3.00",
+        "[tasks] preemptive multitasking demo"
+      ],
+      "A_ticks": {
+        "first": 0,
+        "last": 24,
+        "count": 25
+      },
+      "B_ticks": {
+        "first": 0,
+        "last": 24,
+        "count": 25
+      },
+      "ticks_alternate": true,
+      "unexpected_reset_or_panic_observed": false,
+      "raw_sha256": "b4cf664bea28f17eb2ba006d8c70345137cf5c3d7dd84a42349e37155af33ef9",
+      "normalized_log": "firmware/qualification/logs/esp32c3-20260928-boot-3.txt",
+      "normalized_sha256": "70231e8c84f4dafdcc9b282b969f21018e697b9880ca4bc4762fdc78cafe2b48"
+    },
+    {
+      "capture": "boot-4.log",
+      "reset": "esptool.reset.HardReset(uses_usb=True)",
+      "requested_capture_seconds": 25,
+      "reset_reason": "USB_UART_CHIP_RESET",
+      "boot_mode": "SPI_FAST_FLASH_BOOT",
+      "startup_markers": [
+        "SPI_FAST_FLASH_BOOT",
+        "__wrap_esp_startup_start_app: bypassing FreeRTOS",
+        "[mtkernel] calling knl_main()",
+        "microT-Kernel Version 3.00",
+        "[tasks] preemptive multitasking demo"
+      ],
+      "A_ticks": {
+        "first": 0,
+        "last": 24,
+        "count": 25
+      },
+      "B_ticks": {
+        "first": 0,
+        "last": 24,
+        "count": 25
+      },
+      "ticks_alternate": true,
+      "unexpected_reset_or_panic_observed": false,
+      "raw_sha256": "32ae40d64e9a4d340852ee2574e5c194c337db243fa867c7b6cd0481ca67e49f",
+      "normalized_log": "firmware/qualification/logs/esp32c3-20260928-boot-4.txt",
+      "normalized_sha256": "b17a49a1299bd91aee4d1065621c5f61536c33e0d21da487a537d92332ce6ecd"
+    }
+  ],
+  "initial_attempts": [
+    {
+      "capture": "boot-1.log",
+      "sha256": "2292fc1ba89df47100af629b6d8a453433920b8d9b323a41da5f2d1b260f62c8",
+      "result": "USB reset remained in ROM download mode; no application run."
+    },
+    {
+      "capture": "boot-2.log",
+      "sha256": "6d75d301e81875afe5656c90bb2afd09b3dfb11b784134f4a2463a51f2662279",
+      "result": "esptool ESP32-C3 watchdog reset started tasks; A/B ticks 1 through 24 captured, early startup was missed."
+    }
+  ],
+  "retained_diagnostics": "%USERPROFILE%/esp/uthome-board-qualification-20260928",
+  "limits": [
+    "Only the upstream tasks example with the recorded CMake patch was exercised.",
+    "No physical power-cycle test was performed; both complete captures used USB chip reset.",
+    "No scheduling latency, jitter, stop/delete lifecycle, application runtime, peripheral or AI qualification is claimed.",
+    "ESP-IDF application initialization timestamps were unusually large and repeated; they are not accepted as monotonic timing evidence.",
+    "Peripherals disconnected was the setup instruction; physical wiring was not independently verified in this session."
+  ],
+  "board_left_running": "Pinned kernel tasks example; original firmware retained as local backup."
+}

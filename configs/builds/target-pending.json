@@ -1,0 +1,9 @@
+{
+  "manifest_version": "1.0.0",
+  "build_id": "c3-target-pending",
+  "backend": "target",
+  "board": "esp32-c3-supermini",
+  "board_capability_version": "1.0.0",
+  "drivers": [],
+  "qualification": "Target driver adapters are not integrated in this checkout; peripheral plans must be rejected."
+}

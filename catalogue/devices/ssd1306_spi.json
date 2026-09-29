@@ -1,0 +1,218 @@
+{
+  "schema_version": "1.0.0",
+  "descriptor_id": "ssd1306_spi",
+  "descriptor_version": "1.0.0",
+  "driver_id": "ssd1306_spi",
+  "protocol": "spi",
+  "description": "Initial reviewed device profile; defaults are example policy, not universal runtime rules.",
+  "instance_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "device_id": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+      },
+      "driver": {
+        "const": "ssd1306_spi"
+      },
+      "descriptor": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "const": "ssd1306_spi"
+          },
+          "version": {
+            "const": "1.0.0"
+          }
+        },
+        "required": [
+          "id",
+          "version"
+        ]
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "interface": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "cs_gpio": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63
+          },
+          "dc_gpio": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63
+          },
+          "reset_gpio": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 63
+          },
+          "cs_pullup_ohms": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 100000
+          }
+        },
+        "required": [
+          "ref",
+          "cs_gpio",
+          "dc_gpio",
+          "reset_gpio"
+        ]
+      },
+      "behaviour": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "queue_display"
+          },
+          "operation": {
+            "const": "render"
+          },
+          "refresh_interval_ms": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 1000
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 20
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+            },
+            "minItems": 1,
+            "maxItems": 4,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "profile",
+          "operation",
+          "refresh_interval_ms",
+          "timeout_ms",
+          "sources"
+        ]
+      },
+      "task": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 31
+          },
+          "stack_size_bytes": {
+            "type": "integer",
+            "minimum": 1024,
+            "maximum": 8192
+          }
+        },
+        "required": [
+          "name",
+          "priority",
+          "stack_size_bytes"
+        ]
+      },
+      "display": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "width_px": {
+            "const": 128
+          },
+          "height_px": {
+            "const": 64
+          }
+        },
+        "required": [
+          "width_px",
+          "height_px"
+        ]
+      }
+    },
+    "required": [
+      "device_id",
+      "driver",
+      "descriptor",
+      "enabled",
+      "interface",
+      "behaviour",
+      "task",
+      "display"
+    ]
+  },
+  "bus_schema": {
+    "type": "object",
+    "properties": {
+      "protocol": {
+        "const": "spi"
+      },
+      "clock_hz": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 8000000
+      }
+    }
+  },
+  "execution": {
+    "kind": "queue_consumer",
+    "period_field": "refresh_interval_ms",
+    "timeout_field": "timeout_ms",
+    "timeout_unit": "ms"
+  },
+  "routing": {
+    "output_type": null,
+    "input_types": [
+      "environment_sample",
+      "target_report",
+      "distance_sample",
+      "health_event"
+    ]
+  },
+  "resources": {
+    "min_stack_bytes": 3072,
+    "max_instances": 4
+  },
+  "defaults": {
+    "behaviour": {
+      "profile": "queue_display",
+      "operation": "render",
+      "refresh_interval_ms": 250,
+      "timeout_ms": 10,
+      "sources": [
+        "telemetry.environment",
+        "presence.targets",
+        "distance.front",
+        "system.health"
+      ]
+    },
+    "priority": 16,
+    "stack_size_bytes": 3072
+  },
+  "provenance": [
+    "https://github.com/waiyan0x/INF2004-uT-Home/blob/56f718e/firmware/drivers/ssd1306_spi/ssd1306.h",
+    "https://www.solomon-systech.com/product/ssd1306"
+  ]
+}

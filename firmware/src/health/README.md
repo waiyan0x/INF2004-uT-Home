@@ -1,17 +1,16 @@
 # Health monitoring
 
-The health task periodically publishes a bounded snapshot to `system.health`
-and USB serial. The OLED displays its latest overall state.
+Member 1's host modules provide event counters, rate limiting, explicit queue
+overflow checks and bounded heartbeat registration/checking. Calls supply a
+monotonic timestamp. They do not create a supervisor task or publish to USB,
+a display or a configured queue automatically.
 
-The first prototype tracks:
+The caller explicitly registers watches, submits heartbeats and checks queues.
+Runtime restart/configuration does not yet remove or replace watchdog entries.
+Do not treat an expired or stale watch as an automatic instruction to release a
+driver resource. A heartbeat should represent completed work, not timer activity.
 
-- configuration acceptance, rejection, activation, and rollback;
-- device initialisation, timeout, framing, and disconnection errors;
-- task state, heartbeat age, restart count, stack high-water mark, and jitter;
-- queue depth, high-water mark, and dropped-item count;
-- free runtime-pool capacity and uptime.
-
-Events use stable codes such as `CONFIG_INVALID`, `PIN_CONFLICT`,
-`DEVICE_TIMEOUT`, `UART_FRAME_INVALID`, `QUEUE_OVERFLOW`, and
-`TASK_HEARTBEAT_MISSED`. Repeated errors are counted and rate-limited so a fault
-cannot flood the display or serial channel.
+Target integration must add synchronization, watch ownership/removal, queue and
+runtime event mapping, stack measurements, supervisor scheduling and bounded
+report delivery. The host module uses static state and requires serialized access.
+See [the runtime integration record](../runtime/INTEGRATION.md).

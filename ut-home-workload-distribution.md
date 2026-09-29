@@ -1,5 +1,18 @@
 # μT-Home Workload Distribution
 
+## Selected board and kernel
+
+The physical controller is an **ESP32-C3 SuperMini**. The project uses
+[sirfonzie/esp32c3-mtk3](https://github.com/sirfonzie/esp32c3-mtk3), pinned
+under `firmware/third_party/esp32c3-mtk3/`. See
+[the setup guide](firmware/SETUP_ESP32C3.md) for the exact revision,
+baseline build steps, and remaining hardware/toolchain validation.
+The C3 pin allocation is in [configs/README.md](configs/README.md).
+[PROJECT_BASELINE.md](PROJECT_BASELINE.md) defines the reusable platform,
+versioned device catalogue, per-instance configuration and member integration
+tasks. Prototype values are example defaults; AI work is paused for the
+foundation review.
+
 ## Team Structure
 
 The project will be divided according to the main μT-Home subsystems. Each member will own one technical area and provide a documented interface for the other subsystems. This structure supports parallel development while preserving a single integrated architecture.
@@ -9,8 +22,8 @@ The project will be divided according to the main μT-Home subsystems. Each memb
 | **Member 1** | **μT-Kernel Runtime and System Architecture** | Define the common device model. Convert validated configurations into μT-Kernel tasks, timers, message queues, triggers, and actions. Manage task lifecycles and system health. | Generic μT-Home runtime, behaviour engine, task-management interface, runtime health monitoring, and unit tests. |
 | **Member 2** | **I²C and SPI Communication Abstraction** | Develop reusable I²C and SPI adapters. Integrate representative peripherals through configuration-driven profiles. Use existing low-level drivers where suitable. | I²C and SPI interfaces, profiles for devices such as the BMP388/B-LUX and OLED, optional W25QXX storage support, and protocol tests. |
 | **Member 3** | **UART and GPIO Communication Abstraction** | Develop reusable UART and GPIO adapters. Support digital input, output, interrupts, PWM, and framed UART data. Integrate representative sensors and actuators. | UART and GPIO interfaces, HLK-LD2450 profile, HC-SR04 profile, motor-control profile, timeout handling, and protocol tests. |
-| **Member 4** | **Embedded AI Configuration Recommender** | Prepare a structured dataset from supported device specifications. Train and evaluate a compact model. Quantise and deploy the model for ESP32-S3 inference. Recommend device profiles and configuration parameters. | Training dataset, trained and quantised model, inference module, performance evaluation, and documented recommendation outputs. |
-| **Member 5** | **Configuration, User Interface, and System Integration** | Define the JSON schema. Generate and validate configurations. Provide a user interface for reviewing recommendations. Transfer profiles and model updates to the ESP32-S3. Coordinate system-level testing and observability. | JSON generator and validator, configuration interface, deployment mechanism, monitoring view, integration-test framework, and final demonstration build. |
+| **Member 4** | **Embedded AI Configuration Recommender** | Prepare a structured dataset from supported device specifications. Train and evaluate a compact model. Quantise and deploy the model for ESP32-C3 inference. Recommend device profiles and configuration parameters. | Training dataset, trained and quantised model, inference module, performance evaluation, and documented recommendation outputs. |
+| **Member 5** | **Configuration, User Interface, and System Integration** | Define the JSON schema. Generate and validate configurations. Provide a user interface for reviewing recommendations. Transfer profiles and model updates to the ESP32-C3. Coordinate system-level testing and observability. | JSON generator and validator, configuration interface, deployment mechanism, monitoring view, integration-test framework, and final demonstration build. |
 
 ## Subsystem Interaction
 
@@ -57,7 +70,7 @@ The AI subsystem recommends a supported device profile and suitable parameters. 
 - Define the model inputs and predicted configuration parameters.
 - Extract structured specifications from supported datasheets.
 - Train and compare compact classification or regression models.
-- Quantise the selected model for the ESP32-S3.
+- Quantise the selected model for the ESP32-C3.
 - Measure accuracy, model size, memory use, and inference latency.
 - Keep model weights separate from the main firmware where feasible.
 
@@ -67,7 +80,7 @@ The AI subsystem recommends a supported device profile and suitable parameters. 
 - Reject invalid protocols, pins, ranges, and duplicate assignments.
 - Generate JSON through fixed templates rather than unrestricted text generation.
 - Allow users to review, edit, approve, or reject AI recommendations.
-- Transfer configurations to the ESP32-S3 without recompiling the runtime.
+- Transfer configurations to the ESP32-C3 without recompiling the runtime.
 - Maintain the integration-test harness and final system demonstration.
 
 ## Suggested Repository Ownership
@@ -132,13 +145,13 @@ The prototype will focus on communication abstraction and runtime behaviour. It 
 
 | Function            | Hardware           | Protocol | Prototype Role                                   |
 | ------------------- | ------------------ | -------- | ------------------------------------------------ |
-| Central controller  | ESP32-S3 SuperMini | —        | Runs μT-Kernel and the μT-Home runtime           |
+| Central controller  | ESP32-C3 SuperMini | —        | Runs μT-Kernel and the μT-Home runtime           |
 | Environmental input | BMP388             | I²C      | Provides pressure and temperature readings       |
 | Status output       | 0.96-inch OLED     | SPI      | Displays readings and system status              |
 | Presence detection  | HLK-LD2450         | UART     | Reports detected targets and movement            |
 | Distance input      | HC-SR04            | GPIO     | Measures distance using Trigger and Echo signals |
 
-The HC-SR04 operates at 5 V. A voltage divider will reduce its Echo signal to a safe 3.3 V level before it reaches the ESP32-S3. All components will share a common ground.
+The HC-SR04 operates at 5 V. A voltage divider will reduce its Echo signal to a safe 3.3 V level before it reaches the ESP32-C3. All components will share a common ground.
 
 The USB connection will initially be used only for power, configuration transfer, and serial monitoring through existing board functionality. A custom USB driver is outside the first prototype’s scope.
 
@@ -188,7 +201,10 @@ Changing `interval_ms` from `2000` to `5000` will change the sampling interval w
 
 ### AI-Assisted Configuration
 
-The first embedded AI model will be limited to the supported prototype devices. It will receive structured information such as:
+The initial hardware validates the platform, while the later AI contract should
+represent capabilities of supported devices rather than a fixed list of model
+names. AI training is paused until the foundation review is complete. Candidate
+structured inputs include:
 
 * Communication protocol
 * Peripheral category
@@ -228,6 +244,6 @@ The prototype will be considered successful if:
 4. Invalid JSON and conflicting pin assignments are rejected.
 5. Device disconnection and communication timeouts are detected.
 6. The AI model recommends valid profiles for the supported devices.
-7. Memory usage, task timing, and inference latency remain within the ESP32-S3’s available resources.
+7. Memory usage, task timing, and inference latency remain within the ESP32-C3’s available resources.
 
 This prototype establishes the minimum viable μT-Home architecture. Additional devices, automation scenarios, and dynamic model updates can be introduced after the core configuration-driven runtime has been validated.

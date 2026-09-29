@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-09-28T04:25:27.380119+00:00",
+  "build_record": "esp32c3-barr-20260928-build.json",
+  "periodic_worker_board_status": "passed",
+  "configuration_activation_status": "not_implemented",
+  "peripheral_integration_status": "not_tested",
+  "board": {
+    "chip": "ESP32-C3",
+    "revision": "v0.4",
+    "flash_bytes": 4194304,
+    "port": "COM8",
+    "usb_vid_pid": "303A:1001"
+  },
+  "flash": {
+    "tool": "esptool 5.4.0",
+    "baud": 460800,
+    "mode": "dio",
+    "size": "4MB",
+    "frequency": "80m",
+    "after": "watchdog-reset",
+    "segments_hash_verified": 3,
+    "verification_source": "esptool output in this review session",
+    "note": "esptool adjusted the bootloader header/digest in its outgoing image; build record hashes identify the original artifacts."
+  },
+  "captures": [
+    {
+      "normalized_log": "logs/esp32c3-barr-20260928-boot-1.txt",
+      "normalized_sha256": "32908c8b393cfe155c2ba5d6f36f906e6ecc5bca4ba8c0d94c9edcc59a8ccb02",
+      "raw_log": "C:\\Users\\kkak4\\esp\\uthome-barr-qualification-20260928\\boot-1.log",
+      "raw_sha256": "1c6451208cb5631de2e1f798a99c3edafe10d4ae19b0b359f30f7ab59787a444",
+      "discarded_pre_reset_prefix_bytes": 64,
+      "capture_seconds": 20,
+      "reset": "USB_UART_CHIP_RESET",
+      "checks_passed": 369,
+      "allocation_release_cycles": 24,
+      "slots_per_cycle": 4,
+      "monotonic_delay_observed_ms": 101,
+      "monotonic_delay_requested_ms": 100,
+      "sleeping_worker_cancel_observed_ms": 0,
+      "worker_calls": {
+        "fast": 6,
+        "slow": 3
+      },
+      "alive_counter_first": 0,
+      "alive_counter_last": 18,
+      "unexpected_restart_or_panic_observed": false
+    },
+    {
+      "normalized_log": "logs/esp32c3-barr-20260928-boot-2.txt",
+      "normalized_sha256": "274238bd2a2574cca96faa51d8877b41cdee6645a2d6ac2b39bdbe6548bad347",
+      "raw_log": "C:\\Users\\kkak4\\esp\\uthome-barr-qualification-20260928\\boot-2.log",
+      "raw_sha256": "11c2a4c48bd8e8c8e2833718bb23d9d2b7fad941f1393558613ed7be4f13cae0",
+      "discarded_pre_reset_prefix_bytes": 0,
+      "capture_seconds": 20,
+      "reset": "USB_UART_CHIP_RESET",
+      "checks_passed": 369,
+      "allocation_release_cycles": 24,
+      "slots_per_cycle": 4,
+      "monotonic_delay_observed_ms": 101,
+      "monotonic_delay_requested_ms": 100,
+      "sleeping_worker_cancel_observed_ms": 0,
+      "worker_calls": {
+        "fast": 6,
+        "slow": 3
+      },
+      "alive_counter_first": 0,
+      "alive_counter_last": 18,
+      "unexpected_restart_or_panic_observed": false
+    }
+  ],
+  "original_flash_backup": {
+    "path": "C:\\Users\\kkak4\\esp\\uthome-board-qualification-20260928\\original-flash.bin",
+    "sha256": "1282a3c8522f618e6fe7f2b56e15526a642243115c3aba2e87d6a08113c5524c"
+  },
+  "limitations": [
+    "Reset captures are not physical power-cycle testing.",
+    "No peripheral actuation, whole-plan activation or full-kernel smoke coverage is claimed.",
+    "Observed clock progress is not an independent clock-accuracy measurement."
+  ]
+}

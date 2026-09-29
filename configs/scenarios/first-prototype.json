@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "scenario_id": "first-prototype",
-  "description": "Run the BMP388, OLED, HLK-LD2450, and HC-SR04 concurrently on one ESP32-S3 node.",
+  "description": "Run the BMP388, OLED, HLK-LD2450, and HC-SR04 concurrently on one ESP32-C3 node.",
   "nodes": [
     {
       "node_id": "prototype-node-01",

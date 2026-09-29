@@ -1,29 +1,22 @@
 # Application entry point
 
-`main.c` performs orchestration only. Device logic belongs in drivers,
-services, and runtime modules.
+`c3app.c` composes the generic configuration controller, target admission and
+binding, checked plan activation, native USB and two-slot flash storage. It owns
+static contexts and runs from the existing kernel `usermain` entry point.
+Device behavior stays in drivers and services; no prototype equipment identity
+is embedded in this application loop.
 
-## Cold-start sequence
+The qualifier's default remains the runtime acceptance fixture. Build with
+`--runtime-port --configuration-app` to select the configuration application
+and its dedicated partition table. Startup attempts one independently validated
+restore, then listens for framed requests. Active and saved revisions are
+reported separately. Initialization failure halts without reinitializing live
+contexts. Routine transfer faults keep listening and preserve active devices.
 
-1. Initialise the minimal board and USB serial path needed for diagnostics.
-2. Initialise μT-Kernel and the runtime's fixed resource pools.
-3. Load the candidate JSON profile from USB serial or configuration storage.
-4. Parse it and run schema plus semantic validation.
-5. Resolve every interface, GPIO, queue, driver, and task resource without
-   starting device work.
-6. If all resources are valid, commit the profile as last known good.
-7. Create queues and one task for each enabled device.
-8. Start health monitoring, then release device tasks to run.
-
-If no valid profile is available, remain in a serial recovery mode with all
-peripherals inactive.
-
-## Live update sequence
-
-A replacement profile is staged separately. Validation failure leaves the
-active profile untouched. For a valid update, the runtime stops only affected
-tasks, applies interface and queue changes, then restarts them. If activation
-fails, it restores the last-known-good profile and reports the rollback.
-
-The first prototype must support changing `interval_ms` and `enabled` through
-this path without reflashing firmware.
+See [USB/storage contracts and review](../src/config/USB_STORAGE.md) for build
+commands, ownership, partition layout, reconnect behavior and acceptance limits.
+Telemetry/health and [display services](../src/services/DISPLAY.md) are now
+integrated. The [local UI](../../tools/configurator/README.md) discovers compiled
+capabilities and uses this endpoint. [Typed rules](../src/automation/README.md)
+route configured sources to the existing PWM component. Physical acceptance
+and AI remain deferred, with AI last.

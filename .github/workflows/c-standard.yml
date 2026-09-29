@@ -1,0 +1,35 @@
+name: C standard and host acceptance
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  c-standard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            tools/c_standard/requirements.txt
+            tools/requirements.txt
+      - name: Install pinned formatting and host test dependencies
+        run: python -m pip install -r tools/c_standard/requirements.txt -r tools/requirements.txt
+      - name: Require the host compiler
+        run: gcc --version
+      - name: Enforce BARR-C policy
+        run: python tools/c_standard/check.py --root .
+      - name: Verify the policy checker
+        run: python -m unittest discover -s tests/c_standard -p 'test_*.py' -v
+      - name: Run foundation acceptance
+        run: python -m unittest discover -s tests/foundation -p 'test_*.py' -v
+      - name: Run runtime C suites
+        run: python -m unittest discover -s tests/runtime -p 'test_*.py' -v
+      - name: Run target failure and build-tool tests
+        run: python -m unittest discover -s tests/target -p 'test_*.py' -v

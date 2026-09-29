@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:uthome:ai:feature-request:0.2.0",
+  "title": "μT-Home AI feature request",
+  "description": "Structured request sent by the local application to the embedded recommender.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "request_id",
+    "device_type",
+    "features"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "0.2.0"
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,64}$"
+    },
+    "device_type": {
+      "type": "string",
+      "enum": [
+        "bmp388",
+        "ssd1306_spi",
+        "hlk_ld2450",
+        "hc_sr04"
+      ],
+      "description": "Transport metadata used for profile consistency checks. It is excluded from the model vector."
+    },
+    "features": {
+      "$ref": "#/$defs/features"
+    }
+  },
+  "$defs": {
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "peripheral_category",
+        "io_direction",
+        "data_pattern",
+        "payload_size_bytes",
+        "min_period_ms",
+        "max_period_ms",
+        "native_rate_millihz",
+        "min_timeout_us",
+        "max_timeout_us",
+        "min_buffer_size_bytes",
+        "max_buffer_size_bytes",
+        "operating_mode",
+        "desired_period_ms",
+        "active_device_count",
+        "queue_depth"
+      ],
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "enum": [
+            "i2c",
+            "spi",
+            "uart",
+            "gpio"
+          ]
+        },
+        "peripheral_category": {
+          "type": "string",
+          "enum": [
+            "environment_sensor",
+            "status_display",
+            "presence_sensor",
+            "distance_sensor"
+          ]
+        },
+        "io_direction": {
+          "type": "string",
+          "enum": [
+            "input",
+            "output"
+          ]
+        },
+        "data_pattern": {
+          "type": "string",
+          "enum": [
+            "periodic",
+            "stream",
+            "queue_consumer"
+          ]
+        },
+        "payload_size_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Device work-unit size defined by first-prototype-baseline.json; not a queue-item ABI size."
+        },
+        "min_period_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "max_period_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "native_rate_millihz": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295,
+          "description": "Native production or consumption rate in 1/1000 Hz; zero means not fixed by hardware."
+        },
+        "min_timeout_us": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "max_timeout_us": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "min_buffer_size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "max_buffer_size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "operating_mode": {
+          "type": "string",
+          "enum": [
+            "power_saving",
+            "balanced",
+            "responsive"
+          ]
+        },
+        "desired_period_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295,
+          "description": "User preference; zero means the model should select a period from the valid range."
+        },
+        "active_device_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "queue_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        }
+      }
+    }
+  }
+}

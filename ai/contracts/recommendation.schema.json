@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:uthome:ai:recommendation:0.2.0",
+  "title": "μT-Home embedded recommendation",
+  "description": "Typed recommendation or abstention returned by the embedded model wrapper.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "request_id",
+    "model_version",
+    "status",
+    "profile",
+    "parameters",
+    "confidence_per_mille",
+    "abstain_reason",
+    "warnings"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "0.2.0"
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,64}$"
+    },
+    "model_version": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._+-]{1,32}$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "recommended",
+        "abstained"
+      ]
+    },
+    "profile": {
+      "enum": [
+        "periodic_sensor",
+        "stream_sensor",
+        "queue_display",
+        null
+      ]
+    },
+    "parameters": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/parameters"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "confidence_per_mille": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "abstain_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "recommended"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "profile": {
+            "enum": [
+              "periodic_sensor",
+              "stream_sensor",
+              "queue_display"
+            ]
+          },
+          "parameters": {
+            "$ref": "#/$defs/parameters"
+          },
+          "confidence_per_mille": {
+            "minimum": 800
+          },
+          "abstain_reason": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "profile": {
+            "type": "null"
+          },
+          "parameters": {
+            "type": "null"
+          },
+          "confidence_per_mille": {
+            "const": 0
+          },
+          "abstain_reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "period_ms",
+        "timeout_us",
+        "buffer_size_bytes",
+        "task_priority",
+        "period_applicable",
+        "buffer_applicable"
+      ],
+      "properties": {
+        "period_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "timeout_us": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "buffer_size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "task_priority": {
+          "type": "integer",
+          "enum": [
+            8,
+            10,
+            12,
+            16
+          ],
+          "description": "Fixed device priority; validate_exchange checks the device mapping."
+        },
+        "period_applicable": {
+          "type": "boolean"
+        },
+        "buffer_applicable": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

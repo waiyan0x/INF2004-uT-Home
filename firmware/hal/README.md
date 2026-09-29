@@ -1,14 +1,38 @@
 # Hardware abstraction layer
 
-`include/` defines GPIO, I²C, SPI, UART, time, storage, and USB serial contracts.
-All potentially blocking functions accept a timeout and return a common status.
+`include/i2cbus.h` defines the implemented I2C transport and timing contract.
+One absolute deadline covers each complete operation, including bus-lock waiting.
+The backend owns the controller while drivers claim their device addresses.
+`include/spibus.h` adds bounded SPI device transactions; `pinpool` tracks pin
+ownership and `digiout.h` defines borrowed output callbacks. C3 I2C, SPI and simple
+outputs share one pin ledger. UART, digital input, pulse capture and PWM now
+have software implementations. Storage and USB configuration transfer remain
+later checkpoints; peripheral hardware acceptance is deferred.
 
-`ports/esp32s3/` is the only location for ESP32-S3 SDK or board-specific code.
+`ports/esp32c3/` is the only location for ESP32-C3 SDK or board-specific code.
 It configures peripherals from the validated profile; pin numbers must never be
 compiled into a driver.
 
-`ports/host_sim/` provides deterministic fakes for unit and integration tests.
+`ports/host_sim/i2cfake.c` provides a deterministic I2C register/time fake;
+`spifake.c` captures SPI transactions and injects output/transport failures.
 Adding a board means adding another port without changing drivers or services.
 
 Network APIs are deferred because the first prototype uses USB serial for
 configuration and monitoring.
+
+## UART software checkpoint
+
+`uartio` owns one configurable byte transport with 64-byte nonblocking calls,
+partial TX counts, checked cleanup and monotonic time. `uartfake` supplies host
+faults; `c3uart` wraps the pinned kernel UART1. Protocol parsing remains in the
+driver. See [UART integration](../drivers/hlk_ld2450/INTEGRATION.md).
+Native UART hardware qualification remains pending.
+
+## GPIO capture and PWM
+
+`digiin` complements `digiout` for borrowed level callbacks. `pulseio` owns a
+trigger/input pair and returns bounded pulse widths; `pwmio` owns a PWM channel
+with zero-duty setup/cleanup. `gpiofake` provides host faults and shared pin
+claims. `c3pulse` uses RMT; `c3pwm` uses independently timed LEDC outputs.
+See [limits and review](../drivers/hc_sr04/INTEGRATION.md). Physical acceptance
+and generic GPIO interrupt delivery remain pending.

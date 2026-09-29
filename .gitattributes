@@ -1,0 +1,4 @@
+# BARR-C requires LF source lines on every developer platform.
+*.c text eol=lf whitespace=-blank-at-eof
+*.h text eol=lf whitespace=-blank-at-eof
+.clang-format text eol=lf

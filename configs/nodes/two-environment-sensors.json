@@ -1,0 +1,92 @@
+{
+  "schema_version": "2.0.0",
+  "node_id": "two-environment-sensors",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "runtime": {
+    "health_report_interval_ms": 5000,
+    "max_device_tasks": 4,
+    "queue_depth": 8,
+    "configuration_source": "usb_serial",
+    "rollback_on_error": true
+  },
+  "interfaces": [
+    {
+      "id": "i2c0",
+      "protocol": "i2c",
+      "port": 0,
+      "sda_gpio": 0,
+      "scl_gpio": 1,
+      "clock_hz": 400000
+    }
+  ],
+  "queues": [
+    {
+      "id": "zone.a",
+      "item_type": "environment_sample",
+      "depth": 4,
+      "overflow_policy": "drop_oldest"
+    },
+    {
+      "id": "zone.b",
+      "item_type": "environment_sample",
+      "depth": 4,
+      "overflow_policy": "drop_oldest"
+    }
+  ],
+  "devices": [
+    {
+      "device_id": "room_1",
+      "driver": "bmp388",
+      "enabled": true,
+      "interface": {
+        "ref": "i2c0",
+        "address": "0x76"
+      },
+      "behaviour": {
+        "profile": "periodic_sensor",
+        "operation": "read",
+        "interval_ms": 500,
+        "timeout_ms": 20,
+        "destination": "zone.a"
+      },
+      "task": {
+        "name": "reader_1",
+        "priority": 11,
+        "stack_size_bytes": 3072
+      },
+      "descriptor": {
+        "id": "bmp388",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "device_id": "room_2",
+      "driver": "bmp388",
+      "enabled": true,
+      "interface": {
+        "ref": "i2c0",
+        "address": "0x77"
+      },
+      "behaviour": {
+        "profile": "periodic_sensor",
+        "operation": "read",
+        "interval_ms": 5000,
+        "timeout_ms": 20,
+        "destination": "zone.b"
+      },
+      "task": {
+        "name": "reader_2",
+        "priority": 12,
+        "stack_size_bytes": 3072
+      },
+      "descriptor": {
+        "id": "bmp388",
+        "version": "1.0.0"
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "clang_format_version": "20.1.8",
+  "atomic_profile_paths": [
+    "firmware/src/runtime/tkport.c",
+    "tests/target/runtime_port_board/main/main.c"
+  ],
+  "module_prefixes": {
+    "firmware/src/runtime/hostport.c": [
+      "hostport_",
+      "rt_port_"
+    ],
+    "firmware/src/runtime/tkport.c": [
+      "rt_port_"
+    ],
+    "firmware/src/runtime/workport.h": [
+      "rt_port_"
+    ]
+  },
+  "atomic_profile_approval": "approval-20260928.json"
+}

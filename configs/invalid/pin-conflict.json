@@ -1,18 +1,72 @@
 {
-  "schema_version": "1.0.0",
-  "node_id": "invalid-pin-conflict",
+  "schema_version": "2.0.0",
+  "node_id": "prototype-node-01",
   "board": {
-    "platform": "esp32-s3",
-    "variant": "esp32-s3-supermini"
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "runtime": {
+    "health_report_interval_ms": 5000,
+    "max_device_tasks": 4,
+    "queue_depth": 8,
+    "configuration_source": "usb_serial",
+    "rollback_on_error": true
   },
   "interfaces": [
     {
       "id": "i2c0",
       "protocol": "i2c",
       "port": 0,
-      "sda_gpio": 8,
-      "scl_gpio": 9,
+      "sda_gpio": 0,
+      "scl_gpio": 1,
       "clock_hz": 400000
+    },
+    {
+      "id": "spi2",
+      "protocol": "spi",
+      "host": 2,
+      "mosi_gpio": 6,
+      "sclk_gpio": 7,
+      "clock_hz": 8000000
+    },
+    {
+      "id": "uart1",
+      "protocol": "uart",
+      "port": 1,
+      "rx_gpio": 20,
+      "tx_gpio": 21,
+      "baud_rate": 256000,
+      "data_bits": 8,
+      "parity": "none",
+      "stop_bits": 1,
+      "rx_buffer_bytes": 512
+    }
+  ],
+  "queues": [
+    {
+      "id": "telemetry.environment",
+      "item_type": "environment_sample",
+      "depth": 8,
+      "overflow_policy": "drop_oldest"
+    },
+    {
+      "id": "presence.targets",
+      "item_type": "target_report",
+      "depth": 8,
+      "overflow_policy": "drop_oldest"
+    },
+    {
+      "id": "distance.front",
+      "item_type": "distance_sample",
+      "depth": 8,
+      "overflow_policy": "drop_oldest"
+    },
+    {
+      "id": "system.health",
+      "item_type": "health_event",
+      "depth": 8,
+      "overflow_policy": "drop_oldest"
     }
   ],
   "devices": [
@@ -23,6 +77,88 @@
       "interface": {
         "ref": "i2c0",
         "address": "0x76"
+      },
+      "behaviour": {
+        "profile": "periodic_sensor",
+        "operation": "read",
+        "interval_ms": 2000,
+        "timeout_ms": 20,
+        "destination": "telemetry.environment"
+      },
+      "task": {
+        "name": "bmp388_reader",
+        "priority": 12,
+        "stack_size_bytes": 3072
+      },
+      "descriptor": {
+        "id": "bmp388",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "device_id": "oled_status",
+      "driver": "ssd1306_spi",
+      "enabled": true,
+      "interface": {
+        "ref": "spi2",
+        "cs_gpio": 2,
+        "dc_gpio": 3,
+        "reset_gpio": 10,
+        "cs_pullup_ohms": 10000
+      },
+      "display": {
+        "width_px": 128,
+        "height_px": 64
+      },
+      "behaviour": {
+        "profile": "queue_display",
+        "operation": "render",
+        "refresh_interval_ms": 250,
+        "timeout_ms": 10,
+        "sources": [
+          "telemetry.environment",
+          "presence.targets",
+          "distance.front",
+          "system.health"
+        ]
+      },
+      "task": {
+        "name": "oled_renderer",
+        "priority": 16,
+        "stack_size_bytes": 3072
+      },
+      "descriptor": {
+        "id": "ssd1306_spi",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "device_id": "presence_sensor",
+      "driver": "hlk_ld2450",
+      "enabled": true,
+      "interface": {
+        "ref": "uart1"
+      },
+      "behaviour": {
+        "profile": "stream_sensor",
+        "operation": "read_frames",
+        "timeout_ms": 250,
+        "frame": {
+          "header_hex": "AAFF0300",
+          "footer_hex": "55CC",
+          "size_bytes": 30,
+          "report_rate_hz": 10
+        },
+        "destination": "presence.targets"
+      },
+      "task": {
+        "name": "ld2450_reader",
+        "priority": 8,
+        "stack_size_bytes": 4096
+      },
+      "descriptor": {
+        "id": "hlk_ld2450",
+        "version": "1.0.0"
       }
     },
     {
@@ -31,9 +167,25 @@
       "enabled": true,
       "interface": {
         "protocol": "gpio",
-        "trigger_gpio": 8,
+        "trigger_gpio": 0,
         "echo_gpio": 5,
         "echo_voltage_divider_required": true
+      },
+      "behaviour": {
+        "profile": "periodic_sensor",
+        "operation": "measure_distance",
+        "interval_ms": 1000,
+        "timeout_us": 30000,
+        "destination": "distance.front"
+      },
+      "task": {
+        "name": "hc_sr04_reader",
+        "priority": 10,
+        "stack_size_bytes": 3072
+      },
+      "descriptor": {
+        "id": "hc_sr04",
+        "version": "1.0.0"
       }
     }
   ]

@@ -1,0 +1,451 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:uthome:node:2.1.0",
+  "title": "Configuration-driven node profile",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "2.0.0",
+        "2.1.0"
+      ]
+    },
+    "node_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+    },
+    "board": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "platform": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+        },
+        "variant": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+        },
+        "capability_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        }
+      },
+      "required": [
+        "platform",
+        "variant",
+        "capability_version"
+      ]
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "health_report_interval_ms": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 60000
+        },
+        "max_device_tasks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "queue_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "configuration_source": {
+          "const": "usb_serial"
+        },
+        "rollback_on_error": {
+          "const": true
+        }
+      },
+      "required": [
+        "health_report_interval_ms",
+        "max_device_tasks",
+        "queue_depth",
+        "configuration_source",
+        "rollback_on_error"
+      ]
+    },
+    "interfaces": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+              },
+              "protocol": {
+                "const": "i2c"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 7
+              },
+              "sda_gpio": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "scl_gpio": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "clock_hz": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000000
+              }
+            },
+            "required": [
+              "id",
+              "protocol",
+              "port",
+              "sda_gpio",
+              "scl_gpio",
+              "clock_hz"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+              },
+              "protocol": {
+                "const": "spi"
+              },
+              "host": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 7
+              },
+              "mosi_gpio": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "sclk_gpio": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "clock_hz": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000000
+              }
+            },
+            "required": [
+              "id",
+              "protocol",
+              "host",
+              "mosi_gpio",
+              "sclk_gpio",
+              "clock_hz"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+              },
+              "protocol": {
+                "const": "uart"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 7
+              },
+              "rx_gpio": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "tx_gpio": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "baud_rate": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000000
+              },
+              "data_bits": {
+                "enum": [
+                  8
+                ]
+              },
+              "parity": {
+                "enum": [
+                  "none",
+                  "even",
+                  "odd"
+                ]
+              },
+              "stop_bits": {
+                "enum": [
+                  1,
+                  2
+                ]
+              },
+              "rx_buffer_bytes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536
+              }
+            },
+            "required": [
+              "id",
+              "protocol",
+              "port",
+              "rx_gpio",
+              "tx_gpio",
+              "baud_rate",
+              "data_bits",
+              "parity",
+              "stop_bits",
+              "rx_buffer_bytes"
+            ]
+          }
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 8
+    },
+    "queues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "item_type": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64
+          },
+          "overflow_policy": {
+            "enum": [
+              "drop_oldest"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "item_type",
+          "depth",
+          "overflow_policy"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 8
+    },
+    "devices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "device_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "driver": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "descriptor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+              },
+              "version": {
+                "type": "string",
+                "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+              }
+            },
+            "required": [
+              "id",
+              "version"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "interface": {
+            "type": "object"
+          },
+          "display": {
+            "type": "object"
+          },
+          "settings": {
+            "type": "object"
+          },
+          "behaviour": {
+            "type": "object"
+          },
+          "task": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+              },
+              "priority": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 31
+              },
+              "stack_size_bytes": {
+                "type": "integer",
+                "minimum": 1024,
+                "maximum": 8192
+              }
+            },
+            "required": [
+              "name",
+              "priority",
+              "stack_size_bytes"
+            ]
+          }
+        },
+        "required": [
+          "device_id",
+          "driver",
+          "descriptor",
+          "enabled",
+          "interface",
+          "behaviour",
+          "task"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 8
+    },
+    "rules": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "target": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "metric": {
+            "enum": [
+              "distance_mm",
+              "temperature_centi_c",
+              "pressure_pa",
+              "target_count"
+            ]
+          },
+          "comparison": {
+            "enum": [
+              "above",
+              "below"
+            ]
+          },
+          "threshold": {
+            "type": "integer",
+            "minimum": -1000000000,
+            "maximum": 1000000000
+          },
+          "hysteresis": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "cooldown_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 60000
+          },
+          "max_age_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60000
+          },
+          "duty_permille": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "source",
+          "target",
+          "metric",
+          "comparison",
+          "threshold",
+          "hysteresis",
+          "cooldown_ms",
+          "max_age_ms",
+          "duty_permille"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "node_id",
+    "board",
+    "runtime",
+    "interfaces",
+    "queues",
+    "devices"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": "2.0.0"
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "rules"
+          ]
+        }
+      }
+    }
+  ]
+}
