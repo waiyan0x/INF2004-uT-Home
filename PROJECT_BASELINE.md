@@ -6,8 +6,16 @@ image whose supported hardware instances, behaviour and routing are selected
 through validated configuration. The original sensors and display are examples
 used to evaluate that architecture.
 
-Current status: software through checkpoints 6c/7; hardware acceptance (8) and
-AI (9) are deferred. Later checkpoint sections preserve the state when recorded.
+Current status (2026-10-12): software through checkpoints 6c/7; hardware
+acceptance (8) is partial. Offline preparation now starts with the
+[discovery and device-specific settings contract](docs/DEVICE_DISCOVERY.md)
+before model training (9). D1/D2 now add catalogue policies, bounded generic I2C
+observations, USB exchange and deterministic PC identity matching. D3 now adds
+sourced settings and additive draft review in the existing local UI. D4 adds
+receive-only radar candidates and explicit manual OLED/GPIO confirmation, using
+the same review/apply path. Physical discovery acceptance remains pending;
+model training has not started.
+Later checkpoint sections preserve the state when recorded.
 
 The current implementation sequence is in
 [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md). The
@@ -32,6 +40,10 @@ binding adapter must map the validated routes to those masks.
 
 Automatic identification, arbitrary datasheet interpretation and electrical
 hot-plug support are not acceptance requirements for this foundation.
+The newly requested discovery extension adds bounded identification on reviewed
+connections, with manual confirmation where needed. It does not add arbitrary
+datasheet interpretation or electrical hot-plug support. This extension is being
+implemented separately without changing the existing configuration contracts.
 
 ## Responsibilities and versioned contracts
 
@@ -42,6 +54,7 @@ hot-plug support are not acceptance requirements for this foundation.
 | Board capabilities | 1.0.0 | Available controllers/pins, reserved resources and bounded capacity |
 | Build manifest | 1.0.0 | Drivers available in a particular host model or firmware build |
 | Normalized host plan | 1.0.0 | Validated per-instance settings and resource demand for an adapter |
+| Discovery policy catalogue | 0.1.0 | PC-side identification evidence and confirmation rules; references existing descriptors; firmware returns raw observations |
 
 Descriptors are reviewed files under `catalogue/devices/`. They are not copied
 from untrusted node requests. Node profiles cannot widen their limits. Device
@@ -193,7 +206,7 @@ The runtime remains independent of device identities.
 | Member 1 | Review the qualified periodic activation/recovery path; integrate stream readiness and real driver ownership |
 | Member 2 | Bind I2C/SPI drivers to separate instance contexts; verify descriptor limits and sample representations |
 | Member 3 | Bind UART/GPIO drivers; honour exclusive UART ownership and instance resource cleanup |
-| Member 4 | Review capability-based AI inputs after the foundation is agreed; keep training paused meanwhile |
+| Member 4 | Settle device discovery and recommended settings, then define capability-based AI inputs; training follows the discovery checkpoints |
 | Member 5 | Migrate schema 1.0.0 consumers to 2.0.0; use shared validation and runtime plan mapping; integrate transfer/recovery |
 
 The component API originates from Member 1's `feat/component-operations`, commit
@@ -205,8 +218,9 @@ This is a local source reconciliation, not a Git merge or publication. The
 shared-header changes remain ready for team review; other members' peripheral
 and configurator branches still require integration.
 
-The AI work remains on hold. A later recommender should use reviewed capabilities,
-workload goals and available resources. Its outputs must pass this same validator.
+Model training remains on hold while discovery preparation proceeds. A later
+recommender should use reviewed capabilities, workload goals and available
+resources. Its outputs must pass this same validator.
 It must not infer driver availability, invent wiring or expand device limits.
 Keep synthetic policy labels distinct from hardware evidence. No model is required
 to prove the platform can reconfigure supported hardware.

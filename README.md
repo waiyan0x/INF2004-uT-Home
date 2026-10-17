@@ -26,6 +26,7 @@ See [AGENTS.md](AGENTS.md) for instructions for coding agents.
 | `configs/` | Node profiles, demo scenarios, and intentionally invalid profiles for tests |
 | `schemas/` | Generic node and device-descriptor contracts |
 | `catalogue/` | Reviewed device capabilities and board resource limits |
+| `ai/` | Offline timing experiments, simulated training/evaluation and experimental C export |
 | `tests/` | Host unit tests, integration, on-target hardware and fault-injection tests |
 | `tools/` | Host scripts: profile validator, provisioning, flash/monitor helpers |
 | `docs/` | Architecture, use cases, wiring, test plan, measurements, meeting notes |
@@ -38,8 +39,18 @@ configuration, driver registration and bounded runtime admission. The original
 prototype is one example deployment. Alternative configurations and host
 acceptance tests exercise adaptation independently of AI. The kernel task example
 passed startup and repeated USB-reset checks on the ESP32-C3 on 2026-09-28.
-Application runtime/peripheral integration remains outstanding; AI training is
-paused until that platform path is demonstrated.
+Application runtime, peripheral drivers, profile transfer/storage, telemetry,
+local configuration and rule routing are implemented in software. Reviewed
+device discovery is also implemented, with physical discovery and full platform
+acceptance still pending. Earlier basic BMP388, OLED and radar checks do not
+replace that acceptance work.
+
+The [offline AI pipeline](ai/OFFLINE_PIPELINE.md) supports simulated recordings,
+training, evaluation and C export. Its current timing model has not demonstrated
+an advantage over the simple rule and is not linked into the firmware. Real
+measurement collection, retraining and evaluation remain pending; firmware
+integration follows only if the model provides a useful benefit. Device identity,
+protocols and wiring recommendations come from reviewed catalogue facts.
 
 [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md) tracks the remaining member work and
 review checkpoints. [Firmware contracts](firmware/CONTRACTS.md) define the shared
@@ -55,9 +66,9 @@ as a submodule under `firmware/third_party/esp32c3-mtk3/`.
 Follow [the C3 setup guide](firmware/SETUP_ESP32C3.md) to obtain the source,
 activate ESP-IDF, and build the upstream task example. The guide records the
 exact kernel revision, [board evidence](firmware/qualification/README.md), and
-remaining application integration checks. The configuration application now has a separate build mode; see
-[USB/storage integration](firmware/src/config/USB_STORAGE.md). Physical
-acceptance, services/local UI and rules remain pending; AI stays last.
+remaining hardware checks. The configuration application has a separate build
+mode; see [USB/storage integration](firmware/src/config/USB_STORAGE.md).
+Successful compilation is separate from physical hardware acceptance.
 
 ## Rules
 
@@ -74,8 +85,9 @@ acceptance, services/local UI and rules remain pending; AI stays last.
 Run `python -B -m tools.configurator` from this directory and open
 `http://127.0.0.1:8080`. See [setup and deployment semantics](tools/configurator/README.md).
 Schema 2.1 adds [typed sensor-to-PWM rules](firmware/src/automation/README.md),
-retaining 2.0 sensor/display profiles. Hardware acceptance with the team and AI
-remain the final two checkpoints in [the implementation plan](INTEGRATION_PLAN.md).
+retaining 2.0 sensor/display profiles. The latest sections of
+[the implementation plan](INTEGRATION_PLAN.md) record completed discovery and
+offline AI work, alongside the remaining hardware and AI deployment checkpoints.
 
 ## Earlier prototype toolkit
 

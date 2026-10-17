@@ -5,6 +5,7 @@ import time
 from .protocol import Command, HEADER, decode_reply, encode_request
 from .telemetry import decode_telemetry
 from .capabilities import decode_capabilities
+from .discovery import decode_discovery, discovery_request
 
 
 class TransferError(RuntimeError):
@@ -23,6 +24,7 @@ class Client:
         self.stream = stream
         self.clock = clock
         self.timeout = timeout
+        self.discovery_session = secrets.randbits(64) or 1
 
     def exchange(self, command, request_id, revision=0, profile=b""):
         frame = encode_request(command, request_id, revision, profile)
@@ -55,8 +57,10 @@ class Client:
                 magic, version, received, reserved, rid, rev, size, _ = HEADER.unpack(pending[:24])
                 telemetry = command == Command.TELEMETRY
                 capabilities = command == Command.CAPABILITIES
+                discovery = command == Command.DISCOVER
                 valid_size = ((160 <= size <= 1824 and size % 32 == 0) if telemetry else
-                              (96 <= size <= 352 and size % 32 == 0) if capabilities else size == 24)
+                              (96 <= size <= 352 and size % 32 == 0) if capabilities else
+                              (80 <= size <= 208 and size % 16 == 0) if discovery else size == 24)
                 if ((magic, version, received, reserved, rid, rev) !=
                     (b"UTH1", 1, int(command) | 0x80, 0, request_id, revision) or not valid_size):
                     del pending[0]
@@ -69,6 +73,9 @@ class Client:
                         reply = decode_telemetry(bytes(pending[:length]), request_id=request_id)
                     elif capabilities:
                         reply = decode_capabilities(bytes(pending[:length]), request_id=request_id)
+                    elif discovery:
+                        reply = decode_discovery(bytes(pending[:length]), request_id=request_id,
+                                                 revision=revision, payload=profile)
                     else:
                         reply = decode_reply(bytes(pending[:length]), command=command,
                                              request_id=request_id, revision=revision)
@@ -95,4 +102,22 @@ class Client:
         if reply.status in (5, 6):
             raise TransferError("another controller changed request IDs; use one exclusive client")
         return reply
+
+    def discover_i2c(self, *, wiring_confirmed=False):
+        """Observe one reviewed idle connection; never stop or reconfigure it."""
+        return self.discover(1, wiring_confirmed=wiring_confirmed)
+
+    def discover_uart(self, *, wiring_confirmed=False):
+        return self.discover(2, wiring_confirmed=wiring_confirmed)
+
+    def discover(self, preset_code, *, wiring_confirmed=False):
+        payload = discovery_request(self.discovery_session, wiring_confirmed=wiring_confirmed, preset_code=preset_code)
+        capabilities = self.capabilities()
+        if capabilities.board != "esp32-c3-supermini" or not capabilities.features & (1 << preset_code):
+            raise TransferError("connected firmware does not support this discovery preset")
+        current = self.query()
+        if current.flags & 32:
+            raise TransferError("recovery is required before discovery; no probe sent")
+        return self.exchange(Command.DISCOVER, secrets.randbelow(0xFFFFFFFF) + 1,
+                             current.active_revision, payload), capabilities
 

@@ -1,5 +1,11 @@
 # Platform integration checkpoints
 
+Current direction (2026-10-12): the software baseline is ready for offline
+preparation, while physical acceptance remains partial. The user has prioritised
+device discovery and recommended protocol/settings before model training. Start
+with the new D1–D4 sequence at the end of this plan. Earlier entries retain their
+historical checkpoint results and deferrals.
+
 Updated 2026-09-28. Complete the reusable platform before AI. Keep each change
 small, preserve existing interfaces where practical, and review each checkpoint
 before starting the next. The user now requests peripheral hardware testing at
@@ -375,3 +381,220 @@ acceptance with the team), then checkpoint 9 (AI). Both are deferred by the
 user. Before 8, confirm each actual module, pins, supply/logic levels, the second
 sensor and actuator/driver stage; these inputs did not block 6c/7 software.
 Stop after this combined checkpoint for review.
+
+## Discovery before AI: current extension (2026-10-12)
+
+The readiness review found the active software checks passing. Existing BMP388,
+OLED and radar observations support continued work, but do not complete radar
+disconnect/fault acceptance, GPIO/output acceptance or combined timing/memory
+measurement. Offline discovery design can proceed independently.
+
+The objective is to observe supported devices on reviewed connections and
+resolve protocol/settings from evidence and the catalogue. Keep the generic
+runtime and manual configuration path. Do not train a model to guess electrical
+facts or claim that every device can identify itself.
+
+| Checkpoint | Deliverable | Status |
+|---|---|---|
+| D1 | Shared record design, versioned identification policies, descriptor/source consistency checks | Implemented for review; data/design only |
+| D2 | Reviewed I2C preset, generic raw observations, USB exchange and PC catalogue matching; BMP388 first rule | Software implemented; physical discovery acceptance pending |
+| D3 | Local discovery review, sourced protocol/settings, ordinary node candidate through existing admission/apply | Software implemented; physical discovery acceptance pending |
+| D4 | Receive-only radar candidates and manual OLED/GPIO confirmation | Pending |
+| 9 | Capability-based training data, rules comparison, small model and measured deployment | After discovery workflow |
+
+See [the detailed contract](docs/DEVICE_DISCOVERY.md). D1 introduces no C changes,
+board operations or executable detection logic. Its checks are
+`python -B -m unittest discover -s tests/discovery -v`; CI runs them alongside
+the existing suites. Future C work retains the mandatory BARR-C gate, manual
+review, affected tests and applicable target builds. Review each checkpoint
+before continuing. No new teammate specification blocks D1.
+
+D1 validation on 2026-10-12: seven discovery-contract tests passed, including
+all checked-in node examples through the unchanged host planner. The 23 legacy
+AI regression tests also passed; they remain historical-contract checks only.
+`git diff --check` passed. No C changed, so no new target build or hardware
+acceptance is claimed. Existing `CONTRIBUTING.md` bench edits were preserved.
+
+D2 keeps model identification out of the embedded observer. The firmware reads
+only compiled, reviewed endpoints while the hardware configuration is empty;
+the PC matches returned evidence against versioned descriptors. Unknown values
+and multiple matches remain explicit. Failed cleanup retains bus ownership and
+uses the existing recovery path. No node schema, vendor dependency or BARR-C
+exception changes. See [implementation and manual review](firmware/src/discovery/README.md).
+
+Plan check: D3 is next, adding the local review and sourced setting values through
+existing node admission. D4 then adds radar observations/manual confirmation;
+model training remains last. No new teammate input blocks D3. Physical discovery
+acceptance is separate from passing host checks and target compilation.
+
+D2 validation on 2026-10-12: all 188 tests passed across the C-standard (54),
+foundation (26), runtime (18), target (54), discovery (13) and legacy AI (23)
+suites. The affected target/discovery suites were rerun after the SDK boundary
+fix and passed. The mandatory BARR-C gate checked 186 C/H files with zero
+findings/errors; manual review is recorded. Both application and acceptance
+fixture builds passed with 53 owned compiler profiles checked per build.
+See [fresh evidence and build records](firmware/qualification/esp32c3-discovery-20261012.json).
+
+The build also exposed Windows checkout line endings in existing patches and
+the cJSON licence. Scoped `.gitattributes` entries now preserve their committed
+LF bytes; vendor content, versions and standard exceptions are unchanged.
+No board access, flash, commit or push occurred. Existing `CONTRIBUTING.md`
+bench edits were preserved. Stop at D2 for review before implementing D3.
+
+## Discovery checkpoint D3: local review (2026-10-12)
+
+Implemented the approved additions within Member 5's existing Configuration
+Desk. The discovery card reuses its tiles/icons, fonts, colours and light/dark
+themes. The original toolkit under `legacy/member5` remains untouched.
+
+The reviewed I2C connection requires wiring confirmation and explicit detection.
+Results separate observations, identity and compiled support. Settings show their
+source: descriptor defaults, observed address, reviewed connection or documented
+bench starting values. Preset 0.2.0 adds BMP388 timing recommendations; its wire
+code, pins and permitted reads are unchanged. Unknown/ambiguous/unsupported
+results cannot add a device. This remains a catalogue-based flow, not AI.
+
+Add to profile consumes a short-lived detection token and constructs an ordinary
+draft, preserving existing entries and rejecting conflicts. Shared admission
+checks the whole candidate. Apply still needs the existing explicit review token
+and state/capability checks. Busy detection never stops configured hardware.
+Recover now reflects the firmware's actual recovery-required condition. The
+local server backlog was increased to handle concurrent style/font requests;
+there is no new web framework, dependency, firmware change or standard exception.
+
+Validation: the full target host suite passed 67 tests, including the mandatory
+BARR-C gate (186 files, zero findings/tool errors). A subsequent mixed SPI/I2C
+draft regression caught and fixed an interface-field assumption; the final
+focused runs passed all 13 discovery-UI, 11 configurator/HTTP, 13 discovery-contract
+and 5 Node presentation tests. An isolated headless Edge walkthrough with a fake
+USB client verified confirmation, detection, sourced settings, preserved draft
+entries, review, simulated apply, disconnect and disabled healthy-board recovery.
+Both themes were inspected at 1366px and 390px; all assets loaded and no browser
+exceptions or mobile horizontal overflow were observed. No hardware access or
+new target-build qualification is claimed. Existing D2 build records are preserved.
+
+Plan check: D3 software is complete for review. D4 adds receive-only radar
+candidates and explicit manual OLED/GPIO identification; model training remains
+later. Physical discovery and the remaining checkpoint-8 acceptance are still
+pending. No new teammate specification blocked D3. Stop here for review before
+implementing D4. See [the UI guide](tools/configurator/README.md#device-discovery-d3)
+for the evidence lifetime, reset limitation and idle-board procedure.
+
+## Discovery checkpoint D4: radar and manual confirmation (2026-10-12)
+
+Implemented the user-approved additions in the existing Configuration Desk,
+preserving Member 5's style and toolkit. Radar uses one bounded receive-only
+UART window and the existing parser/backend. A clean compatible stream is a
+candidate until the user confirms the model; empty/zero-target/noisy/error cases
+are distinct. The firmware reports evidence, while the PC catalogue resolves
+identity and settings. Exclusive ownership and failed-close recovery are retained.
+
+OLED, HC-SR04 and PWM use explicit module/wiring confirmation without peripheral
+test commands. OLED selects an existing compatible readings queue. The six-pin
+OLED preset reserves GPIO4 and requires sole use of its SPI bus. PWM is added
+disabled and requires schema 2.1.0 plus a separately reviewed rule before enabling.
+All additions preserve existing draft entries, use whole-profile admission and
+still require separate review/apply. Confirmation cannot extend the original
+60-second expiry. Missing drivers, stale evidence, invalid sources and conflicting
+resources remain blocking errors. No new framework or dependency is introduced.
+
+Validation: 76 target host tests, 19 discovery tests and 7 Node presentation tests
+passed. The mandatory BARR-C gate checked 190 owned C/H files with zero findings
+or tool/policy errors; the manual review records no new deviation. Fresh C3
+application and acceptance-fixture builds passed, with 54 owned compiler profiles
+checked in each. Both staged snapshots match their source manifests. A simulated
+Edge walkthrough passed radar confirmation, OLED queue selection, disabled PWM,
+separate review/apply and disconnect in both themes at 1366px/390px, with no
+script/resource errors or horizontal overflow. Earlier D2/D3 records are preserved.
+See [D4 evidence](firmware/qualification/esp32c3-discovery-d4-20261012.json) and
+[usage](tools/configurator/README.md#radar-and-manual-devices-d4).
+
+Plan check: D4 software is complete for review. Physical discovery acceptance
+and the remaining checkpoint-8 tests are still pending. The next AI step is
+collecting measured scenarios and comparing timing recommendations with defaults;
+known device identity, protocol, wiring and driver support remain deterministic.
+No new teammate specification blocked D4. Stop here for review; no board access,
+flash, commit, push or model training was performed.
+
+## Training checkpoint T1: offline timing experiments (2026-10-13)
+
+Implemented `python -B -m ai.timing` to prepare, validate and export interval
+experiments using current platform admission. Each plan targets one explicit
+instance and compares supplied intervals with its current setting and descriptor
+default. Full-profile validation preserves other instances and rejects invalid
+limits, missing drivers and resource conflicts. Capability lookup does not use
+the historical four-device AI enum. Stream intervals and actuator tuning are
+outside this scope; rule-controlled outputs must already be disabled in the
+input profile.
+
+The versioned scenario names a goal, conditions, family, observation duration and
+repetitions. Plans retain profile/build inputs, source versions/hashes and trial
+profile hashes. Revalidation rejects changed reviewed sources. Output files are
+created exclusively, and exported profiles still require the existing connected
+review/apply flow. Plans explicitly contain no identity evidence, actual firmware
+hash, measurements or training labels. The included example uses the two-sensor
+host fixture and is not today's bench wiring. See
+[TIMING_EXPERIMENTS.md](ai/TIMING_EXPERIMENTS.md).
+
+Validation: 15 new timing-preparation tests, 23 retained AI contract tests and
+19 discovery tests passed (57 total). Coverage includes independent instances,
+capability-based descriptor extension, full-profile rejection, unchanged fields,
+source drift, fabricated measurement claims and CLI round trips without file
+overwrites. CI now runs the combined AI suite. No C/H, firmware, UI or vendor
+implementation changed in T1; the prior BARR-C and target-build evidence remains
+historical rather than being restated as a new qualification.
+
+Plan check: D1-D4 software enables this offline preparation; physical discovery
+and remaining checkpoint-8 acceptance are still pending. T2 will bind measured
+runs to the actual firmware/profile and device evidence, including interrupted
+run handling. Agree the bench arrangement and freshness/visible-delay goal before
+collection. T3 will compare outcomes with defaults/simple rules and define the
+new model contract before training. No new teammate input was required for T1.
+Stop here for review. No board access, deployment, commit, push or training occurred.
+
+## Equipment-free AI pipeline: T2/T3 and C preparation (2026-10-13)
+
+The user has no equipment available and authorized all useful offline model
+work. Implemented run-file replay and validation, a deterministic simulator,
+dataset labels from complete repetitions, grouped training/validation/test
+splits, a pinned small decision tree, comparisons with existing/default/simple
+rules, experimental recommendations and checked C export. Device identification,
+protocols, electrical facts and driver availability remain deterministic.
+No UI adjustment or connection to the existing Apply flow was made.
+
+The namespaced timing contracts are version 0.1.0, independent of prototype AI
+0.2.0. Run records bind experiments, intervals, repetitions, sessions and profiles.
+Observed resets, changed configurations, missing windows and incomplete
+repetitions cannot create positive training labels. Complete failures remain
+negative examples. Hardware and simulated origins cannot be mixed. Hardware
+metadata is a declared reference requiring original evidence, not proof by itself.
+Live serial collection remains unimplemented; file replay can be exercised now.
+
+The default rehearsal produced 48 simulated scenarios in 20 families, 576 runs
+and 192 candidate examples. Related goals/repetitions stay in the same family;
+identical generated profile families are merged. The final tree has 21 nodes.
+On ten held-out scenarios it chose the longest tested passing interval eight
+times, with one goal violation. The simple rule achieved nine such choices,
+also with one violation. There is no demonstrated reason to replace the rule.
+All models/recommendations remain non-deployable, and synthetic predictions need
+explicit offline opt-in. No hardware performance or energy benefit is claimed.
+
+Validation: all 50 AI tests and 19 discovery tests passed (69 total). The mandatory
+BARR-C gate checked 194 owned C/H files with zero findings/tool errors. Generated
+C received explicit checks and matched Python for 1,248 vectors. Host and C3
+object compilation used C99 with warnings as errors. The standalone C3 object
+contains 584 bytes of code/read-only data, no writable static data and a compiler
+estimate of zero local stack bytes for the optimized function; this excludes
+caller/integration overhead and is not linked firmware or measured board use.
+The manual review is in [OFFLINE_PIPELINE.md](ai/OFFLINE_PIPELINE.md#c-review).
+No new C deviation, exception, SDK change or firmware adapter change was needed.
+
+Plan check: the equipment-free preparation/training/export path is complete.
+Physical D2/D4 discovery and checkpoint-8 acceptance remain pending. Next steps
+with hardware are actual capture, measured dataset collection, retraining and
+untouched held-out evaluation. Firmware integration and measured timing/resource
+qualification follow only if there is a useful advantage over simple rules.
+No new teammate specification blocked this work. See
+[the repeatable guide](ai/OFFLINE_PIPELINE.md) and
+[evidence record](ai/qualification/offline-20261013.json).
+No board access, flash, commit or push occurred.

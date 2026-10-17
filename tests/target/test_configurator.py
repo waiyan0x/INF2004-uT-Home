@@ -1,5 +1,6 @@
 """Local UI workflow, HTTP isolation, capabilities and uncertain deployment tests."""
 from dataclasses import replace
+from concurrent.futures import ThreadPoolExecutor
 import http.client
 import json
 import struct
@@ -7,7 +8,7 @@ from threading import Thread
 import unittest
 import zlib
 from tools.configurator.workflow import Workflow
-from tools.configurator.web import make_server
+from tools.configurator.web import make_server, ASSETS
 from tools.config_transfer.capabilities import Capabilities, decode_capabilities
 from tools.config_transfer.client import TransferError, Client
 from tools.config_transfer.protocol import Command, Reply, HEADER, encode_request
@@ -106,7 +107,7 @@ class ConfiguratorTests(unittest.TestCase):
         self.assertEqual(stream.written,encode_request(Command.CAPABILITIES,27))
         for raw_bad in (raw[:-1],raw+b"x",raw[:-1]+bytes([raw[-1]^1])):
             with self.assertRaises(ValueError):decode_capabilities(raw_bad,request_id=27)
-        for index,value in ((0,2),(4,2),(12,9),(28,2)):
+        for index,value in ((0,2),(4,2),(12,9),(28,8)):
             bad=bytearray(data);struct.pack_into("<I",bad,index,value)
             with self.assertRaises(ValueError):decode_capabilities(frame(bad),request_id=27)
 
@@ -160,6 +161,7 @@ class ConfiguratorTests(unittest.TestCase):
         for control in (b' id="themeToggle"',b' id="connect"',b' id="review"',b' id="apply"'):
             self.assertIn(control,page)
         for path,kind in (("/dashboard.js","text/javascript"),
+                          ("/discovery.js","text/javascript"),
                           ("/styles/main.css","text/css"),
                           ("/styles/tokens.css","text/css"),
                           ("/assets/fonts/roboto-latin.woff2","font/woff2"),
@@ -171,3 +173,20 @@ class ConfiguratorTests(unittest.TestCase):
                      "/styles/%2e%2e/web.py","/legacy/member5/tools/configurator/web.py"):
             self.assertEqual(get(path)[0],404,path)
         self.assertEqual(self.ports,[])
+
+    def test_cold_browser_can_request_shared_assets_concurrently(self):
+        server = make_server(0, self.flow)
+        Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close); self.addCleanup(server.shutdown)
+        def get(path):
+            connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=3)
+            try:
+                connection.request("GET", path)
+                response = connection.getresponse()
+                self.assertTrue(response.read())
+                return response.status
+            finally:
+                connection.close()
+        with ThreadPoolExecutor(max_workers=16) as pool:
+            self.assertTrue(all(status == 200 for status in pool.map(get, ASSETS)))
+        self.assertEqual(self.ports, [])

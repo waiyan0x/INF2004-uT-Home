@@ -19,7 +19,8 @@ typedef enum
     CFGWIRE_RECOVER      = 4,
     CFGWIRE_PROBE        = 5,
     CFGWIRE_TELEMETRY    = 6,
-    CFGWIRE_CAPABILITIES = 7
+    CFGWIRE_CAPABILITIES = 7,
+    CFGWIRE_DISCOVER     = 8
 } cfgwire_command_t;
 
 typedef struct
@@ -58,7 +59,7 @@ int cfgwire_request (const cfgwire_t *   p_receiver,
 int cfgwire_reply (const cfgwire_request_t * p_request,
                    const uint32_t *          p_fields,
                    uint8_t *                 p_output);
-/* Frame a telemetry/capability payload already written at output+HEADER. No
+/* Frame a telemetry/capability/discovery payload at output+HEADER. No
  * overlap copy; capacity must cover header+size. This read-only command never
  * reaches cfgctrl. */
 int cfgwire_observation (const cfgwire_request_t * p_request,

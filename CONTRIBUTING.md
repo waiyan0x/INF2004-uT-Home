@@ -31,7 +31,10 @@ not positions counted from the edge of a board. Confirm that the BMP388 and OLED
 breakouts support a 3.3 V supply and 3.3 V signals. A pin labelled `VIN`, `VCC`
 or `3V3` must be interpreted using that breakout's documentation.
 
-The OLED must expose clock, data, CS, DC and reset, usually on a seven-pin header.
+The usual seven-pin SPI OLED exposes clock, data, CS, DC and reset. The supplied
+six-pin panel exposes GND, VCC, SCL, SDA, RES and DC; see its bench wiring note
+below. Its exact controller marking is unconfirmed, but it rendered live
+128x64 output with the existing SSD1306 driver during this session.
 A four-pin I2C-only display, SH1106 display or 128×32 panel needs different
 firmware support. Do not connect it using the SPI table. BMP280/BMP390 and
 LD2410 are also not substitutes for the configured drivers.
@@ -111,9 +114,12 @@ if absent. Do not add duplicate pullups unnecessarily. These signal names,
 address choices and I2C connections follow the
 [Bosch BMP388 datasheet, sections 5–6](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmp388-ds001.pdf).
 
-The generated lab profiles use `0x76`, a 100 kHz bus and a 500 ms sample period.
-If the actual breakout is strapped to `0x77`, change the address in **every**
-BMP profile you use. Address agreement is required; an address is not auto-detected.
+The generated lab profiles use `0x77`, a 100 kHz bus, a 500 ms sample period
+and a 100 ms I/O timeout. These settings started the supplied BMP388 successfully
+on the ESP32-C3 during the 2026-09-29 bench session; the earlier 20 ms timeout
+failed activation. The timeout also covers sensor initialization, not just reads.
+For a breakout strapped to `0x76`, change the address in **every** BMP profile
+you use. Address agreement is required; an address is not auto-detected.
 
 ### SSD1306 OLED over SPI
 
@@ -133,7 +139,32 @@ appear on SPI displays. Use the exact breakout's instructions for straps and
 power; [Adafruit's SSD1306 wiring guide](https://learn.adafruit.com/monochrome-oled-breakouts/wiring-128x64-oleds)
 illustrates why board variants must be checked.
 
-Lab profiles use SPI host 2 at 1 MHz, 250 ms refresh and a 20 ms transfer timeout.
+Lab profiles use SPI host 2 at **4 MHz**, 250 ms refresh and a 20 ms transfer
+timeout. The initial 1 MHz setting repeatedly timed out during refresh on this
+board. At 4 MHz, a 120.12-second combined BMP388/OLED observation recorded zero
+device timeouts, device I/O errors or failed workers, with 240 new BMP samples.
+The user confirmed readable, live temperature updates on the physical screen.
+A subsequent USB power-cycle test restored saved revision 5 and its matching
+configuration CRC automatically. The user confirmed the screen resumed; a
+follow-up observation recorded 21 new BMP samples with zero device timeouts,
+device I/O errors or failed workers. These initial functional and restart
+checks passed; full hardware acceptance remains outstanding. No firmware
+source change was needed.
+
+**Supplied six-pin OLED:** R3/R4 appear fitted, matching its printed 4SPI
+selection. Connect GND to GND, VCC to 3V3, SCL to GPIO7, SDA to GPIO6, RES to
+GPIO10 and DC to GPIO3. There is no exposed CS connection: leave GPIO4
+physically unconnected but reserved by the profile. Internal chip selection
+is inferred from successful operation, not a verified schematic. Keep this
+OLED as the only device on these SPI wires; this test does not qualify bus
+sharing. Leave the mode resistors unchanged.
+
+The screen intentionally rotates through configured sources every two seconds.
+The environment page shows temperature and pressure; the health page shows
+the last recorded event, not a current all-clear indicator. EVENT 2 means a
+device timeout; EVENT 4 records a queue overwrite. During this test, EVENT 4
+counts exactly matched the configured drop-oldest queues replacing old records.
+The display reads cached samples and does not drain those queues.
 **Do not copy GPIO2 CS from `configs/nodes/first-prototype.json`.** That historical
 profile is rejected by the current target. Keep DC/reset under GPIO control.
 
@@ -155,6 +186,35 @@ See [Hi-Link's protocol document](https://make.net.za/wp-content/datasheets/HLK%
 Face the antenna towards an open test area. Confirm a previously configured
 module still has the expected baud rate/report mode. Move a person or target
 through the area; absence of motion alone is not proof that the link has failed.
+
+**2026-09-29 initial combined bench result:** The supplied HLK-LD2450 V1.1
+used TX to ESP GPIO20, RX to GPIO21 and common ground, with power from the
+USB-fed ESP 5V pin. The user measured 5 V at the radar with it connected;
+this observation does not establish a current budget for other boards or loads.
+BMP388 and the six-pin OLED remained connected. Saved revision 7 restored
+after USB reconnection, and the user confirmed live radar position changes
+on the OLED while moving. A subsequent 120.3-second observation captured
+1,350 new radar reports and 241 new BMP samples across 57 snapshots, all
+fresh. No new device timeouts, I/O errors, UART framing/overflow errors or
+worker failures occurred during that interval. Queue-overwrite counts
+matched the configured drop-oldest policy.
+
+**Open finding:** Two device timeouts were already recorded before the
+observation began after restart; the count stayed at two. Their exact source
+and timing were not captured, so startup readiness is only a hypothesis.
+Keep this finding open: this is not an error-free startup qualification.
+Only one target was observed; empty-scene, position accuracy and multi-target
+checks remain untested. Earlier interrupted runs followed user-reported USB
+disconnections and are retained separately in the session evidence.
+
+**Subsequent empty-scene check remains unresolved:** The user reported
+`READING UNAVAILABLE` and later confirmed touching/moving boards or cables
+during the check. Counters had risen to 113 device timeouts and 13 UART frame
+errors. A disturbed connection is possible, not established. In this renderer,
+`READING UNAVAILABLE` indicates a fault; a valid no-target report should remain
+`FRESH` and show `1 ABSENT`, `2 ABSENT`, `3 ABSENT`. Repeat with the hardware
+stationary before accepting absence detection. Earlier interval-specific
+passes remain historical results, not a full-session all-clear.
 
 ### Separate radar-to-LED test using layout A's pin assignments
 
@@ -469,7 +529,7 @@ It writes profiles to a **new temporary directory**, prints that directory, and
 leaves the repository examples unchanged. It performs no board operations.
 Copy the generated files into the session evidence folder when testing ends.
 The local target-limit check is preparation; review again against the connected
-board before deployment. Adjust BMP addresses if your breakout uses `0x77`.
+board before deployment. Adjust BMP addresses to match your breakout.
 
 ```powershell
 @'
@@ -486,8 +546,10 @@ def read(name):
 base = read("configs/nodes/first-prototype.json")
 base["runtime"]["health_report_interval_ms"] = 1000
 base["interfaces"][0]["clock_hz"] = 100000
-base["interfaces"][1]["clock_hz"] = 1000000
+base["interfaces"][1]["clock_hz"] = 4000000
 base["devices"][0]["behaviour"]["interval_ms"] = 500
+base["devices"][0]["behaviour"]["timeout_ms"] = 100
+base["devices"][0]["interface"]["address"] = "0x77"
 base["devices"][1]["interface"]["cs_gpio"] = 4
 base["devices"][1]["interface"].pop("cs_pullup_ohms", None)
 base["devices"][1]["behaviour"]["timeout_ms"] = 20

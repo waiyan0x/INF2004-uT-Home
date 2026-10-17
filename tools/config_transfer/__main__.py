@@ -11,10 +11,14 @@ from .protocol import Command, MAX_PROFILE_BYTES, encode_request
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("probe", "query", "apply", "save", "recover", "telemetry", "capabilities"))
+    parser.add_argument("command", choices=("probe", "query", "apply", "save", "recover", "telemetry", "capabilities", "discover"))
     parser.add_argument("--port", required=True, help="Explicit serial port, for example COM8")
     parser.add_argument("--revision", type=int, default=0)
     parser.add_argument("--profile", type=Path, help="Reviewed node JSON for apply")
+    parser.add_argument("--wiring-confirmed", action="store_true",
+                        help="Confirm the selected connection's pins, supply and signal voltage")
+    parser.add_argument('--preset', choices=('bench_i2c', 'bench_uart'), default=None,
+                        help='Reviewed discovery connection (default: bench_i2c)')
     args = parser.parse_args(argv)
     command = Command[args.command.upper()]
     stream = None
@@ -26,6 +30,14 @@ def main(argv=None):
             with args.profile.open("rb") as source:
                 profile = source.read(MAX_PROFILE_BYTES + 1)
         # Validate command bounds before even importing/opening the serial port.
+        if command == Command.DISCOVER:
+            from .discovery import discovery_request
+            if args.revision:
+                raise ValueError("discover obtains the active revision from the board")
+            preset_code = 2 if args.preset == 'bench_uart' else 1
+            profile = discovery_request(1, wiring_confirmed=args.wiring_confirmed, preset_code=preset_code)
+        elif args.wiring_confirmed or args.preset:
+            raise ValueError("--wiring-confirmed and --preset apply only to discover")
         encode_request(command, 1, args.revision, profile)
         import serial
         stream = serial.Serial(port=None, baudrate=115200, timeout=0.05,
@@ -35,6 +47,14 @@ def main(argv=None):
         stream.port = args.port
         stream.open()
         client = Client(stream)
+        if command == Command.DISCOVER:
+            from tools.device_discovery import identify_i2c, identify_uart
+            from tools.config_validator.planner import ROOT, load_document
+            reply, capabilities = client.discover(preset_code, wiring_confirmed=args.wiring_confirmed)
+            report = (identify_i2c(reply, capabilities) if preset_code == 1 else
+                      identify_uart(reply, capabilities, load_document(ROOT / 'catalogue/connections/bench-uart.json')))
+            print(json.dumps(report, indent=2))
+            return 0 if reply.result == "complete" else 2
         if command == Command.CAPABILITIES:
             reply = client.capabilities()
         elif command == Command.TELEMETRY:

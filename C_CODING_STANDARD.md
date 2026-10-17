@@ -258,3 +258,25 @@ rules. Public prefixes belong to matching headers. Both are C99, using copied
 state and existing component/cache ownership. See the
 [manual review](firmware/src/automation/README.md#manual-barr-c-review).
 No approved exception, formatter version or language boundary changes.
+
+## Discovery module vocabulary
+
+`disci2c` collects bounded I2C observations; `cfgdisc` admits reviewed connection
+presets and integrates discovery with the existing configuration controller.
+`disctest` tests those boundaries. Public prefixes belong to matching headers;
+`reg` means register. All new production modules use C99. The current firmware
+image hash comes from the pinned SDK's existing application descriptor API.
+No exception or language scope changes. See
+[the manual review](firmware/src/discovery/README.md#manual-barr-c-review).
+
+`discuart` collects bounded UART report evidence using the existing parser;
+`uartdisc` tests that observer and its configuration boundary. They use C99,
+named callbacks and the same serialized owner. No new deviation is introduced.
+
+## Offline timing model vocabulary
+
+`timtree` is the bounded timing-tree classifier template; `tim_main` is its host
+parity test under `tests/ai`. Generated C retains the same public prefix/header.
+These use C99 with no new deviation and are not linked into deployed firmware.
+See [manual review](ai/OFFLINE_PIPELINE.md#c-review). Exported sources receive
+explicit format/lexical/module checks even when generated under ignored `build/`.

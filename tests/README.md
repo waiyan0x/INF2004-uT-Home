@@ -7,7 +7,18 @@ python -m pip install -r tools/requirements.txt
 python -B -m unittest discover -s tests/foundation -v
 python -B -m unittest discover -s tests/runtime -v
 python -B -m unittest discover -s tests/target -v
+python -B -m unittest discover -s tests/discovery -v
 ```
+
+The discovery suite checks the new policy schema, reviewed descriptor links,
+protocol/address consistency, evidence paths and rejection of unsupported
+probe fields or stronger identity claims. It also checks existing node examples
+through the unchanged host planner. D2 adds strict USB reply decoding, data-only
+catalogue extension/ambiguity, unavailable-driver handling and no automatic
+retry. The target suite runs the production I2C observer/service/pump with fake
+hardware, including deadlines, ownership and cleanup recovery, and decodes an
+actual C-produced frame in Python. See the
+[implementation and physical-test boundary](../firmware/src/discovery/README.md).
 
 The foundation tests check catalogue/board/build admission, alternative plans,
 independent instances, rejected-candidate preservation and resource conflicts.
@@ -55,9 +66,14 @@ The separate [runtime port board test](target/runtime_port_board/README.md)
 executes the real adapter with the pinned kernel. Actual build and board outcomes
 are recorded under `firmware/qualification/`.
 
-The legacy AI suite remains runnable with
-`python -B -m unittest discover -s ai/tests -v`; it does not qualify the platform
-or authorize training against the old contract.
+The AI suite remains runnable with
+`python -B -m unittest discover -s ai/tests -v`. It covers current offline timing
+preparation, simulated training/run validation, generated C parity and retained
+historical AI contracts. Install the training requirements, GCC and pinned
+formatter as described in [the offline guide](../ai/OFFLINE_PIPELINE.md).
+These checks do not qualify hardware
+or authorize training against the old contract. See
+[the timing guide](../ai/TIMING_EXPERIMENTS.md); CI runs this suite separately.
 
 Broader kernel concurrency, real HAL operations, electrical checks,
 hardware activation rollback, flash recovery and timing/memory measurements
@@ -87,3 +103,12 @@ physical PWM, peripheral, USB or power-loss qualification.
 The preserved Member 5 toolkit has its own Python suites and schema-1.0 fixtures.
 Run `python -B -m unittest discover -s tests -v` from `legacy/member5`; this checks
 the legacy host workflow, not C3 deployment. CI runs it separately.
+
+D3 discovery review extends the current configurator tests. The focused commands
+are `python -B -m unittest discover -s tests/target -p test_discovery_ui.py -v`,
+`python -B -m unittest discover -s tests/target -p test_configurator.py -v`,
+`python -B -m unittest discover -s tests/discovery -v`, and
+`node --test tests/target/test_dashboard.mjs`. They cover additive drafts,
+mixed protocol interfaces, wiring confirmation, unknown/unsupported observations,
+state/session expiry, conflicts, recovery eligibility, concurrent UI assets and
+presentation. USB is faked in these checks; they cannot qualify physical detection.

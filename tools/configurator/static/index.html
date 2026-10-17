@@ -73,6 +73,21 @@
     </div>
   </section>
   <div class="pills" id="pills" aria-label="Live sensor readings"><p class="hint">No live readings · connect to the application firmware to observe sensors.</p></div>
+  <section class="section connection-section" aria-labelledby="discovery-heading">
+    <div class="section__head" data-accent="violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-i2c"/></svg><h2 id="discovery-heading">Device discovery</h2></div>
+    <div class="card">
+      <div class="connection-row">
+        <div class="field"><label class="field__label" for="discovery-preset">Reviewed connection</label><select class="input" id="discovery-preset" aria-describedby="discovery-wiring"></select></div>
+        <button class="btn" id="detect" disabled>Detect devices</button>
+      </div>
+      <p class="hint" id="discovery-wiring">Loading connection details…</p>
+      <label class="discovery-confirm"><input type="checkbox" id="wiring-confirmed">I checked the pins, supply and signal voltage against this connection.</label>
+      <p class="hint">Rewire with USB and external power disconnected, then reconnect. Detection checks the selected I2C or radar connection. OLED and GPIO selections use manual confirmation and send no test commands.</p>
+      <p class="hint" id="discovery-status" role="status" aria-live="polite">Connect to check for devices.</p>
+      <div class="tiles" id="discovery-results"></div>
+      <details><summary>Preparing an idle board</summary><p class="hint">I2C and radar detection need an empty hardware configuration; manual selections only prepare draft settings. To stop a running setup, first keep a copy of the profile you will restore. In a separate draft, empty the devices, interfaces, queues and rules lists, then use Validate and review → Apply &amp; save. This also replaces the saved startup profile. Restore your original draft to add discoveries. Detection never performs this step for you.</p></details>
+    </div>
+  </section>
   <div class="overview">
     <div class="overview__column">
       <section class="section">
@@ -102,8 +117,8 @@
           <div class="toolbar"><button class="btn btn--primary" id="apply" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Apply & save reviewed profile</button></div>
           <p class="hint">Applying replaces the active configuration and attempts to save it for reboot. Deployment and saved state are reported separately.</p>
           <h3>Board state</h3><p class="hint" id="state">Connect to read active and saved revisions.</p>
-          <div class="toolbar"><button class="btn" id="query" disabled>Refresh state</button><button class="btn" id="save" disabled>Retry saving</button><button class="btn btn--danger" id="recover" disabled>Stop / recover</button></div>
-          <p class="hint">Recovery clears the live plan after checked cleanup. Its saved profile remains available for the next boot.</p>
+          <div class="toolbar"><button class="btn" id="query" disabled>Refresh state</button><button class="btn" id="save" disabled>Retry saving</button><button class="btn btn--danger" id="recover" disabled>Recover</button></div>
+          <p class="hint">Recover is available only when the board reports a failed cleanup. It clears the live plan after checked cleanup; the saved profile remains available for the next boot.</p>
         </div>
       </section>
     </div>

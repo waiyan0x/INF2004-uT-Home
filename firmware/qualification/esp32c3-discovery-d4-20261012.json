@@ -1,0 +1,146 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-10-12T14:13:29.345433+00:00",
+  "scope": "D4: receive-only UART candidates and explicit manual OLED/GPIO confirmation in the existing local UI",
+  "software_status": "passed",
+  "build_status": "passed",
+  "board_status": "not_tested",
+  "build_records": {
+    "app": "esp32c3-discovery-d4-20261012-app-build.json",
+    "fixture": "esp32c3-discovery-d4-20261012-fixture-build.json"
+  },
+  "dependency_lock": "esp32c3-discovery-d4-20261012-dependencies.lock",
+  "host_suites": [
+    {
+      "suite": "target",
+      "tests": 76,
+      "exit_code": 0
+    },
+    {
+      "suite": "discovery",
+      "tests": 19,
+      "exit_code": 0
+    },
+    {
+      "suite": "node_presentation",
+      "tests": 7,
+      "exit_code": 0
+    }
+  ],
+  "host_total": 102,
+  "test_count_note": "Python suite counts include a runner executing multiple C fault checks; repeated focused runs are not counted again.",
+  "host_logs": {
+    "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-d4-target-verified-20261012.log": {
+      "sha256": "3431b36b049a8cd256f94a24d118090b0705ed58914d2d2cccc11c24c810f0e9"
+    },
+    "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-d4-discovery-verified-20261012.log": {
+      "sha256": "874531525a5f4cfe74722674ecb43f75bfae0a26430271b391047032a23d7e13"
+    },
+    "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-d4-presentation-verified-20261012.log": {
+      "sha256": "ee0c74ac987aa3d143695d090dddae1b91c7414c87577e95f2d962a97d61a36c"
+    }
+  },
+  "coding_standard": {
+    "files": 190,
+    "findings": 0,
+    "tool_policy_errors": 0,
+    "formatter": "20.1.8",
+    "new_deviations": false,
+    "manual_review": "firmware/src/discovery/README.md#d4-manual-barr-c-review-and-validation"
+  },
+  "compiler_profiles_per_build": 54,
+  "staged_snapshots": "Both verify-snapshot checks passed against final firmware sources.",
+  "browser": {
+    "engine": "isolated headless Edge",
+    "transport": "fake USB client only",
+    "viewports": [
+      1366,
+      390
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "checks": [
+      "radar candidate and confirmation",
+      "preserved draft entries",
+      "OLED existing queue selection",
+      "disabled PWM",
+      "separate review and simulated apply",
+      "disconnect clears evidence",
+      "no script/resource errors or horizontal overflow"
+    ],
+    "artifacts": {
+      "build\\d4-preview\\oled-mobile-light.png": {
+        "sha256": "6f18e40ea96e22550ca23fb194fc578ce1a8b6d3130efa01b8b6085de333d621"
+      },
+      "build\\d4-preview\\radar-desktop-dark.png": {
+        "sha256": "db54ab912a4ae5c70dd4f20f0acd530aeeadd66584895b2592aeedbf5fc0cb46"
+      },
+      "build\\d4-preview\\radar-desktop-light.png": {
+        "sha256": "9d922c2a6c8eb2c7502bcc4b72c7fd0524c64b78dde8c6986dc7c631c2c61e8b"
+      },
+      "build\\d4-preview\\radar-mobile-dark.png": {
+        "sha256": "9a2f644c386c5d1f096a84336049164880c41122dd5beb57d9dd54e02678e79c"
+      },
+      "build\\d4-preview\\radar-mobile-light.png": {
+        "sha256": "400ef09101152747dd2674e4673c5f79c18a42c6126ee13be87e111adaed8b99"
+      }
+    }
+  },
+  "modified_and_new_input_sha256": {
+    "C_CODING_STANDARD.md": "d3b3f15c6ac7c7dd60e503302405ce1c37b318023083ce23bd162809155f0c21",
+    "INTEGRATION_PLAN.md": "bd0a5813d3555f97bc17b3ad3f73e2081739443d56b57b1d6ef718cc138a4ed6",
+    "PROJECT_BASELINE.md": "0747525f0dcb55165b4e50f8cab73535e246048f7e0ca1d5cb88eb2ab8acdcd6",
+    "docs/DEVICE_DISCOVERY.md": "8fd26d573696cd2ccddaaafd42f8dbcfa622f8a79991050189ea8a1d7fe7d471",
+    "catalogue/README.md": "13bc2dc437357cf2d974dae12bdad02ad60e65f4609dc1a9687983951b6c1369",
+    "firmware/app/c3app.c": "1cdd0f4be0286b7ffaf23634f60c0777c5adaccb8c738c86d46783756d5d1706",
+    "firmware/src/config/cfgbind.c": "c10df20b260ad768f185ff046f699a6b22b309163391036a69505a0652d2f9d4",
+    "firmware/src/discovery/cfgdisc.c": "dc0ef16406ed81a4b2bfd981dcba081e39b821792b1a0baa5d2629e786283fe8",
+    "firmware/src/discovery/cfgdisc.h": "f157f3d9d3b5a25aad11be2525d4ce7df6212d656f99d51acb61514c7e4165a5",
+    "firmware/src/discovery/discuart.c": "5549e254a59022b635c5c9c0bc7ff509503e6606ea48a852b611b48b1926dc96",
+    "firmware/src/discovery/discuart.h": "cd42bd12b4e27cfc754d69306727a0b863d91bfe7a92211a7f3304587afb747e",
+    "firmware/src/discovery/README.md": "ba5d45649d4d5a2dd0c98deb18bc04195226a482bfa2200aebe9d5c032df8ab7",
+    "catalogue/discovery.json": "8089d6aafaffa1af92e55e59538cb7ac809df8192055fab08aa120f56143891b",
+    "tools/device_discovery.py": "2eab17f82d02d9895d7a27b5be5bae7acde71b209b32223f7fbbef04cde9cc2b",
+    "tools/config_transfer/discovery.py": "0017bbb0fc4d612f60175635dad72d8bb5c23493dba8bb2874dd844158f6511d",
+    "tools/config_transfer/client.py": "ae6d82ab67f9764512e96d850d294068c34e6ff83a90fd3b32c1175e3e87497f",
+    "tools/config_transfer/capabilities.py": "866eb0de16af999d9e69ad1a146668dc7b6bb24041c54b5eff1470452dea8bec",
+    "tools/config_transfer/__main__.py": "b860bad517df0b2a9864c0d898e440657c642c3de2b6feee5a615e108ce5bfe7",
+    "tools/config_transfer/README.md": "90c8dc6f9fb3056e5208e8a80c6c0a8da6b93dbe1465064eafec3385a7612c5c",
+    "tools/configurator/discovery.py": "236a5eb8d97d6cc3f86a04b6909d77102dac0e65ee301c45de9933ec05e731c1",
+    "tools/configurator/workflow.py": "e938b1459e9167b4f0f9080e9efbe24d6b2ec02ab953eae92a625bbbce96985b",
+    "tools/configurator/web.py": "d44d5e63e4e5d1485d8d4b9d5368f4fc3896f4825dc0005420ef7a21b01189af",
+    "tools/configurator/README.md": "c8a9f205a5d77fc95f682d42e6d604aa06911093409982244a8cfe274bed91b1",
+    "tools/configurator/static/index.html": "3b7722df276a6859d97239f03c3de80709668ede56cdf17d7fbee99043d998a6",
+    "tools/configurator/static/app.js": "8d3f786d3f7f67b9c5b8cdd042ce13129124792a3d4b8e6a2418da5acea59f96",
+    "tools/configurator/static/discovery.js": "ae2f040ce8a775db24bd94e6138f97907174571d0f5fc8b7c18ae543cbd81b2d",
+    "tools/target/qualify_kernel.py": "ad4de2dc9a87fa220a22027bff58d126db60a14a39a0c9132ed6e96856199e9e",
+    "tests/target/uartdisc.c": "96ea97daf7e089fbf2bb5bcee254a8d9666c6df6aa933d98d56c229005df576b",
+    "tests/target/uartdisc.h": "8ceb948b9943d6d886876f68bc47dd981633265a32186f48417a340f262c3177",
+    "tests/target/disctest.c": "e8844baafd1c78e0897b87b4f4bfca6eb9fd58ef0ae8f4a98d88ed91e22bcee4",
+    "tests/target/test_runtime_port.py": "06c5ec47a41f8d4fc65dd84478faae1fb4eb485b88ef31d285c56d66a4090128",
+    "tests/target/test_qualification.py": "20a3433f7d1b5b0b01d9555f59c4ecca08ab81a63626a05f44b2df33f7bb6445",
+    "tests/target/test_configurator.py": "04dcfffab1145e57214c4598c1680950cdf8162575c98a59d510c67cb71f6286",
+    "tests/target/test_discovery_confirm.py": "09210b8ee75d514eba6b602f05afe591246b9100b5a7dc0dae6be88aa7121f8a",
+    "tests/target/test_dashboard.mjs": "9c95a3eb4008db0d6212894ffb2b0491a9e6a49e2794899feae6031c4059f051",
+    "tests/discovery/test_uart_observations.py": "838ce0c81cc419b73839be67cc74cdb0b6d38f9ac7ce4347985092d7e2172a5a",
+    "tests/target/runtime_port_board/main/CMakeLists.txt": "0e209c94cf65f7e66fce761370b7a3b166c599bf5052bb43a70971e66878898e",
+    "catalogue/connections/bench-distance.json": "fbdfdf73aba87654f548e7111c5a2c5e05c9e7b39648e6c39afb29994a29d5a0",
+    "catalogue/connections/bench-i2c.json": "224f3a9e1ef77d0e2597c974a3983fb33c9ec3a7fc8d266773978931c8bff014",
+    "catalogue/connections/bench-oled.json": "04aad41c9919ac7ea0979f6055ed0aefc904f082f3c372ae6dcf03e625aa00be",
+    "catalogue/connections/bench-pwm.json": "5e3d2b1cc324dc29b4770f7cec1f84034f6a42ed85ee1998d486eb2ba068fc47",
+    "catalogue/connections/bench-uart.json": "5de6674ebbe2e490d98727038379f993dae6c372bb86ceed4a41c7f9cc0fed94"
+  },
+  "remaining": [
+    "Physical discovery and remaining checkpoint-8 hardware/fault/resource acceptance.",
+    "Existing reset limitation: no boot ID; reconnect after reset or rewiring.",
+    "Collect measured tuning scenarios before deciding on model training."
+  ],
+  "notes": [
+    "No real board access, flash, commit, push or AI training.",
+    "Pinned third-party versions and prior qualification records preserved.",
+    "The first broad run caught an outdated exact source-count expectation; final corrected suite passed.",
+    "UART evidence identifies a compatible stream, not an exact physical model. Manual selections are user-confirmed, not measured presence."
+  ]
+}

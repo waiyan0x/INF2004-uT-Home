@@ -1,0 +1,209 @@
+{
+  "record_version": "1.0.0",
+  "date": "2026-10-13",
+  "scope": "Equipment-free timing model pipeline",
+  "base_commit": "84ab8f57e6a38312f61458cc4834c25ea943a0d2",
+  "working_tree_dirty": true,
+  "origin": "simulated",
+  "deployment_allowed": false,
+  "dataset": {
+    "scenarios": 48,
+    "families": 20,
+    "runs": 576,
+    "candidate_rows": 192
+  },
+  "training": {
+    "library": "scikit-learn",
+    "max_depth": 4,
+    "min_samples_leaf": 3,
+    "seed": 42,
+    "version": "1.8.0"
+  },
+  "tree_nodes": 21,
+  "split_family_counts": {
+    "test": 4,
+    "train": 12,
+    "validation": 4
+  },
+  "held_out_results": {
+    "current_profile": {
+      "abstentions": 0,
+      "classified_trials": 0,
+      "correct_trials": 0,
+      "optimal_choices": 4,
+      "scenarios": 10,
+      "unnecessary_abstentions": 0,
+      "unsupported_trials": 0,
+      "violations": 2
+    },
+    "descriptor_default": {
+      "abstentions": 0,
+      "classified_trials": 0,
+      "correct_trials": 0,
+      "optimal_choices": 5,
+      "scenarios": 10,
+      "unnecessary_abstentions": 0,
+      "unsupported_trials": 0,
+      "violations": 2
+    },
+    "majority": {
+      "abstentions": 0,
+      "classified_trials": 40,
+      "correct_trials": 30,
+      "optimal_choices": 8,
+      "scenarios": 10,
+      "unnecessary_abstentions": 0,
+      "unsupported_trials": 0,
+      "violations": 2
+    },
+    "simple_rule": {
+      "abstentions": 0,
+      "classified_trials": 40,
+      "correct_trials": 36,
+      "optimal_choices": 9,
+      "scenarios": 10,
+      "unnecessary_abstentions": 0,
+      "unsupported_trials": 0,
+      "violations": 1
+    },
+    "tree": {
+      "abstentions": 0,
+      "classified_trials": 40,
+      "correct_trials": 37,
+      "optimal_choices": 8,
+      "scenarios": 10,
+      "unnecessary_abstentions": 0,
+      "unsupported_trials": 0,
+      "violations": 1
+    }
+  },
+  "conclusion": "No demonstrated advantage over the simple rule; simulated performance is not hardware evidence.",
+  "checks": {
+    "ai_tests": 50,
+    "discovery_tests": 19,
+    "total_tests": 69,
+    "barr_c": {
+      "files_checked": 194,
+      "full_gate": true,
+      "findings": [],
+      "errors": []
+    },
+    "generated_c": {
+      "constant_data_bytes": 468,
+      "deployment_allowed": false,
+      "generated_c_findings": 0,
+      "generated_format_errors": 0,
+      "model_sha256": "49bbb5e4e10bd464b5d49bb89174f427501926ebe8926053cd58039e55503b0b",
+      "origin": "simulated",
+      "parity": {
+        "compiler": "C:\\Users\\kkak4\\mingw64\\bin\\gcc.EXE",
+        "hardware_tested": false,
+        "mismatches": 0,
+        "standard": "c99",
+        "vectors": 1248
+      }
+    },
+    "c3_object": {
+      "command": [
+        "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\tools\\riscv32-esp-elf\\esp-15.2.0_20251204\\riscv32-esp-elf\\bin\\riscv32-esp-elf-gcc.exe",
+        "-std=c99",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pedantic",
+        "-Os",
+        "-march=rv32imc",
+        "-mabi=ilp32",
+        "-fstack-usage",
+        "-c",
+        "timtree.c",
+        "-o",
+        "timtree.o"
+      ],
+      "compiler_version": "riscv32-esp-elf-gcc.exe (crosstool-NG esp-15.2.0_20251204) 15.2.0",
+      "firmware_linked": false,
+      "hardware_tested": false,
+      "object_sha256": "a012b71d32a08af2dd6fd7f8692cff8ae415e0b58ea6965e4c8bc23154bfc782",
+      "size_output": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n    584\t      0\t      0\t    584\t    248\ttimtree.o\n",
+      "source_sha256": "b194ee38f13fb2d36373601597f9d72e3fdb45644bb4da18c72732cd4d2a8819",
+      "stack_usage": "timtree.c:41:5:timtree_predict\t0\tstatic\n"
+    }
+  },
+  "manual_review": "ai/OFFLINE_PIPELINE.md#c-review",
+  "source_sha256": {
+    "ai/timing.py": "93ac1c7a5edb7e4e64cf6f16bf5a69b990a17846672e6aa323f8ddbdd378959d",
+    "ai/records.py": "9d60f133499bdae9935d4db87bfb2f0d78fd8558cd6913e516d78da044cc53c9",
+    "ai/model.py": "0634c378a0543acc6c25e0129df75975348dec692d0c4c234273f886fd7bea0d",
+    "ai/offline.py": "8853dc447f5cc4c7616764b6cc88e38c719953febc6edee758ead901f119140f",
+    "ai/export.py": "c8e927dedcc4668ebfaf7e5d0cf03c7fe567f6e68df9b893a8d39195e1cf3593",
+    "ai/tests/test_learning.py": "b7e317858b9d4556a1a5fb0bc0ee075fd53dae681481a8fff7946aa2452beeff",
+    "ai/templates/timtree.c": "be28cf910fe1bcacf973da2cf2b8e7a534df6a3a14a11726d5009aa69965a298",
+    "ai/templates/timtree.h": "98d78df9a0352d795c9a1c12df7df0c9ffbfc2cc4c2a16fd39a888aacce75d53",
+    "tests/ai/tim_main.c": "774e3cd791e4497ec187e67e5047836f130a1c38d4fd4e5b8613445627c6541f",
+    "tests/ai/tim_main.h": "c0509fa579bc3bf7ba353a6d277a7efed7f22a09633b66474b1ba3051729ebe3",
+    "ai/contracts/timing-run.schema.json": "52cbe54fc67d20a5baf916b330dc64910e289f603eb19997cd18a346452699a8",
+    "ai/contracts/timing-scenario.schema.json": "e58f9cf13df21962ca786390d791e83245eb67537ecbe9ff95b89d187891abfb",
+    "ai/training-requirements.txt": "758c3ff91c2bb950c84bdefa7207a756d6a50c5add78ee002dfdc8ebb5261b27",
+    "tools/config_validator/planner.py": "ffe671319b79cf2a70773b79ba517e57354aff4825f622afa48f7eb252fb89fb",
+    "tools/c_standard/check.py": "c9dc9c4bfd9b3c6d4e0896d446ed54a5a80216ab05bdad792a063bdfbfd6c541",
+    "tools/c_standard/policy.json": "82cd5353ea863bf412961469d880414f7994ce36751b0114ce0f8d90f5f3ddc2",
+    "tools/c_standard/deviations.json": "cedad894f778dc4f944d15572d2221ef0581ebbae654492ca70e6918471979a9",
+    ".clang-format": "2064ca3986b17da20ef9a15eaed53d14b8bfc07a404b4c3eb4b0d2e9adb9d451",
+    ".github/workflows/c-standard.yml": "37c40997ed85227811edadc221abac609b5e2447ee38a061512f30f5bddbe309"
+  },
+  "artifacts": {
+    "build/ai-offline-20261013/runs.json": {
+      "sha256": "bb68a76e3f853ab7a8449038e14e19dea76813070b567a7b7dcf59d0ba245695",
+      "bytes": 15799462
+    },
+    "build/ai-offline-20261013/dataset.json": {
+      "sha256": "40ec7f76408e11d3d1881f7a45477208c1f25182565e37d2ec176d380eabb1c0",
+      "bytes": 361838
+    },
+    "build/ai-offline-20261013/trained/model.json": {
+      "sha256": "49bbb5e4e10bd464b5d49bb89174f427501926ebe8926053cd58039e55503b0b",
+      "bytes": 2071
+    },
+    "build/ai-offline-20261013/trained/evaluation.json": {
+      "sha256": "24c59b8d926502972038de31c6b1c9002d6190db355baacb812602229fc19967",
+      "bytes": 3913
+    },
+    "build/ai-offline-20261013/trained/environment.json": {
+      "sha256": "cc14bf902f504e444370ae57b3b44f01efcf6993f53dbde162a17bb03e28073a",
+      "bytes": 229
+    },
+    "build/ai-offline-20261013/trained/requirements-lock.txt": {
+      "sha256": "b197f77efb7694c2e4c7913678291637082b695e1e1a0e6bef6883120ac782aa",
+      "bytes": 241
+    },
+    "build/ai-offline-20261013/trained/c-checks.json": {
+      "sha256": "d13a1aed63af837eadb8919a650f01124f496315556d268af957c1d0cc5cdb54",
+      "bytes": 345
+    },
+    "build/ai-offline-20261013/trained/c3-object-check.json": {
+      "sha256": "993241b2682f5eca37fee348244ce394898d7635850d77261ac14cd98e47cca9",
+      "bytes": 773
+    },
+    "build/ai-offline-20261013/trained/c/timtree.c": {
+      "sha256": "b194ee38f13fb2d36373601597f9d72e3fdb45644bb4da18c72732cd4d2a8819",
+      "bytes": 2385
+    },
+    "build/ai-offline-20261013/trained/c/timtree.h": {
+      "sha256": "98d78df9a0352d795c9a1c12df7df0c9ffbfc2cc4c2a16fd39a888aacce75d53",
+      "bytes": 866
+    }
+  },
+  "remaining": [
+    "Physical discovery/acceptance",
+    "Actual profile/build-correlated hardware capture",
+    "Measured dataset and retraining",
+    "Untouched real evaluation and rule comparison",
+    "Firmware integration only after benefit is established",
+    "On-board memory/latency/power measurements"
+  ],
+  "hardware_accessed": false,
+  "firmware_linked": false,
+  "flashed": false,
+  "committed": false,
+  "pushed": false
+}

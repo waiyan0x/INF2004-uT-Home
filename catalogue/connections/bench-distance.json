@@ -1,0 +1,25 @@
+{
+  "preset_id": "bench_distance",
+  "preset_version": "0.1.0",
+  "label": "HC-SR04 distance sensor (GPIO)",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "method": "manual",
+  "requires_wiring_confirmation": true,
+  "logic_mv": 3300,
+  "supply_mv": 5000,
+  "wiring": "TRIG -> GPIO4; ECHO -> 10 kohm / 20 kohm voltage divider -> GPIO5; supply 5 V; common ground. Confirm 3.3 V maximum at the ESP echo input. No pulses are sent now.",
+  "descriptor": {
+    "id": "hc_sr04",
+    "version": "1.0.0"
+  },
+  "device_interface": {
+    "protocol": "gpio",
+    "trigger_gpio": 4,
+    "echo_gpio": 5,
+    "echo_voltage_divider_required": true
+  }
+}

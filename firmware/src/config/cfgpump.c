@@ -58,6 +58,21 @@ int cfgpump_capabilities (cfgpump_t *         p_pump,
     return 0;
 }
 
+/** @brief Bind an explicitly requested hardware observer while idle. */
+int cfgpump_discovery (cfgpump_t *          p_pump,
+                       cfgpump_discover_t * p_discover,
+                       void *               p_context)
+{
+    if ((NULL == p_pump) || (NULL == p_pump->p_control) ||
+        (NULL == p_discover) || (p_pump->b_busy) || (p_pump->b_pending))
+    {
+        return -2;
+    }
+    p_pump->p_discover          = p_discover;
+    p_pump->p_discovery_context = p_context;
+    return 0;
+}
+
 /** @brief Advance one bounded transport step from the controller's task. */
 int cfgpump_step (cfgpump_t * p_pump, uint64_t now_ms)
 {
@@ -167,6 +182,23 @@ static void discard_transport (cfgpump_t * p_pump)
 /** @brief Observations never consume IDs, call storage or evict retry state. */
 static int make_reply (cfgpump_t * p_pump, const cfgwire_request_t * p_request)
 {
+    if (CFGWIRE_DISCOVER == p_request->command)
+    {
+        size_t size = 0U;
+        if ((NULL == p_pump->p_discover) ||
+            (0 != p_pump->p_discover(p_pump->p_discovery_context,
+                                     p_request,
+                                     &p_pump->reply[UTHOME_CFGWIRE_HEADER],
+                                     UTHOME_CFGWIRE_PAYLOAD,
+                                     &size)) ||
+            (0 != cfgwire_observation(
+                      p_request, p_pump->reply, sizeof(p_pump->reply), size)))
+        {
+            return -1;
+        }
+        p_pump->reply_size = UTHOME_CFGWIRE_HEADER + size;
+        return 0;
+    }
     if ((CFGWIRE_TELEMETRY == p_request->command) ||
         (CFGWIRE_CAPABILITIES == p_request->command))
     {

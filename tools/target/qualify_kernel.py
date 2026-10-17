@@ -23,6 +23,12 @@ SDK_REVISION = "fff9895c82d744c7237be8847347bdd1b07c6643"
 COMPILER_PACKAGE = "esp-15.2.0_20251204"
 
 RUNTIME_SOURCE_FILES = {
+    "firmware/src/discovery/discuart.c": "discovery/discuart.c",
+    "firmware/src/discovery/discuart.h": "discovery/discuart.h",
+    "firmware/src/discovery/disci2c.c": "discovery/disci2c.c",
+    "firmware/src/discovery/disci2c.h": "discovery/disci2c.h",
+    "firmware/src/discovery/cfgdisc.c": "discovery/cfgdisc.c",
+    "firmware/src/discovery/cfgdisc.h": "discovery/cfgdisc.h",
     "firmware/src/services/oledview.c": "services/oledview.c",
     "firmware/src/services/oledview.h": "services/oledview.h",
     "firmware/src/services/telemetry.c": "services/telemetry.c",

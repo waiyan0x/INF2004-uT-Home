@@ -1,9 +1,20 @@
 # AI contracts
 
+The current preparation request is
+[`timing-scenario.schema.json`](timing-scenario.schema.json), version 0.1.0.
+It describes planned per-instance interval experiments using platform admission.
+See [the timing guide](../TIMING_EXPERIMENTS.md) for the generated experiment
+contract and validation. Neither contract represents measured training data or
+a model prediction. Current run, dataset and timing-tree contracts are described
+in [OFFLINE_PIPELINE.md](../OFFLINE_PIPELINE.md); run structure is checked by
+`timing-run.schema.json`. They are explicitly separate from the older API below.
+
 > **Legacy prototype experiment.** AI contract 0.2.0 is retained for regression
-> tests only. Training and deployment integration are paused. Use the new
-> platform catalogue and node schema; follow `ai/TRAINING_PIPELINE.md` for the
-> foundation gate. The historical interface below is not the platform contract.
+> tests only. The current preparation work begins with
+> [device discovery](../../docs/DEVICE_DISCOVERY.md) and the platform catalogue;
+> follow `ai/TRAINING_PIPELINE.md`. Offline experimental training is now available;
+> model deployment is not integrated. The historical interface below is not the
+> platform contract.
 
 Version **0.2.0** binds project baseline **1.0.0**. The request retains the
 16-field uint32 feature vector, but payload meaning and accepted device limits

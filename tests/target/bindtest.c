@@ -7,6 +7,7 @@
 #error "Binding tests require assertions."
 #endif
 #include "bindtest.h"
+#include "disctest.h"
 #include "cfgbind.h"
 #include "cfgjson.h"
 #include "i2cfake.h"
@@ -201,6 +202,7 @@ void bindtest_run (uint64_t * p_clock)
     verify_output_binding(p_clock);
     assert(0 == activate_clear());
     assert(NULL == g_binding.p_i2c);
+    disctest_run(&g_io, &g_store);
     puts("Production admission/binding, shared resources, driver replacement "
          "and safe-empty recovery passed.");
 }

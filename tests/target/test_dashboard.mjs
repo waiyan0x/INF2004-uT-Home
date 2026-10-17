@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { renderProfile, renderTelemetry } from '../../tools/configurator/static/dashboard.js';
+import { renderDiscovery } from '../../tools/configurator/static/discovery.js';
 
 // Minimal DOM contract for presentation-only tests; no browser or USB access.
 class Element {
@@ -24,6 +25,88 @@ globalThis.document = {
   createElementNS: () => new Element(),
 };
 const text = id => document.getElementById(id).textContent;
+
+const discoveryReport = () => ({ preset_id: 'bench_i2c', preset_version: '0.2.0', discovery_id: 'test-token',
+  capture: { result: 'complete', request_id: 1, active_revision: 0, started_ms: 1000, elapsed_ms: 5, build_sha256: 'a'.repeat(64) },
+  devices: [{ observation: { address: 119, register: 0, status: 'responding', value: 80 },
+    identity: { status: 'verified', selected: { id: 'bmp388', version: '1.0.0' } },
+    capabilities: { support: 'available', driver: 'bmp388', hardware_qualified: false },
+    recommendation: { status: 'awaiting_review', instance: {},
+      settings: [{ label: 'Reading interval', value: '500 ms', source: 'bench_observation', reason: 'Bench starting value.' }] } }] });
+const descendants = element => [element, ...element.children.flatMap(descendants)];
+const addButtons = () => descendants(document.getElementById('discovery-results')).filter(node => node.onclick);
+
+test('radar candidates require a separate confirmation and never claim verified identity', () => {
+  const report = discoveryReport();
+  report.preset_id = 'bench_uart';
+  report.devices[0] = {observation: { valid_reports: 3, window_ms: 1000, receive_errors: 0, discarded_bytes: 0 },
+    identity: {status: 'candidate', selected: null, candidates: [{id: 'hlk_ld2450', version: '1.0.0'}]},
+    capabilities: {support: 'unchecked', hardware_qualified: false}, recommendation: {status: 'awaiting_identity'}};
+  let confirmed;
+  renderDiscovery(report, () => assert.fail('Candidate cannot add'), undefined, (...args) => { confirmed = args; });
+  assert.match(text('discovery-results'), /Candidate.*confirm module/);
+  assert.match(text('discovery-results'), /zero targets still count/);
+  const button = addButtons()[0];
+  assert.equal(button.textContent, 'Confirm module'); assert.equal(button.disabled, true);
+  const checkbox = descendants(document.getElementById('discovery-results')).find(node => node.type === 'checkbox');
+  checkbox.checked = true; checkbox.onchange(); button.onclick();
+  assert.deepEqual(confirmed, [0, true, undefined]);
+  assert.doesNotMatch(text('discovery-results'), /Add to profile/);
+});
+
+test('manual OLED selection cannot confirm without an existing source queue', () => {
+  const report = discoveryReport(); report.capture.result = 'manual'; report.preset_id = 'bench_oled';
+  report.devices[0] = {observation: {method: 'manual', status: 'not_observed'},
+    identity: {status: 'unknown', selected: null, candidates: [{id: 'ssd1306_spi', version: '1.0.0'}]},
+    capabilities: {support: 'unchecked'}, recommendation: {status: 'awaiting_identity'}, source_queues: []};
+  renderDiscovery(report, null);
+  assert.match(text('discovery-status'), /no hardware detection/);
+  assert.match(text('discovery-results'), /Add a sensor and its readings queue/);
+  const checkbox = descendants(document.getElementById('discovery-results')).find(node => node.type === 'checkbox');
+  checkbox.checked = true; checkbox.onchange();
+  assert.equal(addButtons()[0].disabled, true);
+  assert.doesNotMatch(text('discovery-results'), /firmware undefined/);
+});
+
+test('discovery reuses tiles, labels sources and only requests a draft addition', () => {
+  let selected = null;
+  renderDiscovery(discoveryReport(), index => { selected = index; });
+  assert.match(text('discovery-results'), /bmp388 · Identified/);
+  assert.match(text('discovery-results'), /not configured by this check/);
+  assert.match(text('discovery-results'), /500 ms.*bench observation/);
+  assert.match(text('discovery-results'), /hardware qualification pending/);
+  assert.equal(addButtons().length, 1);
+  addButtons()[0].onclick();
+  assert.equal(selected, 0);
+  renderDiscovery(null, null, 'Detection expired.');
+  assert.equal(addButtons().length, 0);
+  assert.equal(text('discovery-results'), '');
+  assert.equal(text('discovery-status'), 'Detection expired.');
+});
+
+test('no response, unknown, ambiguous and missing driver results never offer settings', () => {
+  for (const [status, identity, support, expected] of [
+    ['not_responding', 'unknown', 'unchecked', 'No response'],
+    ['responding', 'unknown', 'unchecked', 'Unknown device'],
+    ['responding', 'ambiguous', 'unchecked', 'More than one match'],
+    ['responding', 'verified', 'unavailable', 'driver unavailable'],
+  ]) {
+    const report = discoveryReport(), device = report.devices[0];
+    device.observation.status = status;
+    device.identity.status = identity;
+    if (identity !== 'verified') device.identity.selected = null;
+    device.capabilities.support = support;
+    device.recommendation = { status: 'blocked', settings: {} };
+    renderDiscovery(report, () => assert.fail('must not add'));
+    assert.match(text('discovery-results'), new RegExp(expected));
+    assert.doesNotMatch(text('discovery-results'), /500 ms/);
+    assert.equal(addButtons().length, 0);
+  }
+  const busy = discoveryReport(); busy.capture.result = 'busy'; busy.devices = [];
+  renderDiscovery(busy);
+  assert.match(text('discovery-status'), /left it running/);
+  assert.equal(addButtons().length, 0);
+});
 
 test('profile tiles describe configuration, never simulated hardware status', () => {
   renderProfile(JSON.stringify({ node_id: 'test-node', devices: [

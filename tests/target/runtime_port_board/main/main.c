@@ -9,6 +9,7 @@
 #include "c3app.h"
 #include "c3store.h"
 #include "c3usb.h"
+#include "esp_app_desc.h"
 #include <tk/tkernel.h>
 #include <tm/tmonitor.h>
 #include <stdatomic.h>
@@ -112,7 +113,7 @@ EXPORT INT usermain (void)
     if (UTHOME_CONFIGURATION_APP)
     {
         start_idle();
-        CHECK(0 == c3app_run());
+        CHECK(0 == c3app_run(esp_app_get_description()->app_elf_sha256));
         return 0;
     }
     verify_kernel_context();

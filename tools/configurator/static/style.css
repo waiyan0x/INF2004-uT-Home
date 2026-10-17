@@ -13,6 +13,13 @@ details { min-width: 0; }
 summary { cursor: pointer; font-size: var(--text-sm); color: hsl(var(--muted-foreground)); }
 .health-tiles, .observation-details { margin-top: var(--space-3); }
 .table-scroll { overflow: auto; }
+.discovery-confirm { display: flex; align-items: start; gap: var(--space-2); font-size: var(--text-sm); }
+.discovery-confirm input { margin-top: 3px; flex-shrink: 0; }
+#discovery-results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.discovery-settings { margin: var(--space-3) 0; font-size: var(--text-sm); }
+.discovery-settings dt { font-weight: 500; margin-top: var(--space-2); }
+.discovery-settings dd { margin: 0; color: hsl(var(--muted-foreground)); overflow-wrap: anywhere; }
+.discovery-evidence { grid-column: 1 / -1; overflow-wrap: anywhere; }
 table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 th, td { padding: var(--space-2); text-align: left; border-bottom: 1px solid hsl(var(--border)); vertical-align: top; }
 th { color: hsl(var(--muted-foreground)); font-weight: 500; }
@@ -27,4 +34,5 @@ th { color: hsl(var(--muted-foreground)); font-weight: 500; }
   .section__meta { margin-left: 0; }
   .toolbar .btn { white-space: normal; height: auto; min-height: var(--control-height); }
   .tiles { grid-template-columns: minmax(0, 1fr); }
+  #discovery-results { grid-template-columns: minmax(0, 1fr); }
 }

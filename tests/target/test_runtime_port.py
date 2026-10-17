@@ -37,6 +37,7 @@ class RuntimePortFailureTests(unittest.TestCase):
                        "-I", str(ROOT / "firmware/drivers/hlk_ld2450"),
                        "-I", str(ROOT / "firmware/third_party/bmp3"),
                        "-I", str(ROOT / "firmware/src/config"),
+                       "-I", str(ROOT / "firmware/src/discovery"),
                        "-I", str(ROOT / "firmware/src/services"),
                        "-I", str(ROOT / "firmware/src/automation"),
                        "-I", str(ROOT / "firmware/third_party/cjson"),
@@ -47,6 +48,12 @@ class RuntimePortFailureTests(unittest.TestCase):
                        str(ROOT / "tests/target/uarttest.c"),
                        str(ROOT / "tests/target/gpiotest.c"),
                        str(ROOT / "tests/target/bindtest.c"),
+                       str(ROOT / "tests/target/disctest.c"),
+                       str(ROOT / "firmware/src/discovery/discuart.c"),
+                       str(ROOT / "tests/target/uartdisc.c"),
+                       str(ROOT / "firmware/src/discovery/disci2c.c"),
+                       str(ROOT / "firmware/src/discovery/cfgdisc.c"),
+                       str(ROOT / "firmware/src/config/cfgpump.c"),
                        str(ROOT / "tests/target/servtest.c"),
                        str(ROOT / "firmware/hal/pulseio.c"),
                        str(ROOT / "firmware/hal/pwmio.c"),
@@ -126,9 +133,25 @@ class RuntimePortFailureTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
             from tools.config_transfer.capabilities import decode_capabilities
+            from tools.config_transfer.discovery import decode_discovery, discovery_request
+            discovery_frame = next(bytes.fromhex(line.split(":", 1)[1]) for line in result.stdout.splitlines()
+                                   if line.startswith("DISCOVERY:"))
+            discovery = decode_discovery(discovery_frame, request_id=27, revision=0,
+                                         payload=discovery_request(123, wiring_confirmed=True))
+            self.assertEqual(discovery.result, "complete")
+            self.assertEqual([record["value"] for record in discovery.records], [0x50, 0x60])
+            uart_frame = next(bytes.fromhex(line.split(':', 1)[1]) for line in result.stdout.splitlines()
+                              if line.startswith('UARTDISCOVERY:'))
+            uart = decode_discovery(uart_frame, request_id=27, revision=0,
+                                    payload=discovery_request(123, wiring_confirmed=True, preset_code=2))
+            self.assertEqual(uart.result, 'complete')
+            self.assertEqual(uart.records[0]['valid_reports'], 3)
+            self.assertEqual(uart.records[0]['received_bytes'], 90)
+            self.assertEqual(uart.records[0]['window_ms'], 1000)
             caps_frame = next(bytes.fromhex(line.split(":",1)[1]) for line in result.stdout.splitlines()
                               if line.startswith("CAPABILITIES:"))
             caps = decode_capabilities(caps_frame, request_id=27)
+            self.assertEqual(caps.features, 7)
             self.assertEqual(set(caps.drivers), {"bmp388", "ssd1306_spi", "hlk_ld2450", "hc_sr04", "pwm_output"})
             self.assertFalse(caps.hardware_qualified)
             self.assertEqual((caps.board,caps.node_schema), ("esp32-c3-supermini", "2.1.0"))

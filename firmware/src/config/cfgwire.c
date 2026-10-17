@@ -88,7 +88,7 @@ int cfgwire_request (const cfgwire_t *   p_receiver,
     {
         return -2;
     }
-    /* accept_header admits command bytes 1..7, matching these enumerators. */
+    /* accept_header admits command bytes 1..8, matching these enumerators. */
     *p_request =
         (cfgwire_request_t){.request_id = cfgbytes_get(&p_receiver->header[8]),
                             .revision   = cfgbytes_get(&p_receiver->header[12]),
@@ -136,19 +136,25 @@ int cfgwire_observation (const cfgwire_request_t * p_request,
 {
     if ((NULL == p_request) || (NULL == p_output) ||
         ((CFGWIRE_TELEMETRY != p_request->command) &&
-         (CFGWIRE_CAPABILITIES != p_request->command)) ||
-        (0U == p_request->request_id) || (0U != p_request->revision) ||
-        (0U != p_request->size) || (size > UTHOME_CFGWIRE_PAYLOAD) ||
-        (0U == size) || (capacity < (UTHOME_CFGWIRE_HEADER + size)))
+         (CFGWIRE_CAPABILITIES != p_request->command) &&
+         (CFGWIRE_DISCOVER != p_request->command)) ||
+        (0U == p_request->request_id) ||
+        ((CFGWIRE_DISCOVER != p_request->command) &&
+         ((0U != p_request->revision) || (0U != p_request->size))) ||
+        ((CFGWIRE_DISCOVER == p_request->command) &&
+         (24U != p_request->size)) ||
+        (size > UTHOME_CFGWIRE_PAYLOAD) || (0U == size) ||
+        (capacity < (UTHOME_CFGWIRE_HEADER + size)))
     {
         return -2;
     }
     memset(p_output, 0, UTHOME_CFGWIRE_HEADER);
     memcpy(p_output, g_magic, sizeof(g_magic));
     p_output[4] = 1U;
-    /* The two checked observation commands and response bit fit a byte. */
+    /* The three checked observation commands and response bit fit a byte. */
     p_output[5] = (uint8_t)((uint32_t)p_request->command | UINT32_C(0x80));
     cfgbytes_put(&p_output[8], p_request->request_id);
+    cfgbytes_put(&p_output[12], p_request->revision);
     /* The checked payload is bounded to 2048 bytes. */
     cfgbytes_put(&p_output[16], (uint32_t)size);
     uint32_t sum = cfgbytes_crc(UINT32_MAX, p_output, 20U);
@@ -166,9 +172,11 @@ static int accept_header (cfgwire_t * p_receiver)
     const uint8_t   command  = p_header[5];
     if ((1U != p_header[4]) || (0U != p_header[6]) || (0U != p_header[7]) ||
         (0U == cfgbytes_get(&p_header[8])) || (command < CFGWIRE_APPLY) ||
-        (command > CFGWIRE_CAPABILITIES) || (size > UTHOME_CONFIG_BYTES) ||
+        (command > CFGWIRE_DISCOVER) || (size > UTHOME_CONFIG_BYTES) ||
         ((CFGWIRE_APPLY == command) && ((0U == size) || (0U == revision))) ||
-        ((CFGWIRE_APPLY != command) && (0U != size)) ||
+        ((CFGWIRE_APPLY != command) && (CFGWIRE_DISCOVER != command) &&
+         (0U != size)) ||
+        ((CFGWIRE_DISCOVER == command) && (24U != size)) ||
         (((CFGWIRE_QUERY == command) || (CFGWIRE_RECOVER == command) ||
           (CFGWIRE_PROBE == command) || (CFGWIRE_TELEMETRY == command) ||
           (CFGWIRE_CAPABILITIES == command)) &&

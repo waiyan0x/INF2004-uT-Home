@@ -1,12 +1,17 @@
 """One local controller and one reviewed candidate; no automatic mutation retry."""
 from dataclasses import asdict
+from copy import deepcopy
+from datetime import datetime, timezone
 import hashlib
 import json
 import secrets
 from threading import Lock
+from time import monotonic
 from tools.config_validator.planner import Catalogue, ROOT, build_plan, load_document, parse_document, require
 from tools.config_transfer.client import Client, TransferError
 from tools.config_transfer.protocol import Command
+from tools.device_discovery import identify_i2c, identify_uart, identity_result, confirm_identity
+from .discovery import connection_preset, recommend, add_to_draft, source_queues
 
 STATUS = ("Active", "Active and saved", "Active; saving failed", "Rejected", "Recovery required",
           "Stale revision", "Request conflict", "Storage error", "Empty")
@@ -27,22 +32,25 @@ def open_serial(port):
         raise
 
 def identity(reply):
-    return (reply.active_revision, reply.saved_revision, reply.active_crc,
-            reply.saved_crc, reply.flags & 0x70)
+    data = reply if isinstance(reply, dict) else asdict(reply)
+    return tuple(data[key] for key in ("active_revision", "saved_revision", "active_crc", "saved_crc")) + (data["flags"] & 0x70,)
 
 def reply_data(reply):
     return dict(asdict(reply), message=STATUS[reply.status])
 
 class Workflow:
-    def __init__(self, *, opener=open_serial, client_factory=Client):
+    def __init__(self, *, opener=open_serial, client_factory=Client, clock=monotonic):
         self.catalogue = Catalogue()
         self.opener, self.client_factory = opener, client_factory
         self.lock = Lock()
         self.stream = self.client = self.caps = self.pending = None
+        self.discovery = self.last_timestamp = None
+        self.clock = clock
 
     def close(self):
         stream, self.stream = self.stream, None
         self.client = self.caps = self.pending = None
+        self.discovery = self.last_timestamp = None
         if stream is not None:
             stream.close()
 
@@ -63,13 +71,25 @@ class Workflow:
                 return {"connected": True, "capabilities": asdict(self.caps),
                         "state": reply_data(self.client.query())}
             if action == "review":
+                self.discovery = None
                 return self.review(body.get("profile"))
             require(self.client is not None, "Connect to the board first")
+            if action == "discover":
+                return self.discover(body)
+            if action == "add_discovered":
+                return self.add_discovered(body)
+            if action == 'confirm_discovered':
+                return self.confirm_discovered(body)
             if action == "telemetry":
-                return asdict(self.client.telemetry())
+                snapshot = self.observe()
+                return dict(asdict(snapshot), discovery_id=self.discovery["id"] if self.discovery else None)
             if action == "query":
-                return reply_data(self.client.query())
+                current = self.client.query()
+                if self.discovery and identity(current) != self.discovery["base"]:
+                    self.discovery = None
+                return reply_data(current)
             if action == "apply":
+                self.discovery = None
                 pending, self.pending = self.pending, None
                 require(pending is not None and body.get("review_id") == pending[0],
                         "Review the current profile again before applying")
@@ -85,8 +105,10 @@ class Workflow:
                         "Revision or request sequence exhausted")
                 return reply_data(self.client.exchange(Command.APPLY, current.request_id + 1, revision, raw))
             if action in ("save", "recover"):
-                self.pending = None
+                self.pending = self.discovery = None
                 current = self.client.query()
+                require(action != "recover" or current.flags & 32,
+                        "Recovery is only available when the board reports recovery required")
                 require(current.request_id < 0xFFFFFFFF, "Request sequence exhausted")
                 revision = current.active_revision if action == "save" else 0
                 require(action != "save" or revision > 0, "There is no active configuration to save")
@@ -102,8 +124,7 @@ class Workflow:
         finally:
             self.lock.release()
 
-    def review(self, text):
-        self.pending = None
+    def validate(self, text):
         require(isinstance(text, str), "Profile must be JSON text")
         document = parse_document(text.encode("utf-8"), 32768)
         # The target admits exact integer tokens; avoid silently rounding or
@@ -138,6 +159,11 @@ class Workflow:
                         require(pin in (20, 21) if uart else bool(self.caps.allowed_gpio_mask & (1 << pin)),
                                 f"GPIO {pin} is unavailable in the connected backend")
 
+        return document, raw, plan
+
+    def review(self, text):
+        self.pending = None
+        document, raw, plan = self.validate(text)
         base = self.client.query() if self.client else None
         token = secrets.token_urlsafe(24)
         self.pending = (token, raw, base, self.caps)
@@ -145,3 +171,110 @@ class Workflow:
                 "profile": document, "plan": plan, "connected": self.client is not None,
                 "hardware_qualified": bool(self.caps and self.caps.hardware_qualified),
                 "state": reply_data(base) if base else None}
+
+    def observe(self):
+        snapshot = self.client.telemetry()
+        restarted = not snapshot.result and self.last_timestamp is not None and snapshot.timestamp_ms < self.last_timestamp
+        if restarted:
+            self.pending = None
+        if self.discovery and (snapshot.result or restarted or
+                self.clock() >= self.discovery["expires"] or
+                identity(snapshot.configuration) != self.discovery["base"]):
+            self.discovery = None
+        if not snapshot.result:
+            self.last_timestamp = snapshot.timestamp_ms
+        return snapshot
+
+    def discover(self, body):
+        self.pending = self.discovery = None
+        preset = connection_preset(body.get('preset_id'))
+        require(body.get("wiring_confirmed") is True, "Confirm the connection wiring first")
+        text = body.get("profile")
+        require(isinstance(text, str) and len(text.encode("utf-8")) <= 32768, "Draft must be bounded JSON text")
+        base = self.client.query()
+        capture = None
+        if preset['method'] == 'manual':
+            caps = self.client.capabilities()
+            report = self.manual_report(preset, text, base)
+        else:
+            feature = 1 << preset['wire_code']
+            require(self.caps.features & feature, 'This firmware does not support discovery for this connection; update it before detecting')
+            capture, caps = (self.client.discover_i2c if preset['wire_code'] == 1 else self.client.discover_uart)(wiring_confirmed=True)
+            report = (identify_i2c(capture, caps, catalogue=self.catalogue) if preset['wire_code'] == 1 else
+                      identify_uart(capture, caps, preset, catalogue=self.catalogue))
+        require(asdict(caps) | {"request_id": 0} == asdict(self.caps) | {"request_id": 0},
+                "Firmware capabilities changed; reconnect and detect again")
+        report = recommend(report, self.catalogue, preset)
+        current = self.client.query()
+        require(identity(base) == identity(current) and (capture is None or capture.active_revision == current.active_revision),
+                "Board state changed; detect again")
+        report.update(discovery_id=None, expires_in_ms=60000, state=reply_data(current))
+        if capture is None or capture.result == "complete":
+            token = secrets.token_urlsafe(24)
+            self.discovery = dict(id=token, report=report, preset=preset, profile=text,
+                                  base=identity(current), expires=self.clock() + 60)
+            if capture:
+                self.last_timestamp = capture.started_ms + capture.elapsed_ms
+            report["discovery_id"] = token
+        return report
+
+    def manual_report(self, preset, text, base):
+        snapshot = self.observe()
+        require(not snapshot.result and identity(snapshot.configuration) == identity(base), 'Board state unavailable; reconnect and prepare again')
+        document, _, _ = self.validate(text)
+        policy = load_document(ROOT / 'catalogue/discovery.json')
+        ref = preset['descriptor']
+        entry = next(row for row in policy['entries'] if row['descriptor'] == ref)
+        require(entry['identification']['method'] == 'manual', 'Connection is not a manual selection')
+        descriptor = self.catalogue.descriptors[(ref['id'], ref['version'])]
+        device = identity_result(dict(method='manual', status='not_observed', protocol=descriptor['protocol']), [ref], 'unknown', self.caps)
+        device['confirmation_text'] = entry['identification']['confirmation']
+        device['cautions'] = entry['cautions']
+        if descriptor['execution']['kind'] == 'queue_consumer':
+            device['source_queues'] = source_queues(document, descriptor)
+        return dict(contract_version='0.1.0', catalogue_version=policy['catalogue_version'],
+                    board=deepcopy(preset['board']), preset_id=preset['preset_id'], preset_version=preset['preset_version'],
+                    capture=dict(result='manual', active_revision=base.active_revision), devices=[device])
+
+    def checked_discovery(self, body):
+        self.pending = None
+        self.observe()
+        pending = self.discovery
+        require(pending is not None and body.get('discovery_id') == pending['id'], 'Detection expired or changed; detect again')
+        require(body.get('profile') == pending['profile'], 'Draft changed; detect again before adding')
+        require(body.get('preset_id') == pending['preset']['preset_id'] and body.get('wiring_confirmed') is True,
+                'Connection confirmation changed; detect again')
+        caps = self.client.capabilities()
+        require(asdict(caps) | {'request_id': 0} == asdict(self.caps) | {'request_id': 0},
+                'Firmware capabilities changed; reconnect and detect again')
+        require(identity(self.client.query()) == pending['base'], 'Board state changed; detect again')
+        index = body.get('index')
+        require(type(index) is int and 0 <= index < len(pending['report']['devices']), 'Choose a detected result')
+        return pending, index
+
+    def confirm_discovered(self, body):
+        pending, index = self.checked_discovery(body)
+        require(body.get('identity_confirmed') is True, 'Confirm the module and wiring explicitly')
+        report = deepcopy(pending['report'])
+        device = report['devices'][index]
+        confirm_identity(device, self.caps, self.catalogue)
+        document, _, _ = self.validate(body['profile'])
+        recommend(report, self.catalogue, pending['preset'], document=document, source_queue=body.get('source_queue'))
+        device['identity']['confirmation'] = dict(source='user', at_utc=datetime.now(timezone.utc).isoformat(),
+                                                preset_version=pending['preset']['preset_version'])
+        # Keep the original expiry; confirmation cannot renew old evidence.
+        report['expires_in_ms'] = max(0, int((pending['expires'] - self.clock()) * 1000))
+        require(report['expires_in_ms'] > 0, 'Detection expired; detect again')
+        report['discovery_id'] = secrets.token_urlsafe(24)
+        pending.update(id=report['discovery_id'], report=report)
+        return report
+
+    def add_discovered(self, body):
+        try:
+            pending, index = self.checked_discovery(body)
+        finally:
+            self.discovery = None  # Single-use even when an attempted add fails.
+        document, _, _ = self.validate(body["profile"])
+        draft = add_to_draft(document, pending["report"]["devices"][index], pending["preset"])
+        self.validate(json.dumps(draft))
+        return {"profile": draft}  # No review token and no APPLY/SAVE/RECOVER command.

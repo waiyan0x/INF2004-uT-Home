@@ -31,7 +31,7 @@ function icon(name, small = false) {
   return badge;
 }
 
-function tile(title, detail, glyph, accent) {
+export function tile(title, detail, glyph, accent) {
   const result = node('div', 'tile tile--wrap');
   result.dataset.accent = accent;
   const row = node('div', 'tile__row');
