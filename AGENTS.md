@@ -28,3 +28,12 @@ reasoned record. Existing exceptions do not authorize similar future code.
 
 Do not commit, push, erase hardware or discard unrelated work unless the current
 task authorizes that action. Prefer isolated builds and preserve board backups.
+
+## Documentation
+
+Maintain one main Markdown guide per maintained folder where practical. Update
+that guide instead of adding checkpoint diaries or repeating parent guidance.
+Keep current usage, contracts and limitations; link to immutable qualification
+records for historical results. Preserve separate coding policy, approvals,
+licence notices and the hardware acceptance guide. Repair links when moving
+documentation, and never rewrite evidence/source hashes to follow a rename.

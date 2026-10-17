@@ -1,10 +1,7 @@
-# Telemetry and health: checkpoint 6a
+# Telemetry, health and OLED display
 
-The configuration application now exposes sensor observations, health counters,
-queue counters and active/saved/runtime state through one read-only USB command.
-The existing controller remains responsible for configuration changes. There is
-no heap allocation, extra task, SDK include or driver identity in these services.
-This is software verification; physical tests remain checkpoint 8.
+Read-only observations share typed samples with the OLED and rule services.
+Configuration changes remain owned by the controller.
 
 ## Data ownership and freshness
 
@@ -23,7 +20,7 @@ separate slots. A configured source with no publication appears as `missing`.
 An empty device list is distinct from a device successfully measuring zero.
 
 Quality values are 0 missing, 1 fresh OK, 2 stale OK, 3 fault/unknown. Only fresh OK
-values are eligible for future live decisions. An older OK value remains visible
+values are eligible for live decisions. An older OK value remains visible
 as stale for diagnosis. The freshness bound is twice the worker period plus its
 I/O timeout and 100 ms, matching the current heartbeat bound. Data becomes stale
 at that bound. A timestamp is measurement completion, not USB receive time.
@@ -75,7 +72,7 @@ Response command is 0x86, revision zero. Unlike controller commands 1..4, this
 command consumes no ID and does not evict the last mutation's retry cache. It
 performs no flash access. Command 5 PROBE remains unchanged.
 
-Only telemetry replies have a variable-length payload. Legacy replies remain
+Observation replies have variable-length payloads. Controller/probe replies remain
 48 bytes. The pump accepts a <=2048-byte observation payload; this format uses
 160..1824 bytes (184..1848 including framing), written in <=48-byte nonblocking
 attempts. The existing 2000 ms whole-reply deadline starts at the first transmit
@@ -137,25 +134,51 @@ controller metadata are sampled nearby by their common owner; workers are not
 frozen across all three operations. The state ACTIVE denotes an accepted plan,
 not successful measurements. The plan cannot change during encoding.
 
-## Local client and remaining work
+## OLED rendering
 
-After the application image is separately approved and installed for acceptance:
+`shared_sample` copies one registered source and its time reference under the
+existing short shared guard. Selection rotates every two seconds through all
+sources on the configured queue mask, including multiple producers on one queue.
+Rendering and SPI happen after releasing the guard. No queue item is consumed.
+The current single-consumer admission reservation remains conservative; rendering does not change the planner's routing policy.
+
+Each page shows the device index (or health queue), a shortened uppercase label,
+and MISSING/FRESH/STALE/FAULT. Values include pressure/temperature, distance/echo,
+all three radar slots with signed coordinates/velocity, or historical health
+event/count. Health reports do not certify current node health. Missing/faulted
+values clear old numbers; an unavailable snapshot shows WAITING FOR DATA.
+The built-in 5x7 alphabet has 41 glyphs; unsupported label characters are blank.
+Temperature uses one truncated decimal; telemetry retains the original values.
+
+The binder opens shared SPI only for enabled displays, then claims each CS,
+D/C and reset through existing ownership checks. Its worker renders directly
+into that instance's frame and calls the existing bounded flush/retry adapter.
+Only that worker writes the frame. Stopped-worker cleanup releases the driver,
+control lines, SPI device, then shared bus. Partial opens and failed releases
+retain handles for checked recovery; admission does not touch live resources.
+
+The display context occupies the existing fixed slot union. This uses more
+static memory even for sensor-only profiles, but keeps one ownership model and
+avoids a separate frame allocator. Historical ELF sizes are recorded in qualification evidence, not a free-RAM guarantee.
+
+## Read a snapshot
+
+With application firmware installed and no other USB client connected:
 
 ```powershell
-python -m tools.config_transfer telemetry --port COM8
+python -m tools.config_transfer telemetry --port COMX
 ```
 
-The command prints one JSON snapshot. Exit 0 is a decoded successful capture,
-2 a device capture failure, 1 a local/transport/decoding failure. A successful
-capture can still contain faults or stale data. It does not reset the board,
-query storage, deploy a profile or change the request sequence.
+Replace COMX with the actual board port. Exit 0 means a decoded successful
+capture, 2 a device capture failure, 1 a transport/decoding failure. A valid
+capture can still contain stale/fault samples. This command does not query
+storage, deploy, reset the board or consume mutation IDs.
 
-Checkpoint 6b adds OLED rendering/binding using these same shared types; 6c adds
-the local browser application. Capabilities reporting, live display, generic
-rules/outputs, physical acceptance and AI are not supplied by telemetry. Target
-advertised capabilities remain empty until acceptance. No new teammate input
-is needed for this software checkpoint. Physical wiring/models are still needed
-at checkpoint 8; confirm OLED model/dimensions before physical display testing.
+OLED pages rotate every two seconds. Basic BMP388/OLED/radar bench observations
+are in the [qualification index](../../qualification/README.md#peripheral-bench-observations).
+SPI writes cannot prove a panel is present. Combined-load, disconnect, recovery
+and resource measurements still require physical acceptance.
+
 
 ## Manual BARR-C review
 
@@ -182,28 +205,24 @@ retries. Real C bytes are decoded by Python. Compiler warnings remain errors;
 both real target modes are built. Build/static memory evidence cannot replace
 combined-load timing, USB disconnect or physical sensor/flash acceptance.
 
-## Verified software and static memory
+## Display C review
 
-All **140 tests pass**: 54 standard, 26 foundation, 18 runtime, 42 target. The
-mandatory gate covers **174 C/H files**, with zero findings/tool-policy errors.
-Both real target modes pass with 116 source inputs and 48 checked owned compiler
-profiles; dependencies and exceptions are unchanged. See
-[fresh evidence](../../qualification/esp32c3-telemetry-20260928.json).
+- Rule 1: C99, bounded and documented casts, paired types at callback boundaries.
+- Rule 2: accurate ownership, rendering limits and error/retry contracts.
+- Rule 3: pinned formatting and the complete lexical gate.
+- Rule 4: one cohesive renderer, paired header/prefix and private helpers.
+- Rule 5: fixed-width samples/masks, unsigned bounded shifts, matching integer
+  printf macros and finite range checks before float-to-integer conversions.
+- Rule 6: bounded functions/loops and explicit worker/lifecycle ownership;
+  no added allocator, recursion, ISR or synchronization framework.
+- Rule 7: initialized buffers/handles, stable callback contexts, copied samples
+  and preserved ownership after failures; stopped workers precede union reuse.
+- Rule 8: checked error paths, bounded formatting/glyph writes and active test
+  assertions. The shared guard is released before formatting, GPIO or SPI.
 
-Application ELF storage:
+The new module uses C99. Existing C11/GNU99 scopes, exceptions, approval,
+checker policy, dependency pins and formatter version are unchanged. Software
+review does not establish physical timing, stack peaks or complete compliance
+with every semantic rule on hardware.
 
-| Static object | Bytes |
-|---|---:|
-| Binder, including status monitor | 5,976 |
-| Configuration controller | 16,464 |
-| Persistent storage scratch/state | 8,208 |
-| Pump, including receive and transmit buffers | 10,448 |
-| Telemetry context, including snapshot copy | 1,720 |
-| Live sample cache | 1,440 |
-| **Selected total** | **44,256** |
-
-The snapshot copy and live cache are deliberately separate allocations; nested
-type sizes must not be added again. Other runtime globals, queues, activation
-plans, parser allocation and task/kernel stacks remain additional. Link-time
-sizes are not measurements of free heap, stack peaks or available AI capacity.
-The application partition table is byte-identical to checkpoint 5c.
+Dated build/test/static-size results: [telemetry](../../qualification/esp32c3-telemetry-20260928.json) and [display](../../qualification/esp32c3-display-20260928.json). These are historical measurements, not current free memory.

@@ -1,71 +1,143 @@
 # Configuration profiles
 
-This directory contains the versioned JSON inputs consumed by the μT-Home
-configuration manager. Node schemas 2.0.0/2.1.0 reference reviewed device descriptors
-and board capabilities. The mixed first prototype, two-environment-sensors and
-distance-only profiles demonstrate different arrangements under one runtime.
-See [PROJECT_BASELINE.md](../PROJECT_BASELINE.md) for the platform contract.
+Versioned JSON selects supported devices, wiring, timing, queues and rules.
+Use UTF-8 with two-space indentation and a `schema_version`. GPIO values are
+printed ESP32-C3 GPIO numbers, not header positions. Node schemas 2.0.0/2.1.0
+reference reviewed descriptors and board/build limits in the [catalogue](../catalogue/README.md).
 
-## Layout
+## Choose a profile
 
-- `nodes/first-prototype.json` is one example deployment.
-- `nodes/two-environment-sensors.json` uses independent instances of one driver.
-- `nodes/distance-only.json` has no display or other sensor dependency.
-- `nodes/distance-controlled-output.json` adds a generic rule and PWM output
-  under schema 2.1.0. Its example wiring is not physically qualified.
-- `builds/` distinguishes host admission fixtures from target driver availability.
-- `PROTOTYPE_REFERENCE.md` preserves superseded baseline 1.0.0 notes.
-- `scenarios/first-prototype.json` describes the end-to-end demonstration and
-  the observable results used by integration tests.
-- `invalid/` contains profiles that a validator must reject. They document
-  semantic checks implemented by `tools/config_validator`.
+| Location | Purpose |
+|---|---|
+| `nodes/two-environment-sensors.json` | Independent instances sharing I2C at distinct addresses |
+| `nodes/distance-only.json` | Distance sensor without another sensor/display dependency |
+| `nodes/distance-controlled-output.json` | Schema 2.1 typed rule and PWM example |
+| `nodes/first-prototype.json` | Historical mixed demonstration; not deployable on the current C3 binding |
+| `builds/` | Host fixtures versus compiled/qualified target availability |
+| `scenarios/` | Expected demonstration behavior |
+| `invalid/` | Profiles validation must reject |
 
-All JSON files use UTF-8, two-space indentation, and a `schema_version`. Device
-IDs, interface IDs, task names, and queue names must be unique within a node.
-GPIO numbers refer to ESP32-C3 GPIO numbers rather than physical header
-positions.
+The original prototype uses GPIO2 for OLED CS. **Do not wire that assignment:**
+the current backend rejects it. Use the bench profiles below and the
+[hardware guide](../CONTRIBUTING.md) instead. Actual driver support and narrower
+target parser/resource limits must pass connected review before deployment.
 
-## Example C3 SuperMini pin assignment
+## Target limits
 
-| Function | GPIO | Notes |
-|---|---:|---|
-| BMP388 I²C SDA | 0 | Shared I²C bus `i2c0` |
-| BMP388 I²C SCL | 1 | Shared I²C bus `i2c0` |
-| OLED SPI CS | 2 | Active-low CS; boot-strapping check required below |
-| OLED SPI MOSI | 6 | SPI bus `spi2` |
-| OLED SPI SCLK | 7 | SPI bus `spi2` |
-| OLED D/C | 3 | Data/command select |
-| OLED reset | 10 | Active-low reset |
-| LD2450 UART RX | 20 | UART1 RX; connect to LD2450 TX |
-| LD2450 UART TX | 21 | UART1 TX; connect to LD2450 RX |
-| HC-SR04 trigger | 4 | ESP32-C3 output |
-| HC-SR04 echo | 5 | ESP32-C3 input through a 5 V-to-3.3 V divider |
+- Ordinary GPIO: 0, 1, 3, 4, 5, 6, 7, 10; UART1 RX20/TX21.
+- Preserve native USB18/19, BOOT/LED8/9, GPIO2 and flash/unavailable pins.
+- Four active peripheral workers, eight configured instances, four queues of
+  depth eight, 16 KiB peripheral stacks. Disabled entries still reserve wiring.
+- Profiles are at most 8192 compact bytes; target parsing has a separate 32 KiB
+  allocation-request ceiling. Passing the Python planner alone is insufficient.
+- The target-pending manifest intentionally advertises no hardware-qualified
+  peripherals. Compiled support reported by a connected build is separate.
 
-This allocation belongs to the first-prototype example; other valid allocations
-are admitted by the board capability file. Physical wiring is not yet tested.
-See [the catalogue](../catalogue/README.md) for device and board limits. The old S3 assignment
-used pins unavailable or reserved on this board.
+Validate the entire candidate before activation. Failed admission preserves the
+working profile. Failed cleanup/rollback may require explicit recovery; do not
+assume an active-but-unsaved profile will survive reboot. See the
+[configuration contract](../firmware/src/config/README.md).
 
-- Keep GPIO18/19 for native USB-Serial-JTAG, including configuration and console.
-- Leave GPIO8/9 unused by peripherals to avoid board LED/BOOT interactions.
-- Exclude GPIO11 (not on the pictured headers) and GPIO12-17 (flash signals).
-- GPIO2 is a strapping pin. Fit a 10 kOhm pull-up to 3.3 V and check the OLED
-  does not pull CS low through reset. Verify boot and download mode with the
-  display connected.
-- UART1 uses GPIO20/21 while the console uses native USB. The port's `DEV_SER`
-  owns it and our HAL wraps that driver, with a single reader/command task.
-  Apply the tracked native-ring patch during integration; do not install a
-  competing UART driver.
-- HC-SR04 Echo divider: 10 kOhm from Echo to GPIO5 and 15 kOhm from GPIO5 to
-  ground, nominally 3.0 V at a 5.0 V Echo. Check the actual level.
+## Bench profiles
 
-GPIO constraints are documented in the [Espressif C3 GPIO reference](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/api-reference/peripherals/gpio.html).
-The actual flash size must be detected on hardware; the upstream baseline
-expects 4 MB. Do not infer it from the board photographs.
+Use layout A for BMP388 + OLED + radar and layout B for distance + LED. They
+cannot all share the current pin budget. Generate eight profiles (empty, BMP,
+BMP/OLED, radar, combined A, radar/LED, distance, distance/LED) with the script
+below. It preserves repository examples, creates a temporary output directory
+and uses a host preflight manifest; it does not qualify or deploy hardware.
+The [hardware guide](../CONTRIBUTING.md) supplies power and wiring instructions.
 
-## Loading the profile
+<details>
+<summary>Generate the bench profiles (PowerShell, from the repository root)</summary>
 
-The configuration manager must parse and validate the complete profile before
-starting any device task. If parsing, schema validation, pin allocation, or
-resource checks fail, it must retain the last-known-good configuration and
-report the error through system health monitoring.
+Run this from the repository root after installing the Python requirements.
+It writes profiles to a **new temporary directory**, prints that directory, and
+leaves the repository examples unchanged. It performs no board operations.
+Copy the generated files into the session evidence folder when testing ends.
+The local target-limit check is preparation; review again against the connected
+board before deployment. Adjust BMP addresses to match your breakout.
+
+```powershell
+@'
+from copy import deepcopy
+from pathlib import Path
+import json
+import tempfile
+from tools.config_validator.planner import Catalogue, build_plan
+
+root = Path.cwd()
+def read(name):
+    return json.loads((root / name).read_bytes())
+
+base = read("configs/nodes/first-prototype.json")
+base["runtime"]["health_report_interval_ms"] = 1000
+base["interfaces"][0]["clock_hz"] = 100000
+base["interfaces"][1]["clock_hz"] = 4000000
+base["devices"][0]["behaviour"]["interval_ms"] = 500
+base["devices"][0]["behaviour"]["timeout_ms"] = 100
+base["devices"][0]["interface"]["address"] = "0x77"
+base["devices"][1]["interface"]["cs_gpio"] = 4
+base["devices"][1]["interface"].pop("cs_pullup_ohms", None)
+base["devices"][1]["behaviour"]["timeout_ms"] = 20
+
+def subset(drivers):
+    doc = deepcopy(base)
+    doc["devices"] = [d for d in doc["devices"] if d["driver"] in drivers]
+    refs = {d["interface"].get("ref") for d in doc["devices"]}
+    doc["interfaces"] = [i for i in doc["interfaces"] if i["id"] in refs]
+    destinations = {d["behaviour"].get("destination") for d in doc["devices"]}
+    if drivers:
+        destinations.add("system.health")
+    doc["queues"] = [q for q in doc["queues"] if q["id"] in destinations]
+    for dev in doc["devices"]:
+        if dev["driver"] == "ssd1306_spi":
+            dev["behaviour"]["sources"] = [q["id"] for q in doc["queues"]]
+    return doc
+
+combined = subset({"bmp388", "ssd1306_spi", "hlk_ld2450"})
+distance_led = read("configs/nodes/distance-controlled-output.json")
+radar_led = subset({"hlk_ld2450"})
+radar_led["schema_version"] = "2.1.0"
+led = deepcopy(distance_led["devices"][1])
+led["interface"]["output_gpio"] = 5
+radar_led["devices"].append(led)
+rule = deepcopy(distance_led["rules"][0])
+rule.update(source="presence_sensor", metric="target_count", comparison="above",
+            threshold=0, hysteresis=0)
+radar_led["rules"] = [rule]
+
+profiles = {
+    "00-empty": subset(set()),
+    "01-bmp": subset({"bmp388"}),
+    "02-bmp-oled": subset({"bmp388", "ssd1306_spi"}),
+    "03-radar": subset({"hlk_ld2450"}),
+    "04-combined": combined,
+    "05-radar-led": radar_led,
+    "06-distance": read("configs/nodes/distance-only.json"),
+    "07-distance-led": distance_led,
+}
+manifest = read("configs/builds/host-reference.json")
+manifest.update(backend="target", build_id="lab-preflight-not-qualification")
+catalogue = Catalogue(root)
+folder = Path(tempfile.mkdtemp(prefix="uthome-acceptance-20260929-"))
+for name, doc in profiles.items():
+    doc["node_id"] = "lab-" + name
+    plan = build_plan(doc, manifest, catalogue)
+    raw = json.dumps(doc, separators=(",", ":")).encode("utf-8")
+    if len(raw) > 8192:
+        raise ValueError("Profile exceeds target size: " + name)
+    (folder / (name + ".json")).write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    print(name, plan["resources"])
+print("Load lab files from:", folder)
+'@ | python -B -
+```
+
+</details>
+
+## Legacy reference
+
+Baseline 1.0 and old ESP32-S3/prototype-specific decisions are historical, not
+current setup instructions. Their full text remains in Git at commit
+`37319fbd55ca622779eca498519128e6a33bcaa5`, path
+`configs/PROTOTYPE_REFERENCE.md`. The [root guide](../README.md#platform-contract)
+defines today's platform baseline. Existing JSON examples are preserved.

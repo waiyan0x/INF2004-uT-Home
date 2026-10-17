@@ -1,8 +1,8 @@
-# UART and LD2450 integration
+# HLK-LD2450 UART driver
 
-Checkpoint 4b implements software only. Hardware testing is deferred to final
-acceptance. No UART traffic, flash or reset was performed during this checkpoint.
-The target capability manifest remains empty. AI remains last.
+Bounded 256000 8N1 reports: 30 bytes, header `AA FF 03 00`, footer `55 CC`,
+up to three signed target positions/speeds/resolutions. Basic live readings
+passed; the stationary empty-scene check and complete acceptance remain open.
 
 ## Modules and ownership
 
@@ -45,7 +45,7 @@ An all-zero slot is absent. No occupancy inference or filtering is added.
    callbacks. Use an explicit **10 ms periodic polling worker**, initially
    3072-byte stack and priority 12; validate actual stack use at final acceptance.
    This is the adapter for the catalogue's stream workload. Native readiness
-   dispatch and the profile-to-target binder are still pending.
+   dispatch is not implemented; the production binder uses this polling worker.
 5. Cleanup only after that worker stops. Port/callback/context storage remains
    borrowed through successful cleanup, including failed setup. A competing
    instance cannot close or release the current instance's UART.
@@ -89,8 +89,9 @@ Use the unchanged `0001-uthome-c3-resources.patch` alongside the compatibility
 patch in an isolated build. Its 513 ring entries provide **512 usable bytes**
 per direction and it disables unused ADC startup. The wrapper rejects requests
 larger than the compiled usable capacity. The helper records both patch hashes.
-The kernel checkout and dependency pins remain pristine. This image retains
-the existing 32 KiB kernel heap; a complete application budget remains pending.
+The kernel checkout and dependency pins remain pristine. The fixture retains
+the upstream 32 KiB kernel heap; the configuration application uses 64 KiB.
+Neither figure establishes spare memory under combined load.
 
 ## Timing, recovery and diagnostics
 
@@ -150,5 +151,8 @@ deviation, approval or compiler-profile exception was changed.
 Final hardware acceptance must verify the actual module, supply/ground, crossed
 UART wiring, baud/8N1, reporting, disconnect/reconnect, overrun recovery, polling
 latency, stack/heap headroom, simultaneous peripherals and repeated plan updates.
-No new member specification blocks software work. GPIO pulse measurement and
-PWM/output integration are the next checkpoint; AI stays deferred.
+
+
+Current [acceptance status](../../qualification/README.md) and
+[wiring procedure](../../../CONTRIBUTING.md). Historical test counts above
+refer to their dated evidence, not a new qualification.

@@ -1,9 +1,8 @@
-# BMP388 integration
+# BMP388 driver
 
-The BMP388 is one compiled sensor adapter on the reusable I2C bus. Its register
-operations and sampling policy stay here; the runtime has no BMP388 branches.
-Physical acceptance is pending: the user has a module available, but it is not
-wired yet.
+I2C pressure (Pa) and temperature (Celsius) with per-instance compensation,
+bounded reads and typed samples. Basic bench readings passed; full acceptance
+and multi-device electrical checks remain open.
 
 ## Modules and provenance
 
@@ -95,8 +94,8 @@ plumbing, not physical measurement accuracy.
 
 The target acceptance build includes the C3 backend and Bosch library. Added
 invalid-argument checks retain these functions in the link without accessing
-pins. This checkpoint does not flash that image or claim sensor communication;
-the preceding qualified activation image remains on COM8.
+pins. Those original fixture checks did not exercise the physical sensor. See the
+[bench summary](../../qualification/README.md#peripheral-bench-observations) for later observations.
 
 Before physical acceptance, identify the breakout and verify supply, pull-ups,
 I2C mode/address and wiring. The existing example profile uses SDA GPIO0 and SCL
@@ -110,3 +109,8 @@ integer/cast ranges, aligned configuration copies, borrowed contexts and claims,
 mutex ownership, deadline arithmetic, raw MMIO status, yielding waits and
 retryable cleanup. Vendor files are unchanged. No new exception or C11 scope
 was introduced.
+
+
+Current [acceptance status](../../qualification/README.md) and
+[wiring procedure](../../../CONTRIBUTING.md). Historical test counts above
+refer to their dated evidence, not a new qualification.

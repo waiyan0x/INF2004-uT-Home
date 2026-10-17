@@ -8,7 +8,7 @@ observations against it; the firmware does not interpret the policy file.
 preset. Changing that JSON alone cannot change firmware probe operations.
 Driver availability comes from the connected build, while protocol/settings
 constraints still belong to the device descriptors. See
-[discovery and recommendation ownership](../docs/DEVICE_DISCOVERY.md).
+[discovery and recommendation ownership](../docs/README.md).
 
 The catalogue describes supported operations and constraints independently of
 node instance names and deployment examples. `boards/` owns platform capacity;

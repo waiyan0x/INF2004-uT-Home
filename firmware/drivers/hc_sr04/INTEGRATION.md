@@ -1,14 +1,10 @@
-# GPIO distance and output software checkpoint
+# HC-SR04 and GPIO/PWM integration
 
-Checkpoint 4c adds reusable digital input, pulse capture and PWM contracts,
-ESP32-C3 backends, an HC-SR04 driver and generic PWM component. The runtime and
-planner contain no new device-specific branches. Physical testing is deferred
-to final acceptance; compiled support is not an advertised target capability.
-
-The distance conversion, acoustic spacing and zero-duty PWM design adapt the
-cached Member 3 contribution `974eb9c2e3792a1be70a64a4ba7fa9c322ba150d`
-(`kimNewpsysk1t`). No branch merge or vendor modification was made. The portable
-interfaces, lifecycle cleanup and C3 backends are owned adaptations.
+Reusable pulse capture and PWM contracts, C3 backends and registry adapters.
+Software/build checks passed; physical pulse timing and output acceptance remain
+open. Member 3 provenance: cached commit
+`974eb9c2e3792a1be70a64a4ba7fa9c322ba150d` (`kimNewpsysk1t`).
+Portable interfaces, lifecycle cleanup and C3 backends are owned adaptations.
 
 ## Modules and binding
 
@@ -28,15 +24,16 @@ The queue must accept `UTHOME_SAMPLE_DISTANCE` / `sample_distance_t`.
 The binding layer must admit pins, channel count, queue type/capacity, timing and
 resources before activation. The generic catalogue's four-instance limit is
 not a C3 guarantee: this backend supports at most **two capture pairs**, subject
-to available pins. Plan allocation and USB/JSON deployment are still pending.
+to available pins. Production admission and USB/JSON deployment are implemented
+in [configuration](../../src/config/README.md).
 
 Borrow `c3pwm_port(0..3)`, set `pwminst_t.p_port`, and register
 `pwminst_descriptor()` as `pwm_output`. Configure with `pwmio_config_t`; send
 `pwminst_command_t` through `component_write`. Writes require one serialized
 command owner; lifecycle cleanup runs with users stopped. There is no idle
-worker, motion policy, direction control or feedback loop. Actuator admission,
-automation and route ownership belong to later checkpoints. This component is
-not yet added to a deployment catalogue or target capability manifest.
+worker, motion policy, direction control or feedback loop. The production binder adds typed-rule admission and exclusive command ownership;
+see [automation](../../src/automation/README.md). Compiled support does not
+certify hardware operation.
 
 Ports and contexts are borrowed, noncopyable, and must outlive every user.
 Open/close are serialized lifecycle-owner operations. Partial setup retains its
@@ -126,7 +123,7 @@ RMT/LEDC registers, native scheduling or electrical behavior.
 See [software/build evidence](../../qualification/esp32c3-gpio-20260928.json).
 The board fixture only inspects factories, descriptors and invalid arguments:
 13 additions yield **543 expected checks**, not an executed board result.
-The earlier 514-check activation image remains the latest physical evidence.
+These fixture additions were not a physical HC-SR04/PWM test.
 
 Manual review checked module boundaries, initialized state, borrowed lifetimes,
 owner identity, retained failures, bounds, fixed-width unsigned operations,
@@ -149,13 +146,16 @@ input and repeated reconfiguration. Measure PWM frequency/duty/endpoints and
 stop/reset behavior with a safe load, including independent channels. Exercise
 concurrent I2C/SPI/UART/capture/PWM, kernel timing, stack/heap and pin conflicts.
 The synthetic first-edge technique in particular needs physical confirmation;
-the backend is not hardware-qualified or enabled in target capabilities.
+the backend is compiled but not hardware-qualified.
 
 Sources: [Espressif C3 technical reference](https://documentation.espressif.com/esp32-c3_technical_reference_manual_en.pdf),
 [HC-SR04 datasheet](https://cdn.sparkfun.com/datasheets/Sensors/Proximity/HCSR04.pdf),
 and the pinned SDK LL headers plus native kernel SYSTIMER implementation.
 
-No additional teammate specification blocks the next software checkpoint:
-bounded configuration transfer, admission/binding and storage. Before hardware
-acceptance, confirm actual modules, wiring, voltage conversion and actuator
-driver. AI remains last.
+Before hardware acceptance, confirm modules, wiring, voltage conversion and
+actuator supply/driver. Follow the [hardware guide](../../../CONTRIBUTING.md).
+
+
+Current [acceptance status](../../qualification/README.md) and
+[wiring procedure](../../../CONTRIBUTING.md). Historical test counts above
+refer to their dated evidence, not a new qualification.

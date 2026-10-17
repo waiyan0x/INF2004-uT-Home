@@ -5,7 +5,7 @@
 - `discovery-catalogue.schema.json` (0.1.0) describes reviewed identification
   policies referencing those descriptors; it is not a node or USB wire format.
 
-Discovery policies use the [shared record design](../docs/DEVICE_DISCOVERY.md).
+Discovery policies use the [shared record design](../docs/README.md).
 Their offline checks also resolve descriptor versions, protocol/address
 compatibility and local evidence paths. Run
 `python -B -m unittest discover -s tests/discovery -v`.

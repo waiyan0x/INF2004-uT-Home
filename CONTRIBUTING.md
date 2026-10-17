@@ -1,17 +1,18 @@
-# Hardware acceptance guide — 29 September 2026
+# Hardware acceptance guide
 
 The board is confirmed as an **ESP32-C3 SuperMini**. The wiring, profiles and
 firmware in this guide target that board.
 Start with one module, then test a supported combination using the same firmware.
-This is the bench procedure for checkpoint 8 in the
-[implementation plan](INTEGRATION_PLAN.md); AI remains checkpoint 9.
-The latest application has passed software/build checks. Physical results must
-be recorded during this session; this document does not certify the hardware.
+This is the physical acceptance procedure. Offline AI work can proceed
+separately, but it does not qualify the hardware.
+The latest application has passed software/build checks. Record physical results for each session. Earlier partial results are in the
+[evidence index](firmware/qualification/README.md#peripheral-bench-observations);
+this procedure does not certify the hardware.
 
 For the bench: check the inventory and power first, use the wiring tables in
 sections 3–4, then follow the profile-change procedure and test table in
-sections 6–7. Appendix A is needed once if the application is not installed;
-appendix B creates the matching configuration files.
+sections 6–7. Use the [installation procedure](tools/target/README.md#install-the-configuration-application)
+if needed and [generate bench profiles](configs/README.md#bench-profiles).
 
 ## 1. Bring these items and identify the modules
 
@@ -40,7 +41,7 @@ firmware support. Do not connect it using the SPI table. BMP280/BMP390 and
 LD2410 are also not substitutes for the configured drivers.
 
 Use an external LED for today's first output test; it was not in the supplied
-inventory, so bring one or use a scope to check PWM. The L298N/TT motor test below
+inventory, so bring one or use a scope to check PWM. The optional L298N/TT motor test
 needs its supply ratings and module jumper arrangement confirmed first.
 GPIO is a control signal, not motor power.
 
@@ -87,7 +88,7 @@ separate CS signals and any required MISO support; spare wires alone are insuffi
 
 The current backend permits ordinary GPIO **0, 1, 3, 4, 5, 6, 7, 10** and fixed
 UART **RX20/TX21**. Leave GPIO2, 8/9, USB18/19 and flash/unavailable pins alone.
-These are the project's [compiled binding limits](firmware/src/config/ADMISSION.md),
+These are the project's [compiled binding limits](firmware/src/config/README.md#admission),
 not a claim about every possible use of the chip.
 
 ## 3. Wiring layout A: BMP388, OLED and radar
@@ -141,15 +142,8 @@ illustrates why board variants must be checked.
 
 Lab profiles use SPI host 2 at **4 MHz**, 250 ms refresh and a 20 ms transfer
 timeout. The initial 1 MHz setting repeatedly timed out during refresh on this
-board. At 4 MHz, a 120.12-second combined BMP388/OLED observation recorded zero
-device timeouts, device I/O errors or failed workers, with 240 new BMP samples.
-The user confirmed readable, live temperature updates on the physical screen.
-A subsequent USB power-cycle test restored saved revision 5 and its matching
-configuration CRC automatically. The user confirmed the screen resumed; a
-follow-up observation recorded 21 new BMP samples with zero device timeouts,
-device I/O errors or failed workers. These initial functional and restart
-checks passed; full hardware acceptance remains outstanding. No firmware
-source change was needed.
+board. Basic live output and a saved-profile restart were observed at 4 MHz;
+full acceptance remains open. See the [bench results](firmware/qualification/README.md#peripheral-bench-observations).
 
 **Supplied six-pin OLED:** R3/R4 appear fitted, matching its printed 4SPI
 selection. Connect GND to GND, VCC to 3V3, SCL to GPIO7, SDA to GPIO6, RES to
@@ -187,34 +181,11 @@ Face the antenna towards an open test area. Confirm a previously configured
 module still has the expected baud rate/report mode. Move a person or target
 through the area; absence of motion alone is not proof that the link has failed.
 
-**2026-09-29 initial combined bench result:** The supplied HLK-LD2450 V1.1
-used TX to ESP GPIO20, RX to GPIO21 and common ground, with power from the
-USB-fed ESP 5V pin. The user measured 5 V at the radar with it connected;
-this observation does not establish a current budget for other boards or loads.
-BMP388 and the six-pin OLED remained connected. Saved revision 7 restored
-after USB reconnection, and the user confirmed live radar position changes
-on the OLED while moving. A subsequent 120.3-second observation captured
-1,350 new radar reports and 241 new BMP samples across 57 snapshots, all
-fresh. No new device timeouts, I/O errors, UART framing/overflow errors or
-worker failures occurred during that interval. Queue-overwrite counts
-matched the configured drop-oldest policy.
-
-**Open finding:** Two device timeouts were already recorded before the
-observation began after restart; the count stayed at two. Their exact source
-and timing were not captured, so startup readiness is only a hypothesis.
-Keep this finding open: this is not an error-free startup qualification.
-Only one target was observed; empty-scene, position accuracy and multi-target
-checks remain untested. Earlier interrupted runs followed user-reported USB
-disconnections and are retained separately in the session evidence.
-
-**Subsequent empty-scene check remains unresolved:** The user reported
-`READING UNAVAILABLE` and later confirmed touching/moving boards or cables
-during the check. Counters had risen to 113 device timeouts and 13 UART frame
-errors. A disturbed connection is possible, not established. In this renderer,
-`READING UNAVAILABLE` indicates a fault; a valid no-target report should remain
-`FRESH` and show `1 ABSENT`, `2 ABSENT`, `3 ABSENT`. Repeat with the hardware
-stationary before accepting absence detection. Earlier interval-specific
-passes remain historical results, not a full-session all-clear.
+**Open bench finding:** The earlier empty-scene test showed unavailable readings
+after the boards/cables were moved. Keep the hardware stationary for a repeat.
+A valid no-target report should stay FRESH with three ABSENT slots; unavailable
+means a fault. Startup timeouts also remain unexplained. Full observations and
+counts are retained in the [bench summary](firmware/qualification/README.md#peripheral-bench-observations).
 
 ### Separate radar-to-LED test using layout A's pin assignments
 
@@ -284,44 +255,7 @@ zero on the next output step. Confirm electrical timing with a scope; the
 browser's one-second polling cannot prove PWM frequency or response latency.
 See the [output contract](firmware/src/automation/README.md).
 
-### Optional L298N + TT motor: fixed direction only
-
-Keep motor power disconnected until the board's power/jumper documentation and
-the TT motor's rated voltage/current are known. The motor supply must suit the
-motor and driver, including startup current. A terminal labelled `12V` on an
-L298N board does **not** mean a TT motor should receive 12 V.
-
-After the LED test, this is the intended signal mapping for **layout B**, with
-HC-SR04 unchanged. It assumes a conventional L298N module with labelled ENA,
-IN1/IN2 and OUT1/OUT2; verify that this is your board before wiring.
-
-| L298N/module connection | Intended connection |
-|---|---|
-| ENA | GPIO1; remove the ENA always-enabled jumper; fit 10 kΩ ENA-to-GND pulldown |
-| IN1 / IN2 | Fixed 3.3 V / GND respectively, once compatible input circuitry is verified |
-| OUT1 / OUT2 | The two TT motor terminals; neither motor terminal goes directly to ESP GND |
-| GND | Motor supply negative and ESP common GND |
-| Motor supply / Vs / terminal sometimes labelled `12V` | Appropriate external motor supply positive; never an ESP GPIO/3V3 rail |
-| Logic 5 V and `5V-EN` regulator jumper | Follow the exact module's instructions; do not connect power here until its input/output role is established |
-| Unused channel B | No motor; disable ENB according to the module instructions |
-
-**ENA and 5V-EN are different jumpers.** Never leave ENA shorted to 5 V while
-connecting it to an ESP GPIO. Never join a module's regulator output to an
-external 5 V output. Verify fitted flyback protection and supply decoupling;
-the [ST L298 datasheet](https://www.st.com/resource/en/datasheet/l298.pdf) describes
-the chip's TTL control, separate logic/motor supplies and bridge behaviour,
-but does not define your breakout's jumpers. Its voltage drop also reduces the
-voltage reaching a low-voltage TT motor.
-
-Once the supply arrangement is verified, secure the unloaded motor with its
-shaft/wheels clear, power down to replace the LED with ENA, and use the same
-`07-distance-led.json` PWM rule. Verify ENA low before motor power is enabled,
-then briefly test the threshold sequence. Record start/stop, supply current and
-driver temperature; stop if the motor stalls or wiring/driver overheats. Zero
-enable allows the motor to coast, so an immediate physical stop is not promised.
-Do not increase supply voltage simply because 50% duty fails to start it.
-Powered motor acceptance stays **NOT TESTED** until those supply/module details
-are confirmed; the IR encoder is not part of this open-loop test.
+For the optional motor test, see the [PWM guide](firmware/drivers/pwm_output/README.md#optional-l298n--tt-motor-fixed-direction-only). Test an LED/scope first.
 
 ## 5. Which combinations fit?
 
@@ -340,7 +274,7 @@ Do not bypass pin validation, tie OLED control pins to rails or repurpose USB.
 There is also a parser allocation limit: the attempted A+LED profile passed the
 Python resource planner but exceeded the C parser's **32 KiB allocation budget**.
 The supplied lab profiles therefore separate the radar/LED test from combined A.
-All eight profiles below passed the actual C admission harness as well as the
+All eight generated profiles passed the actual C admission harness as well as the
 Python planner during guide preparation; that is not a hardware result.
 
 Combined A uses 10,240 bytes of peripheral task stacks, within the 16 KiB/four-worker
@@ -349,9 +283,9 @@ reserve pins: remove unused device and bus entries rather than merely disabling 
 
 ## 6. Prepare software and change wiring safely
 
-**Start with the board alone.** The last recorded flashed image is an older
-acceptance fixture. Today's peripherals need the latest **configuration
-application**, not the fixture binary. Install/verify it using appendix A first.
+**Start with the board alone.** Verify the installed **configuration application**
+against its build evidence; the acceptance fixture cannot run these profiles.
+Use the [installation procedure](tools/target/README.md#install-the-configuration-application) if needed.
 
 From the `Code` repository root:
 
@@ -362,7 +296,7 @@ python -B -m tools.configurator --port 8080
 
 Open `http://127.0.0.1:8080`. Close Arduino/serial monitors before connecting.
 Select the actual Device Manager port; **COM8 was the previously identified
-port**, but it can change. Generate the lab JSON files using appendix B.
+port**, but it can change. Generate [matching bench profiles](configs/README.md#bench-profiles).
 
 For **every physical wiring change**, including the first attachment:
 
@@ -454,157 +388,6 @@ needs those recovery/resource results and any real actuator acceptance.
 | Distance always times out | Echo divider and GPIO assignment, target angle/range, common ground and trigger acceptance; do not bypass the divider |
 | LED always off | LED polarity/resistor, correct layout pin, fresh source ID and rule threshold; measure PWM rather than trusting browser state |
 | Resets or erratic readings | Supply sag, accidental rail shorts, loose grounds, long wires, invalid mixed layouts; return to one module |
-
-## Appendix A — install the application before peripheral testing
-
-Run this **only when intentionally preparing the board**, with all modules
-disconnected and all serial clients closed. It backs up flash and then writes
-firmware. These are preparation instructions, not actions performed by creating
-this guide. The paths below are the existing builds on this development laptop.
-
-Use the application build in
-`C:\Users\kkak4\esp\uthome-ui-rules-app-20260928`, verified against the
-[application build record](firmware/qualification/esp32c3-ui-rules-20260928-application-build.json).
-Do not use the `uthome-ui-rules-fixture-20260928` binary for peripherals.
-If these files are absent or hashes differ, rebuild the application using the
-project's [target build instructions](tools/target/README.md#configuration-application-build)
-and record the new evidence; do not substitute an arbitrary binary.
-
-In PowerShell, from the repository root, replace COM8 if needed:
-
-```powershell
-$acceptancePython = 'C:\Users\kkak4\esp\uthome-c3-tools\python_env\idf6.1_py3.14_env\Scripts\python.exe'
-$acceptanceBuild = 'C:\Users\kkak4\esp\uthome-ui-rules-app-20260928'
-$acceptancePort = 'COM8'
-$acceptanceEvidence = Get-Content -Raw firmware/qualification/esp32c3-ui-rules-20260928-application-build.json | ConvertFrom-Json
-foreach ($relative in @('build/uthome_runtime_port.bin', 'build/bootloader/bootloader.bin', 'build/partition_table/partition-table.bin', 'build/flasher_args.json')) {
-    $actual = (Get-FileHash -LiteralPath (Join-Path $acceptanceBuild $relative) -Algorithm SHA256).Hash
-    if ($actual -ne $acceptanceEvidence.artifacts.$relative.sha256) { throw "Build hash mismatch: $relative" }
-}
-& $acceptancePython -m esptool --chip esp32c3 --port $acceptancePort flash-id
-if ($LASTEXITCODE -ne 0) { throw 'Chip/flash check failed' }
-```
-
-Confirm this is the expected ESP32-C3 with **4 MB flash** before continuing.
-Create a fresh backup outside the repo; keep the printed backup directory.
-
-```powershell
-$acceptanceBackup = Join-Path $env:USERPROFILE ('esp\hardware-backup-' + [guid]::NewGuid().ToString('N'))
-New-Item -ItemType Directory -Path $acceptanceBackup | Out-Null
-$acceptanceImage = Join-Path $acceptanceBackup 'board-before.bin'
-& $acceptancePython -m esptool --chip esp32c3 --port $acceptancePort read-flash 0x0 0x400000 $acceptanceImage
-if ($LASTEXITCODE -ne 0 -or (Get-Item -LiteralPath $acceptanceImage).Length -ne 4194304) { throw 'Backup failed' }
-Get-FileHash -LiteralPath $acceptanceImage -Algorithm SHA256
-Write-Output $acceptanceBackup
-```
-
-The checked build's `flash_args` must specify bootloader at `0x0`, partition table
-at `0x8000`, application at `0x10000`, DIO/80 MHz/4 MB. The command below checks
-those arguments before flashing. Do not use `erase-all` or an app-only write
-with an old partition table.
-
-Then flash using the build's generated offsets, including its partition table:
-
-```powershell
-Push-Location -LiteralPath (Join-Path $acceptanceBuild 'build')
-try {
-    $expected = '--flash-mode dio --flash-freq 80m --flash-size 4MB 0x0 bootloader/bootloader.bin 0x8000 partition_table/partition-table.bin 0x10000 uthome_runtime_port.bin'
-    $actual = ((Get-Content -Raw -LiteralPath flash_args).Trim() -replace '\s+', ' ')
-    if ($actual -ne $expected) { throw 'Unexpected flash offsets/options' }
-    & $acceptancePython -m esptool --chip esp32c3 --port $acceptancePort --after watchdog-reset write-flash '@flash_args'
-    if ($LASTEXITCODE -ne 0) { throw 'Flash failed' }
-} finally {
-    Pop-Location
-}
-```
-
-Release BOOT; tap RESET if needed, then reconnect using
-the current COM port. A quiet serial terminal is not evidence of failure: the
-application uses a binary configuration protocol.
-
-## Appendix B — generate matching lab profiles
-
-Run this from the repository root after installing the Python requirements.
-It writes profiles to a **new temporary directory**, prints that directory, and
-leaves the repository examples unchanged. It performs no board operations.
-Copy the generated files into the session evidence folder when testing ends.
-The local target-limit check is preparation; review again against the connected
-board before deployment. Adjust BMP addresses to match your breakout.
-
-```powershell
-@'
-from copy import deepcopy
-from pathlib import Path
-import json
-import tempfile
-from tools.config_validator.planner import Catalogue, build_plan
-
-root = Path.cwd()
-def read(name):
-    return json.loads((root / name).read_bytes())
-
-base = read("configs/nodes/first-prototype.json")
-base["runtime"]["health_report_interval_ms"] = 1000
-base["interfaces"][0]["clock_hz"] = 100000
-base["interfaces"][1]["clock_hz"] = 4000000
-base["devices"][0]["behaviour"]["interval_ms"] = 500
-base["devices"][0]["behaviour"]["timeout_ms"] = 100
-base["devices"][0]["interface"]["address"] = "0x77"
-base["devices"][1]["interface"]["cs_gpio"] = 4
-base["devices"][1]["interface"].pop("cs_pullup_ohms", None)
-base["devices"][1]["behaviour"]["timeout_ms"] = 20
-
-def subset(drivers):
-    doc = deepcopy(base)
-    doc["devices"] = [d for d in doc["devices"] if d["driver"] in drivers]
-    refs = {d["interface"].get("ref") for d in doc["devices"]}
-    doc["interfaces"] = [i for i in doc["interfaces"] if i["id"] in refs]
-    destinations = {d["behaviour"].get("destination") for d in doc["devices"]}
-    if drivers:
-        destinations.add("system.health")
-    doc["queues"] = [q for q in doc["queues"] if q["id"] in destinations]
-    for dev in doc["devices"]:
-        if dev["driver"] == "ssd1306_spi":
-            dev["behaviour"]["sources"] = [q["id"] for q in doc["queues"]]
-    return doc
-
-combined = subset({"bmp388", "ssd1306_spi", "hlk_ld2450"})
-distance_led = read("configs/nodes/distance-controlled-output.json")
-radar_led = subset({"hlk_ld2450"})
-radar_led["schema_version"] = "2.1.0"
-led = deepcopy(distance_led["devices"][1])
-led["interface"]["output_gpio"] = 5
-radar_led["devices"].append(led)
-rule = deepcopy(distance_led["rules"][0])
-rule.update(source="presence_sensor", metric="target_count", comparison="above",
-            threshold=0, hysteresis=0)
-radar_led["rules"] = [rule]
-
-profiles = {
-    "00-empty": subset(set()),
-    "01-bmp": subset({"bmp388"}),
-    "02-bmp-oled": subset({"bmp388", "ssd1306_spi"}),
-    "03-radar": subset({"hlk_ld2450"}),
-    "04-combined": combined,
-    "05-radar-led": radar_led,
-    "06-distance": read("configs/nodes/distance-only.json"),
-    "07-distance-led": distance_led,
-}
-manifest = read("configs/builds/host-reference.json")
-manifest.update(backend="target", build_id="lab-preflight-not-qualification")
-catalogue = Catalogue(root)
-folder = Path(tempfile.mkdtemp(prefix="uthome-acceptance-20260929-"))
-for name, doc in profiles.items():
-    doc["node_id"] = "lab-" + name
-    plan = build_plan(doc, manifest, catalogue)
-    raw = json.dumps(doc, separators=(",", ":")).encode("utf-8")
-    if len(raw) > 8192:
-        raise ValueError("Profile exceeds target size: " + name)
-    (folder / (name + ".json")).write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
-    print(name, plan["resources"])
-print("Load lab files from:", folder)
-'@ | python -B -
-```
 
 ## 9. Session record and sign-off
 

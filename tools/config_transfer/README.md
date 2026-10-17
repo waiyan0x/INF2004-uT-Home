@@ -7,7 +7,7 @@ performs no explicit reset and never flashes. Some host drivers can still pulse
 control lines during open; verify actual board behavior during acceptance.
 
 The board must eventually run the **configuration application image**, not the
-acceptance fixture. See [build, protocol and storage contracts](../../firmware/src/config/USB_STORAGE.md).
+acceptance fixture. See [build, protocol and storage contracts](../../firmware/src/config/README.md#transport-and-request-identity).
 The latest board image has not been replaced in this checkpoint.
 
 ```console

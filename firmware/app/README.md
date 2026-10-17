@@ -13,9 +13,9 @@ restore, then listens for framed requests. Active and saved revisions are
 reported separately. Initialization failure halts without reinitializing live
 contexts. Routine transfer faults keep listening and preserve active devices.
 
-See [USB/storage contracts and review](../src/config/USB_STORAGE.md) for build
+See [USB/storage contracts and review](../src/config/README.md#transport-and-request-identity) for build
 commands, ownership, partition layout, reconnect behavior and acceptance limits.
-Telemetry/health and [display services](../src/services/DISPLAY.md) are now
+Telemetry/health and [display services](../src/services/TELEMETRY.md#oled-rendering) are now
 integrated. The [local UI](../../tools/configurator/README.md) discovers compiled
 capabilities and uses this endpoint. [Typed rules](../src/automation/README.md)
 route configured sources to the existing PWM component. Physical acceptance

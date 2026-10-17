@@ -108,7 +108,7 @@ callers for BARR-C naming/types, widths/casts, buffer bounds, initialization,
 borrowed lifetime, serialized callbacks, finite work, explicit error outcomes
 and interrupted-save preservation. The unchanged gate covers 142 owned C/H
 files. Ordinary code stays C99; no approved compatibility/language scope or
-vendor revision changes. See [detailed review](../../firmware/src/config/TRANSFER.md)
+vendor revision changes. See [detailed review](../../firmware/src/config/README.md#transfer-c-review)
 and [fresh evidence](../../firmware/qualification/esp32c3-config-core-20260928.json).
 Host storage faults do not qualify physical flash; no board I/O was performed.
 
@@ -119,7 +119,7 @@ generic plan resource lifetime and empty recovery. Review covers range/aliasing
 conversions, aligned limited allocations, tree release, disabled wiring,
 resource bounds, callback lifetime and rollback. The unchanged gate covers
 158 C/H files; C11/GNU99 boundaries, policy, formatter, 49 exceptions and approval
-are unchanged. See [manual review](../../firmware/src/config/ADMISSION.md)
+are unchanged. See [manual review](../../firmware/src/config/README.md#admission-c-review)
 and [fresh evidence](../../firmware/qualification/esp32c3-admission-20260928.json).
 No physical qualification or complete-standard certification is inferred.
 
@@ -129,7 +129,7 @@ Reviewed the bounded pump, C3 USB/partition boundaries, application lifetime,
 PROBE extension, existing callers and fault fixtures. The gate covers 166 C/H
 files with no new policy/deviation/approval changes. New modules compile as C99;
 the existing C11 and external-header GNU99 scopes are unchanged. See the
-[manual review](../../firmware/src/config/USB_STORAGE.md#manual-barr-c-review)
+[manual review](../../firmware/src/config/README.md#usb-c-review)
 and [fresh evidence](../../firmware/qualification/esp32c3-usbstore-20260928.json).
 Host/build evidence does not certify all BARR-C rules or physical behavior.
 
@@ -147,7 +147,7 @@ claim physical sensor, timing, USB or flash qualification.
 
 Reviewed the single OLED renderer, guarded sample selection, display binding,
 SPI/control-line lifecycle and extended existing fixtures. See
-[the checklist and limits](../../firmware/src/services/DISPLAY.md#manual-barr-c-review).
+[the checklist and limits](../../firmware/src/services/TELEMETRY.md#display-c-review).
 No policy, exception, language approval, dependency pin or formatter changed.
 Fresh evidence: `firmware/qualification/esp32c3-display-20260928.json`.
 Hardware acceptance remains deferred.

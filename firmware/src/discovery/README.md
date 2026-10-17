@@ -125,7 +125,7 @@ These facts do not verify breakout wiring, voltage tolerance or normal operation
 D3/D4 now show these observations and sourced recommendations in the existing
 Configuration Desk. Only confirmed, supported identities can produce an ordinary
 draft addition, followed by separate validation/review/apply. Manual OLED/GPIO
-selection never invokes a firmware probe. See [the UI guide](../../../tools/configurator/README.md#radar-and-manual-devices-d4).
+selection never invokes a firmware probe. See [the UI guide](../../../tools/configurator/README.md#device-discovery).
 
 ## UART preset and summary (D4)
 
