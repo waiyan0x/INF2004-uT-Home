@@ -112,3 +112,30 @@ Manual C review sections: [configuration](../firmware/src/config/README.md#verif
 [display](../firmware/src/services/TELEMETRY.md#display-c-review) and
 [AI export](../ai/README.md#c-review). The signed [audit](../tools/c_standard/AUDIT.md)
 and [approval records](../tools/c_standard/README.md) retain their own files.
+
+## Local artifacts and review documents
+
+The following are local files, not part of the published repository. Paths are
+relative to the `Code` folder unless stated otherwise. Preserve them when
+changing workspaces; a new chat does not need a new clone on this workstation.
+
+| Location | State / purpose |
+|---|---|
+| `build/ai-offline-20261013/` | Simulated runs, dataset, readable trained model and C export; see the [AI guide](../ai/README.md#existing-local-model) |
+| `build/publish-20261017-*.log` | Six Python suite logs: 243 tests; the seven dashboard tests made the reported total 250. These are historical checks, not reruns on 18 October |
+| `build/ai-c-gate-final.json` | Retained 194-file full-gate result; policy and manual-review requirements remain in the [C standard](../C_CODING_STANDARD.md) |
+| `../ESP/Tribunal1/Week8_Tribunal1_Template.docx` | Only Version A was edited to match uT-Home. Front matter and Versions B/C were preserved; this document was not pushed to GitHub |
+| `build/tribunal_review_20261017/` | Original Word backup, edit script, scope verification and rendered layout checks |
+
+**Tribunal follow-up:** the front-page Team Information table still contains the
+template's unrelated personas because it was outside the requested Version A
+scope. The user identified this mismatch; replacement roles were explained in
+chat but have not been applied to the Word file. Use the
+[actual team responsibilities](../README.md#team-responsibilities) when that
+table is authorized for editing. Leave student details for the team to fill in.
+Buddy prompts/positions in Version A are proposals, not invented records of
+completed individual sessions. The team must confirm them and reconcile the
+Week 6 comparisons with its submitted architecture freeze before submission.
+
+On 18 October, the Word file was verified to match the saved Version A edit.
+No edits to it or to its neighboring PDF were made during the handoff check.

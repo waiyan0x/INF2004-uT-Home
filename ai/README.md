@@ -141,6 +141,50 @@ untouched real evaluation, then integration/resource measurements if beneficial.
 Keep the provisional 32 KiB model-flash / 16 KiB total-module-RAM / 10 ms observed loaded latency
 targets as goals only; measured remaining resources determine feasibility.
 
+## Next software step
+
+Build a small host-side recorder before collecting real training data. This is
+**planned, not implemented**; it can be developed with fake streams while the
+equipment is unavailable. Reuse `tools/config_transfer/client.py`, its telemetry
+decoder and `ai/records.py` rather than adding another protocol or UI framework.
+
+1. Start with one periodic sensor and `observed_sample_age_ms`. Read an already
+   reviewed/applied trial; do not automatically change or save profiles. Display
+   latency needs an external measurement method and cannot be inferred from age.
+2. Establish how the actual firmware image, active profile and confirmed device
+   evidence will be tied to the run. Capabilities and an active revision/CRC
+   alone do not prove an arbitrary firmware/profile SHA256. Refuse hardware
+   labels when this correlation is unavailable; do not invent proof fields.
+3. Record bounded samples, elapsed time, board uptime, quality and fault-only
+   counter changes. Define the fault mapping explicitly; total events and normal
+   queue overwrites are not fault counts. Use one serial owner, not a competing
+   connection alongside the UI.
+4. Preserve interrupted/incomplete results with reasons. Exercise disconnects,
+   resets, stale/fault readings, profile changes and sampling gaps using fake
+   transport and clock inputs. Pass complete runs through the existing run and
+   dataset validation. Do not pad missing observations or relabel simulation.
+
+Hardware capture is ready only when real build/profile correlation and the
+selected metric can be demonstrated. Then collect grouped measurements, compare
+against the simple rule on untouched data, and consider embedded integration.
+Any necessary firmware instrumentation still requires BARR-C review and a target
+build. UI additions need the user's review before implementation.
+
+## Existing local model
+
+On this workstation, the model is
+`build/ai-offline-20261013/trained/model.json`; evaluation, C export and compile
+checks are beside it. Runs and the dataset are in the parent output directory.
+The model was reformatted for readability; its canonical JSON still matches the
+recorded model hash. Preserve the dated evidence rather than replacing its
+original byte counts/hashes after formatting.
+
+These generated files and `build/ai-venv/` are ignored, not committed binaries.
+A new chat on this workstation can reuse them; a fresh clone must regenerate
+them using the commands above. All source hashes listed in the offline evidence
+still matched on 18 October 2026. No new training or board testing was performed
+for that handoff check.
+
 ## Optional C3 compile
 
 Select the installed ESP RISC-V compiler explicitly:

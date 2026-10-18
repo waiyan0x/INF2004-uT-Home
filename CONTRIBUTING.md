@@ -122,6 +122,12 @@ failed activation. The timeout also covers sensor initialization, not just reads
 For a breakout strapped to `0x76`, change the address in **every** BMP profile
 you use. Address agreement is required; an address is not auto-detected.
 
+For the supplied purple breakout's four-wire cable, the user measured continuity
+as **green = GND, yellow = VIN, red = SDA, black = SCL**. The red SDA lead was
+extended with purple to GPIO0; black SCL went to GPIO1. VIN/GND measured about
+3.28 V when powered from ESP 3V3. This identifies that tested cable only;
+recheck continuity with all power disconnected if it is replaced or rewired.
+
 ### SSD1306 OLED over SPI
 
 | OLED breakout signal | Connect to |

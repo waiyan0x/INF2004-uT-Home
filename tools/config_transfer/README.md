@@ -6,9 +6,11 @@ explicitly selected serial port. It sets DTR/RTS inactive before opening,
 performs no explicit reset and never flashes. Some host drivers can still pulse
 control lines during open; verify actual board behavior during acceptance.
 
-The board must eventually run the **configuration application image**, not the
-acceptance fixture. See [build, protocol and storage contracts](../../firmware/src/config/README.md#transport-and-request-identity).
-The latest board image has not been replaced in this checkpoint.
+The board must run the **configuration application image**, not the acceptance
+fixture. An earlier application was used for the BMP/OLED/radar bench checks;
+installation and physical acceptance of the newer discovery build are not
+established by those observations. Verify the current image/capabilities before
+use. See [build, protocol and storage contracts](../../firmware/src/config/README.md#transport-and-request-identity).
 
 ```console
 python -m pip install -r tools/config_transfer/requirements.txt
@@ -19,8 +21,9 @@ python -B -m tools.config_transfer save --port COM8 --revision 1
 python -B -m tools.config_transfer recover --port COM8
 ```
 
-These are examples for the final hardware session, not commands executed by this
-checkpoint. APPLY requires a reviewed node profile and a positive revision.
+These are usage examples, not a record of commands executed on the board.
+Discover the current COM port; COM8 was used in earlier sessions.
+APPLY requires a reviewed node profile and a positive revision.
 Preflight with the host planner; target admission is independently authoritative.
 OLED and rule/PWM bindings are now compiled; physical hardware remains
 unqualified. The original prototype still requests unsupported GPIO2 CS.
@@ -53,8 +56,8 @@ samples, missing/stale/fault status, queues and health/runtime/configuration
 metadata. It does not query storage or consume configuration request IDs, so an
 uncertain mutation remains available for an exact retry decision. No automatic
 retry occurs. See [wire format and limits](../../firmware/src/services/TELEMETRY.md).
-Physical USB behavior still needs acceptance; this command has not been run on
-the connected board during checkpoint 6a.
+Earlier bench sessions used telemetry; full physical USB/recovery acceptance
+still remains open. A successful snapshot does not qualify the whole setup.
 
 ## Compiled capabilities
 
@@ -62,8 +65,8 @@ the connected board during checkpoint 6a.
 node schema, driver IDs, feature bits and bounded capacities without changing
 configuration or mutation IDs. Hardware qualification is a separate field and
 remains false. See [the capability layout and local UI](../configurator/README.md).
-This command is provided for the later hardware session; it was not run on the
-board during these software checkpoints.
+Check these fields against the image actually running at the next hardware
+session; a host build record alone cannot establish the board's current state.
 
 ## Explicit connection discovery
 

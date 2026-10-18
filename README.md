@@ -18,6 +18,27 @@ the platform rather than defining its limits.
 | Run software checks | [Tests](tests/README.md) |
 | Change C code | [Mandatory BARR-C policy](C_CODING_STANDARD.md) and [agent rules](AGENTS.md) |
 
+## Resume next session
+
+Handoff checked on **18 October 2026**. The last confirmed push to `main` is
+`3f636e1` (documentation consolidation); the implementation was published in
+`37319fb`. Check `git status` for subsequent local edits before continuing.
+
+- The user is **Member 4**, working on device discovery and AI. Keep the platform
+  configurable through supported drivers/profiles, rather than hard-coding the
+  prototype equipment. Preserve the existing UI; discuss UI changes first.
+- The last equipment update was **unavailable**. Continue software work without
+  opening serial ports or assuming a board is connected. Hardware acceptance
+  stays open; the earlier working BMP/OLED/radar setup was only partially tested.
+- The next useful software task is the
+  [minimal timing recorder](ai/README.md#next-software-step): prepare and test it
+  using the existing USB client and fake streams, then qualify it on hardware.
+  The simulated pipeline already exists; do not restart it or deploy its model.
+- Read [current status](#current-status), [remaining work](#remaining-work),
+  [bench evidence](firmware/qualification/README.md#peripheral-bench-observations)
+  and [local artifacts/documents](docs/README.md#local-artifacts-and-review-documents)
+  before choosing the next implementation or document task.
+
 ## Current status
 
 | Area | Status |
