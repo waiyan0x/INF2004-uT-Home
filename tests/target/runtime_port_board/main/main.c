@@ -640,6 +640,9 @@ static void verify_peripheral_link (void)
     CHECK(-1 == c3store_operations()->p_sync(NULL));
     CHECK(-1 == c3usb_operations()->p_read(NULL, &byte, 1U, &count));
     CHECK(-1 == c3usb_operations()->p_write(NULL, &byte, 1U, &count));
+    /* Startup creation runs once; the repeated call must create nothing. */
+    CHECK(0 == c3i2c_init());
+    CHECK(0 == c3i2c_init());
     i2cbus_t * p_bus = NULL;
     CHECK(I2CBUS_INVALID == c3i2c_open(NULL, &p_bus));
     CHECK(NULL == p_bus);

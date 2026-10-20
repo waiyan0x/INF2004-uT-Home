@@ -26,13 +26,37 @@ The port has no native μT-Kernel I2C device-manager driver. The project now
 provides `c3i2c` through the pinned SDK's low-level hardware interface. It
 supports bounded write/read/repeated-START transactions, one inherited-priority
 kernel mutex and a common absolute deadline for lock waiting and transfer.
+
+**I2C static resources.** `c3i2c_init()` runs once in application startup,
+before profile restore and USB requests. It makes the adapter's only kernel
+creation call: one `TA_INHERIT` mutex, taken from the kernel's fixed mutex table
+(`CNF_MAX_MTXID` 64), never the heap. The mutex is never deleted. Later init
+calls create nothing. If creation fails, init and open keep failing until
+reboot; Detect, Apply, rollback and recovery never retry it.
+`c3i2c_open/close` only start and stop a session: pins, clock and controller.
+The portable [`i2cown`](../../include/i2cown.h) module enforces the rules, and
+[`owntest`](../../../../tests/target/owntest.c) counts every creation call:
+
+- open: lifecycle-owner task, bus closed, pins free; polls the lock;
+- close: lifecycle owner, no device-address claims, no transfer holding the
+  lock (polled, never waited for);
+- a refused pin release leaves the session *retained*: transfers and open are
+  rejected until a retried close succeeds;
+- each transfer rechecks the session after locking, so it cannot run after
+  close.
+
+Fixed RAM is static `.bss` of about 60 bytes on RV32: session settings 16,
+borrowed bus 24 (including 16 claim bytes), lifecycle state 16, mutex handle 4.
+The constant callback tables are in flash. There is one bus and one controller,
+with no heap or queue.
 `c3spi` now provides SPI2 FIFO transfers with configurable pins and a mutex.
 `c3pin` provides a shared pin ledger and simple checked push-pull outputs.
 I2C, SPI signals, chip selects and those outputs cannot claim overlapping pins.
 Claims change only under the serialized lifecycle owner with affected users
 stopped. See [SPI limits and binding](../../../drivers/ssd1306_spi/INTEGRATION.md).
 
-The lifecycle owner opens/closes the controller with no workers owned.
+The lifecycle owner opens/closes the I2C controller once device claims and
+transfers are gone; SPI still requires no owned workers.
 Configured pins/clock stay in the backend; device addresses stay in requests.
 GPIO0/1/3/4/5/6/7/10 are accepted. UART20/21 remain unavailable while the selected
 native startup owns them; USB/flash/strapping pins are excluded. External pull-ups

@@ -118,6 +118,7 @@ Link exactly one backend. This layout does not license unrelated public names.
 | Heartbeat watchdog | `watchdog_`, `uthome/watchdog.h` |
 | Portable I2C bus | `i2cbus_`, `i2cbus.h` |
 | C3 I2C backend / host register fake | `c3i2c_` / `i2cfake_`, matching headers |
+| Permanent I2C lock and session lifecycle | `i2cown_`, `i2cown.h` |
 | BMP388 driver / instance adapter | `bmp388_` / `bmpinst_`, matching headers |
 | Portable SPI bus / host fake | `spibus_` / `spifake_`, matching headers |
 | Pin ownership / digital output contract | `pinpool_` / `digiout_`, matching headers |
@@ -151,6 +152,8 @@ SDK = software development kit; tk = external T-Kernel interface. Test filename
 prefixes identify their subject (cmp, reg, rt, stats, res, integ, trans, fault).
 I2C = Inter-Integrated Circuit; C3 identifies ESP32-C3; BMP388 is Bosch's part
 identifier; bmpinst identifies that driver's component instance adapter.
+i2cown is I2C bus ownership (permanent lock plus session lifecycle); owntest
+tests it. Both use C99 and add no exception or language scope.
 SPI = Serial Peripheral Interface; CS = chip select; D/C = data/command line;
 OLED = organic light-emitting diode; oledinst identifies its instance adapter;
 MOSI/MISO identify controller-out/controller-in SPI data; FIFO = first in, first

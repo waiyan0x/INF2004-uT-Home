@@ -6,6 +6,7 @@
 #include <tk/tkernel.h>
 #include "cfgjson.h"
 #include "c3bind.h"
+#include "c3i2c.h"
 #include "c3store.h"
 #include "c3usb.h"
 #include "activate.h"
@@ -30,6 +31,9 @@ int c3app_run (const uint8_t * p_build_hash)
     {
         return -1;
     }
+    /* Permanent bus resources precede restore and requests. A failure leaves
+     * that bus unavailable (opens fail) without silencing USB. */
+    (void)c3i2c_init();
     /* Missing storage is reported by restore/requests without silencing USB. */
     (void)c3store_open();
     g_store.p_operations = c3store_operations();

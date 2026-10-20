@@ -7,8 +7,15 @@
 
 #include "i2cbus.h"
 
-/* One lifecycle owner opens/closes the bus with no peripheral workers owned.
- * Device contexts share the returned bus; close rejects outstanding claims.
+/* Call once during startup, before profile restore or any request. It creates
+ * the only kernel object, one permanent mutex. Later calls create nothing;
+ * after a failed creation, init/open keep failing until reboot.
+ */
+int c3i2c_init (void);
+/* The lifecycle owner opens/closes sessions; neither creates nor deletes a
+ * kernel object. Device contexts share the returned bus. Close rejects device
+ * claims and an in-flight transfer; a failed pin release retains the session,
+ * rejecting open and transfers until close is retried successfully.
  * External pull-ups and validated electrical wiring are required.
  * This port is exclusive: do not install another SDK/native I2C driver.
  */

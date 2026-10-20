@@ -16,6 +16,7 @@
 #include "shared.h"
 #include "periph.h"
 #include "oledtest.h"
+#include "owntest.h"
 #include "uarttest.h"
 #include "gpiotest.h"
 #include "bindtest.h"
@@ -284,6 +285,7 @@ int main (void)
     verify_activation();
     periph_run();
     oledtest_run();
+    owntest_run();
     uarttest_run();
     gpiotest_run();
     bindtest_run(&g_clock_ms);

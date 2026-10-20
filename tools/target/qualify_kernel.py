@@ -133,6 +133,8 @@ RUNTIME_SOURCE_FILES = {
     "firmware/src/config/drvreg.c": "config/drvreg.c",
     "firmware/hal/include/i2cbus.h": "hal/include/i2cbus.h",
     "firmware/hal/i2cbus.c": "hal/i2cbus.c",
+    "firmware/hal/include/i2cown.h": "hal/include/i2cown.h",
+    "firmware/hal/i2cown.c": "hal/i2cown.c",
     "firmware/hal/include/pinpool.h": "hal/include/pinpool.h",
     "firmware/hal/pinpool.c": "hal/pinpool.c",
     "firmware/hal/include/digiout.h": "hal/include/digiout.h",
