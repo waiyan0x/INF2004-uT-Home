@@ -1,0 +1,38 @@
+{
+  "preset_id": "bench_oled",
+  "preset_version": "0.1.0",
+  "label": "Six-pin OLED (SPI)",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "method": "manual",
+  "requires_wiring_confirmation": true,
+  "logic_mv": 3300,
+  "supply_mv": 3300,
+  "wiring": "GND -> G; VCC -> 3.3 V; SCL -> GPIO7; SDA -> GPIO6; RES -> GPIO10; DC -> GPIO3. Four-wire SPI straps. Sole device on this SPI bus; GPIO4 reserved and left unwired.",
+  "descriptor": {
+    "id": "ssd1306_spi",
+    "version": "1.0.0"
+  },
+  "device_interface": {
+    "ref": "spi2",
+    "cs_gpio": 4,
+    "dc_gpio": 3,
+    "reset_gpio": 10
+  },
+  "interface": {
+    "id": "spi2",
+    "protocol": "spi",
+    "host": 2,
+    "mosi_gpio": 6,
+    "sclk_gpio": 7,
+    "clock_hz": 4000000
+  },
+  "display": {
+    "width_px": 128,
+    "height_px": 64
+  },
+  "sole_bus": true
+}

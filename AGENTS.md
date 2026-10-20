@@ -1,3 +1,19 @@
+# Continuing this project
+
+Start with `README.md` (especially "Resume next session") and the guide for the
+area being changed. Use this uT-Home `Code` repository, not the separate Pico
+workspace. Check Git status before editing; preserve unrelated work.
+
+Keep implementations modular and as simple as practical. The user is Member 4
+(discovery and AI). Preserve Member 5's existing UI and visual style; present
+proposed UI adjustments to the user before implementing them. The previously
+approved discovery additions are already implemented, not a new task.
+
+Do not assume equipment is available, COM8 is current, or a previously built
+image is installed. Separate software checks, bench observations and completed
+hardware acceptance. Current next steps and local-only artifacts are linked
+from the root README; update existing guides rather than adding session diaries.
+
 # C code requirements
 
 All new or changed project-owned C sources and headers must follow
@@ -28,3 +44,12 @@ reasoned record. Existing exceptions do not authorize similar future code.
 
 Do not commit, push, erase hardware or discard unrelated work unless the current
 task authorizes that action. Prefer isolated builds and preserve board backups.
+
+## Documentation
+
+Maintain one main Markdown guide per maintained folder where practical. Update
+that guide instead of adding checkpoint diaries or repeating parent guidance.
+Keep current usage, contracts and limitations; link to immutable qualification
+records for historical results. Preserve separate coding policy, approvals,
+licence notices and the hardware acceptance guide. Repair links when moving
+documentation, and never rewrite evidence/source hashes to follow a rename.

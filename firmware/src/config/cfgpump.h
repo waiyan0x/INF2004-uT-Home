@@ -20,6 +20,12 @@ typedef int cfgpump_observe_t (void *    p_context,
                                size_t    capacity,
                                size_t *  p_size);
 
+typedef int cfgpump_discover_t (void *                    p_context,
+                                const cfgwire_request_t * p_request,
+                                uint8_t *                 p_data,
+                                size_t                    capacity,
+                                size_t *                  p_size);
+
 typedef struct
 {
     cfgpump_read_t *  p_read;
@@ -39,6 +45,8 @@ typedef struct
     void *                p_observer;
     cfgpump_observe_t *   p_capabilities;
     void *                p_capability_context;
+    cfgpump_discover_t *  p_discover;
+    void *                p_discovery_context;
     size_t                received_size;
     size_t                received_used;
     size_t                sent;
@@ -74,6 +82,11 @@ int cfgpump_observe (cfgpump_t *         p_pump,
 int cfgpump_capabilities (cfgpump_t *         p_pump,
                           cfgpump_observe_t * p_observe,
                           void *              p_context);
+/* Discovery is optional, explicitly requested and bounded by its callback.
+ * It never consumes controller IDs or implicitly stops/activates devices. */
+int cfgpump_discovery (cfgpump_t *          p_pump,
+                       cfgpump_discover_t * p_discover,
+                       void *               p_context);
 #endif
 /* End of file. */
 

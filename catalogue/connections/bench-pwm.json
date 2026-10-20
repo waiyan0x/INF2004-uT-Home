@@ -1,0 +1,23 @@
+{
+  "preset_id": "bench_pwm",
+  "preset_version": "0.1.0",
+  "label": "PWM output (GPIO)",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "method": "manual",
+  "requires_wiring_confirmation": true,
+  "logic_mv": 3300,
+  "supply_mv": null,
+  "wiring": "PWM -> GPIO1; common ground. Confirm the actual load, driver stage and its supply. An LED needs a series resistor; a motor needs its driver and external supply. Adds a disabled output; a separately reviewed rule is needed to enable it.",
+  "descriptor": {
+    "id": "pwm_output",
+    "version": "1.0.0"
+  },
+  "device_interface": {
+    "protocol": "gpio",
+    "output_gpio": 1
+  }
+}

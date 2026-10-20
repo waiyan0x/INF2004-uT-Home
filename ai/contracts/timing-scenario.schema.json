@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:uthome:timing-scenario:0.1.0",
+  "title": "Offline timing experiment request, not model input or measured data",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "scenario_id", "family_id", "instance_id", "conditions", "goal", "candidate_intervals_ms", "warmup_ms", "duration_ms", "repetitions"],
+  "properties": {
+    "contract_version": {"const": "0.1.0"},
+    "scenario_id": {"$ref": "#/$defs/name"},
+    "family_id": {"$ref": "#/$defs/name"},
+    "instance_id": {"$ref": "#/$defs/name"},
+    "conditions": {"type": "string", "minLength": 10, "maxLength": 1000, "pattern": "\\S"},
+    "goal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "limit_ms"],
+      "properties": {
+        "metric": {"enum": ["observed_sample_age_ms", "visible_update_delay_ms"]},
+        "limit_ms": {"type": "integer", "minimum": 1, "maximum": 60000}
+      }
+    },
+    "candidate_intervals_ms": {
+      "type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true,
+      "items": {"type": "integer", "minimum": 1, "maximum": 60000}
+    },
+    "warmup_ms": {"type": "integer", "minimum": 0, "maximum": 60000},
+    "duration_ms": {"type": "integer", "minimum": 1000, "maximum": 600000},
+    "repetitions": {"type": "integer", "minimum": 2, "maximum": 10}
+  },
+  "$defs": {
+    "name": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$"}
+  }
+}

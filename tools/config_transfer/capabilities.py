@@ -30,7 +30,7 @@ def decode_capabilities(frame, *, request_id):
         raise ValueError("capability checksum mismatch")
     version, qualified, limit, count, pins, devices, workers, features = struct.unpack_from("<8I", data)
     if (version != 1 or qualified > 1 or not 1 <= limit <= 8192 or count > 8 or
-        not 1 <= workers <= devices <= 8 or features & ~1 or len(data) != 96 + count * 32):
+        not 1 <= workers <= devices <= 8 or features & ~7 or len(data) != 96 + count * 32):
         raise ValueError("unsupported capability fields")
     def name(offset, pattern):
         text, separator, padding = data[offset:offset+32].partition(b"\0")

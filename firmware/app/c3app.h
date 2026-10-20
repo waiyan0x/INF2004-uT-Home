@@ -4,10 +4,13 @@
  */
 #ifndef UTHOME_C3APP_H
 #define UTHOME_C3APP_H
+#include <stdint.h>
 /* Called once by the existing 8 KiB initial task with an idle task running.
  * Returns only on initialization, clock or kernel-delay failure. The caller
- * must halt rather than reinitialize retained configuration/driver contexts. */
-int c3app_run (void);
+ * must halt rather than reinitialize retained configuration/driver contexts.
+ * p_build_hash borrows 32 bytes of the actual image's ELF SHA-256. The C11
+ * board entry point obtains it from the SDK; the application copies it. */
+int c3app_run (const uint8_t * p_build_hash);
 #endif
 /* End of file. */
 

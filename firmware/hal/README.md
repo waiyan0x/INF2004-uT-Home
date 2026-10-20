@@ -6,12 +6,12 @@ The backend owns the controller while drivers claim their device addresses.
 `include/spibus.h` adds bounded SPI device transactions; `pinpool` tracks pin
 ownership and `digiout.h` defines borrowed output callbacks. C3 I2C, SPI and simple
 outputs share one pin ledger. UART, digital input, pulse capture and PWM now
-have software implementations. Storage and USB configuration transfer remain
-later checkpoints; peripheral hardware acceptance is deferred.
+have software implementations. Storage and USB configuration transfer live in
+[configuration](../src/config/README.md); full hardware acceptance remains open.
 
-`ports/esp32c3/` is the only location for ESP32-C3 SDK or board-specific code.
-It configures peripherals from the validated profile; pin numbers must never be
-compiled into a driver.
+Peripheral HAL backends live in `ports/esp32c3/`; USB/storage adapters live in
+`src/config/`. They select pins from validated profiles. Device drivers remain
+independent of board pin assignments and SDK APIs.
 
 `ports/host_sim/i2cfake.c` provides a deterministic I2C register/time fake;
 `spifake.c` captures SPI transactions and injects output/transport failures.
@@ -20,7 +20,7 @@ Adding a board means adding another port without changing drivers or services.
 Network APIs are deferred because the first prototype uses USB serial for
 configuration and monitoring.
 
-## UART software checkpoint
+## UART
 
 `uartio` owns one configurable byte transport with 64-byte nonblocking calls,
 partial TX counts, checked cleanup and monotonic time. `uartfake` supplies host

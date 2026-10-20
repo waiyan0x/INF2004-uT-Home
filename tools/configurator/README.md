@@ -10,23 +10,72 @@ python -B -m tools.configurator --port 8080
 Open `http://127.0.0.1:8080`. Stop the server with Ctrl+C. The UI uses Python's
 standard HTTP server and local HTML/CSS/JavaScript; no Node build or new web
 framework is required. Offline review needs only the planner dependencies.
+The interface uses one fixed colour palette.
 
-1. Load an example or JSON file and edit instances, wiring, timing and routes.
-2. Select **Validate and review** to see resource demand, devices and rules.
+1. In **Profile**, choose an example or import JSON. Open **Edit profile JSON**
+   for custom instances, wiring, timing and routes. Optional discovery is under
+   **Add a device**; interfaces, queues and the catalogue are under
+   **Wiring & resources**.
+2. Select **Validate and review** to open **Review & apply** with the requested
+   resources, devices and rules. Errors remain visible above all three views.
 3. For deployment, explicitly connect to the application firmware's serial port,
    then review again against its reported compiled capabilities.
 4. **Apply & save** replaces the whole plan and attempts persistent storage.
    Check both the result and active/saved revisions. Retry saving is a separate,
    explicit operation; it does not reapply the profile.
-5. Live readings show source identity, freshness, health and queue/runtime state.
-   Disconnecting leaves the board running. Stop/recover clears the live plan;
-   its saved profile is retained and can restore on the next boot.
+5. **Live monitor** shows source identity, freshness and health. Open its
+   observation and runtime details when needed.
+   Disconnecting leaves the board running. Recover retries cleanup only when
+   recovery is required. To stop a healthy setup, review/apply an empty hardware
+   profile. **Apply & save also replaces the saved startup profile**; keep the
+   original profile file if you intend to restore it later.
 
-The currently installed board image predates this application. Physical USB,
+Switching views preserves the draft and current review; editing the draft still
+requires a new review. The view tabs support Left/Right arrows and Home/End.
+
+The D2 discovery command requires a newly built application image. Physical USB,
 peripheral and persistence acceptance belongs to checkpoint 8. Offline review
 uses the host reference catalogue; it is not permission to wire or deploy a
 profile. Connected review enforces the narrower compiled target limits.
 The original first-prototype profile still uses unsupported GPIO2 CS.
+
+## Device discovery
+
+Use the existing discovery card, then **Add to profile → Validate and review →
+Apply & save**. No suggestion automatically deploys or replaces existing entries.
+
+| Choice | What happens |
+|---|---|
+| I2C | Confirm wiring, then Detect: approved chip-ID reads at 0x76/0x77. Only an unambiguous supported match can be added. |
+| Radar | Receive-only UART1 RX20/TX21, 256000 8N1 for one second. Three clean complete reports yield a candidate; confirm the model. Zero-target reports count. |
+| OLED | Prepare manual selection, confirm module/wiring and choose an existing compatible readings queue. No sensor or fake readings are added. |
+| HC-SR04 | Explicit manual model/wiring confirmation, including the Echo voltage divider. |
+| PWM | Explicit manual confirmation adds a disabled GPIO1 output. Schema 2.1 is required; review a rule before enabling it. |
+
+I2C/UART observation requires an empty hardware configuration. Detection never
+stops a working driver or applies EMPTY for you. Manual selection reads only
+USB state/capabilities, not peripheral buses. New firmware is needed for radar
+observation (feature bit value 4); manual choices need the compiled driver/schema.
+
+Settings show their catalogue, preset or observation source. BMP bench defaults
+are 500 ms/100 ms timeout; priorities/stacks come from descriptors and queue
+depth from the draft. These are deterministic settings, not AI recommendations.
+The OLED preset is the tested six-pin SPI layout: reserve GPIO4 unwired, use no
+other device on that SPI bus. It conflicts with HC-SR04's GPIO4; PWM1 conflicts
+with I2C SCL1. Compatible interfaces are reused; other conflicts/duplicates are
+rejected without changing the draft or silently upgrading its schema.
+
+Tokens are single-use, bound to the draft, preset, USB session and board state,
+and expire after 60 s. Confirmation rotates a token without extending expiry.
+Edits, reviews, reconnects, new detection, apply/save/recovery, failed snapshots
+and observed uptime regression invalidate evidence. State/capabilities are
+rechecked before adding. A nonce/build hash is not a boot ID: an unnoticed reset
+may escape detection. Reconnect and detect again after resetting or rewiring.
+
+Manual confirmation is user testimony; radar framing is model compatibility,
+not exact identity. Silence, noise, ambiguous matches and unavailable drivers
+cannot become measured proof. Physical discovery, OLED visual confirmation and
+GPIO acceptance remain separate checks. See [discovery design](../../docs/README.md).
 
 ## Deployment contract
 
@@ -64,7 +113,10 @@ or evict an exact-retry response. Payload words are little-endian uint32:
 | 96 onward | Zero-padded 32-byte driver IDs; at most eight |
 
 Length is `96 + 32 * count`, at most 352 bytes. Feature bit 0 means bounded rule
-routing; other bits are reserved. Schema 2.1 also accepts schema 2.0 sensor/display
+routing; bit 1 means explicit reviewed I2C discovery (D2); bit 2 means the
+reviewed receive-only UART observer (D4). Other bits are reserved. The decoder
+rejects unknown bits. Manual draft selection does not need a discovery bit.
+Schema 2.1 also accepts schema 2.0 sensor/display
 profiles. UART20/21 follow the board's fixed UART contract, separately from the
 ordinary GPIO mask. Compiled support is shown separately from hardware
 qualification, which remains **false**. `configs/builds/target-pending.json`
@@ -72,32 +124,26 @@ remains empty.
 
 ## Source and verification
 
-Adapted Member 5's cached stdlib server/workflow design from `system-integration`
-commit `bab09246a477dbedef36a55dad7cd319bac1c1ab` (CharmTzy). The current UI
-uses the shared schema/planner and real USB client instead of the older branch's
-validation and filesystem bundle workflow. This is not a merge or a claim that
-the cached commit is the latest remote branch.
+Member 5's stdlib server/workflow came from cached `system-integration`
+`bab09246a477dbedef36a55dad7cd319bac1c1ab` (CharmTzy). Appearance came from
+`6a16f2473a348fda0d95eedf12c3839b0010f687`: cards, icons, Roboto fonts, responsive
+layout and themes. The current app uses C3 schemas and the real USB client;
+device tiles are draft data, live pills are connected observations. Font notices
+remain in [assets/fonts/README.md](static/assets/fonts/README.md).
 
-The Configuration Desk appearance (cards, icons, Roboto fonts, responsive layout
-and light/dark themes) is recovered from `6a16f2473a348fda0d95eedf12c3839b0010f687`.
-Its presentation uses the current C3 schema and USB workflow, not the legacy
-server or sample telemetry. Device tiles describe the JSON draft; live pills
-appear only from connected firmware snapshots and retain freshness labels.
-Font provenance is in [assets/fonts/README.md](static/assets/fonts/README.md).
+```powershell
+python -B -m unittest discover -s tests/target -p test_configurator.py -v
+python -B -m unittest discover -s tests/target -p test_discovery_ui.py -v
+python -B -m unittest discover -s tests/target -p test_discovery_confirm.py -v
+python -B -m unittest discover -s tests/discovery -v
+node --test tests/target/test_dashboard.mjs
+```
 
-Run presentation regression checks with `node --test tests/target/test_dashboard.mjs`
-and HTTP/workflow checks with
-`python -m unittest discover -s tests/target -p test_configurator.py`.
+Checks cover review-token expiry, additive drafts, state changes, conflicts,
+uncertain deployment, HTTP boundaries, C/Python parity and presentation. Fake-board
+Edge walkthroughs cover themes and desktop/mobile flows. These are not physical
+device detection. Evidence: [UI/rules](../../firmware/qualification/esp32c3-ui-rules-20260928.json)
+and [D4](../../firmware/qualification/esp32c3-discovery-d4-20261012.json).
 
-`tests/target/test_configurator.py` covers offline review, single-use candidates,
-changed board/capabilities, uncertain replies, HTTP boundaries and rule support.
-Existing C/Python fixtures verify capability framing and observation isolation.
-Headless Edge checks exercise review, rules, edits, errors and responsive layout.
-See [fresh evidence](../../firmware/qualification/esp32c3-ui-rules-20260928.json).
-
-## Preserved incoming toolkit
-
-The later `system-integration` changes merged into upstream PR #1 are retained
-under [legacy/member5](../../legacy/member5/README.md), including recommendation
-imports, health snapshots and bundle verification. That schema-1.0/S3 workflow
-is separate from this schema-2.0/2.1 C3 USB application.
+The incoming Member 5 toolkit remains under [legacy/member5](../../legacy/member5/README.md).
+Its schema-1.0/S3 bundle workflow is separate from the current C3 USB application.

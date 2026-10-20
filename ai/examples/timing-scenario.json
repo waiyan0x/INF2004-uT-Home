@@ -1,0 +1,12 @@
+{
+  "contract_version": "0.1.0",
+  "scenario_id": "two-room-reading-example",
+  "family_id": "two-room-steady-environment",
+  "instance_id": "room_1",
+  "conditions": "Offline example only. Future bench runs must keep both sensors, wiring and room conditions unchanged while varying room_1 timing.",
+  "goal": {"metric": "observed_sample_age_ms", "limit_ms": 1500},
+  "candidate_intervals_ms": [200, 500, 1000],
+  "warmup_ms": 5000,
+  "duration_ms": 30000,
+  "repetitions": 3
+}

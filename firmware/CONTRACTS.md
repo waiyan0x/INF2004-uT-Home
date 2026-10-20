@@ -1,38 +1,22 @@
-# Integration contracts
+# Shared integration contracts
 
-Selected 2026-09-28 for platform baseline 2.0.0. This document defines the small
-contracts needed to integrate Members 1, 2, 3 and 5. It is a design agreement;
-only the interfaces explicitly identified as implemented exist in this checkout.
-Implementation checkpoints are tracked in [the plan](../INTEGRATION_PLAN.md).
-
-Checkpoint 3 adds `i2cbus` transport/time, the `c3i2c` backend and the
-`bmp388`/`bmpinst` driver adapter. These are software/build verified;
-electrical acceptance is pending. Checkpoint 4a adds `spibus`, `pinpool`,
-`digiout`, C3 SPI/pin adapters and the `ssd1306`/`oledinst` frame sink. I2C and
-SPI share pin ownership; the runtime remains device-independent. Checkpoint 4b
-adds UART/radar and checkpoint 4c adds GPIO input, pulse capture, distance and
-generic PWM. Later checkpoints connect USB profile activation, telemetry and
-[configured display rendering](src/services/DISPLAY.md); hardware acceptance
-and actuator routing remain pending.
-At the user's request,
-physical checks are deferred to final hardware acceptance.
-The appended health events DEVICE_IO and UART_RX_OVERFLOW have codes 6 and 7;
-existing codes remain stable. Overflow counts observed loss epochs, not lost bytes.
-Consumers must recompile the enlarged in-process health snapshot.
+Shared sample, registry and lifecycle contracts for the configurable C3 platform.
+Current implementation/status: [firmware guide](README.md). Module guides specify
+actual binding limits. The health event codes DEVICE_IO=6 and UART_RX_OVERFLOW=7
+remain stable; overflow counts loss epochs, not individual bytes.
 
 ## Identity and validation
 
-Keep node schema 2.0.0, descriptor/board/build versions 1.0.0 and normalized host
-plan version 1.0.0. This checkpoint preserves their fields and meanings while
-tightening admission of consuming-queue routes as described below.
+Node schemas 2.0.0/2.1.0, descriptor/board/build 1.0.0 and normalized host
+plan 1.0.0 retain their contracts; schema 2.1 adds typed output rules.
 `device_id` names an instance; `driver` names compiled code. A descriptor cannot
 add executable functionality. Host and target must both validate a full candidate
 against the actual build and board, including disabled instances' physical wiring.
 
-Use the existing shared host planner. The firmware will parse the approved node
-profile itself; neither an unchecked host plan nor a legacy AI recommendation
+Use the existing shared host planner. The firmware independently parses the node
+profile; neither an unchecked host plan nor a legacy AI recommendation
 is a deployment contract. Preserve the current 8 KiB node-input limit, reject
-duplicate keys/non-finite numbers and add bounded depth/allocation checks in the
+duplicate keys/non-finite numbers with bounded depth/allocation checks in the
 target parser. The existing target-pending manifest remains empty.
 
 ## Copied sample records: implemented declarations
@@ -116,11 +100,11 @@ would compete for entries. Permit one enabled consuming service per configured
 queue; the host planner now rejects competing consumers and repeated source
 references. A disabled consumer retains its wiring reservation but does not
 consume queue entries. Target admission must enforce the same routing rule.
-Monitoring will use copied latest-value snapshots, not steal display queue items.
+Monitoring uses copied latest-value snapshots without consuming queue items.
 Multiple producers retain their source indices; a consumer of such a queue must
 process each source rather than treating `consume_latest` as latest-per-source.
-The typed target plan now rejects conflicting declared consumer masks. Complete
-descriptor-to-callback routing and the monitoring cache remain pending.
+The typed target plan now rejects conflicting declared consumer masks. The binding layer supplies descriptor routing; `shared_publish` also updates
+the per-source monitoring cache under the same guard.
 
 No queue or health lock may be held across driver I/O, a task-stop wait or another
 blocking lifecycle operation. Interrupt handlers capture bounded data and signal
@@ -134,9 +118,9 @@ requires all worker resources to have been released.
 ## Whole-plan activation and deployment
 
 The periodic target implements full replacement in
-[`activate`](src/runtime/ACTIVATION.md), including when only one interval
-changes. The application still needs complete profile admission and real driver
-adapters before using this sequence with hardware:
+[`activate`](src/runtime/README.md#application-contract), including when only one interval
+changes. The production binder performs independent profile admission and resolves
+drivers before this sequence:
 
 1. Validate the entire candidate without changing the running plan.
 2. Retain the previous validated settings; stop and quiesce all affected workers
@@ -155,18 +139,16 @@ prior configuration data so resources can be recreated. Rollback restores a
 working configuration, not old sensor samples, queue contents, counters or past
 physical effects. Failure to stop a worker prevents reusing its resources.
 
-USB will process one bounded request at a time. The external result must identify
+USB processes one bounded request at a time. The external result must identify
 the request and active configuration revision and distinguish `received`,
 `validated`, `active`, `saved`, `rejected` and `recovery`. A save failure after
 activation reports that the running revision differs from the durable revision;
 it must not claim successful persistence. Duplicate requests must not silently
 repeat activation. Reconnect queries retrieve active and saved state.
 
-Checkpoint 5a now defines transport framing and storage commit markers; the
-parser allocation limit and production adapters follow in the next integration
-steps. The complete path must pass combined tests before deployment is claimed.
-There is no physical transport endpoint in this checkpoint. Recovery must retain the previous complete saved profile and
-remain accessible over USB if no valid profile can be activated.
+The [configuration guide](src/config/README.md) defines the implemented parser,
+framing, activation and storage path. Recovery remains accessible over USB
+when no valid profile can activate; RECOVER does not erase the saved profile.
 
 ## Resource ledger and release gate
 
@@ -178,9 +160,9 @@ Disabled instances reserve wiring and metadata but no active worker stack.
 |---|---|
 | Peripheral stacks | Sum admitted active stack requests, at most 16,384 bytes; dormant prepared workers also consume the actual port budget |
 | Queue payload pool | Current `msgbus.c` statically allocates 4 x 8 x 64 = 2,048 bytes regardless of configured depth/count |
-| Queue metadata | Checkpoint 2 C3 object symbols: queue table 2,240 bytes, including 2,048-byte payload and 192-byte metadata |
+| Queue metadata | Account separately from the payload pool unless included in the reported object size |
 | Driver and HAL contexts | Account actual bounded pools and buffers once per instance/bus, including any vendor-owned buffers |
-| Parser and candidate plans | C3 activation module retains two 1,704-byte typed plans plus 96-byte slots, 28-byte status and two Boolean bytes (3,534 symbol bytes before linker alignment). Caller candidate storage is additional; parser/raw-profile storage remains pending. |
+| Parser and candidate plans | Bounded cJSON allocation, binder candidate and retained activation plans; use the current ELF and allocation limits |
 | Fixed services and kernel | Account control/USB/health/idle stacks, kernel objects and platform buffers separately from peripheral stacks |
 | Telemetry caches | Account each retained copied sample and metadata; USB/frame buffers must not be counted twice |
 | AI reserve | Select a reserve after the full application link map and high-water measurements; unmeasured RAM is not an AI allocation guarantee |
@@ -188,92 +170,27 @@ Disabled instances reserve wiring and metadata but no active worker stack.
 The planner's existing `queue_payload_bytes` means configured logical queue
 demand (depth x 64), not allocated RAM. Keep that field's meaning unchanged.
 Its resource totals are partial admission checks, not a whole-application memory
-certificate. Do not fabricate numeric driver/parser/service budgets before those
-implementations exist. At target acceptance, record the linker map, allocations,
+certificate. Use linked sizes and measured peaks rather than assumed driver/parser/service
+budgets. At target acceptance, record the linker map, allocations,
 stack high-water marks and worst activation/recovery peak without double-counting
 static pools already included in the map. Target capability limits must be
 reduced if the measured implementation cannot support the current bounds.
 
-## UART stream adapter
 
-The current LD2450 adapter maps a stream workload to an explicit 10 ms periodic
-worker, processing at most 64 bytes per step. Idle polls publish nothing; each
-batch publishes only its latest complete typed report. Timeout measures time
-since valid input/start; malformed traffic cannot extend it. Faults discard
-partial data and publish zeroed error records. Native event-driven readiness,
-profile binding/admission and USB telemetry remain later integration work.
-See [the concrete contract](drivers/hlk_ld2450/INTEGRATION.md).
+## Module-specific contracts
 
-## Pulse capture and generic PWM
+- [Runtime](src/runtime/README.md): worker lifecycle, activation barrier, shared
+  guard, rollback and retained resources.
+- [Configuration](src/config/README.md): JSON admission, copied settings, USB
+  requests, durable records and reconnect/recovery semantics.
+- [Telemetry/display](src/services/TELEMETRY.md): per-source cache, freshness,
+  wire observations and nondestructive rendering. Do not double-count drops
+  with the legacy raw queue-health observer.
+- [Automation](src/automation/README.md): exact source identity, one rule owner
+  per output, hysteresis/cooldown and zero fallback. Rule workers use copied
+  cache observations and the component write/cleanup path.
+- [Driver index](drivers/README.md): UART polling, pulse capture, PWM and each
+  sensor's electrical/timing limits. Backend limits override catalogue maxima.
 
-`pulseio` owns a trigger/input pair with a total acquisition deadline;
-`hc_sr04` applies sensor-specific conversion and an acoustic quiet period after
-completion. `hcinst` publishes typed distance or zeroed fault records through
-existing queues. `pwmio` owns an output with zero-duty setup/cleanup; `pwminst`
-accepts copied duty commands through the generic component API. Component
-wrappers map callback failures to `UTHOME_COMPONENT_ERR_OPERATION`; direct
-HAL/driver calls retain their own status codes.
-
-The C3 implementation provides two capture pairs and four independent PWM
-channels, subject to shared pins. A later binder must allocate those resources
-explicitly; generic catalogue maxima do not override backend limits. Command
-routing, arbitrary GPIO event callbacks and physical acceptance remain pending.
-See [ownership, timing and manual review](drivers/hc_sr04/INTEGRATION.md).
-
-## Configuration core implementation (checkpoint 5a)
-
-Framing, request sequencing and two-slot persistence are now implemented as
-portable C99 modules, with the byte layout and callback contract in
-[TRANSFER.md](src/config/TRANSFER.md). Size remains 8192 profile bytes; the wire
-header is additional. Request results distinguish validation/activation/save
-milestones and active/durable revisions, including uncertain saves.
-
-Checkpoint 5 is split for review: 5a is this core and simulated storage failures;
-5b adds bounded managed-cJSON parsing, semantic/resource admission and binding;
-the subsequent integration connects real USB and persistent storage. These
-parts must be exercised together before declaring deployment complete. No raw
-profile is currently wired to production activation. Target capabilities stay
-empty until the appropriate integration and physical acceptance pass.
-
-## Production admission and binding (checkpoint 5b)
-
-The [admission contract](src/config/ADMISSION.md) now defines bounded JSON,
-backend restrictions, three sensor bindings and initialization order. Use
-cfgbind_operations for production cfgctrl callbacks. USB/storage remain pending.
-Generic plan resources configure before worker allocation and release after all
-instance cleanup/task deletion; failure retains ownership. activate_clear
-provides empty RECOVER semantics, while activate_recover restores previous
-settings. OLED binding followed at 6b; bounded rule/PWM admission follows at 7. Include
-parser/binder memory in the full application budget before reserving AI RAM.
-
-## Configuration endpoint (checkpoint 5c)
-
-The optional application mode owns native USB and the dedicated `uthome_cfg`
-partition through portable pump/controller/store contracts. PROBE command 5
-discovers the last request ID without consuming it or evicting the retry cache;
-QUERY refreshes active/saved state. See
-[USB/storage contract](src/config/USB_STORAGE.md). Hardware acceptance remains
-pending, and the target-pending manifest remains conservative.
-
-## Observation service update (checkpoint 6a)
-
-Target `shared_publish` now records successful, registered typed samples in a
-bounded per-source cache and counts queue drops under the same guard. Monitoring
-uses `shared_capture`; it does not remove display/rule queue entries. The binder
-copies source identities/freshness limits before worker release and restores
-them through plan rollback. See [telemetry/health semantics and wire layout](src/services/TELEMETRY.md).
-Do not additionally run the legacy raw queue-health observer for these queues.
-
-## Local application and rule contract (checkpoints 6c/7)
-
-CAPABILITIES command 7 describes compiled bindings separately from physical
-qualification and preserves mutation request/retry state. The local configurator
-uses this response, the existing planner and the USB client; it submits the
-reviewed node document for independent target validation.
-
-Schema 2.1 retains 2.0 sensor/display input and adds typed rules with one command
-owner per enabled PWM output. Rules select exact source IDs through the shared
-cache without consuming FIFO entries. The output worker owns its rule state and
-uses the existing component command/cleanup paths. See [bounds, timing, zero
-fallback and manual review](src/automation/README.md). Hardware acceptance and
-AI are deferred, and the target-pending manifest remains empty.
+Current build/bench status is in the [evidence index](qualification/README.md).
+Full hardware acceptance and embedded AI deployment remain incomplete.

@@ -80,12 +80,12 @@ bringing the fixture to **552 expected checks**. No physical USB/storage
 operation is invoked. This image has not been flashed or executed; host codec,
 controller and interrupted-save tests are in `cfg_main.c` and
 `test_config_transfer.py`. See
-[the review](../../../firmware/src/config/TRANSFER.md).
+[the review](../../../firmware/src/config/README.md#wire-version-1).
 
 ## Admission/binding software link check
 
 New C99 modules and managed cJSON 1.7.19~2 are linked, with nesting limited to
 eight. Ten no-I/O additions give **562 expected checks**, not a board capture.
 The large binder is not allocated by these link/invalid-input checks. See
-[admission contracts](../../../firmware/src/config/ADMISSION.md).
+[admission contracts](../../../firmware/src/config/README.md#admission).
 The historical 514-check activation image remains physically qualified.

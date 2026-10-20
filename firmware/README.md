@@ -1,60 +1,85 @@
-# Configuration-driven firmware
+# Firmware setup and structure
 
-The platform selects supported device instances, wiring, behaviours and routing
-through a validated node profile. Device identities stay in descriptors and
-drivers; the runtime manages generic task and resource lifecycles. See
-[PROJECT_BASELINE.md](../PROJECT_BASELINE.md) for the current contract.
+The configuration application binds validated profiles to independent driver
+contexts, generic kernel workers, typed samples, telemetry and output rules.
+It includes reviewed discovery. Software/build checks and basic peripheral
+bench observations exist; full physical acceptance is still pending.
 
-The working tree contains host lifecycle transactions, bound component dispatch,
-resource/restart metrics, queues, health and watchdog modules. Member 1's branch
-is reconciled with the generic planner/registry in the
-[runtime integration record](src/runtime/INTEGRATION.md). Native periodic tasks
-and generic activation/recovery have board evidence. I2C/SPI/UART/pulse/PWM
-adapters and sensor/output bindings are software/build verified; peripheral
-hardware acceptance remains deferred. Independent target admission, checked
-profile binding, USB/persistence software, the local configurator and generic
-rule routing are implemented. The next checkpoint is physical and combined
-fault/resource acceptance with the team; AI follows last.
+## Pinned target
 
-## Intended flow
+| Item | Selection |
+|---|---|
+| Board / CPU / console | ESP32-C3 SuperMini / single-core RISC-V / native USB-Serial-JTAG |
+| Kernel port | [sirfonzie/esp32c3-mtk3](https://github.com/sirfonzie/esp32c3-mtk3) |
+| Kernel revision | `ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2` |
+| ESP-IDF | v6.1, `fff9895c82d744c7237be8847347bdd1b07c6643` |
+| Compiler package | `riscv32-esp-elf`, `esp-15.2.0_20251204` |
+| Target / board kit | `esp32c3` / `iote_esp32c3_mini` |
+| Flash | 4 MB confirmed on the tested C3; identify each board before flashing |
 
-```text
-node profile + reviewed catalogue + board/build capabilities
-    -> complete validated resource plan
-    -> instance-specific driver contexts and runtime tasks
-    -> typed bounded queues
-    -> configured consumers and health reporting
+## Build
+
+Run from the repository root. Obtain the exact submodule; do not follow upstream
+main or copy individual kernel headers into project includes.
+
+```powershell
+git submodule update --init --recursive firmware/third_party/esp32c3-mtk3
+git -C firmware/third_party/esp32c3-mtk3 rev-parse HEAD
 ```
 
-A display is optional. The example profiles demonstrate a mixed-protocol node,
-two instances of one sensor driver, and a distance-only node with no display.
-They use the same schema and generic host runtime.
+Use the pinned ESP-IDF installation and its activated terminal. A new SDK setup
+can follow [Espressif's Windows guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/get-started/windows-setup.html),
+but its revision/toolchain must match the table. SDK and build paths must have
+no spaces. The [build helper](../tools/target/README.md) stages sources in a fresh
+directory, checks revisions/compiler profiles, applies tracked patches only to
+the staged copy and records evidence. Keep the vendored checkout pristine.
 
-## Module ownership
+```powershell
+$env:IDF_TOOLS_PATH = "$env:USERPROFILE/esp/uthome-c3-tools"
+. "$env:USERPROFILE/esp/uthome-c3-sdk-v6.1/export.ps1"
+python tools/target/qualify_kernel.py inspect
+python tools/target/qualify_kernel.py build --runtime-port --configuration-app --work-dir "$env:USERPROFILE/esp/uthome-config-new-build" --compat-patch firmware/third_party/patches/0002-esp-idf-6.1-build.patch --resource-patch firmware/third_party/patches/0001-uthome-c3-resources.patch
+```
 
-- `app/`: target startup and orchestration.
-- `include/uthome/`: common component, registry and runtime APIs.
-- `src/config/`: compiled registry, bounded target admission and transfer/storage.
-- `src/runtime/`: generic lifecycle, native worker adapter and plan activation.
-- `src/services/`: normalization and consumers of declared sample types.
-- `src/messaging/`: bounded queue transport.
-- `src/health/`: liveness, queue and driver failures.
-- `drivers/`: device command/decoding implementations behind the HAL.
-- `hal/`: protocol APIs and board implementations.
-- `third_party/`: pinned dependencies and reviewed integration patches.
+- Both flags build the **configuration application** used with peripherals/UI.
+- Omit `--configuration-app` for the runtime acceptance fixture.
+- Omit both flags for the upstream two-task kernel example.
+- Build success is not board acceptance. These commands do not flash.
 
-## Target setup
+Identify the current COM port, preserve a full flash backup and verify image
+hashes/partition layout before intentional flashing. Use the
+[target procedure](../tools/target/README.md#install-the-configuration-application)
+and [hardware acceptance guide](../CONTRIBUTING.md). COM8 is historical, not a
+required port. A quiet terminal is normal once binary application traffic owns USB.
 
-Keep the selected `third_party/esp32c3-mtk3/` submodule pristine. Follow
-[SETUP_ESP32C3.md](SETUP_ESP32C3.md) for the pinned source, SDK qualification
-candidate and recorded task-example build. The target manifest remains empty until
-actual adapters are linked and verified; catalogue membership is insufficient.
+## Module map
 
-Native UART ownership, the UART/ADC resource patch and board pin restrictions
-remain deployment constraints. The wiring in `configs/README.md` is one example.
-The target parser uses managed `espressif/cjson` 1.7.19~2, with bounded
-input/nesting/allocation and independent semantic/resource validation. JSON
-parsing alone does not make a configuration valid.
+| Folder | Responsibility |
+|---|---|
+| `app/` | Startup and single controller owner |
+| `include/uthome/` | Shared component, registry and sample APIs; [contracts](CONTRACTS.md) |
+| `src/config/` | Independent admission, binding, USB framing and persistent profiles |
+| `src/runtime/` | Host lifecycle model, kernel workers, activation and recovery |
+| `src/discovery/` | Bounded I2C/UART observations |
+| `src/services/` | Latest-sample cache, telemetry, health service and OLED rendering |
+| `src/automation/` | Bounded typed sensor-to-PWM rules |
+| `src/messaging/`, `src/health/` | Queues, progress/error reporting and watchdogs |
+| `drivers/`, `hal/` | Device behavior and reusable protocol/board adapters |
+| `third_party/`, `qualification/` | Pinned dependencies and dated evidence |
 
-The configuration application now connects USB and flash to target admission
-and checked activation. See [current contracts and deferred acceptance](src/config/USB_STORAGE.md).
+## Kernel integration constraints
+
+Use `<tk/tkernel.h>` through the actual `mtkernel` component. The port replaces
+the ESP-IDF scheduler at startup; retain `usermain`, the idle task and native
+startup handover. `tkport` owns task prepare/start/cooperative stop/delete;
+`activate` owns whole-plan replacement. Forced termination is not cleanup.
+
+UART1 remains owned by native `DEV_SER`; the HAL wraps it rather than installing
+a competing driver. The resource patch provides 512 usable receive bytes and
+disables unused native ADC startup. The application has a 64 KiB kernel-heap
+override; do not confuse this with free application RAM or an AI budget.
+
+Kernel headers are under `third_party/esp32c3-mtk3/include/tk/`; configuration,
+startup and task implementation are in that dependency's `config/`,
+`components/mtkernel/` and `kernel/tkernel/`. Pin/wiring constraints are in
+[configurations](../configs/README.md), and exact limits remain in source/catalogue.

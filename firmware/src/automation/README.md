@@ -3,7 +3,7 @@
 Checkpoint 7 implements bounded sensor-to-output rules for the broader platform.
 It uses common sample types, the existing guarded source cache and the existing
 PWM component. The generic runtime and HAL gain no device-name branches.
-Hardware acceptance remains checkpoint 8; AI remains checkpoint 9.
+Physical output acceptance remains open; offline AI work is a separate pipeline.
 
 Only two C modules are added: `rulecalc` evaluates copied typed samples;
 `cfgrule`, under `config/`, independently admits rules. The existing binder

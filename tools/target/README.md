@@ -1,137 +1,119 @@
-# Kernel qualification tooling
+# Target build and qualification tools
 
-`qualify_kernel.py` builds `examples/tasks` from the pinned kernel, optionally
-applying an explicit reviewed compatibility patch to the isolated source copy.
-It checks the kernel/SDK revisions, clean checkouts, SDK submodule revisions,
-compiler package and available tools before building in a new directory without
-spaces. It stages a Git archive, so the project submodule remains unchanged.
-The child build uses forward slashes in `IDF_PATH` for the upstream CMake files
-and `PYTHONUTF8=1` for Windows logs; no system environment settings are changed.
+`qualify_kernel.py` builds an isolated archive of the pinned kernel with reviewed
+patches. It checks clean kernel/SDK revisions and SDK submodules, compiler/tools,
+source hashes and compiler profiles. The dependency checkouts stay unchanged.
+No build command opens serial, resets or flashes the board.
 
-From the Code repository root, activate the isolated installation created for
-this project (or your own installation of exactly the pinned versions):
+## Build modes
 
-```powershell
-$env:IDF_TOOLS_PATH = "$env:USERPROFILE\esp\uthome-c3-tools"
-. "$env:USERPROFILE\esp\uthome-c3-sdk-v6.1\export.ps1"
-python tools/target/qualify_kernel.py inspect
-python tools/target/qualify_kernel.py build --work-dir "$env:USERPROFILE\esp\uthome-kernel-qualification-new-run" --compat-patch firmware/third_party/patches/0002-esp-idf-6.1-build.patch
-```
+Activate the pinned [firmware environment](../../firmware/README.md#pinned-target),
+then run `python tools/target/qualify_kernel.py inspect` from the repository root.
+Use a fresh, nonexistent output directory without spaces. Existing destinations
+and paths inside dependencies are rejected, never cleaned. Custom `--sdk` and
+`--kernel` copies must match the pins.
 
-Choose a fresh work directory on each run. Existing destinations are rejected,
-including empty ones; nothing is cleaned or overwritten. Build output is also
-forbidden inside either dependency checkout. `--sdk` and `--kernel` can select
-other local copies, but their revisions must still match the pins. Omit
-`--compat-patch` to reproduce an unmodified upstream build. The selected release
-requires the recorded compatibility patch: the upstream component definitions
-omit the `esp_hal_systimer` dependencies needed by ESP-IDF 6.1. This was observed
-in a real build, not inferred from host tests.
-
-Outputs include the pristine source archive, staged source tree, build log, generated
-sdkconfig, firmware images, and `evidence.json` with versions, command, exit code,
-artifact sizes and SHA-256 hashes. An applied compatibility patch is copied into
-the run directory and identified by its own SHA-256. A failed build retains its diagnostic report
-and log. `board_status` stays `not_tested`: compilation does not prove boot,
-timing or hardware compatibility. This tool never opens a serial port or flashes.
-
-## Board qualification after compilation
-
-Use a known USB data cable and disconnect peripheral wiring for the untouched
-upstream example. Its board initialization also starts native UART/ADC drivers.
-Check actual USB identities with:
-
-```powershell
-python -m serial.tools.list_ports -v
-```
-
-A Bluetooth COM port is not the ESP32. The photographed C3 SuperMini should use
-native USB-Serial-JTAG; identify the actual port and chip before selecting images.
-The SDK's esptool can report chip and flash information without writing firmware:
-
-```powershell
-python -m esptool --port COMX chip-id
-python -m esptool --port COMX flash-id
-```
-
-If the board has power but no USB device appears, try a known data cable and a
-direct USB port. With peripherals disconnected, hold BOOT, press/release RST,
-then release BOOT after a second to enter ROM download mode. Espressif documents
-[GPIO9-low plus reset](https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32c3/api-guides/usb-serial-jtag-console.html)
-as the recovery path when application firmware disables the USB interface.
-A power LED alone does not establish a working USB data connection.
-
-Replace `COMX` with the identified board port. These commands may reset the board.
-Verify ESP32-C3 and at least the configured 4 MB of flash. Once the selected
-firmware and connected board are confirmed, flash from that run's build folder
-using its generated `flash_args`, or use the exact recorded idf.py build
-arguments with `-p COMX flash monitor`. Preserve the serial log for the startup
-handover, kernel banner, repeated A/B ticks, and a reboot check.
-
-The 2026-09-28 board run used COM8 and verified 4 MB flash. A full backup was
-saved before writing the bootloader, partition table and task image. Its first
-USB reset stayed in download mode; esptool 5.4.0 watchdog reset recovered normal
-boot. Subsequent USB resets produced complete startup logs. See
-[the board record](../../firmware/qualification/esp32c3-board-20260928.json) and
-[reset recovery instructions](../../firmware/SETUP_ESP32C3.md). Keep the original
-build record unchanged: board evidence is recorded separately after testing.
-
-The kernel task example is a qualification artifact, not the uT-Home application.
-Target runtime worker integration and peripheral adapters require separate
-acceptance evidence. See [the setup guide](../../firmware/SETUP_ESP32C3.md) and
-[the runtime integration record](../../firmware/src/runtime/INTEGRATION.md).
-
-## Tool checks
-
-```powershell
-python -B -m unittest discover -s tests/target -v
-```
-
-These tests exercise rejected revisions, dirty sources, unavailable tooling,
-protected build destinations, archive paths and retained failure evidence.
-They use no physical board and do not claim a target build succeeded.
-
-## Project runtime task-port test
-
-After qualifying the upstream example, build the project-owned adapter and
-board acceptance test with the same pinned SDK and compatibility patch:
-
-```powershell
-python tools/target/qualify_kernel.py build --work-dir "$env:USERPROFILE\esp\uthome-runtime-qualification-new-run" --compat-patch firmware/third_party/patches/0002-esp-idf-6.1-build.patch --resource-patch firmware/third_party/patches/0001-uthome-c3-resources.patch --runtime-port
-```
-
-The helper snapshots the adapter, activation/shared modules, their
-component/queue/health/watchdog dependencies, headers and board test under `project/`,
-records every source hash, and builds `uthome_runtime_port.bin`. The vendor
-checkout stays pristine. This test preserves the upstream example's 32 KiB
-kernel heap. The explicit resource patch supplies 512 usable UART bytes and
-disables native ADC startup; it is copied, checked, applied only in the isolated
-source and hashed separately from the compatibility patch. Omitting that option
-retains upstream resource defaults; a 512-byte UART request will then be rejected.
-The fixture does not activate peripherals. Follow the same identification,
-backup, flash and capture procedure; expect `[activation-test] PASS` and
-`[port-test] PASS` followed by `alive` counters, with no `FAIL`. Capture a
-repeat reset too. This qualifies the typed periodic activation API with test
-components; it does not add JSON/USB deployment or populate the target driver list.
-
-The peripheral software build also snapshots I2C/SPI, shared pin ownership,
-C3 backends, BMP388/OLED/UART/radar modules and the pinned Bosch sources. The
-manifest now contains 59 recorded inputs including kernel defaults. Argument calls
-retain these functions in the linked image without GPIO activity. A successful
-build does not qualify electrical transfers; new build evidence remains separate
-from the existing activation board record.
-
-Qualification inspects `compile_commands.json` after the build, requiring C99
-for ordinary owned modules and C11 only for the two approved atomic paths.
-The exact GNU99 paths are `c3i2c.c`, `c3spi.c` and `c3pin.c`, whose pinned external
-LL headers use GNU `typeof`; their owned source remains C99.
-Source-specific options follow the SDK defaults; late SDK language overrides or
-remaining `-Wno-error` exemptions fail qualification. The compiler-profile
-results and command-database hash are retained in the build record.
+| Flags | Image purpose |
+|---|---|
+| Neither mode flag | Upstream `examples/tasks` two-task kernel example |
+| `--runtime-port` | Project acceptance fixture; no peripheral activation |
+| `--runtime-port --configuration-app` | USB/profile/storage application used with the UI and peripherals |
 
 ## Configuration application build
 
-Add `--configuration-app` to `qualify_kernel.py build --runtime-port` to build
-the USB/profile/storage application instead of running the acceptance fixture.
-The option is rejected without `--runtime-port`. It selects an additional
-dedicated configuration partition; no existing board is modified by building.
-See [exact layout, startup and deferred hardware acceptance](../../firmware/src/config/USB_STORAGE.md).
+```powershell
+python tools/target/qualify_kernel.py build --runtime-port --configuration-app --work-dir "$env:USERPROFILE/esp/uthome-config-new-build" --compat-patch firmware/third_party/patches/0002-esp-idf-6.1-build.patch --resource-patch firmware/third_party/patches/0001-uthome-c3-resources.patch
+```
+
+The compatibility patch supplies missing ESP-IDF 6.1 systimer dependencies; omit
+it only to reproduce the known upstream build failure. The resource patch adds
+512 usable native UART bytes and disables unused ADC startup. Patches are applied
+only to the staged copy and hashed. The app has a 64 KiB kernel-heap override;
+the fixture uses 32 KiB. Neither is a free-RAM measurement.
+
+Outputs include `project/`, `build/`, `build.log`, `sdkconfig`, patches and
+`evidence.json` with hashes/exit status. Failed builds retain diagnostics.
+`board_status` remains `not_tested`. Ordinary owned units use C99, two approved
+atomic paths use C11, and five SDK-header adapter boundaries use GNU99. Late
+dialect overrides and warning exemptions fail qualification.
+
+Check a staged project against current owned source before reuse:
+
+```powershell
+python tools/target/qualify_kernel.py verify-snapshot --project-dir "$env:USERPROFILE/esp/uthome-config-new-build/project"
+python -B -m unittest discover -s tests/target -v
+```
+
+## Identify or recover the board
+
+Disconnect peripherals and other serial clients. Use a known USB data cable,
+then `python -m serial.tools.list_ports -v`; Bluetooth ports are not the board.
+Replace COMX in `python -m esptool --port COMX flash-id` with the actual port.
+Confirm ESP32-C3 / 4 MB. A power LED alone does not prove USB data works.
+
+If absent, try a direct USB port/data cable; hold BOOT, press/release RST, then
+release BOOT after a second for ROM download mode. Keep GPIO9/BOOT and native
+USB18/19 free. A board stuck in download mode after flashing may need BOOT
+released and RESET, or esptool's watchdog reset. See the [recorded behavior](../../firmware/qualification/README.md).
+
+## Install the configuration application
+
+This procedure **writes firmware**. Start with the board alone and serial clients
+closed. Use a newly built, verified configuration application, not the fixture
+or an arbitrary historical binary. In the activated pinned environment, set the
+actual run directory and board port:
+
+```powershell
+$acceptancePython = (Get-Command python).Source
+$acceptanceBuild = Join-Path $env:USERPROFILE 'esp/uthome-config-new-build'
+$acceptancePort = 'COMX' # replace with the identified board port
+$acceptanceEvidence = Get-Content -Raw -LiteralPath (Join-Path $acceptanceBuild 'evidence.json') | ConvertFrom-Json
+foreach ($relative in @('build/uthome_runtime_port.bin', 'build/bootloader/bootloader.bin', 'build/partition_table/partition-table.bin', 'build/flasher_args.json')) {
+    $actual = (Get-FileHash -LiteralPath (Join-Path $acceptanceBuild $relative) -Algorithm SHA256).Hash
+    if ($actual -ne $acceptanceEvidence.artifacts.$relative.sha256) { throw "Build hash mismatch: $relative" }
+}
+& $acceptancePython -m esptool --chip esp32c3 --port $acceptancePort flash-id
+if ($LASTEXITCODE -ne 0) { throw 'Chip/flash check failed' }
+```
+
+Confirm C3 with 4 MB flash, then preserve a complete backup outside the repo:
+
+```powershell
+$acceptanceBackup = Join-Path $env:USERPROFILE ('esp/hardware-backup-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $acceptanceBackup | Out-Null
+$acceptanceImage = Join-Path $acceptanceBackup 'board-before.bin'
+& $acceptancePython -m esptool --chip esp32c3 --port $acceptancePort read-flash 0x0 0x400000 $acceptanceImage
+if ($LASTEXITCODE -ne 0 -or (Get-Item -LiteralPath $acceptanceImage).Length -ne 4194304) { throw 'Backup failed' }
+Get-FileHash -LiteralPath $acceptanceImage -Algorithm SHA256
+Write-Output $acceptanceBackup
+```
+
+Review the dedicated `uthome_cfg` partition at 0x110000, size 0x6000, against
+that backup. Never use `erase-all` or write only the app over an old partition
+table. The checked build must use DIO/80 MHz/4 MB with these generated offsets:
+
+```powershell
+Push-Location -LiteralPath (Join-Path $acceptanceBuild 'build')
+try {
+    $expected = '--flash-mode dio --flash-freq 80m --flash-size 4MB 0x0 bootloader/bootloader.bin 0x8000 partition_table/partition-table.bin 0x10000 uthome_runtime_port.bin'
+    $actual = ((Get-Content -Raw -LiteralPath flash_args).Trim() -replace '\s+', ' ')
+    if ($actual -ne $expected) { throw 'Unexpected flash offsets/options' }
+    & $acceptancePython -m esptool --chip esp32c3 --port $acceptancePort --after watchdog-reset write-flash '@flash_args'
+    if ($LASTEXITCODE -ne 0) { throw 'Flash failed' }
+} finally {
+    Pop-Location
+}
+```
+
+Release BOOT, reset if needed and reconnect on the current port. The app uses
+binary USB traffic; a quiet terminal is normal. Follow the [hardware guide](../../CONTRIBUTING.md)
+to apply/save EMPTY before each wiring change and then the matching profile.
+
+## Capture acceptance results
+
+For the kernel example, retain startup handover, kernel banner, repeated A/B
+ticks and a second reset. For the project fixture, expect `[activation-test] PASS`
+and `[port-test] PASS`, then alive counters with no FAIL. Repeat after reset.
+These qualify their fixture scope, not peripheral electricity, timing or storage
+power-loss behavior. Record new board evidence separately; leave build records
+unchanged. See the [evidence index](../../firmware/qualification/README.md).

@@ -1,0 +1,126 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-10-12T12:04:28.795121+00:00",
+  "scope": "D2: generic bounded I2C observations, explicit USB discovery and deterministic PC catalogue matching",
+  "software_status": "passed",
+  "build_status": "passed",
+  "board_status": "not_tested",
+  "build_records": {
+    "app": "esp32c3-discovery-20261012-app-build.json",
+    "fixture": "esp32c3-discovery-20261012-fixture-build.json"
+  },
+  "dependency_lock": "esp32c3-discovery-20261012-dependencies.lock",
+  "host_suites": [
+    {
+      "suite": "c_standard",
+      "tests": 54,
+      "exit_code": 0
+    },
+    {
+      "suite": "foundation",
+      "tests": 26,
+      "exit_code": 0
+    },
+    {
+      "suite": "runtime",
+      "tests": 18,
+      "exit_code": 0
+    },
+    {
+      "suite": "target",
+      "tests": 54,
+      "exit_code": 0
+    },
+    {
+      "suite": "discovery",
+      "tests": 13,
+      "exit_code": 0
+    },
+    {
+      "suite": "legacy_ai",
+      "tests": 23,
+      "exit_code": 0
+    }
+  ],
+  "host_total": 188,
+  "test_count_note": "Python suite counts include runners that execute multiple C checks; some existing C coverage overlaps.",
+  "post_sdk_boundary_regressions": {
+    "target": 54,
+    "discovery": 13,
+    "exit_code": 0
+  },
+  "host_logs": {
+    "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-discovery-validation-final-20261012.log": {
+      "sha256": "79a093dc685733b84dd5bd0d7a2b970c3e75a6d90f982108f396ce55204ccc14"
+    },
+    "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-discovery-regression-verified-20261012.log": {
+      "sha256": "29e1d459323995b192d066356c698ee8aa65cb7a0eac97d7fd2bcddd686a269d"
+    }
+  },
+  "coding_standard": {
+    "files": 186,
+    "findings": 0,
+    "tool_policy_errors": 0,
+    "formatter": "20.1.8",
+    "manual_review": "firmware/src/discovery/README.md#manual-barr-c-review",
+    "new_deviations": false
+  },
+  "modified_and_new_input_sha256": {
+    ".gitattributes": "3221dfdcf38f01c2ce75c07dc96ba339e82f0a9da6c175182f64a4f9da9a92a0",
+    ".github/workflows/c-standard.yml": "4b74d75ff78a2664d5efd3f859b2f87d94e9ec48d5dea2abe61a93e9518c7f3f",
+    "C_CODING_STANDARD.md": "e7607098c575d1facbfee44da1d94ebd0f8d5bc3c64b58449cb459380ddbf985",
+    "INTEGRATION_PLAN.md": "26988f46f9ec8e63c44c71d40522d2dcafc0b3cbca87ca33394ac6bd5300ad37",
+    "PROJECT_BASELINE.md": "f63f8ad66e7ccb67c75a48964875e6605b94e7c03710e606b0140f63d519404d",
+    "ai/README.md": "a954c2f0682e38167453e702e539654269fc2833e4a81a02d295f88118d6e122",
+    "ai/TRAINING_PIPELINE.md": "9fed6521a66dd74b7d5d37ad18d9e54b988ad84d3897f96774ef39c09b77c2eb",
+    "ai/contracts/README.md": "48bb0ad99a0629e7f32c3b76acde60bfccc8ccf6af58dfb344dee0fc03371152",
+    "catalogue/README.md": "c070c6af7ed350a065617d8ee2024582b521b5ce2f5a465799f7fa5ab94d7981",
+    "catalogue/connections/bench-i2c.json": "917cf7cf11de76510e2097e9e20723c696da8ae576ba303c055cb837af7180b4",
+    "catalogue/discovery.json": "8089d6aafaffa1af92e55e59538cb7ac809df8192055fab08aa120f56143891b",
+    "docs/DEVICE_DISCOVERY.md": "9a4efdfb7dfdb572922f62ec312c0a4fd17c17871d4a8f00455f422a2a53b43a",
+    "firmware/app/c3app.c": "eadc4cd910871c3d83e9172e5de8d1d683d1512c36b7b1bb9a94a12f3cb13dbb",
+    "firmware/app/c3app.h": "2c77aa833221e7fb510a0a99581170325af909858e7542f54e36877931a91055",
+    "firmware/src/config/cfgbind.c": "4580b2ac1b4d4403242eb4be83c5d18232c62a12388477debf3ffb83574040ab",
+    "firmware/src/config/cfgpump.c": "e100f2c18a03473ff3b34410c1ca907141e78ab8cc324c7c664de26b63adc7fd",
+    "firmware/src/config/cfgpump.h": "7e3956f64fcdad83aa0e5cca1e9c7733557fd3a41f34c4e317c7ee329b1995f5",
+    "firmware/src/config/cfgwire.c": "979458aee4a18244a401cb618860ed4a471cc1689525b9b97a107f8edc8d96aa",
+    "firmware/src/config/cfgwire.h": "00faf83635cb5ccc56629873dc7e232d3969d7f9930868b6bfff884941a7d646",
+    "firmware/src/discovery/README.md": "7161ac4ef9492e998d011b6072d9c4be9e53637d746a7bef5488cb6ce58fb454",
+    "firmware/src/discovery/cfgdisc.c": "df0a3725db19eb2e56f0e036ba70855012606ea7a3c64426edee73c5a30262b4",
+    "firmware/src/discovery/cfgdisc.h": "26f31ca228a4e66266efb8233ca3a69e48d11e271b097231e03ca248323cac6e",
+    "firmware/src/discovery/disci2c.c": "5a15004f3736574e853c4feec274f5bf38b830deb92b0f4d5e09f23a7009bb14",
+    "firmware/src/discovery/disci2c.h": "dd23841fc6511be99e12bf2e6b4a821b1e153ac18d4d762bad98f2e102f20f44",
+    "schemas/README.md": "ef02eb9b6ee0f6dc1827704ff75714fd16f033aec76e05638e3b6a26d22f18fb",
+    "schemas/discovery-catalogue.schema.json": "1529e8347e1ac135f23a11891a9196e52148768e84893b7b12675a68e5cc887d",
+    "tests/README.md": "7707e0b7e40691a9ce47402a204a642df773eacab0c77b523a3fda7446abf1d0",
+    "tests/discovery/test_contracts.py": "e29cd55539c2c488f6beceee466cc7158a53ab9e1b977797f0194b924c1891fd",
+    "tests/discovery/test_observations.py": "ac8d1b3466d43022e80c4d74f6eca4663bbcb81fa1a3e04641cc4a4d22eb45ad",
+    "tests/target/bindtest.c": "0d43149258b70924e8bf12918dd54a988b0deebc7974e6af42573fa77c2e7961",
+    "tests/target/disctest.c": "207d66f30f646e7be794772c25bef28b3ddc5753410e8df0059256f3df3287b2",
+    "tests/target/disctest.h": "fa570cbab5222d8a93ec934f2093cf245dc8bde1af38c5b4aee9392e6af000bd",
+    "tests/target/runtime_port_board/main/CMakeLists.txt": "a5fd3d8c3b5cf342670ef65e4fdfbb8cda34717ff32fa7c8bcd2b6f11baf8e51",
+    "tests/target/runtime_port_board/main/main.c": "66933b84e3ab23111bc83558e18a155d7068954cbcdbc06b123e3919f660915d",
+    "tests/target/test_configurator.py": "92e03a8612c0bae90f1b2de5598673aac11e0cd6d299ec9640a51e437d5a166e",
+    "tests/target/test_qualification.py": "4123572d9952b870e8762fd98c4ca93ac9c007fd03ad9eb10877d316673c8688",
+    "tests/target/test_runtime_port.py": "6f6e25aa6656eaf5c312da7de2248725614de1de6c7833277baa8d516ab4fca4",
+    "tools/config_transfer/README.md": "edc4187cbf848db171c6a9e7a3599b08a587ce4db6256109c6d85778c33c7f20",
+    "tools/config_transfer/__main__.py": "5c23ad68a35e75f64e20a0b370bdaf5e74205599fe9e3f1b9f75507cb525e57f",
+    "tools/config_transfer/capabilities.py": "2910d26c7429684e4b68e374ff09f002b5e7054a55675b3d30e33c691f00c87e",
+    "tools/config_transfer/client.py": "604e30415910c78d7866aeae7addebb81cd5b85fa3b3054f767d469f3def4a8a",
+    "tools/config_transfer/discovery.py": "1c65c78e1a1161d8c0ed1339666d68ea5f8b43c4687d50e1b0f8b9c72c977e13",
+    "tools/config_transfer/protocol.py": "ebc19d6e1a82003b07b99e50b9cf115f92114d49a8ae202afcd58ac920cbdfa4",
+    "tools/configurator/README.md": "7737d3d70704a8f288645efa8a2762548e101ed759c433b59c613e61ff559dad",
+    "tools/device_discovery.py": "78d953e1660903659298c72d10536d52e69c2b3435b2caba756177defc94a28a",
+    "tools/target/qualify_kernel.py": "745f671c9a414e41b6e58c06d22789760baddae127855f94efc8ec67b3b91975"
+  },
+  "build_notes": [
+    "The SDK descriptor header remains in the already-approved C11 board entry point; the application and new discovery modules remain C99.",
+    "Tracked attributes preserve LF checkout bytes for the existing patches and cJSON licence. Their content equals the committed files and the managed target dependency.",
+    "Earlier failed build evidence remains in temporary work directories; successful qualification uses fresh directories and unchanged pinned dependencies."
+  ],
+  "remaining": [
+    "Physical discovery acceptance has not been performed; no board access or flash during D2.",
+    "Discovery requires an empty hardware configuration; no automatic startup scan or hot-plug support.",
+    "D3: local review, sourced settings and ordinary node candidate; D4: radar/manual paths; training afterwards."
+  ]
+}

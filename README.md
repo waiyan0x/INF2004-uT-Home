@@ -1,84 +1,127 @@
 # μT-Home
 
-Configuration-driven edge platform on μT-Kernel (INF2004 Embedded Systems Programming, group AAI13).
-Every node runs the **same firmware image**; a validated JSON profile assigns its role
-(sensor, actuator, monitor).
+A configurable embedded platform for INF2004, group AAI13. One firmware image
+runs on the **ESP32-C3 SuperMini**; a validated profile selects supported devices,
+wiring, timing and sensor-to-output rules. The prototype equipment demonstrates
+the platform rather than defining its limits.
 
-Project-owned C follows [BARR-C:2018](C_CODING_STANDARD.md). The standard gate,
-affected tests and manual review checklist are required for every C change.
-See [AGENTS.md](AGENTS.md) for instructions for coding agents.
+## Start here
 
-## Repository layout
-
-| Path | Purpose |
+| Task | Guide |
 |---|---|
-| `firmware/include/uthome/` | Public, hardware-independent APIs (the contracts between modules) |
-| `firmware/src/runtime/` | μT-Kernel task, queue, timer and resource-pool wrappers |
-| `firmware/src/config/` | Profile loading, validation, component registry, last-known-good storage |
-| `firmware/src/roles/` | Sensor / actuator / monitor role start-up selected from the profile |
-| `firmware/src/services/` | Logical sensor and actuator services |
-| `firmware/src/automation/` | Rule engine: thresholds, hysteresis, schedules, stale-data policy |
-| `firmware/src/messaging/` | Publish/subscribe message bus and its transports (MQTT, loopback) |
-| `firmware/src/health/` | Task liveness, jitter, queue depth, node loss, safe-state triggers |
-| `firmware/drivers/` | Prototype drivers (BMP388, SSD1306 SPI OLED, HLK-LD2450, HC-SR04) behind service interfaces |
-| `firmware/hal/` | Hardware abstraction API; `ports/<board>/` holds the only board-specific code |
-| `firmware/third_party/` | μT-Kernel and external libraries (vendored or submodules) |
-| `configs/` | Node profiles, demo scenarios, and intentionally invalid profiles for tests |
-| `schemas/` | Generic node and device-descriptor contracts |
-| `catalogue/` | Reviewed device capabilities and board resource limits |
-| `tests/` | Host unit tests, integration, on-target hardware and fault-injection tests |
-| `tools/` | Host scripts: profile validator, provisioning, flash/monitor helpers |
-| `docs/` | Architecture, use cases, wiring, test plan, measurements, meeting notes |
+| Set up the board/toolchain or build firmware | [Firmware](firmware/README.md) |
+| Wire and test equipment | [Hardware acceptance](CONTRIBUTING.md) |
+| Open the local configuration application | [Configuration Desk](tools/configurator/README.md) |
+| Understand device discovery | [Discovery design](docs/README.md) |
+| Prepare experiments and train the timing model | [AI](ai/README.md) |
+| Choose or validate profiles | [Configurations](configs/README.md) |
+| Run software checks | [Tests](tests/README.md) |
+| Change C code | [Mandatory BARR-C policy](C_CODING_STANDARD.md) and [agent rules](AGENTS.md) |
 
-## Project baseline
+## Resume next session
 
-[PROJECT_BASELINE.md](PROJECT_BASELINE.md) defines the reusable platform:
-reviewed device descriptors, board/build capabilities, generic instance
-configuration, driver registration and bounded runtime admission. The original
-prototype is one example deployment. Alternative configurations and host
-acceptance tests exercise adaptation independently of AI. The kernel task example
-passed startup and repeated USB-reset checks on the ESP32-C3 on 2026-09-28.
-Application runtime/peripheral integration remains outstanding; AI training is
-paused until that platform path is demonstrated.
+Handoff checked on **18 October 2026**. The last confirmed push to `main` is
+`3f636e1` (documentation consolidation); the implementation was published in
+`37319fb`. Check `git status` for subsequent local edits before continuing.
 
-[INTEGRATION_PLAN.md](INTEGRATION_PLAN.md) tracks the remaining member work and
-review checkpoints. [Firmware contracts](firmware/CONTRACTS.md) define the shared
-sample records, ownership rules and resource accounting for that integration.
+- The user is **Member 4**, working on device discovery and AI. Keep the platform
+  configurable through supported drivers/profiles, rather than hard-coding the
+  prototype equipment. Preserve the existing UI; discuss UI changes first.
+- The last equipment update was **unavailable**. Continue software work without
+  opening serial ports or assuming a board is connected. Hardware acceptance
+  stays open; the earlier working BMP/OLED/radar setup was only partially tested.
+- The next useful software task is the
+  [minimal timing recorder](ai/README.md#next-software-step): prepare and test it
+  using the existing USB client and fake streams, then qualify it on hardware.
+  The simulated pipeline already exists; do not restart it or deploy its model.
+- Read [current status](#current-status), [remaining work](#remaining-work),
+  [bench evidence](firmware/qualification/README.md#peripheral-bench-observations)
+  and [local artifacts/documents](docs/README.md#local-artifacts-and-review-documents)
+  before choosing the next implementation or document task.
 
-## Build
+## Current status
 
-The prototype targets the **ESP32-C3 SuperMini**, identified from the physical
-board. The selected μT-Kernel port is
-[sirfonzie/esp32c3-mtk3](https://github.com/sirfonzie/esp32c3-mtk3), pinned
-as a submodule under `firmware/third_party/esp32c3-mtk3/`.
+| Area | Status |
+|---|---|
+| Runtime, HAL, supported drivers, profile transfer/storage, telemetry and rules | Implemented; software and target-build evidence retained |
+| Existing local UI and reviewed I2C/UART/manual discovery | Implemented; physical discovery acceptance pending |
+| Basic BMP388, OLED and radar operation | Observed on the bench; full acceptance remains incomplete |
+| Offline AI pipeline | Simulated runs, training, evaluation and C export implemented |
+| Embedded AI deployment | Pending; the current simulated model has not improved on the simple timing rule |
 
-Follow [the C3 setup guide](firmware/SETUP_ESP32C3.md) to obtain the source,
-activate ESP-IDF, and build the upstream task example. The guide records the
-exact kernel revision, [board evidence](firmware/qualification/README.md), and
-remaining application integration checks. The configuration application now has a separate build mode; see
-[USB/storage integration](firmware/src/config/USB_STORAGE.md). Physical
-acceptance, services/local UI and rules remain pending; AI stays last.
+The 2026-10-17 pre-push checks passed 250 local tests and the 194-file BARR-C gate.
+The two saved C3 build snapshots matched the firmware sources. These checks do
+not establish physical reliability or measured AI performance. Details and
+historical evidence are indexed in [firmware qualification](firmware/qualification/README.md)
+and [AI results](ai/README.md#results-and-remaining-work).
 
-## Rules
+## Platform contract
 
-- Keep team-owned board access in `firmware/hal/ports/esp32c3/`; isolate
-  kernel calls in the runtime adapter. The pinned upstream dependency
-  retains its own board and kernel layout.
-- Roles come from configuration, never from `#ifdef` or separate builds.
-- Bounded queues, fixed task limits, timeouts, and documented actuator safe states.
-- Never commit Wi-Fi credentials (`*credentials.h`, `secrets/`).
-- Do not commit or publish the professor-provided FlexiEdgePico code.
+```text
+profile + reviewed catalogue + board/build capabilities
+    -> complete validation and resource plan
+    -> driver instances and generic runtime workers
+    -> typed samples, display, health and bounded output rules
+```
 
-## Local configurator and generic rules
+- Existing compiled drivers can be enabled, repeated and configured without
+  rebuilding the generic runtime. Each instance has its own identity and state.
+- A new descriptor describes capabilities; it cannot install a missing driver.
+  New driver logic requires implementation, a registry entry and a firmware build.
+- Host and firmware both validate the full profile. Disabled devices still
+  reserve physical wiring. Invalid candidates must preserve the working plan.
+- Device identity, protocol, pins and electrical limits come from reviewed
+  catalogue facts and explicit confirmation. Discovery is not arbitrary hot-plug
+  support, a GPIO scan or AI-generated hardware identification.
+- AI may propose an interval within supported limits. It cannot bypass normal
+  validation or silently apply a recommendation.
 
-Run `python -B -m tools.configurator` from this directory and open
-`http://127.0.0.1:8080`. See [setup and deployment semantics](tools/configurator/README.md).
-Schema 2.1 adds [typed sensor-to-PWM rules](firmware/src/automation/README.md),
-retaining 2.0 sensor/display profiles. Hardware acceptance with the team and AI
-remain the final two checkpoints in [the implementation plan](INTEGRATION_PLAN.md).
+| Contract | Version / bound |
+|---|---|
+| Node profile | 2.1.0; 2.0.0 input retained; schema 1.0 rejected |
+| Descriptor, board, build and normalized host plan | 1.0.0 |
+| Discovery and current timing contracts | 0.1.0, independent of legacy AI 0.2.0 |
+| Configured instances / active peripheral workers | 8 / 4 |
+| Queues | 4; depth at most 8; items at most 64 bytes |
+| Peripheral task stacks | At most 16 KiB total; other memory is additional |
+| Application priorities | 5..19; smaller numbers have higher urgency |
 
-## Earlier prototype toolkit
+Each FIFO admits at most one enabled consumer and may have multiple producers.
+The host manifest is a test fixture; actual deployment uses the connected
+firmware's capabilities. An active configuration does not prove healthy readings.
+See [shared contracts](firmware/CONTRACTS.md) and [admission](firmware/src/config/README.md).
 
-Member 5's schema-1.0/S3 toolkit, including recommendation and health imports,
-is preserved with its examples and tests under [legacy/member5](legacy/member5/README.md).
-Use the root C3 configurator and acceptance guide for the current board.
+## Team responsibilities
+
+| Member | Area | Remaining acceptance focus |
+|---|---|---|
+| 1 | Kernel, runtime, task/resource ownership and health | Combined load, recovery, timing and memory |
+| 2 | I2C/SPI adapters and drivers | Sensor/display wiring, bus behavior and faults |
+| 3 | UART/GPIO, radar, distance and PWM | Radar absence/fault distinction, distance and safe outputs |
+| 4 | Discovery specifics and compact AI recommendations | Real measurements, independent evaluation, useful embedded inference |
+| 5 | Profiles, local UI, transfer/storage and system integration | Review/apply flow, persistence and end-to-end acceptance |
+
+B-LUX, W25QXX and encoder support are possible extensions, not completed drivers.
+The earlier Member 5 toolkit is preserved in [legacy/member5](legacy/member5/README.md);
+its S3/schema-1.0 assumptions do not apply to the current C3 configurator.
+
+## Remaining work
+
+1. Complete physical discovery and checkpoint-8 acceptance: stationary radar
+   absence/fault tests, HC-SR04, PWM/outputs, combined load, recovery and power loss.
+2. Implement actual build/profile-correlated recording and collect real timing
+   runs. Keep related runs together and reserve untouched test groups.
+3. Retrain and compare recommendations with defaults and simple rules. Simulation
+   results do not establish sensor behavior, power savings or real accuracy.
+4. Integrate inference only if it provides useful benefit; then measure its
+   latency, memory use and behavior on the ESP.
+
+## Documentation convention
+
+Use one main guide per maintained folder, normally `README.md`. Update the
+existing guide rather than adding a checkpoint diary. Keep status, usage and
+current contracts; put measured results in dated evidence records. Historical
+paths and records are explained in [the documentation index](docs/README.md#historical-references).
+Root coding rules, the hardware guide, shared firmware contracts and signed
+audit records remain separate because they have distinct responsibilities.
+Vendor, license and preserved legacy documentation retain their original layout.

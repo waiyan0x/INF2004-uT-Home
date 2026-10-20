@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:uthome:discovery-catalogue:0.1.0",
+  "description": "Reviewed identification policies, not executable probes or deployment profiles.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "catalogue_version", "entries"],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "catalogue_version": {"const": "0.1.0"},
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/entry"}
+    }
+  },
+  "$defs": {
+    "text": {"type": "string", "minLength": 1, "maxLength": 512},
+    "identifier": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"},
+    "descriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"}
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["descriptor", "identification", "cautions", "sources"],
+      "properties": {
+        "descriptor": {"$ref": "#/$defs/descriptor"},
+        "identification": {
+          "oneOf": [
+            {"$ref": "#/$defs/chip_id"},
+            {"$ref": "#/$defs/reports"},
+            {"$ref": "#/$defs/manual"}
+          ]
+        },
+        "cautions": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/text"}
+        },
+        "sources": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/text"}
+        }
+      }
+    },
+    "chip_id": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "addresses", "register", "value", "identity_status"],
+      "properties": {
+        "method": {"const": "i2c_chip_id"},
+        "addresses": {
+          "type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 8, "maximum": 119}
+        },
+        "register": {"type": "integer", "minimum": 0, "maximum": 255},
+        "value": {"type": "integer", "minimum": 0, "maximum": 255},
+        "identity_status": {"const": "verified"}
+      }
+    },
+    "reports": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "parser_id", "minimum_valid_reports", "window_ms", "identity_status"],
+      "properties": {
+        "method": {"const": "uart_reports"},
+        "parser_id": {"$ref": "#/$defs/identifier"},
+        "minimum_valid_reports": {"type": "integer", "minimum": 2, "maximum": 10},
+        "window_ms": {"type": "integer", "minimum": 100, "maximum": 5000},
+        "identity_status": {"const": "candidate"}
+      }
+    },
+    "manual": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "confirmation", "identity_status"],
+      "properties": {
+        "method": {"const": "manual"},
+        "confirmation": {"$ref": "#/$defs/text"},
+        "identity_status": {"const": "user_confirmed"}
+      }
+    }
+  }
+}

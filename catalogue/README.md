@@ -1,5 +1,15 @@
 # Reviewed hardware catalogue
 
+`discovery.json` adds versioned identification policies for these descriptors.
+It is checked against `schemas/discovery-catalogue.schema.json` and linked back
+to exact descriptor versions by `tests/discovery/`. The PC resolver matches raw
+observations against it; the firmware does not interpret the policy file.
+`connections/bench-i2c.json` records the first compiled, reviewed connection
+preset. Changing that JSON alone cannot change firmware probe operations.
+Driver availability comes from the connected build, while protocol/settings
+constraints still belong to the device descriptors. See
+[discovery and recommendation ownership](../docs/README.md).
+
 The catalogue describes supported operations and constraints independently of
 node instance names and deployment examples. `boards/` owns platform capacity;
 `devices/` owns peripheral settings. The host planner resolves a node's explicit
@@ -33,6 +43,19 @@ Each configured device owns a separate driver context. Bus sharing does not
 permit shared mutable instance state. The current BMP388 entry supports two
 addresses on the board's one I2C controller; the UART entry supports one owner.
 Disabled instances reserve wiring but consume no active task/stack slot.
+
+The D3 configurator reads reviewed timing overrides from
+`connections/bench-i2c.json` (preset 0.2.0). Its BMP388 values are labelled bench
+observations, separate from descriptor defaults and limits. Other descriptor
+identities use their own defaults; unsupported identities get no recommendation.
+These host-only additions do not change the preset's compiled wire code or reads.
+
+D4 adds `bench-uart.json` (receive-only evidence, then model confirmation) and
+manual `bench-oled.json`, `bench-distance.json` and `bench-pwm.json`. Connection
+pins/supplies are reviewed alternatives, not inferred from signals. OLED requires
+an existing compatible queue and sole use of its SPI bus. PWM is added disabled
+until a separately reviewed rule is supplied. All candidates use shared node
+admission; a catalogue selection never certifies physical operation.
 
 The build manifest is a separate capability check. A catalogue entry is not
 evidence that its C3 adapter is linked. The checked-in host manifest is for host

@@ -1,4 +1,4 @@
-idf_component_register(SRCS "../config/cfgpump.c" "../hal/c3usb.c"
+idf_component_register(SRCS "../discovery/discuart.c" "../discovery/disci2c.c" "../discovery/cfgdisc.c" "../config/cfgpump.c" "../hal/c3usb.c"
                        "../hal/c3store.c" "../app/c3app.c" "../config/jsonscan.c" "../config/cfgjson.c" "../config/cfgplan.c" "../config/cfgdev.c" "../config/cfgrule.c" "../automation/rulecalc.c" "../config/cfgbind.c" "../hal/c3bind.c"
                        "main.c" "../runtime/tkport.c"
                        "../runtime/activate.c" "../runtime/shared.c" "../services/sampcache.c" "../services/statusmon.c" "../services/telemetry.c" "../services/oledview.c"
@@ -17,10 +17,10 @@ idf_component_register(SRCS "../config/cfgpump.c" "../hal/c3usb.c"
                        "../config/cfgbytes.c" "../config/cfgwire.c"
                        "../config/cfgstore.c" "../config/cfgctrl.c"
                        "../third_party/bmp3/bmp3.c"
-                       INCLUDE_DIRS "../automation" "../services" "../app" "../config" "../runtime" "../include" "../hal/include"
+                       INCLUDE_DIRS "../discovery" "../automation" "../services" "../app" "../config" "../runtime" "../include" "../hal/include"
                                     "../hal" "../drivers" "../third_party/bmp3"
                                     "../../source/device/include" "../../source/device/ser"
-                       REQUIRES mtkernel esp_rom esp_partition spi_flash esp_hal_usb esp_hal_i2c esp_hal_gpspi
+                       REQUIRES esp_app_format mtkernel esp_rom esp_partition spi_flash esp_hal_usb esp_hal_i2c esp_hal_gpspi
                                 esp_hal_rmt esp_hal_ledc esp_timer espressif__cjson)
 target_compile_definitions(${COMPONENT_LIB} PRIVATE UTHOME_RUNTIME_UTKERNEL=1
     UTHOME_CONFIGURATION_APP=$<BOOL:${UTHOME_CONFIGURATION_APP}>)
@@ -34,7 +34,7 @@ set(UTHOME_WARNINGS -Wall -Wextra -Werror -Werror=extra
     -Werror=unused-but-set-variable -Werror=deprecated-declarations)
 set_source_files_properties("main.c" "../runtime/tkport.c"
     PROPERTIES COMPILE_OPTIONS "-std=c11;${UTHOME_WARNINGS}")
-set_source_files_properties("../config/cfgpump.c" "../hal/c3store.c"
+set_source_files_properties("../discovery/discuart.c" "../discovery/disci2c.c" "../discovery/cfgdisc.c" "../config/cfgpump.c" "../hal/c3store.c"
     "../hal/c3usb.c" "../app/c3app.c" "../config/jsonscan.c" "../config/cfgjson.c" "../config/cfgplan.c" "../config/cfgdev.c" "../config/cfgrule.c" "../automation/rulecalc.c" "../config/cfgbind.c" "../hal/c3bind.c"
     "../runtime/activate.c" "../runtime/shared.c" "../services/sampcache.c" "../services/statusmon.c" "../services/telemetry.c" "../services/oledview.c"
     "../runtime/component.c" "../messaging/msgbus.c" "../health/health.c"

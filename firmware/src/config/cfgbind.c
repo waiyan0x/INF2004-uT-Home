@@ -112,8 +112,8 @@ int cfgbind_capabilities (void *    p_context,
     cfgbytes_put(&p_data[16], UINT32_C(0x4FB));
     cfgbytes_put(&p_data[20], UTHOME_PLAN_DEVICES);
     cfgbytes_put(&p_data[24], 4U);
-    /* Feature bit zero identifies bounded rule/PWM routing. */
-    cfgbytes_put(&p_data[28], 1U);
+    /* Bit zero: rule/PWM routing; bit one: reviewed I2C discovery request. */
+    cfgbytes_put(&p_data[28], 7U);
     memcpy(&p_data[32], "esp32-c3-supermini", 18U);
     memcpy(&p_data[64], "2.1.0", 6U);
     uint32_t count = 0U;

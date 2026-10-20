@@ -13,4 +13,4 @@ driver resource. A heartbeat should represent completed work, not timer activity
 Target integration must add synchronization, watch ownership/removal, queue and
 runtime event mapping, stack measurements, supervisor scheduling and bounded
 report delivery. The host module uses static state and requires serialized access.
-See [the runtime integration record](../runtime/INTEGRATION.md).
+See [the runtime integration record](../runtime/README.md#verification-and-limits).

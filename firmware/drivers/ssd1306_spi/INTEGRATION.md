@@ -1,8 +1,9 @@
-# SPI and SSD1306 integration
+# SSD1306 SPI driver
 
-This checkpoint adds reusable SPI, a C3 FIFO backend, shared pin ownership,
-simple digital outputs and an independent SSD1306 component adapter. Physical
-tests are deferred to final hardware acceptance at the user's request.
+Caller-owned 128x32/128x64 framebuffers with bounded command transport and
+exclusive D/C/reset lines. Catalogue binding uses 128x64. The separate
+[renderer](../../src/services/TELEMETRY.md#oled-rendering) selects cached sources.
+Basic display output passed; SPI success cannot prove panel presence.
 
 ## Modules and provenance
 
@@ -43,7 +44,7 @@ VCOMH uses documented `0x20` instead of the cached `0x40` value.
 5. The display worker copies a full frame through `component_write`, then
    flushes it. One execution owner accesses each display; arbitrary concurrent
    writes from other tasks are unsupported. The production
-   [display service](../../src/services/DISPLAY.md) renders directly into the
+   [display service](../../src/services/TELEMETRY.md#oled-rendering) renders directly into the
    same buffer and uses copied cache entries without draining queues.
 6. After stopped-worker cleanup succeeds, detach devices, close outputs, then
    close the bus. Bus open/close requires zero owned workers. Claim changes are
@@ -118,3 +119,8 @@ Final hardware acceptance must confirm module identity/size/power, visible test
 patterns, reset/CS/DC timing, SPI waveforms, sharing/contention, injected faults,
 recovery and boot behaviour with all devices attached. Missing OLED hardware
 requires visual/electrical observation, not an invented acknowledgement test.
+
+
+Current [acceptance status](../../qualification/README.md) and
+[wiring procedure](../../../CONTRIBUTING.md). Historical test counts above
+refer to their dated evidence, not a new qualification.

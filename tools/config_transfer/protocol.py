@@ -16,6 +16,7 @@ class Command(IntEnum):
     PROBE = 5
     TELEMETRY = 6
     CAPABILITIES = 7
+    DISCOVER = 8
 
 
 @dataclass(frozen=True)
@@ -57,8 +58,11 @@ def encode_request(command: Command, request_id: int, revision: int = 0,
     if command == Command.APPLY:
         if not profile or not revision:
             raise ValueError("APPLY requires profile bytes and a revision")
+    elif command == Command.DISCOVER:
+        if len(profile) != 24:
+            raise ValueError("DISCOVER requires its 24-byte versioned request")
     elif profile or (not revision if command == Command.SAVE else revision != 0):
-        raise ValueError("Only APPLY has a payload; only APPLY/SAVE use a revision")
+        raise ValueError("Unexpected payload or revision for this command")
     prefix = HEADER.pack(b"UTH1", 1, command, 0, request_id, revision, len(profile), 0)[:20]
     checksum = zlib.crc32(profile, zlib.crc32(prefix))
     return prefix + struct.pack("<I", checksum) + profile
@@ -67,8 +71,8 @@ def encode_request(command: Command, request_id: int, revision: int = 0,
 def decode_reply(frame: bytes, *, command: Command, request_id: int,
                  revision: int) -> Reply | ProbeReply:
     """Reject corrupt, extended or mismatched responses; no implicit retry."""
-    if Command(command) in (Command.TELEMETRY, Command.CAPABILITIES):
-        raise ValueError("telemetry requires its versioned decoder")
+    if Command(command) in (Command.TELEMETRY, Command.CAPABILITIES, Command.DISCOVER):
+        raise ValueError("observation requires its versioned decoder")
     if len(frame) != 48:
         raise ValueError("reply must contain exactly 48 bytes")
     magic, version, received, reserved, rid, rev, size, checksum = HEADER.unpack(frame[:24])

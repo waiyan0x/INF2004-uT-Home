@@ -1,9 +1,20 @@
 # AI contracts
 
+The current preparation request is
+[`timing-scenario.schema.json`](timing-scenario.schema.json), version 0.1.0.
+It describes planned per-instance interval experiments using platform admission.
+See [the timing guide](../README.md#prepare-an-experiment) for the generated experiment
+contract and validation. Neither contract represents measured training data or
+a model prediction. Current run, dataset and timing-tree contracts are described
+in [the AI guide](../README.md); run structure is checked by
+`timing-run.schema.json`. They are explicitly separate from the older API below.
+
 > **Legacy prototype experiment.** AI contract 0.2.0 is retained for regression
-> tests only. Training and deployment integration are paused. Use the new
-> platform catalogue and node schema; follow `ai/TRAINING_PIPELINE.md` for the
-> foundation gate. The historical interface below is not the platform contract.
+> tests only. The current preparation work begins with
+> [device discovery](../../docs/README.md) and the platform catalogue;
+> follow [the AI guide](../README.md). Offline experimental training is available;
+> model deployment is not integrated. The historical interface below is not the
+> platform contract.
 
 Version **0.2.0** binds project baseline **1.0.0**. The request retains the
 16-field uint32 feature vector, but payload meaning and accepted device limits
@@ -17,8 +28,8 @@ are now fixed. Requests declaring 0.1.0 are rejected rather than reinterpreted.
   policy limits, defaults, budgets and source provenance.
 
 The superseded rationale is preserved in
-[PROTOTYPE_REFERENCE.md](../../configs/PROTOTYPE_REFERENCE.md). The current
-[PROJECT_BASELINE.md](../../PROJECT_BASELINE.md) takes precedence for platform work.
+[the legacy reference](../../configs/README.md#legacy-reference). The current
+[platform contract](../../README.md#platform-contract) takes precedence for platform work.
 
 ## Validation
 
@@ -51,7 +62,7 @@ abstention response, run a model or deploy firmware.
 ## Status and migration
 
 Retain 0.2.0 for historical regression tests. Do not generate new datasets or
-node profiles from it. The platform catalogue and node schema 2.0.0 are now
-independent contracts; a subsequent AI contract must map to their capabilities
-and explicit instance IDs. Design that contract only after the foundation review,
-then record its version and catalogue/build provenance in future datasets.
+node profiles from it. Current timing contracts use version 0.1.0 independently
+of this legacy API. They map explicit instance IDs to platform catalogue and
+node-schema capabilities, retaining catalogue/build provenance. See the
+[current pipeline](../README.md) for preparation, training and remaining work.

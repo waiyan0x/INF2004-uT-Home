@@ -1,9 +1,9 @@
 # Project C standard
 
 BARR-C:2018 is mandatory for project-owned C. The source of authority is the
-user-supplied [BARR-C:2018 PDF](barr_c_coding_standard_2018.pdf). This document
-records project decisions and review responsibilities; it does not reproduce or
-replace the standard.
+user-supplied BARR-C:2018 PDF (`barr_c_coding_standard_2018.pdf`, supplied
+separately). This document records project decisions and review responsibilities;
+it does not reproduce or replace the standard.
 
 ## Scope and compiler profile
 
@@ -222,7 +222,7 @@ configuration byte encoding, wire framing, persistent records and controller.
 CRC = cyclic redundancy check; NOR denotes flash programmed by clearing bits.
 These modules use C99, serialized caller-owned storage and named callback types.
 Wire/storage fields are explicit bytes, never native structure representations.
-See [the manual review](firmware/src/config/TRANSFER.md).
+See [the manual review](firmware/src/config/README.md#transfer-c-review).
 
 ## Admission and binding vocabulary
 
@@ -230,7 +230,7 @@ jsonscan, cfgjson, cfgplan, cfgdev, cfgbind and c3bind identify lexical prefligh
 bounded JSON access, node planning, descriptor admission, instance binding and
 C3 backend selection. Public prefixes match their paired headers. JSON means
 JavaScript Object Notation. New modules use C99; no exception or language scope
-is broadened. See [manual review](firmware/src/config/ADMISSION.md).
+is broadened. See [manual review](firmware/src/config/README.md#admission-c-review).
 
 ## USB/storage application vocabulary
 
@@ -238,7 +238,7 @@ is broadened. See [manual review](firmware/src/config/ADMISSION.md).
 pump, C3 USB endpoint, C3 persistent partition adapter and application owner.
 USB = Universal Serial Bus; ZLP = zero-length packet. Matching public prefixes
 and headers remain mandatory. See the
-[manual review](firmware/src/config/USB_STORAGE.md#manual-barr-c-review).
+[manual review](firmware/src/config/README.md#usb-c-review).
 
 ## Observation service vocabulary
 
@@ -249,7 +249,7 @@ C99 and the existing shared guard. See the
 No compatibility exception or approved language scope is broadened.
 
 `oledview` identifies the OLED text renderer; it uses C99 and the existing
-driver framebuffer. See [manual review](firmware/src/services/DISPLAY.md#manual-barr-c-review).
+driver framebuffer. See [manual review](firmware/src/services/TELEMETRY.md#display-c-review).
 
 ## Rule module vocabulary
 
@@ -258,3 +258,25 @@ rules. Public prefixes belong to matching headers. Both are C99, using copied
 state and existing component/cache ownership. See the
 [manual review](firmware/src/automation/README.md#manual-barr-c-review).
 No approved exception, formatter version or language boundary changes.
+
+## Discovery module vocabulary
+
+`disci2c` collects bounded I2C observations; `cfgdisc` admits reviewed connection
+presets and integrates discovery with the existing configuration controller.
+`disctest` tests those boundaries. Public prefixes belong to matching headers;
+`reg` means register. All new production modules use C99. The current firmware
+image hash comes from the pinned SDK's existing application descriptor API.
+No exception or language scope changes. See
+[the manual review](firmware/src/discovery/README.md#manual-barr-c-review).
+
+`discuart` collects bounded UART report evidence using the existing parser;
+`uartdisc` tests that observer and its configuration boundary. They use C99,
+named callbacks and the same serialized owner. No new deviation is introduced.
+
+## Offline timing model vocabulary
+
+`timtree` is the bounded timing-tree classifier template; `tim_main` is its host
+parity test under `tests/ai`. Generated C retains the same public prefix/header.
+These use C99 with no new deviation and are not linked into deployed firmware.
+See [manual review](ai/README.md#c-review). Exported sources receive
+explicit format/lexical/module checks even when generated under ignored `build/`.

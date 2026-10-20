@@ -1,0 +1,94 @@
+{
+  "schema_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "entries": [
+    {
+      "descriptor": {"id": "bmp388", "version": "1.0.0"},
+      "identification": {
+        "method": "i2c_chip_id",
+        "addresses": [118, 119],
+        "register": 0,
+        "value": 80,
+        "identity_status": "verified"
+      },
+      "cautions": [
+        "An address acknowledgement alone does not identify this device.",
+        "Read one ID byte only on a reviewed I2C connection; do not call full driver initialization as a probe.",
+        "Verified means the BMP388 chip-ID rule matched, not a verified breakout, voltage, wiring or unique serial number.",
+        "The chip also supports SPI, but this descriptor and the current platform binding support I2C only."
+      ],
+      "sources": [
+        "firmware/drivers/bmp388/bmp388.c",
+        "firmware/third_party/bmp3/bmp3_defs.h",
+        "catalogue/devices/bmp388.json"
+      ]
+    },
+    {
+      "descriptor": {"id": "hlk_ld2450", "version": "1.0.0"},
+      "identification": {
+        "method": "uart_reports",
+        "parser_id": "ld2450_reports",
+        "minimum_valid_reports": 3,
+        "window_ms": 1000,
+        "identity_status": "candidate"
+      },
+      "cautions": [
+        "Listen using the descriptor's UART settings; do not transmit discovery commands or cycle through baud rates.",
+        "Use complete reports accepted by the existing parser, not a header-only match. Any receive error invalidates the current observation window.",
+        "Three reports in 1000 ms is an initial project policy, not a manufacturer guarantee or measured discovery latency.",
+        "A matching stream establishes a compatible protocol candidate; the user still confirms the module model.",
+        "A valid report with zero targets means the radar is responding. Silence does not prove it is unplugged."
+      ],
+      "sources": [
+        "firmware/drivers/hlk_ld2450/ldparse.c",
+        "firmware/drivers/hlk_ld2450/ld2450.c",
+        "catalogue/devices/hlk_ld2450.json"
+      ]
+    },
+    {
+      "descriptor": {"id": "ssd1306_spi", "version": "1.0.0"},
+      "identification": {
+        "method": "manual",
+        "confirmation": "Confirm the module, interface straps and wiring; after reviewed activation, confirm that a test display is readable.",
+        "identity_status": "user_confirmed"
+      },
+      "cautions": [
+        "The tested six-pin OLED has no exposed chip-select or readback. SPI transfer success does not establish its presence or exact controller identity.",
+        "Use this six-pin module alone on its SPI bus. A shared-bus preset requires separate review and independently controlled chip-selects.",
+        "The bench profile reserves GPIO4 for the existing driver even though the six-pin module has no wire connected to it."
+      ],
+      "sources": [
+        "catalogue/devices/ssd1306_spi.json",
+        "firmware/drivers/ssd1306_spi/ssd1306.c",
+        "CONTRIBUTING.md"
+      ]
+    },
+    {
+      "descriptor": {"id": "hc_sr04", "version": "1.0.0"},
+      "identification": {
+        "method": "manual",
+        "confirmation": "Confirm the module and reviewed trigger/echo wiring, including echo voltage reduction, before a separate distance test.",
+        "identity_status": "user_confirmed"
+      },
+      "cautions": [
+        "An input level or timed pulse does not establish the module identity.",
+        "No trigger pulses are emitted during discovery. A later reviewed device test may check operation.",
+        "No echo can also mean no suitable target; do not classify it as physical disconnection."
+      ],
+      "sources": ["catalogue/devices/hc_sr04.json", "firmware/drivers/hc_sr04/hc_sr04.c"]
+    },
+    {
+      "descriptor": {"id": "pwm_output", "version": "1.0.0"},
+      "identification": {
+        "method": "manual",
+        "confirmation": "Confirm the connected load, driver stage and supply; PWM capability alone cannot identify a motor, LED or other output device.",
+        "identity_status": "user_confirmed"
+      },
+      "cautions": [
+        "This descriptor is an output capability, not the identity of the attached load.",
+        "Discovery never changes output duty or runs an actuator. Keep the existing output safety and explicit activation path."
+      ],
+      "sources": ["catalogue/devices/pwm_output.json", "firmware/drivers/pwm_output/pwminst.c"]
+    }
+  ]
+}

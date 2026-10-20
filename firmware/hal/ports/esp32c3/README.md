@@ -4,7 +4,7 @@ This directory owns team-written ESP32-C3 board access: peripheral handles,
 GPIO configuration, interrupt glue, monotonic time, persistent configuration,
 and USB serial transport. Use the SuperMini board kit from the pinned
 `../../../third_party/esp32c3-mtk3/` dependency; see
-[the setup guide](../../../SETUP_ESP32C3.md).
+[the setup guide](../../../README.md#pinned-target).
 
 Load the resource map from the validated node profile and board capabilities.
 An example allocation and module checks are in

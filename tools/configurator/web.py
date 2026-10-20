@@ -6,10 +6,12 @@ import secrets
 from tools.config_validator.planner import ROOT, load_document, parse_document
 from tools.config_transfer.client import TransferError
 from .workflow import Workflow
+from .discovery import connection_presets
 
 STATIC = Path(__file__).with_name("static")
 ASSETS = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
-          "/style.css": ("style.css", "text/css"), "/dashboard.js": ("dashboard.js", "text/javascript")}
+          "/style.css": ("style.css", "text/css"), "/dashboard.js": ("dashboard.js", "text/javascript"),
+          "/discovery.js": ("discovery.js", "text/javascript")}
 # Explicit assets only: restoring the design must not expose the source tree.
 STYLE_FILES = (
     "main.css", "tokens.css", "fonts.css", "base.css",
@@ -55,7 +57,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send(200, content, kind)
         elif self.path == "/api/catalogue":
             self.send(200, {"examples": {p.stem: load_document(p) for p in sorted((ROOT / "configs/nodes").glob("*.json"))},
-                            "descriptors": list(self.server.workflow.catalogue.descriptors.values())})
+                            "descriptors": list(self.server.workflow.catalogue.descriptors.values()),
+                            "connections": connection_presets()})
         else:
             self.send(404, {"error": "Not found"})
 
@@ -84,8 +87,14 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
+class LocalServer(ThreadingHTTPServer):
+    # A cold browser requests the existing CSS imports/fonts concurrently.
+    # Windows can refuse those connections with HTTPServer's backlog of five.
+    request_queue_size = 32
+
+
 def make_server(port=8080, workflow=None):
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server = LocalServer(("127.0.0.1", port), Handler)
     server.workflow = workflow or Workflow()
     server.token = secrets.token_urlsafe(32)
     return server

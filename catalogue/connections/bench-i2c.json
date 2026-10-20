@@ -1,0 +1,51 @@
+{
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "wire_code": 1,
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "interface": {
+    "id": "i2c0",
+    "protocol": "i2c",
+    "port": 0,
+    "sda_gpio": 0,
+    "scl_gpio": 1,
+    "clock_hz": 100000
+  },
+  "supply_mv": 3300,
+  "logic_mv": 3300,
+  "requires_wiring_confirmation": true,
+  "method": "i2c_chip_id",
+  "reads": [
+    {
+      "address": 118,
+      "register": 0
+    },
+    {
+      "address": 119,
+      "register": 0
+    }
+  ],
+  "transfer_timeout_ms": 100,
+  "request_budget_ms": 200,
+  "recommendations": [
+    {
+      "descriptor": {
+        "id": "bmp388",
+        "version": "1.0.0"
+      },
+      "behaviour": {
+        "interval_ms": 500,
+        "timeout_ms": 100
+      },
+      "source": "bench_observation",
+      "reason": "Starting values from the BMP388 bench checks in CONTRIBUTING.md; review for your workload."
+    }
+  ],
+  "notes": "Reviewed bench connection only. Match wiring, supply and pull-ups before requesting; never infer electrical suitability from a response. Pins and register reads are independently allowlisted in cfgdisc.c.",
+  "label": "I2C bench connection (GPIO0/1)",
+  "wiring": "SDA -> GPIO0; SCL -> GPIO1; 100 kHz; supply and signal pull-ups 3.3 V; common ground. Checks addresses 0x76 and 0x77 only."
+}

@@ -13,14 +13,17 @@
 #include "c3uart.h"
 #include "activate.h"
 #include "telemetry.h"
+#include "cfgdisc.h"
+static int discovery_wait (void);
 static cfgbind_state_t g_binding   = {0};
 static cfgctrl_t       g_control   = {0};
 static cfgstore_t      g_store     = {0};
 static cfgpump_t       g_pump      = {0};
+static cfgdisc_t       g_discovery = {0};
 static telemetry_t     g_telemetry = {.p_control = &g_control};
 
 /** @brief Keep every large context off the kernel task stack. */
-int c3app_run (void)
+int c3app_run (const uint8_t * p_build_hash)
 {
     /* Binary traffic exclusively owns USB after the boot banner. No regular
      * console prints or monitor reads are permitted after this handover. */
@@ -35,12 +38,18 @@ int c3app_run (void)
     (void)c3store_open();
     g_store.p_operations = c3store_operations();
     g_store.slot_bytes   = UTHOME_C3STORE_SLOT;
-    if ((0 != cfgctrl_init(
-                  &g_control, &g_store, cfgbind_operations(), &g_binding)) ||
+    if ((0 != cfgdisc_init(&g_discovery,
+                           &g_control,
+                           &g_binding,
+                           p_build_hash,
+                           discovery_wait)) ||
+        (0 != cfgctrl_init(
+                  &g_control, &g_store, cfgdisc_operations(), &g_discovery)) ||
         (0 != c3usb_open()) ||
         (0 != cfgpump_init(&g_pump, &g_control, c3usb_operations(), NULL)) ||
         (0 != cfgpump_observe(&g_pump, telemetry_observe, &g_telemetry)) ||
-        (0 != cfgpump_capabilities(&g_pump, cfgbind_capabilities, NULL)))
+        (0 != cfgpump_capabilities(&g_pump, cfgbind_capabilities, NULL)) ||
+        (0 != cfgpump_discovery(&g_pump, cfgdisc_observe, &g_discovery)))
     {
         return -1;
     }
@@ -61,6 +70,12 @@ int c3app_run (void)
             return -1;
         }
     }
+}
+
+/** @brief Yield the idle controller during a bounded discovery window. */
+static int discovery_wait (void)
+{
+    return (E_OK == tk_dly_tsk(1)) ? 0 : -1;
 }
 
 /* End of file. */
