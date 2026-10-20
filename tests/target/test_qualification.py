@@ -257,7 +257,7 @@ class QualificationTests(unittest.TestCase):
             defaults.parent.mkdir(parents=True)
             defaults.write_bytes(b"CONFIG_IDF_TARGET=\"esp32c3\"\n")
             project, sources = qualification.stage_runtime_port(work)
-            self.assertEqual(len(sources), 134)
+            self.assertEqual(len(sources), 136)
             for name in ("hal/c3umem.c", "hal/c3umem.h", "main/uartcheck.c", "main/uartcheck.h"):
                 self.assertTrue((project / name).is_file())
             qualification.verify_runtime_snapshot(project)

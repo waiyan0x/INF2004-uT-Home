@@ -60,8 +60,32 @@ I2C, SPI signals, chip selects and those outputs cannot claim overlapping pins.
 Claims change only under the serialized lifecycle owner with affected users
 stopped. See [SPI limits and binding](../../../drivers/ssd1306_spi/INTEGRATION.md).
 
-The lifecycle owner opens/closes the I2C controller once device claims and
-transfers are gone; SPI still requires no owned workers.
+**SPI static resources.** `c3spi_init()` follows the same rule, right after
+`c3i2c_init()`: one `TA_INHERIT` mutex from the fixed table, never deleted, so
+the two buses hold two of the 64 mutexes. A failure stops `c3app_run` before
+USB opens. `c3spi_open/close` only start and stop a session, enforced by the
+portable [`spiown`](../../include/spiown.h) module and counted by
+[`spowntest`](../../../../tests/target/spowntest.c):
+
+- open: lifecycle-owner task, bus closed, pins free, no stray attached device;
+  polls the lock;
+- close: lifecycle owner, no attached device (the OLED chip select), no
+  transfer holding the lock (polled, never waited for);
+- a refused pin release leaves the session *retained*: transfers, attach and
+  open are rejected until a retried close succeeds;
+- each transfer rechecks the session after locking; a refused transfer never
+  touches a chip select or SPI2 register;
+- attach/detach require an open session but not the owner check, because the
+  OLED's detach runs inside worker cleanup, where that check reports false;
+- the bus callbacks are never cleared.
+
+Fixed RAM is static `.bss` of about 60 bytes on RV32: session settings 12,
+borrowed bus 28 (four device slots and chip selects), lifecycle state 16,
+mutex handle 4. Limits are unchanged: four devices, 1024 bytes per transfer in
+64-byte FIFO chunks, no DMA, heap or queue.
+
+The lifecycle owner opens/closes both controllers once device claims or
+attached devices and transfers are gone; neither checks a worker count.
 Configured pins/clock stay in the backend; device addresses stay in requests.
 GPIO0/1/3/4/5/6/7/10 are accepted. UART20/21 remain unavailable while the selected
 native startup owns them; USB/flash/strapping pins are excluded. External pull-ups

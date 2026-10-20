@@ -144,6 +144,8 @@ RUNTIME_SOURCE_FILES = {
     "firmware/hal/include/digiout.h": "hal/include/digiout.h",
     "firmware/hal/include/spibus.h": "hal/include/spibus.h",
     "firmware/hal/spibus.c": "hal/spibus.c",
+    "firmware/hal/include/spiown.h": "hal/include/spiown.h",
+    "firmware/hal/spiown.c": "hal/spiown.c",
     "firmware/hal/ports/esp32c3/c3pin.h": "hal/c3pin.h",
     "firmware/hal/ports/esp32c3/c3pin.c": "hal/c3pin.c",
     "firmware/hal/ports/esp32c3/c3spi.h": "hal/c3spi.h",

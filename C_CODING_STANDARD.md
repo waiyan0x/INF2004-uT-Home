@@ -123,6 +123,7 @@ Link exactly one backend. This layout does not license unrelated public names.
 | Portable SPI bus / host fake | `spibus_` / `spifake_`, matching headers |
 | Pin ownership / digital output contract | `pinpool_` / `digiout_`, matching headers |
 | C3 SPI / pin and output adapters | `c3spi_` / `c3pin_`, matching headers |
+| Permanent SPI lock and session lifecycle | `spiown_`, `spiown.h` |
 | SSD1306 driver / instance adapter | `ssd1306_` / `oledinst_`, matching headers |
 
 Public `uthome_` function/type prefixes were shortened in this audit to satisfy
@@ -158,6 +159,8 @@ SPI = Serial Peripheral Interface; CS = chip select; D/C = data/command line;
 OLED = organic light-emitting diode; oledinst identifies its instance adapter;
 MOSI/MISO identify controller-out/controller-in SPI data; FIFO = first in, first
 out; pinpool is pin ownership storage; digiout is the digital-output contract.
+spiown is SPI bus ownership (permanent lock plus session lifecycle); spowntest
+tests it. Both use C99 and add no exception or language scope.
 New abbreviations must be added with their meaning during review.
 
 ## Mandatory manual review
