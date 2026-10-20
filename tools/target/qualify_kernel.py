@@ -23,6 +23,10 @@ SDK_REVISION = "fff9895c82d744c7237be8847347bdd1b07c6643"
 COMPILER_PACKAGE = "esp-15.2.0_20251204"
 
 RUNTIME_SOURCE_FILES = {
+    "tests/target/runtime_port_board/main/uartcheck.c": "main/uartcheck.c",
+    "tests/target/runtime_port_board/main/uartcheck.h": "main/uartcheck.h",
+    "firmware/hal/ports/esp32c3/c3umem.c": "hal/c3umem.c",
+    "firmware/hal/ports/esp32c3/c3umem.h": "hal/c3umem.h",
     "firmware/src/discovery/discuart.c": "discovery/discuart.c",
     "firmware/src/discovery/discuart.h": "discovery/discuart.h",
     "firmware/src/discovery/disci2c.c": "discovery/disci2c.c",
@@ -187,12 +191,50 @@ def check_compiler_flags(command, expected_standard):
         raise QualificationError("SDK warning-error exemptions were not overridden")
 
 
+def verify_uart_storage(commands, source_root):
+    """Fail closed if scoped native allocator substitutions are absent/leak."""
+    expected = {
+        (source_root / "device/ser/ser.c").resolve(): "serial",
+        (source_root / "device/common/drvif/msdrvif.c").resolve(): "record",
+    }
+    for path, role in expected.items():
+        command = commands.get(path)
+        if command is None:
+            raise QualificationError(f"Missing native UART compiler command: {path}")
+        for original, suffix in (("Kmalloc", "alloc"), ("Kfree", "free")):
+            values = re.findall(r'(?:^|\s)-D\s*"?' + original + r'=([A-Za-z_]\w*)"?', command)
+            if values != [f"c3umem_{role}_{suffix}"]:
+                raise QualificationError(f"Invalid UART storage substitution: {path}: {original}")
+    for path, command in commands.items():
+        if path not in expected and re.search(r'-D\s*"?K(?:malloc|free)=c3umem_', command):
+            raise QualificationError(f"UART storage substitution leaked to {path}")
+    return {str(path): role for path, role in expected.items()}
+
+
+def verify_uart_fault_hook(commands, project):
+    """Keep the read-failure hook confined to the acceptance image."""
+    main = commands.get((project / "main/main.c").resolve(), "")
+    modes = re.findall(r'(?:^|\s)-D\s*"?UTHOME_CONFIGURATION_APP=([01])"?', main)
+    if len(modes) != 1:
+        raise QualificationError("Missing or ambiguous application build mode")
+    application = modes[0] == "1"
+    uart = commands.get((project / "hal/c3uart.c").resolve(), "")
+    hooks = re.findall(r'(?:^|\s)-D\s*"?tk_srea_dev=([A-Za-z_]\w*)"?', uart)
+    if hooks != ([] if application else ["uartcheck_read"]):
+        raise QualificationError("Invalid UART fault-injection build scope")
+    test_present = (project / "main/uartcheck.c").resolve() in commands
+    if test_present == application:
+        raise QualificationError("UART acceptance source does not match build mode")
+    return application
+
+
 def verify_compile_profiles(work):
     """Verify every snapshotted owned C file's generated compiler command."""
     database = work / "build/compile_commands.json"
     entries = json.loads(database.read_text(encoding="utf-8"))
     commands = {Path(entry["file"]).resolve(): entry["command"] for entry in entries}
     policy = json.loads((ROOT / "tools/c_standard/policy.json").read_text(encoding="utf-8"))
+    application = verify_uart_fault_hook(commands, work / "project")
     profiles = {}
     for source, destination in RUNTIME_SOURCE_FILES.items():
         if not source.endswith(".c") or "/third_party/" in source:
@@ -206,11 +248,14 @@ def verify_compile_profiles(work):
                       "firmware/hal/ports/esp32c3/c3pwm.c"}:
             expected = "gnu99"
         command = commands.get((work / "project" / destination).resolve())
+        if destination == "main/uartcheck.c" and application:
+            continue
         if command is None:
             raise QualificationError(f"Missing compiler command for {source}")
         check_compiler_flags(command, expected)
         profiles[source] = expected
-    return {"status": "passed", "profiles": profiles,
+    storage = verify_uart_storage(commands, work / "source")
+    return {"status": "passed", "profiles": profiles, "uart_storage": storage,
             "compile_commands_sha256": sha256(database)}
 
 
@@ -449,6 +494,7 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
                 "source_sha256": hashes, "lock_sha256": sha256(dependency_lock)}
         # A successful process with incomplete artifacts is not build evidence.
         for relative in (f"build/{image_name}.bin", f"build/{image_name}.elf",
+                         f"build/{image_name}.map", "build/compile_commands.json",
                          "build/bootloader/bootloader.bin", "build/partition_table/partition-table.bin",
                          "build/flasher_args.json", "sdkconfig", "build.log"):
             artifact = work / relative

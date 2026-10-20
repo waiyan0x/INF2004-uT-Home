@@ -9,7 +9,7 @@ idf_component_register(SRCS "../discovery/discuart.c" "../discovery/disci2c.c" "
                        "../hal/pinpool.c" "../hal/spibus.c"
                        "../hal/c3pin.c" "../hal/c3spi.c"
                        "../drivers/ssd1306.c" "../drivers/oledinst.c"
-                       "../hal/uartio.c" "../hal/c3uart.c"
+                       "../hal/uartio.c" "../hal/c3uart.c" "../hal/c3umem.c"
                        "../drivers/ldparse.c" "../drivers/ld2450.c" "../drivers/ldinst.c"
                        "../hal/pulseio.c" "../hal/pwmio.c"
                        "../drivers/hc_sr04.c" "../drivers/hcinst.c" "../drivers/pwminst.c"
@@ -42,7 +42,7 @@ set_source_files_properties("../discovery/discuart.c" "../discovery/disci2c.c" "
     "../drivers/bmp388.c" "../drivers/bmpinst.c"
     "../hal/pinpool.c" "../hal/spibus.c"
     "../drivers/ssd1306.c" "../drivers/oledinst.c"
-    "../hal/uartio.c" "../hal/c3uart.c" "../drivers/ldparse.c"
+    "../hal/uartio.c" "../hal/c3uart.c" "../hal/c3umem.c" "../drivers/ldparse.c"
     "../drivers/ld2450.c" "../drivers/ldinst.c"
     "../hal/pulseio.c" "../hal/pwmio.c"
     "../drivers/hc_sr04.c" "../drivers/hcinst.c" "../drivers/pwminst.c"
@@ -79,4 +79,27 @@ if(UTHOME_CONFIGURATION_APP)
        NOT CONFIG_LOG_MAXIMUM_LEVEL EQUAL 0)
         message(FATAL_ERROR "Configuration application requires native USB and disabled SDK logs")
     endif()
+endif()
+
+# Adapt only the two pinned native translation units; never rewrite dependency
+# files or globally wrap the kernel allocator. Declarations in tk/syslib.h are
+# renamed with the call sites, preserving the exact size_t/void* ABI.
+# TARGET_DIRECTORY makes source properties visible in the kernel target scope.
+idf_component_get_property(UTHOME_KERNEL_LIB mtkernel COMPONENT_LIB)
+idf_component_get_property(UTHOME_KERNEL_DIR mtkernel COMPONENT_DIR)
+set(UTHOME_NATIVE_ROOT "${UTHOME_KERNEL_DIR}/../..")
+set_property(SOURCE "${UTHOME_NATIVE_ROOT}/device/ser/ser.c"
+    TARGET_DIRECTORY ${UTHOME_KERNEL_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
+    Kmalloc=c3umem_serial_alloc Kfree=c3umem_serial_free)
+set_property(SOURCE "${UTHOME_NATIVE_ROOT}/device/common/drvif/msdrvif.c"
+    TARGET_DIRECTORY ${UTHOME_KERNEL_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
+    Kmalloc=c3umem_record_alloc Kfree=c3umem_record_free)
+
+# Fault injection exists only in the acceptance image, never the application.
+if(NOT UTHOME_CONFIGURATION_APP)
+    target_sources(${COMPONENT_LIB} PRIVATE "uartcheck.c")
+    set_source_files_properties("uartcheck.c"
+        PROPERTIES COMPILE_OPTIONS "-std=c99;${UTHOME_WARNINGS};-fno-inline")
+    set_property(SOURCE "../hal/c3uart.c" APPEND PROPERTY COMPILE_DEFINITIONS
+        tk_srea_dev=uartcheck_read)
 endif()

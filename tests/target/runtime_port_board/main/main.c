@@ -24,6 +24,8 @@
 #include "c3pin.h"
 #include "oledinst.h"
 #include "c3uart.h"
+#include "c3umem.h"
+#include "uartcheck.h"
 #include "cfgctrl.h"
 #include "cfgjson.h"
 #include "cfgplan.h"
@@ -662,6 +664,21 @@ static void verify_peripheral_link (void)
     CHECK(-1 == c3pin_open(NULL, 0U, false));
     CHECK(-1 == c3pin_set(NULL, false));
     CHECK(-1 == c3pin_close(NULL));
+    CHECK(0 == c3uart_init());
+    CHECK(0 == c3uart_init());
+    CHECK(0 == c3umem_seal());
+    CHECK(NULL == c3umem_serial_alloc(UTHOME_C3UMEM_BYTES));
+    CHECK(NULL == c3umem_record_alloc(UTHOME_C3UMEM_BYTES));
+    c3umem_serial_free(NULL);
+    c3umem_record_free(NULL);
+    CHECK(0 == c3umem_seal());
+#if !UTHOME_CONFIGURATION_APP
+    CHECK(0 == uartcheck_run());
+#endif
+    CHECK(0 == c3pulse_startup());
+    CHECK(0 == c3pulse_startup());
+    CHECK(0 == c3pwm_startup());
+    CHECK(0 == c3pwm_startup());
     CHECK(NULL != c3pulse_port(0U));
     CHECK(NULL != c3pulse_port(1U));
     CHECK(NULL == c3pulse_port(2U));
