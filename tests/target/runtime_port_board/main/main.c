@@ -652,6 +652,9 @@ static void verify_peripheral_link (void)
     const drvreg_descriptor_t * p_driver = bmpinst_descriptor();
     CHECK(sizeof(bmpinst_t) == p_driver->context_size);
     CHECK(I2CBUS_INVALID == bmpinst_cleanup(NULL));
+    /* SPI follows the same rule: one startup creation, none on repeat. */
+    CHECK(0 == c3spi_init());
+    CHECK(0 == c3spi_init());
     spibus_t * p_spi = NULL;
     CHECK(SPIBUS_INVALID == c3spi_open(NULL, &p_spi));
     CHECK(NULL == p_spi);

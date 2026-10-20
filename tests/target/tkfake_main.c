@@ -17,6 +17,7 @@
 #include "periph.h"
 #include "oledtest.h"
 #include "owntest.h"
+#include "spowntest.h"
 #include "uarttest.h"
 #include "gpiotest.h"
 #include "bindtest.h"
@@ -286,6 +287,7 @@ int main (void)
     periph_run();
     oledtest_run();
     owntest_run();
+    spowntest_run();
     uarttest_run();
     gpiotest_run();
     bindtest_run(&g_clock_ms);

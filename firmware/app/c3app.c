@@ -9,6 +9,7 @@
 #include "c3i2c.h"
 #include "c3pulse.h"
 #include "c3pwm.h"
+#include "c3spi.h"
 #include "c3store.h"
 #include "c3usb.h"
 #include "c3uart.h"
@@ -31,6 +32,7 @@ int c3app_run (const uint8_t * p_build_hash)
     if ((E_OK != tk_chg_pri(TSK_SELF, 20)) || (0 != cfgjson_init()) ||
         (0 != activate_init()) || (0 != c3pulse_startup()) ||
         (0 != c3pwm_startup()) || (0 != c3uart_init()) || (0 != c3i2c_init()) ||
+        (0 != c3spi_init()) ||
         (0 != cfgbind_init(&g_binding, c3bind_operations())))
     {
         return -1;

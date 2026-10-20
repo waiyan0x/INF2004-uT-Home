@@ -32,8 +32,10 @@ host. Check the total kernel mutex capacity together with UART/I2C/SPI and other
 services. Startup fails closed if capacity is exhausted. This does not prove
 that the kernel's own creation implementation is heap-free.
 
-UART/I2C/SPI creation paths, dynamic worker tasks and the JSON allocator are
-outside this change and still require the separate system-wide migration.
+UART, I2C and SPI now also create their resources once at startup (see the
+[C3 port guide](../firmware/hal/ports/esp32c3/README.md)). Dynamic worker tasks
+and the JSON allocator are outside this change and still require the separate
+system-wide migration.
 
 ## Verification record
 

@@ -46,6 +46,7 @@ class RuntimePortFailureTests(unittest.TestCase):
                        str(ROOT / "tests/target/periph.c"),
                        str(ROOT / "tests/target/oledtest.c"),
                        str(ROOT / "tests/target/owntest.c"),
+                       str(ROOT / "tests/target/spowntest.c"),
                        str(ROOT / "tests/target/uarttest.c"),
                        str(ROOT / "tests/target/gpiotest.c"),
                        str(ROOT / "tests/target/bindtest.c"),
@@ -70,6 +71,7 @@ class RuntimePortFailureTests(unittest.TestCase):
 
                        str(ROOT / "firmware/hal/pinpool.c"),
                        str(ROOT / "firmware/hal/spibus.c"),
+                       str(ROOT / "firmware/hal/spiown.c"),
                        str(ROOT / "firmware/hal/ports/host_sim/spifake.c"),
                        str(ROOT / "firmware/drivers/ssd1306_spi/ssd1306.c"),
                        str(ROOT / "firmware/drivers/ssd1306_spi/oledinst.c"),
@@ -134,6 +136,7 @@ class RuntimePortFailureTests(unittest.TestCase):
                          UTHOME_RULE_PROFILE=str(rule_path), UTHOME_ALT_RULE_PROFILE=str(alt_path)))
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("I2C permanent-lock ownership checks passed.", result.stdout)
+            self.assertIn("SPI permanent-lock ownership checks passed.", result.stdout)
 
             from tools.config_transfer.capabilities import decode_capabilities
             from tools.config_transfer.discovery import decode_discovery, discovery_request

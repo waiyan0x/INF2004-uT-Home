@@ -6,7 +6,8 @@ The backend owns the controller while drivers claim their device addresses.
 `include/i2cown.h` separates the permanent bus lock, created once at startup,
 from repeatable open/close sessions; see the
 [C3 port](ports/esp32c3/README.md) for its limits.
-`include/spibus.h` adds bounded SPI device transactions; `pinpool` tracks pin
+`include/spibus.h` adds bounded SPI device transactions, and `include/spiown.h`
+applies the same permanent-lock/session split to SPI; `pinpool` tracks pin
 ownership and `digiout.h` defines borrowed output callbacks. C3 I2C, SPI and simple
 outputs share one pin ledger. UART, digital input, pulse capture and PWM now
 have software implementations. Storage and USB configuration transfer live in
