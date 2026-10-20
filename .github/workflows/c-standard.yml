@@ -53,8 +53,6 @@ jobs:
       fail-fast: false
       matrix:
         image: [acceptance, configuration]
-    env:
-      IDF_TOOLS_PATH: ${{ runner.temp }}/idf-tools
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -63,6 +61,7 @@ jobs:
       - name: Read the repository's exact pins
         shell: bash
         run: |
+          echo "IDF_TOOLS_PATH=$RUNNER_TEMP/idf-tools" >> "$GITHUB_ENV"
           mkdir -p "$RUNNER_TEMP/uthome-ci"
           python - <<'PY'
           import importlib.util, os

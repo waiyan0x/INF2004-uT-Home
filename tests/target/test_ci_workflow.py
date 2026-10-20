@@ -30,6 +30,10 @@ class WorkflowTests(unittest.TestCase):
         self.assertNotIn('--skip-format', self.commands)
         self.assertNotIn('continue-on-error', self.job)
 
+    def test_runner_path_is_set_after_runner_starts(self):
+        self.assertNotIn("runner.", str(self.job.get("env", {})))
+        self.assertIn('echo "IDF_TOOLS_PATH=$RUNNER_TEMP/idf-tools" >> "$GITHUB_ENV"', self.commands)
+
     def test_evidence_survives_failure(self):
         step = next(item for item in self.job["steps"] if item.get("uses", "").startswith("actions/upload-artifact@"))
         self.assertEqual("always()", step["if"])
