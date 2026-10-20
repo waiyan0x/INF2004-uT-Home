@@ -1,0 +1,36 @@
+/* One validator finding: stable code, JSON path, human message. */
+.error-list { display: grid; gap: var(--space-2); margin-top: var(--space-2); }
+
+.error {
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid hsl(var(--bad) / 0.3);
+  background: hsl(var(--card));
+}
+
+.error__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.error__code {
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: hsl(var(--bad-bg));
+  color: hsl(var(--bad));
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.error__path {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: hsl(var(--muted-foreground));
+  overflow-wrap: anywhere;
+}
+
+.error__message { font-size: var(--text-sm); }

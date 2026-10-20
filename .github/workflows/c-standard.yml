@@ -3,6 +3,7 @@ name: C standard and host acceptance
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -34,6 +35,98 @@ jobs:
       - name: Run target failure and build-tool tests
         run: python -m unittest discover -s tests/target -p 'test_*.py' -v
 
+      - name: Run standalone UART/GPIO and optional-output regressions
+        run: |
+          python tools/test_uart_gpio.py
+          python tools/test_outputs.py
+
       - name: Verify preserved Member 5 toolkit
         working-directory: legacy/member5
         run: python -B -m unittest discover -s tests -p 'test_*.py' -v
+
+  esp32c3:
+    name: ESP32-C3 / ${{ matrix.image }}
+    needs: c-standard
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [acceptance, configuration]
+    env:
+      IDF_TOOLS_PATH: ${{ runner.temp }}/idf-tools
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read the repository's exact pins
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/uthome-ci"
+          python - <<'PY'
+          import importlib.util, os
+          spec = importlib.util.spec_from_file_location("qualification", "tools/target/qualify_kernel.py")
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          with open(os.environ["GITHUB_ENV"], "a") as output:
+              output.write(f"UTHOME_SDK_REV={module.SDK_REVISION}\n")
+              output.write(f"UTHOME_KERNEL_REV={module.KERNEL_REVISION}\n")
+          PY
+      - name: Fetch pinned SDK and kernel without changing project dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init "$RUNNER_TEMP/esp-idf"
+          git -C "$RUNNER_TEMP/esp-idf" remote add origin https://github.com/espressif/esp-idf.git
+          git -C "$RUNNER_TEMP/esp-idf" fetch --depth 1 origin "$UTHOME_SDK_REV"
+          git -C "$RUNNER_TEMP/esp-idf" checkout --detach FETCH_HEAD
+          git -C "$RUNNER_TEMP/esp-idf" submodule update --init --recursive --depth 1
+          git init "$RUNNER_TEMP/uthome-kernel"
+          git -C "$RUNNER_TEMP/uthome-kernel" remote add origin https://github.com/sirfonzie/esp32c3-mtk3.git
+          git -C "$RUNNER_TEMP/uthome-kernel" fetch --depth 1 origin "$UTHOME_KERNEL_REV"
+          git -C "$RUNNER_TEMP/uthome-kernel" checkout --detach FETCH_HEAD
+      - name: Install the SDK's pinned ESP32-C3 tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/esp-idf/install.sh" esp32c3 2>&1 | tee "$RUNNER_TEMP/uthome-ci/install.log"
+      - name: Build and qualify the image
+        shell: bash
+        env:
+          UTHOME_IMAGE: ${{ matrix.image }}
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/esp-idf/export.sh"
+          python -m pip install -r tools/c_standard/requirements.txt -r tools/requirements.txt
+          args=()
+          if [ "$UTHOME_IMAGE" = configuration ]; then args+=(--configuration-app); fi
+          python tools/target/qualify_kernel.py build \
+            --kernel "$RUNNER_TEMP/uthome-kernel" \
+            --sdk "$RUNNER_TEMP/esp-idf" \
+            --work-dir "$RUNNER_TEMP/uthome-build" \
+            --runtime-port "${args[@]}" \
+            --compat-patch firmware/third_party/patches/0002-esp-idf-6.1-build.patch \
+            --resource-patch firmware/third_party/patches/0001-uthome-c3-resources.patch \
+            2>&1 | tee "$RUNNER_TEMP/uthome-ci/qualification.log"
+      - name: Preserve build and verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32c3-${{ matrix.image }}-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/uthome-ci/*.log
+            ${{ runner.temp }}/uthome-build/evidence.json
+            ${{ runner.temp }}/uthome-build/build.log
+            ${{ runner.temp }}/uthome-build/sdkconfig
+            ${{ runner.temp }}/uthome-build/project/source-manifest.json
+            ${{ runner.temp }}/uthome-build/project/dependencies.lock
+            ${{ runner.temp }}/uthome-build/build/*.elf
+            ${{ runner.temp }}/uthome-build/build/*.map
+            ${{ runner.temp }}/uthome-build/build/*.bin
+            ${{ runner.temp }}/uthome-build/build/bootloader/*.bin
+            ${{ runner.temp }}/uthome-build/build/partition_table/*.bin
+            ${{ runner.temp }}/uthome-build/build/compile_commands.json
+            ${{ runner.temp }}/uthome-build/build/flasher_args.json

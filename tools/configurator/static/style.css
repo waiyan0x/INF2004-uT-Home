@@ -1,2 +1,30 @@
- :root{font:15px/1.55 system-ui,sans-serif;color:#dbe4ed;background:#101820;color-scheme:dark;--line:#304050;--muted:#9cabb9;--accent:#64d8bd}
-*{box-sizing:border-box}body{margin:0}header,main,footer{max-width:1240px;margin:auto;padding:24px}header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)}h1{margin:0;font-size:32px;letter-spacing:-1px}h2{font-size:20px;margin:0 0 18px}h3{font-size:16px}.eyebrow{font-size:11px;letter-spacing:2px;color:var(--accent)}.badge{padding:6px 14px;border:1px solid var(--line);border-radius:20px}.columns{display:grid;grid-template-columns:1.1fr 1fr;gap:20px}section{background:#17232e;border:1px solid var(--line);border-radius:10px;padding:24px;margin-bottom:20px}label{display:block;margin:10px 0 6px;font-weight:600}input,select,textarea,button{font:inherit;border:1px solid #405363;border-radius:6px;padding:9px 12px;background:#101b24;color:inherit}textarea{width:100%;resize:vertical;font:13px/1.65 ui-monospace,monospace;tab-size:2}select{width:100%}button{cursor:pointer;margin:4px 4px 4px 0}button:hover{border-color:var(--accent)}button:disabled{opacity:.4;cursor:default}.primary{background:var(--accent);color:#102b26;border-color:var(--accent);font-weight:650}.connection{display:flex;align-items:center;flex-wrap:wrap;gap:10px}.connection p{flex-basis:100%;margin-bottom:0}.connection label{margin:0}.connection input{width:120px}.section-title{display:flex;justify-content:space-between;align-items:center;gap:12px}.section-title h2{margin:0 0 14px}.muted,#editor-help,footer{color:var(--muted);font-size:13px}#notice{border-left:3px solid var(--accent);padding:8px 16px}#notice.error{border-color:#ff938f;color:#ffb7b4}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:320px;overflow:auto}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-size:12px}td{overflow-wrap:anywhere}.fresh{color:var(--accent)}.stale,.fault,.missing{color:#ffba87}details{margin-top:18px}summary{cursor:pointer;color:var(--muted)}.upload input{max-width:100%;font-size:12px}.actions{display:flex;flex-wrap:wrap}footer{text-align:center}@media(max-width:800px){.columns{grid-template-columns:1fr}header,main{padding:16px}section{padding:18px}th,td{padding:7px}}
+@import url('./styles/main.css');
+
+/* Current USB controls use the recovered Configuration Desk design tokens. */
+.section__head > svg { color: hsl(var(--tint, var(--muted-foreground))); }
+.connection-section { margin-bottom: var(--space-6); }
+.connection-row { display: flex; align-items: end; flex-wrap: wrap; gap: var(--space-3); }
+.connection-row .field { flex: 1 1 240px; }
+.connection-row .toolbar { flex: 0 1 auto; }
+select.input { cursor: pointer; }
+h3 { margin: 0; font-size: var(--text-md); font-weight: 500; }
+pre { margin: var(--space-3) 0 0; overflow: auto; max-height: 320px; font-size: var(--text-sm); }
+details { min-width: 0; }
+summary { cursor: pointer; font-size: var(--text-sm); color: hsl(var(--muted-foreground)); }
+.health-tiles, .observation-details { margin-top: var(--space-3); }
+.table-scroll { overflow: auto; }
+table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+th, td { padding: var(--space-2); text-align: left; border-bottom: 1px solid hsl(var(--border)); vertical-align: top; }
+th { color: hsl(var(--muted-foreground)); font-weight: 500; }
+.alert.error { border-color: hsl(var(--bad) / 0.4); color: hsl(var(--bad)); background: hsl(var(--bad-bg)); }
+.tile__state { white-space: normal; overflow-wrap: anywhere; }
+.tile__name { overflow-wrap: anywhere; white-space: normal; }
+.pill { height: auto; min-height: 34px; max-width: 100%; flex-wrap: wrap; padding-block: var(--space-1); }
+@media (max-width: 559px) {
+  .appbar { flex-wrap: wrap; height: auto; min-height: 56px; padding-block: var(--space-2); }
+  .appbar__node { flex-basis: 100%; order: 1; }
+  .section__head { flex-wrap: wrap; }
+  .section__meta { margin-left: 0; }
+  .toolbar .btn { white-space: normal; height: auto; min-height: var(--control-height); }
+  .tiles { grid-template-columns: minmax(0, 1fr); }
+}

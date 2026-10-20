@@ -11,9 +11,13 @@
  * compiled by the kernel, not dynamically allocated. The resource patch
  * supplies 512 usable bytes. GPIO20/21 remain reserved even while closed. USB
  * is separate. No other code may directly access sera or change its attributes.
- * An unexpected native close error poisons this port until reboot: the kernel
- * frees the handle before reporting driver errors, so retrying that handle
- * would be unsafe. */
+ * Call c3uart_init during startup, after runtime owner initialization and
+ * before restore/activation. Failed initialization is sticky until reboot.
+ * Open/close claim/release logical ownership; native handles live until reboot.
+ * Workers must be stopped for lifecycle calls. Close aborts queued TX and
+ * discards RX; it cannot recall a byte already transmitted. Cleanup failure
+ * retains ownership. Unlock failure poisons the port until reboot. */
+int c3uart_init (void);
 uartio_t * c3uart_port (void);
 #endif
 /* End of file. */

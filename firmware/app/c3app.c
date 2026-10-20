@@ -6,8 +6,11 @@
 #include <tk/tkernel.h>
 #include "cfgjson.h"
 #include "c3bind.h"
+#include "c3pulse.h"
+#include "c3pwm.h"
 #include "c3store.h"
 #include "c3usb.h"
+#include "c3uart.h"
 #include "activate.h"
 #include "telemetry.h"
 static cfgbind_state_t g_binding   = {0};
@@ -22,7 +25,8 @@ int c3app_run (void)
     /* Binary traffic exclusively owns USB after the boot banner. No regular
      * console prints or monitor reads are permitted after this handover. */
     if ((E_OK != tk_chg_pri(TSK_SELF, 20)) || (0 != cfgjson_init()) ||
-        (0 != activate_init()) ||
+        (0 != activate_init()) || (0 != c3pulse_startup()) ||
+        (0 != c3pwm_startup()) || (0 != c3uart_init()) ||
         (0 != cfgbind_init(&g_binding, c3bind_operations())))
     {
         return -1;

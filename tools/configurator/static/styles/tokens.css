@@ -1,0 +1,125 @@
+/* Design tokens.
+   Neutrals and radii are the shadcn/ui default "zinc" theme.
+   The accent ramp follows Home Assistant, which tints each device domain a
+   different hue so a dashboard can be read at a glance. Every token is declared
+   here in the bare :root first, then redefined per theme, so no component ever
+   needs a theme-conditional rule of its own. */
+
+:root {
+  /* --- neutrals (shadcn zinc, light) --- */
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --accent: 240 4.8% 95.9%;
+  --ring: 240 5.9% 10%;
+
+  /* --- accent ramp: <hue> and <hue>-bg pairs --- */
+  --c-amber: 38 92% 42%;      --c-amber-bg: 38 96% 92%;
+  --c-orange: 25 95% 45%;     --c-orange-bg: 25 100% 93%;
+  --c-rose: 347 77% 48%;      --c-rose-bg: 347 90% 96%;
+  --c-violet: 271 76% 53%;    --c-violet-bg: 271 90% 96%;
+  --c-indigo: 243 70% 56%;    --c-indigo-bg: 243 90% 96%;
+  --c-blue: 217 85% 50%;      --c-blue-bg: 217 95% 95%;
+  --c-cyan: 192 85% 36%;      --c-cyan-bg: 192 85% 92%;
+  --c-teal: 173 78% 32%;      --c-teal-bg: 173 70% 91%;
+  --c-green: 142 68% 33%;     --c-green-bg: 142 62% 92%;
+  --c-slate: 240 4% 46%;      --c-slate-bg: 240 5% 94%;
+
+  /* --- semantic aliases: components reference these, never a raw hue --- */
+  --ok: var(--c-green);       --ok-bg: var(--c-green-bg);
+  --warn: var(--c-amber);     --warn-bg: var(--c-amber-bg);
+  --bad: var(--c-rose);       --bad-bg: var(--c-rose-bg);
+  --idle: var(--c-slate);     --idle-bg: var(--c-slate-bg);
+
+  /* --- type --- */
+  --font-sans: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  --text-xs: 11.5px;
+  --text-sm: 12.5px;
+  --text-base: 13.5px;
+  --text-md: 15px;
+  --text-lg: 17px;
+
+  /* --- space, shape, depth --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --radius: 0.5rem;
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-full: 999px;
+  --shadow: 0 1px 2px 0 hsl(240 10% 4% / 0.05);
+  --control-height: 36px;
+}
+
+/* Dark theme. Split across two selectors so the OS preference applies when the
+   viewer has made no explicit choice, and the in-app toggle wins either way. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) { color-scheme: dark; }
+}
+
+:root[data-theme='dark'] { color-scheme: dark; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 5.9%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 18%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --accent: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+
+    --c-amber: 38 95% 62%;      --c-amber-bg: 38 55% 15%;
+    --c-orange: 25 95% 63%;     --c-orange-bg: 25 55% 15%;
+    --c-rose: 347 87% 68%;      --c-rose-bg: 347 45% 17%;
+    --c-violet: 271 85% 73%;    --c-violet-bg: 271 45% 19%;
+    --c-indigo: 243 80% 72%;    --c-indigo-bg: 243 45% 20%;
+    --c-blue: 217 90% 67%;      --c-blue-bg: 217 50% 18%;
+    --c-cyan: 192 85% 56%;      --c-cyan-bg: 192 55% 15%;
+    --c-teal: 173 70% 50%;      --c-teal-bg: 173 50% 13%;
+    --c-green: 142 66% 55%;     --c-green-bg: 142 45% 13%;
+    --c-slate: 240 5% 65%;      --c-slate-bg: 240 4% 17%;
+
+    --shadow: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
+  }
+}
+
+:root[data-theme='dark'] {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 5.9%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 18%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --accent: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+
+  --c-amber: 38 95% 62%;      --c-amber-bg: 38 55% 15%;
+  --c-orange: 25 95% 63%;     --c-orange-bg: 25 55% 15%;
+  --c-rose: 347 87% 68%;      --c-rose-bg: 347 45% 17%;
+  --c-violet: 271 85% 73%;    --c-violet-bg: 271 45% 19%;
+  --c-indigo: 243 80% 72%;    --c-indigo-bg: 243 45% 20%;
+  --c-blue: 217 90% 67%;      --c-blue-bg: 217 50% 18%;
+  --c-cyan: 192 85% 56%;      --c-cyan-bg: 192 55% 15%;
+  --c-teal: 173 70% 50%;      --c-teal-bg: 173 50% 13%;
+  --c-green: 142 66% 55%;     --c-green-bg: 142 45% 13%;
+  --c-slate: 240 5% 65%;      --c-slate-bg: 240 4% 17%;
+
+  --shadow: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
+}

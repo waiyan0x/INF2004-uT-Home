@@ -44,7 +44,7 @@ independently admits every submitted profile. JSON numbers must be integers;
 compact profiles are bounded to 8192 bytes.
 
 The server binds only `127.0.0.1`, checks Host/Origin and a per-server session
-token, bounds request bodies, and serves three fixed assets. It is a local
+token, bounds request bodies, and serves an explicit allowlist of UI assets. It is a local
 single-controller tool, not a network service or multi-user deployment system.
 The browser polls one snapshot per second while visible, with one outstanding
 operation. A failed snapshot clears current readings. Health counters are
@@ -73,10 +73,21 @@ remains empty.
 ## Source and verification
 
 Adapted Member 5's cached stdlib server/workflow design from `system-integration`
-commit `bab09246a477dbedef36a55dad7cd319bac1c1ab` (CharmTzy). The current small UI
+commit `bab09246a477dbedef36a55dad7cd319bac1c1ab` (CharmTzy). The current UI
 uses the shared schema/planner and real USB client instead of the older branch's
 validation and filesystem bundle workflow. This is not a merge or a claim that
 the cached commit is the latest remote branch.
+
+The Configuration Desk appearance (cards, icons, Roboto fonts, responsive layout
+and light/dark themes) is recovered from `6a16f2473a348fda0d95eedf12c3839b0010f687`.
+Its presentation uses the current C3 schema and USB workflow, not the legacy
+server or sample telemetry. Device tiles describe the JSON draft; live pills
+appear only from connected firmware snapshots and retain freshness labels.
+Font provenance is in [assets/fonts/README.md](static/assets/fonts/README.md).
+
+Run presentation regression checks with `node --test tests/target/test_dashboard.mjs`
+and HTTP/workflow checks with
+`python -m unittest discover -s tests/target -p test_configurator.py`.
 
 `tests/target/test_configurator.py` covers offline review, single-use candidates,
 changed board/capabilities, uncertain replies, HTTP boundaries and rule support.

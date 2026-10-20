@@ -1,0 +1,33 @@
+{
+  "proposal_only": true,
+  "deployable": false,
+  "description": "Planning values for optional output modules; not a node profile or supported descriptor. Pins and electrical compatibility require review before production binding.",
+  "fan_relay": {
+    "enabled": false,
+    "gpio": null,
+    "active_high": null,
+    "source_device": "environment_sensor",
+    "on_above_c": 30,
+    "off_at_or_below_c": 28,
+    "minimum_switch_interval_ms": 5000,
+    "max_sample_age_ms": 5000,
+    "on_unusable_input": "off",
+    "control": "digital_on_off_only"
+  },
+  "status_led": {
+    "enabled": false,
+    "gpio": null,
+    "active_high": true,
+    "on_ms": 500,
+    "off_ms": 500
+  },
+  "active_buzzer": {
+    "enabled": false,
+    "gpio": null,
+    "active_high": null,
+    "buzzer_type_confirmed": false,
+    "on_ms": 100,
+    "off_ms": 900,
+    "muted": true
+  }
+}

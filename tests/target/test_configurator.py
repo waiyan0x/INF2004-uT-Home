@@ -144,3 +144,30 @@ class ConfiguratorTests(unittest.TestCase):
         self.assertEqual(reviewed["plan"]["rules"][0]["target_index"],1)
         self.assertFalse(reviewed["hardware_qualified"])
         self.assertEqual(self.flow.client.calls,[])
+
+    def test_restored_dashboard_assets_keep_http_boundary(self):
+        server=make_server(0,self.flow)
+        Thread(target=server.serve_forever,daemon=True).start()
+        self.addCleanup(server.server_close);self.addCleanup(server.shutdown)
+        def get(path):
+            connection=http.client.HTTPConnection("127.0.0.1",server.server_port,timeout=3)
+            connection.request("GET",path);response=connection.getresponse()
+            result=response.status,response.read(),response.getheader("Content-Type")
+            connection.close();return result
+        status,page,_=get("/")
+        self.assertEqual(status,200)
+        self.assertIn(b"Configuration Desk",page)
+        for control in (b' id="themeToggle"',b' id="connect"',b' id="review"',b' id="apply"'):
+            self.assertIn(control,page)
+        for path,kind in (("/dashboard.js","text/javascript"),
+                          ("/styles/main.css","text/css"),
+                          ("/styles/tokens.css","text/css"),
+                          ("/assets/fonts/roboto-latin.woff2","font/woff2"),
+                          ("/assets/fonts/roboto-greek.woff2","font/woff2")):
+            status,content,mime=get(path)
+            self.assertEqual(status,200,path);self.assertTrue(content)
+            self.assertTrue(mime.startswith(kind),mime)
+        for path in ("/styles/../../web.py","/assets/fonts/README.md",
+                     "/styles/%2e%2e/web.py","/legacy/member5/tools/configurator/web.py"):
+            self.assertEqual(get(path)[0],404,path)
+        self.assertEqual(self.ports,[])
