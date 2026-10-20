@@ -25,6 +25,27 @@ def setUpModule():
 
 
 class QualificationTests(unittest.TestCase):
+    def test_lf_patch_applies_to_crlf_kernel_file_on_any_host(self):
+        # Reproduces the Linux CI failure: pinned kernel file CRLF, patch LF,
+        # and no core.autocrlf in the user's Git configuration.
+        with tempfile.TemporaryDirectory() as folder:
+            work = Path(folder)
+            source = work / "source"
+            source.mkdir()
+            (source / "config.h").write_bytes(b"#define A 1\r\n#define B 1\r\n#define C 1\r\n")
+            patch_file = work / "change.patch"
+            patch_file.write_bytes(b"--- a/config.h\n+++ b/config.h\n@@ -1,3 +1,3 @@\n"
+                                   b" #define A 1\n-#define B 1\n+#define B 0\n #define C 1\n")
+            empty = work / "gitconfig"
+            empty.write_bytes(b"")
+            isolated = {"GIT_CONFIG_GLOBAL": str(empty), "GIT_CONFIG_NOSYSTEM": "1"}
+            with patch.dict(qualification.os.environ, isolated):
+                plain = subprocess.run(["git", "apply", "--check", str(patch_file)], cwd=source,
+                                       capture_output=True)
+                self.assertNotEqual(plain.returncode, 0, "scenario must reproduce the CI failure")
+                qualification.apply_patch(patch_file, source)
+            self.assertIn(b"#define B 0", (source / "config.h").read_bytes())
+
     def test_application_requires_runtime_mode_before_building(self):
         with tempfile.TemporaryDirectory() as folder:
             work = Path(folder) / "uncreated"

@@ -319,6 +319,19 @@ def inspect(kernel, sdk):
     return versions
 
 
+def apply_patch(patch, source):
+    """Check, then apply, one staged patch identically on every host.
+
+    The pinned kernel stores config/config_device.h with CRLF endings, while the
+    reviewed patches are LF. Windows Git (core.autocrlf=true) matched them, which
+    is how the recorded builds succeeded; Linux CI (unset) rejected the same
+    bytes. Pin the setting so every host reproduces the recorded behaviour.
+    """
+    command = ["git", "-c", "core.autocrlf=true", "apply"]
+    run(command + ["--check", patch], cwd=source)
+    run(command + [patch], cwd=source)
+
+
 def unpack_source(archive_path, destination):
     """Reject escapes and symlinks before extracting a Git source archive."""
     with zipfile.ZipFile(archive_path) as archive:
@@ -430,15 +443,13 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
             staged_patch = work / "kernel-compatibility.patch"
             staged_patch.write_bytes(compat_patch.read_bytes())
             evidence["compatibility_patch"] = {"name": compat_patch.name, "sha256": sha256(staged_patch)}
-            run(["git", "apply", "--check", staged_patch], cwd=work / "source")
-            run(["git", "apply", staged_patch], cwd=work / "source")
+            apply_patch(staged_patch, work / "source")
         evidence["resource_patch"] = None
         if resource_patch is not None:
             staged_patch = work / "kernel-resources.patch"
             staged_patch.write_bytes(resource_patch.read_bytes())
             evidence["resource_patch"] = {"name": resource_patch.name, "sha256": sha256(staged_patch)}
-            run(["git", "apply", "--check", staged_patch], cwd=work / "source")
-            run(["git", "apply", staged_patch], cwd=work / "source")
+            apply_patch(staged_patch, work / "source")
         project = work / "source/examples/tasks"
         image_name = "mtk3c3_tasks"
         if runtime_port:
