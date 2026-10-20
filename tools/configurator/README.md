@@ -10,19 +10,28 @@ python -B -m tools.configurator --port 8080
 Open `http://127.0.0.1:8080`. Stop the server with Ctrl+C. The UI uses Python's
 standard HTTP server and local HTML/CSS/JavaScript; no Node build or new web
 framework is required. Offline review needs only the planner dependencies.
+The interface uses one fixed colour palette.
 
-1. Load an example or JSON file and edit instances, wiring, timing and routes.
-2. Select **Validate and review** to see resource demand, devices and rules.
+1. In **Profile**, choose an example or import JSON. Open **Edit profile JSON**
+   for custom instances, wiring, timing and routes. Optional discovery is under
+   **Add a device**; interfaces, queues and the catalogue are under
+   **Wiring & resources**.
+2. Select **Validate and review** to open **Review & apply** with the requested
+   resources, devices and rules. Errors remain visible above all three views.
 3. For deployment, explicitly connect to the application firmware's serial port,
    then review again against its reported compiled capabilities.
 4. **Apply & save** replaces the whole plan and attempts persistent storage.
    Check both the result and active/saved revisions. Retry saving is a separate,
    explicit operation; it does not reapply the profile.
-5. Live readings show source identity, freshness, health and queue/runtime state.
+5. **Live monitor** shows source identity, freshness and health. Open its
+   observation and runtime details when needed.
    Disconnecting leaves the board running. Recover retries cleanup only when
    recovery is required. To stop a healthy setup, review/apply an empty hardware
    profile. **Apply & save also replaces the saved startup profile**; keep the
    original profile file if you intend to restore it later.
+
+Switching views preserves the draft and current review; editing the draft still
+requires a new review. The view tabs support Left/Right arrows and Home/End.
 
 The D2 discovery command requires a newly built application image. Physical USB,
 peripheral and persistence acceptance belongs to checkpoint 8. Offline review

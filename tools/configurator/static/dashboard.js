@@ -127,21 +127,33 @@ export function renderTelemetry(snapshot) {
   ], '');
 }
 
-export function setupTheme() {
-  const root = document.documentElement;
-  try {
-    const stored = localStorage.getItem('ut-home-theme');
-    if (stored === 'dark' || stored === 'light') root.dataset.theme = stored;
-  } catch { /* The OS preference still works if storage is unavailable. */ }
-  const button = el('themeToggle');
-  function current() {
-    return root.dataset.theme ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+/** Switch views without changing the draft, board state or pending review. */
+export function setupWorkspace() {
+  const tabs = [...document.querySelectorAll('[data-workspace-tab]')];
+  function select(view, focus = false) {
+    const selected = tabs.find(tab => tab.dataset.workspaceTab === view);
+    if (!selected) return;
+    for (const tab of tabs) {
+      const active = tab === selected;
+      tab.setAttribute('aria-selected', String(active));
+      tab.tabIndex = active ? 0 : -1;
+      el(tab.getAttribute('aria-controls')).hidden = !active;
+    }
+    if (focus) selected.focus();
   }
-  function label() { button.setAttribute('aria-label', `Switch to ${current() === 'dark' ? 'light' : 'dark'} theme`); }
-  button.addEventListener('click', () => {
-    root.dataset.theme = current() === 'dark' ? 'light' : 'dark';
-    try { localStorage.setItem('ut-home-theme', root.dataset.theme); } catch { /* optional preference */ }
-    label();
-  });
-  label();
+  for (const [index, tab] of tabs.entries()) {
+    tab.addEventListener('click', () => select(tab.dataset.workspaceTab));
+    tab.addEventListener('keydown', event => {
+      const target = { ArrowRight: (index + 1) % tabs.length,
+        ArrowLeft: (index + tabs.length - 1) % tabs.length,
+        Home: 0, End: tabs.length - 1 }[event.key];
+      if (target === undefined) return;
+      event.preventDefault();
+      select(tabs[target].dataset.workspaceTab, true);
+    });
+  }
+  for (const link of document.querySelectorAll('[data-workspace-link]')) {
+    link.addEventListener('click', () => select(link.dataset.workspaceLink, true));
+  }
+  return select;
 }

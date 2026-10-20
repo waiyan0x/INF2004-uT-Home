@@ -48,7 +48,6 @@
   <g id="i-refresh"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></g>
   <g id="i-clipboard"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></g>
   <g id="i-package"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12m9-4-9 4-9-4"/></g>
-  <g id="i-theme"><path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4"/><path d="M12 2v2M12 20v2m-7.1-17.1 1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></g>
 </defs></svg>
 
 <header class="appbar">
@@ -57,85 +56,128 @@
   <span class="appbar__node" id="appbarNode">no profile loaded</span>
   <span class="appbar__spacer"></span>
   <span class="badge" id="connection">Offline review</span>
-  <button class="btn btn--icon" id="themeToggle" type="button" title="Switch theme" aria-label="Switch theme">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-theme"/></svg>
-  </button>
 </header>
 
 <main class="page">
   <section class="section connection-section" aria-label="Board connection">
-    <div class="card">
+    <div class="card connection-card">
       <div class="connection-row">
-        <div class="field"><label class="field__label" for="port">Serial port</label><input class="input" id="port" placeholder="/dev/cu.usbmodem… or COM8" maxlength="128"></div>
+        <div class="field"><label class="field__label" for="port">Board connection <span class="label-note">optional for offline review</span></label><input class="input" id="port" placeholder="Serial port · /dev/cu.usbmodem… or COM8" maxlength="128"></div>
         <div class="toolbar"><button class="btn" id="connect">Connect</button><button class="btn" id="disconnect" disabled>Disconnect</button></div>
       </div>
-      <p class="hint" id="capabilities">Review offline, or explicitly connect to read the firmware’s capabilities.</p>
+      <p class="hint" id="capabilities">Choose a profile below. Connect a board when you are ready to apply it.</p>
     </div>
   </section>
-  <div class="pills" id="pills" aria-label="Live sensor readings"><p class="hint">No live readings · connect to the application firmware to observe sensors.</p></div>
-  <section class="section connection-section" aria-labelledby="discovery-heading">
-    <div class="section__head" data-accent="violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-i2c"/></svg><h2 id="discovery-heading">Device discovery</h2></div>
-    <div class="card">
-      <div class="connection-row">
-        <div class="field"><label class="field__label" for="discovery-preset">Reviewed connection</label><select class="input" id="discovery-preset" aria-describedby="discovery-wiring"></select></div>
-        <button class="btn" id="detect" disabled>Detect devices</button>
-      </div>
-      <p class="hint" id="discovery-wiring">Loading connection details…</p>
-      <label class="discovery-confirm"><input type="checkbox" id="wiring-confirmed">I checked the pins, supply and signal voltage against this connection.</label>
-      <p class="hint">Rewire with USB and external power disconnected, then reconnect. Detection checks the selected I2C or radar connection. OLED and GPIO selections use manual confirmation and send no test commands.</p>
-      <p class="hint" id="discovery-status" role="status" aria-live="polite">Connect to check for devices.</p>
-      <div class="tiles" id="discovery-results"></div>
-      <details><summary>Preparing an idle board</summary><p class="hint">I2C and radar detection need an empty hardware configuration; manual selections only prepare draft settings. To stop a running setup, first keep a copy of the profile you will restore. In a separate draft, empty the devices, interfaces, queues and rules lists, then use Validate and review → Apply &amp; save. This also replaces the saved startup profile. Restore your original draft to add discoveries. Detection never performs this step for you.</p></details>
-    </div>
-  </section>
-  <div class="overview">
-    <div class="overview__column">
-      <section class="section">
-        <div class="section__head" data-accent="slate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-braces"/></svg><h2>Profile</h2><div class="section__meta" id="profileMeta"></div></div>
-        <div class="card">
-          <div class="toolbar">
-            <label class="btn btn--file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-upload"/></svg>Import JSON<input id="file" type="file" accept=".json,application/json"></label>
-            <button class="btn" id="format">Format</button><button class="btn" id="download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-download"/></svg>Download JSON</button>
-            <button class="btn btn--primary" id="review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-shield"/></svg>Validate and review</button>
+
+  <div class="workspace-tabs" role="tablist" aria-label="Configuration workspace">
+    <button class="workspace-tab" id="tab-profile" type="button" role="tab" aria-selected="true" aria-controls="workspace-profile" data-workspace-tab="profile">Profile</button>
+    <button class="workspace-tab" id="tab-review" type="button" role="tab" aria-selected="false" aria-controls="workspace-review" tabindex="-1" data-workspace-tab="review">Review &amp; apply</button>
+    <button class="workspace-tab" id="tab-monitor" type="button" role="tab" aria-selected="false" aria-controls="workspace-monitor" tabindex="-1" data-workspace-tab="monitor">Live monitor</button>
+  </div>
+  <div class="alert alert--neutral workspace-notice" id="notice" role="status" aria-live="polite">Choose an example or import a profile, then validate and review.</div>
+
+  <section id="workspace-profile" role="tabpanel" aria-labelledby="tab-profile" tabindex="0">
+    <div class="workspace-grid">
+      <div class="workspace-column">
+        <section class="section" aria-labelledby="profile-heading">
+          <div class="section__head" data-accent="slate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-braces"/></svg><h2 id="profile-heading">Your profile</h2><div class="section__meta" id="profileMeta"></div></div>
+          <div class="card">
+            <div class="profile-picker">
+              <div class="field"><label class="field__label" for="examples">Start with an example</label><select class="input" id="examples"><option value="">Select a profile</option></select></div>
+              <label class="btn btn--file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-upload"/></svg>Import JSON<input id="file" aria-label="Import JSON profile" type="file" accept=".json,application/json"></label>
+            </div>
+            <p class="hint" id="profileRuntime"></p>
+            <details class="editor-details" id="editor-details">
+              <summary>Edit profile JSON <span class="summary-note">Custom settings</span></summary>
+              <div class="details-body">
+                <div class="field"><label class="field__label" for="profile">Profile JSON</label><textarea class="textarea" id="profile" spellcheck="false" aria-describedby="editor-help"></textarea></div>
+                <div class="toolbar"><button class="btn" id="format">Format JSON</button></div>
+                <p class="hint" id="editor-help">Edit devices, wiring, timing or rules. Changes must be reviewed before applying.</p>
+              </div>
+            </details>
+            <div class="profile-actions toolbar">
+              <button class="btn btn--primary" id="review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-shield"/></svg>Validate and review</button>
+              <button class="btn" id="download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-download"/></svg>Download JSON</button>
+            </div>
+            <p class="hint">Reviewing checks the draft. It does not change the board.</p>
           </div>
-          <div class="field"><label class="field__label" for="examples">Example profile</label><select class="input" id="examples"><option value="">Select a profile</option></select></div>
-          <div class="field"><label class="field__label" for="profile">Profile JSON</label><textarea class="textarea" id="profile" spellcheck="false" aria-describedby="editor-help"></textarea></div>
-          <p class="hint" id="editor-help">Change device instances, wiring, periods and routes. Review the complete profile before deployment.</p>
-          <p class="hint" id="profileRuntime"></p>
-          <details><summary>Device catalogue</summary><pre id="catalogue"></pre></details>
+        </section>
+        <section class="section" aria-labelledby="devices-heading">
+          <div class="section__head" data-accent="orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-package"/></svg><h2 id="devices-heading">Devices in this profile</h2><div class="section__meta" id="devicesMeta"></div></div>
+          <div class="tiles" id="devices"></div>
+        </section>
+      </div>
+      <aside class="workspace-column" aria-label="Profile tools">
+        <section class="section" aria-labelledby="discovery-heading">
+          <div class="section__head" data-accent="violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-i2c"/></svg><h2 id="discovery-heading">Add a device</h2></div>
+          <details class="card" id="discovery-details">
+            <summary>Discover or select hardware</summary>
+            <div class="details-body">
+              <div class="field"><label class="field__label" for="discovery-preset">Connection or device</label><select class="input" id="discovery-preset" aria-describedby="discovery-wiring"></select></div>
+              <p class="hint" id="discovery-wiring">Loading connection details…</p>
+              <label class="discovery-confirm"><input type="checkbox" id="wiring-confirmed">I checked the pins, supply and signal voltage against this connection.</label>
+              <p class="hint">Disconnect USB and external power before rewiring. Detection checks the selected I2C or radar connection; OLED and GPIO require manual confirmation.</p>
+              <button class="btn" id="detect" disabled>Detect devices</button>
+              <p class="hint" id="discovery-status" role="status" aria-live="polite">Connect to check for devices.</p>
+              <div class="tiles" id="discovery-results"></div>
+              <details><summary>Preparing an idle board</summary><p class="hint">I2C and radar detection need an empty hardware configuration; manual selections only prepare draft settings. Keep a copy of the profile you will restore. In a separate draft, empty the devices, interfaces, queues and rules lists, then Validate and review → Apply &amp; save. This also replaces the saved startup profile. Restore your original draft to add discoveries. Detection never performs this step for you.</p></details>
+            </div>
+          </details>
+        </section>
+        <section class="section" aria-labelledby="resources-heading">
+          <div class="section__head" data-accent="amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-layers"/></svg><h2 id="resources-heading">Wiring &amp; resources</h2></div>
+          <div class="card resource-details">
+            <details><summary>Interfaces <span class="summary-note" id="interfacesMeta"></span></summary><div class="tiles details-body" id="interfaces"></div></details>
+            <details><summary>Queues <span class="summary-note" id="queuesMeta"></span></summary><div class="tiles details-body" id="queues"></div></details>
+            <details><summary>Device catalogue</summary><pre id="catalogue"></pre></details>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </section>
+
+  <section id="workspace-review" role="tabpanel" aria-labelledby="tab-review" tabindex="0" hidden>
+    <div class="workspace-grid">
+      <section class="section" aria-labelledby="review-heading">
+        <div class="section__head" data-accent="indigo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-clipboard"/></svg><h2 id="review-heading">Review your changes</h2></div>
+        <div class="card">
+          <p class="hint" id="review-summary">Validate your profile to see the requested devices, resources and rules.</p>
+          <div class="table-scroll" id="plan"></div><div class="table-scroll" id="rule-plan"></div>
+          <div class="toolbar"><button class="btn btn--primary" id="apply" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Apply &amp; save</button><button class="btn" type="button" data-workspace-link="profile">Back to profile</button></div>
+          <p class="hint">Apply replaces the running configuration and attempts to save it for restart. Check the result and saved state separately.</p>
         </div>
       </section>
-      <section class="section">
-        <div class="section__head" data-accent="green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-shield"/></svg><h2>Validation</h2></div>
-        <div class="alert alert--neutral" id="notice" role="status" aria-live="polite">Load a profile, then validate and review it. No hardware action is automatic.</div>
-      </section>
-      <section class="section">
-        <div class="section__head" data-accent="indigo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-clipboard"/></svg><h2>Review & deploy</h2></div>
+      <section class="section" aria-labelledby="state-heading">
+        <div class="section__head" data-accent="slate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-node"/></svg><h2 id="state-heading">Board state</h2></div>
         <div class="card">
-          <p class="hint" id="review-summary">A review shows the requested resources, configured devices and rules.</p>
-          <div class="table-scroll" id="plan"></div><div class="table-scroll" id="rule-plan"></div>
-          <div class="toolbar"><button class="btn btn--primary" id="apply" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Apply & save reviewed profile</button></div>
-          <p class="hint">Applying replaces the active configuration and attempts to save it for reboot. Deployment and saved state are reported separately.</p>
-          <h3>Board state</h3><p class="hint" id="state">Connect to read active and saved revisions.</p>
-          <div class="toolbar"><button class="btn" id="query" disabled>Refresh state</button><button class="btn" id="save" disabled>Retry saving</button><button class="btn btn--danger" id="recover" disabled>Recover</button></div>
-          <p class="hint">Recover is available only when the board reports a failed cleanup. It clears the live plan after checked cleanup; the saved profile remains available for the next boot.</p>
+          <p class="hint" id="state">Connect to read active and saved revisions.</p>
+          <button class="btn" id="query" disabled>Refresh state</button>
+          <details><summary>Save &amp; recovery</summary><div class="details-body">
+            <div class="toolbar"><button class="btn" id="save" disabled>Retry saving</button><button class="btn btn--danger" id="recover" disabled>Recover</button></div>
+            <p class="hint">Retry saving keeps the current running configuration. Recover is only available after failed cleanup; it clears the live plan after checked cleanup and keeps the saved profile.</p>
+          </div></details>
         </div>
       </section>
     </div>
-    <div class="overview__column">
-      <section class="section"><div class="section__head" data-accent="orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-package"/></svg><h2>Devices</h2><div class="section__meta" id="devicesMeta"></div></div><div class="tiles" id="devices"></div></section>
-      <section class="section"><div class="section__head" data-accent="violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-route"/></svg><h2>Interfaces</h2><div class="section__meta" id="interfacesMeta"></div></div><div class="tiles" id="interfaces"></div></section>
-      <section class="section"><div class="section__head" data-accent="amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-layers"/></svg><h2>Queues</h2><div class="section__meta" id="queuesMeta"></div></div><div class="tiles" id="queues"></div></section>
-      <section class="section">
-        <div class="section__head" data-accent="cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-activity"/></svg><h2>Health</h2><div class="section__meta" id="timestamp"></div></div>
-        <div class="alert alert--neutral" id="health" role="status">No live observations. Configured devices are not proof of connected hardware.</div>
+  </section>
+
+  <section id="workspace-monitor" role="tabpanel" aria-labelledby="tab-monitor" tabindex="0" hidden>
+    <div class="workspace-column">
+      <section class="section" aria-labelledby="readings-heading">
+        <div class="section__head" data-accent="cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-activity"/></svg><h2 id="readings-heading">Live readings</h2><div class="section__meta" id="timestamp"></div></div>
+        <div class="card"><div class="pills" id="pills" aria-label="Live sensor readings"><p class="hint">Connect a board to see live sensor readings.</p></div></div>
+      </section>
+      <section class="section" aria-labelledby="health-heading">
+        <div class="section__head" data-accent="cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-activity"/></svg><h2 id="health-heading">System health</h2></div>
+        <div class="alert alert--neutral" id="health" role="status">No live observations.</div>
         <div class="tiles health-tiles" id="healthTiles"></div>
         <details class="card observation-details"><summary>Per-source observations</summary><div class="table-scroll" id="readings" aria-live="polite"></div></details>
         <details class="card observation-details"><summary>Queue and runtime details</summary><pre id="diagnostics"></pre></details>
+        <p class="hint monitor-note">Profile devices are draft settings. Live readings come only from the connected board.</p>
       </section>
     </div>
-  </div>
-  <p class="footnote">μT-Home · one firmware · configured hardware · localhost only · hardware access requires explicit connection</p>
+  </section>
+  <p class="footnote">μT-Home · Configuration Desk · localhost only</p>
 </main>
 <script type="module" src="/app.js"></script>
 </body>

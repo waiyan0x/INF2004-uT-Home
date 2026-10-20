@@ -27,6 +27,66 @@ th { color: hsl(var(--muted-foreground)); font-weight: 500; }
 .tile__state { white-space: normal; overflow-wrap: anywhere; }
 .tile__name { overflow-wrap: anywhere; white-space: normal; }
 .pill { height: auto; min-height: 34px; max-width: 100%; flex-wrap: wrap; padding-block: var(--space-1); }
+
+/* Task-focused views reuse the existing palette and component styles. */
+[hidden] { display: none !important; }
+.workspace-tabs {
+  display: flex;
+  gap: var(--space-4);
+  border-bottom: 1px solid hsl(var(--border));
+  margin-bottom: var(--space-4);
+}
+.workspace-tab {
+  padding: var(--space-3) var(--space-2);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.workspace-tab:hover { color: hsl(var(--foreground)); }
+.workspace-tab[aria-selected="true"] {
+  color: hsl(var(--foreground));
+  border-bottom-color: hsl(var(--primary));
+}
+.workspace-notice { margin-bottom: var(--space-6); font-size: var(--text-sm); }
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-6);
+}
+.workspace-column { display: grid; gap: var(--space-6); min-width: 0; }
+.profile-picker { display: flex; align-items: end; flex-wrap: wrap; gap: var(--space-3); }
+.profile-picker .field { flex: 1 1 200px; min-width: 0; }
+.btn--file:focus-within { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.profile-actions { padding-top: var(--space-3); border-top: 1px solid hsl(var(--border)); }
+.label-note, .summary-note {
+  color: hsl(var(--muted-foreground));
+  font-size: var(--text-sm);
+  font-weight: 400;
+}
+.label-note { margin-left: var(--space-2); line-height: 1.5; }
+.summary-note { float: right; margin-left: var(--space-2); }
+.details-body { margin-top: var(--space-4); }
+.details-body > * + * { margin-top: var(--space-3); }
+.details-body.tiles > * + * { margin-top: 0; }
+.editor-details summary, .resource-details summary, #discovery-details > summary {
+  color: hsl(var(--foreground));
+  font-weight: 500;
+}
+.resource-details > details + details { padding-top: var(--space-3); border-top: 1px solid hsl(var(--border)); }
+.monitor-note { margin-top: var(--space-3); }
+.connection-card .field__label { line-height: 1.5; }
+.connection-card .hint { overflow-wrap: anywhere; }
+#workspace-profile #discovery-results { grid-template-columns: minmax(0, 1fr); }
+#workspace-profile .resource-details .tiles { grid-template-columns: minmax(0, 1fr); }
+#workspace-monitor .pills { margin: 0; }
+@media (min-width: 900px) {
+  .workspace-grid { grid-template-columns: minmax(0, 1.8fr) minmax(280px, 1fr); }
+}
 @media (max-width: 559px) {
   .appbar { flex-wrap: wrap; height: auto; min-height: 56px; padding-block: var(--space-2); }
   .appbar__node { flex-basis: 100%; order: 1; }
@@ -35,4 +95,9 @@ th { color: hsl(var(--muted-foreground)); font-weight: 500; }
   .toolbar .btn { white-space: normal; height: auto; min-height: var(--control-height); }
   .tiles { grid-template-columns: minmax(0, 1fr); }
   #discovery-results { grid-template-columns: minmax(0, 1fr); }
+  .workspace-tabs { gap: var(--space-1); justify-content: space-between; }
+  .workspace-tab { padding-inline: var(--space-2); font-size: var(--text-sm); }
+  .summary-note { float: none; display: inline-block; margin-left: var(--space-2); }
+  .label-note { display: block; margin-left: 0; }
+  .profile-picker .btn--file { flex-shrink: 0; }
 }

@@ -158,7 +158,8 @@ class ConfiguratorTests(unittest.TestCase):
         status,page,_=get("/")
         self.assertEqual(status,200)
         self.assertIn(b"Configuration Desk",page)
-        for control in (b' id="themeToggle"',b' id="connect"',b' id="review"',b' id="apply"'):
+        self.assertNotIn(b' id="themeToggle"', page)
+        for control in (b' id="connect"',b' id="review"',b' id="apply"'):
             self.assertIn(control,page)
         for path,kind in (("/dashboard.js","text/javascript"),
                           ("/discovery.js","text/javascript"),
