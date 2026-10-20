@@ -45,6 +45,7 @@ class RuntimePortFailureTests(unittest.TestCase):
                        str(ROOT / "tests/target/tkfake_main.c"),
                        str(ROOT / "tests/target/periph.c"),
                        str(ROOT / "tests/target/oledtest.c"),
+                       str(ROOT / "tests/target/owntest.c"),
                        str(ROOT / "tests/target/uarttest.c"),
                        str(ROOT / "tests/target/gpiotest.c"),
                        str(ROOT / "tests/target/bindtest.c"),
@@ -73,6 +74,7 @@ class RuntimePortFailureTests(unittest.TestCase):
                        str(ROOT / "firmware/drivers/ssd1306_spi/ssd1306.c"),
                        str(ROOT / "firmware/drivers/ssd1306_spi/oledinst.c"),
                        str(ROOT / "firmware/hal/i2cbus.c"),
+                       str(ROOT / "firmware/hal/i2cown.c"),
                        str(ROOT / "firmware/hal/ports/host_sim/i2cfake.c"),
                        str(ROOT / "firmware/drivers/bmp388/bmp388.c"),
                        str(ROOT / "firmware/drivers/bmp388/bmpinst.c"),
@@ -131,6 +133,7 @@ class RuntimePortFailureTests(unittest.TestCase):
                 env=dict(os.environ, UTHOME_DISPLAY_PROFILE=str(profile_path),
                          UTHOME_RULE_PROFILE=str(rule_path), UTHOME_ALT_RULE_PROFILE=str(alt_path)))
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("I2C permanent-lock ownership checks passed.", result.stdout)
 
             from tools.config_transfer.capabilities import decode_capabilities
             from tools.config_transfer.discovery import decode_discovery, discovery_request

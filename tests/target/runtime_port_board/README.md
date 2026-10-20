@@ -50,6 +50,10 @@ acceptance image, but that revised image has not been flashed or board-qualified
 The historical 514-check logs apply only to their recorded source hashes.
 Actual sensor communication needs a separate configured hardware test after the
 breakout wiring is confirmed; this default fixture never opens a real bus.
+The fixture now also checks that `c3i2c_init()` returns 0 on its first call
+and again on a repeated call. These two checks test return values only, and
+the image is unqualified. The proof that only one mutex is created comes from
+the host `owntest` creation-call counter, not from this fixture.
 
 The subsequent SPI/OLED checkpoint adds SPI2, shared pin ownership, simple outputs
 and the OLED driver/registry adapter. Eight further argument/descriptor checks
