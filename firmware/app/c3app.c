@@ -30,14 +30,11 @@ int c3app_run (const uint8_t * p_build_hash)
      * console prints or monitor reads are permitted after this handover. */
     if ((E_OK != tk_chg_pri(TSK_SELF, 20)) || (0 != cfgjson_init()) ||
         (0 != activate_init()) || (0 != c3pulse_startup()) ||
-        (0 != c3pwm_startup()) || (0 != c3uart_init()) ||
+        (0 != c3pwm_startup()) || (0 != c3uart_init()) || (0 != c3i2c_init()) ||
         (0 != cfgbind_init(&g_binding, c3bind_operations())))
     {
         return -1;
     }
-    /* Permanent bus resources precede restore and requests. A failure leaves
-     * that bus unavailable (opens fail) without silencing USB. */
-    (void)c3i2c_init();
     /* Missing storage is reported by restore/requests without silencing USB. */
     (void)c3store_open();
     g_store.p_operations = c3store_operations();

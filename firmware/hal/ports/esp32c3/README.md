@@ -32,7 +32,10 @@ before profile restore and USB requests. It makes the adapter's only kernel
 creation call: one `TA_INHERIT` mutex, taken from the kernel's fixed mutex table
 (`CNF_MAX_MTXID` 64), never the heap. The mutex is never deleted. Later init
 calls create nothing. If creation fails, init and open keep failing until
-reboot; Detect, Apply, rollback and recovery never retry it.
+reboot; Detect, Apply, rollback and recovery never retry it. Like the UART,
+pulse and PWM startup calls, a failure stops `c3app_run` before USB opens. The
+failure depends only on the build (for example a full kernel object table), so
+it shows up as a boot-time FAIL on serial instead of a node that never runs I2C.
 `c3i2c_open/close` only start and stop a session: pins, clock and controller.
 The portable [`i2cown`](../../include/i2cown.h) module enforces the rules, and
 [`owntest`](../../../../tests/target/owntest.c) counts every creation call:
