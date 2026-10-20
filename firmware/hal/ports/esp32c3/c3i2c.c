@@ -27,7 +27,6 @@ typedef struct
 } c3i2c_state_t;
 
 static c3i2c_state_t g_state = {0};
-static i2cbus_t      g_bus   = {0};
 /* Permanent: written once by startup creation, never deleted. */
 static ID       gh_mutex = 0;
 static i2cown_t g_owner  = {0};
@@ -60,6 +59,10 @@ static const i2cown_ops_t g_lifecycle = {.p_create = create_lock,
                                          .p_unlock = unlock_bus,
                                          .p_start  = start_bus,
                                          .p_stop   = stop_bus};
+/* Callbacks stay set even when closed, so a preempted caller never reaches a
+ * null pointer; the session checks reject it instead. Claims are per session.
+ */
+static i2cbus_t g_bus = {.p_operations = &g_operations, .p_context = &g_state};
 
 /** @brief Create the permanent bus mutex during startup, exactly once. */
 int c3i2c_init (void)
@@ -76,6 +79,12 @@ int c3i2c_open (const i2cbus_config_t * p_config, i2cbus_t ** pp_bus)
         (p_config->clock_hz < 10000U) || (p_config->clock_hz > 400000U))
     {
         return I2CBUS_INVALID;
+    }
+    /* A claim recorded while closed belongs to a misbehaving caller; refuse
+     * rather than silently discard another device's ownership. */
+    if (i2cbus_has_claims(&g_bus))
+    {
+        return I2CBUS_STATE;
     }
     const int result = i2cown_open(&g_owner, p_config);
     if (0 == result)
@@ -238,7 +247,6 @@ static int start_bus (void * p_context, const i2cbus_config_t * p_config)
     reset_controller();
     setup_pin(p_config->sda_gpio, I2CEXT0_SDA_OUT_IDX, I2CEXT0_SDA_IN_IDX);
     setup_pin(p_config->scl_gpio, I2CEXT0_SCL_OUT_IDX, I2CEXT0_SCL_IN_IDX);
-    g_bus = (i2cbus_t){.p_operations = &g_operations, .p_context = &g_state};
     return 0;
 }
 
@@ -261,7 +269,6 @@ static int stop_bus (void * p_context)
         return I2CBUS_STATE;
     }
     g_state = (c3i2c_state_t){0};
-    g_bus   = (i2cbus_t){0};
     return 0;
 }
 

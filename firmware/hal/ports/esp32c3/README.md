@@ -43,7 +43,9 @@ The portable [`i2cown`](../../include/i2cown.h) module enforces the rules, and
 - a refused pin release leaves the session *retained*: transfers and open are
   rejected until a retried close succeeds;
 - each transfer rechecks the session after locking, so it cannot run after
-  close.
+  close;
+- the bus callbacks are never cleared, so a preempted caller cannot reach a
+  null pointer; a closed bus rejects use, and open refuses a stray claim.
 
 Fixed RAM is static `.bss` of about 60 bytes on RV32: session settings 16,
 borrowed bus 24 (including 16 claim bytes), lifecycle state 16, mutex handle 4.
