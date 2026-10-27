@@ -48,19 +48,33 @@ class FaultHookScopeTests(unittest.TestCase):
         self.test = self.project / "main/uartcheck.c"
 
     def test_production_has_no_hook(self):
-        commands = {self.main: "cc -DUTHOME_CONFIGURATION_APP=1", self.uart: "cc"}
-        self.assertTrue(qualification.verify_uart_fault_hook(commands, self.project))
+        commands = {self.main: "cc -DUTHOME_CONFIGURATION_APP=1 -DUTHOME_NATIVE_UART_FIXTURE=0", self.uart: "cc"}
+        self.assertFalse(qualification.verify_uart_fault_hook(commands, self.project))
         commands[self.uart] += " -Dtk_srea_dev=uartcheck_read"
         with self.assertRaises(qualification.QualificationError):
             qualification.verify_uart_fault_hook(commands, self.project)
 
     def test_acceptance_requires_hook_and_test(self):
-        commands = {self.main: "cc -DUTHOME_CONFIGURATION_APP=0",
+        commands = {self.main: "cc -DUTHOME_CONFIGURATION_APP=0 -DUTHOME_NATIVE_UART_FIXTURE=1",
                     self.uart: "cc -Dtk_srea_dev=uartcheck_read", self.test: "cc"}
-        self.assertFalse(qualification.verify_uart_fault_hook(commands, self.project))
+        self.assertTrue(qualification.verify_uart_fault_hook(commands, self.project))
         del commands[self.test]
         with self.assertRaises(qualification.QualificationError):
             qualification.verify_uart_fault_hook(commands, self.project)
+
+    def test_assembled_runtime_fixture_has_no_uart_traffic_hook(self):
+        commands = {self.main: "cc -DUTHOME_CONFIGURATION_APP=0 -DUTHOME_NATIVE_UART_FIXTURE=0", self.uart: "cc"}
+        self.assertFalse(qualification.verify_uart_fault_hook(commands, self.project))
+        commands[self.test] = "cc"
+        with self.assertRaises(qualification.QualificationError):
+            qualification.verify_uart_fault_hook(commands, self.project)
+
+    def test_ambiguous_or_unsafe_mode_fails(self):
+        for flags in ("", "-DUTHOME_NATIVE_UART_FIXTURE=0 -DUTHOME_NATIVE_UART_FIXTURE=1",
+                      "-DUTHOME_NATIVE_UART_FIXTURE=1"):
+            commands = {self.main: "cc -DUTHOME_CONFIGURATION_APP=1 " + flags, self.uart: "cc"}
+            with self.subTest(flags=flags), self.assertRaises(qualification.QualificationError):
+                qualification.verify_uart_fault_hook(commands, self.project)
 
 
 if __name__ == "__main__":

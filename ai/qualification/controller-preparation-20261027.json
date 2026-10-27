@@ -1,0 +1,118 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-26T22:19:22.251689+00:00",
+  "scope": "Portable bounded timing advice and trusted feature reconstruction, not linked application firmware",
+  "deployment_allowed": false,
+  "installed_on_target": false,
+  "ui_changed": false,
+  "automatic_apply": false,
+  "software": {
+    "ai_suite_tests": 111,
+    "adviser_tests_in_suite": 9,
+    "new_feature_tests": 5,
+    "c99_warnings_as_errors": true,
+    "c_standard_files": 275,
+    "c_standard_findings": 0,
+    "manual_review": "C_CODING_STANDARD.md and ai/README.md; integer bounds, serialized ownership, immutable model metadata, stale/timeout paths and no allocation/Apply side effect reviewed"
+  },
+  "object_evidence": {
+    "adviser": {
+      "kind": "standalone C3 object, not linked firmware or measured runtime",
+      "code_rodata_bytes": 914,
+      "writable_global_bytes": 0,
+      "types": {
+        "adviser_t": 432,
+        "adviser_reply_t": 120,
+        "adviser_request_t": 392
+      },
+      "sections": {
+        ".text.equal_hash": 40,
+        ".text.adviser_start": 292,
+        ".text.adviser_cancel": 14,
+        ".text.recheck": 216,
+        ".text.adviser_step": 184,
+        ".text.adviser_reply": 168
+      },
+      "stack_usage": "firmware/src/services/adviser.c:132:13:equal_hash\t0\tstatic\nfirmware/src/services/adviser.c:18:18:adviser_start\t32\tstatic\nfirmware/src/services/adviser.c:122:6:adviser_cancel\t0\tstatic\nfirmware/src/services/adviser.c:208:13:recheck\t32\tstatic\nfirmware/src/services/adviser.c:49:18:adviser_step\t16\tstatic\nfirmware/src/services/adviser.c:95:5:adviser_reply\t32\tstatic\n",
+      "sources": {
+        "firmware\\src\\services\\adviser.c": "a26909584f268c9b7019ec5b6039812abf1051f0a78656b59f7447e9c7f021d1",
+        "firmware\\src\\services\\adviser.h": "3c579f0980aabc208ea3231a5d33d5b06f2b701deb509dc3025f12e1adb1eabc"
+      }
+    },
+    "adfeat": {
+      "kind": "standalone C3 object; no linked firmware or runtime timing claim",
+      "command": [
+        "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\tools\\riscv32-esp-elf\\esp-15.2.0_20251204\\riscv32-esp-elf\\bin\\riscv32-esp-elf-gcc.exe",
+        "-std=c99",
+        "-Os",
+        "-g3",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pedantic",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fstack-usage",
+        "-I",
+        "firmware/src/config",
+        "-I",
+        "firmware/src/automation",
+        "-I",
+        "firmware/src/services",
+        "-I",
+        "firmware/include",
+        "-c",
+        "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code\\firmware\\src\\services\\adfeat.c",
+        "-o",
+        "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code\\build\\system-completion-20261026-233938\\adfeat-object\\adfeat.o"
+      ],
+      "sections": {
+        ".text": 0,
+        ".data": 0,
+        ".bss": 0,
+        ".text.adfeat_build": 562,
+        ".rodata.maximum.0": 72,
+        ".rodata.minimum.1": 72
+      },
+      "code_rodata_bytes": 706,
+      "writable_global_bytes": 0,
+      "stack_usage": "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code\\firmware\\src\\services\\adfeat.c:16:5:adfeat_build\t112\tstatic\n",
+      "undefined_symbols": "         U memcpy\n         U memset\n",
+      "sources": {
+        "firmware/src/services/adfeat.c": "5b0eb9bb46886cb69e094d66ad66350f37f4525295dfceb8db981d80dfd0084a",
+        "firmware/src/services/adfeat.h": "6f5718f6cc7abe43b9ad5d6e20665a50e8a6ddc46788971623a7835d9ac76e4a",
+        "firmware/src/config/cfgplan.h": "a051112d00c5e4b008bc134464e94ca43ab5643c5924490099be71063386c742",
+        "firmware/src/automation/rulecalc.h": "13a29ac8c6a92f4b54d903626ba674ca1e4394ae5fd5991bdf469bbf630f64aa",
+        "firmware/src/services/sampcache.h": "98c60dc453838347771c0fb259f007f9a59125c3bcedf3f996757d1722192d75"
+      }
+    }
+  },
+  "source_sha256": {
+    "firmware/src/services/adviser.c": "a26909584f268c9b7019ec5b6039812abf1051f0a78656b59f7447e9c7f021d1",
+    "firmware/src/services/adviser.h": "3c579f0980aabc208ea3231a5d33d5b06f2b701deb509dc3025f12e1adb1eabc",
+    "firmware/src/services/adfeat.c": "5b0eb9bb46886cb69e094d66ad66350f37f4525295dfceb8db981d80dfd0084a",
+    "firmware/src/services/adfeat.h": "6f5718f6cc7abe43b9ad5d6e20665a50e8a6ddc46788971623a7835d9ac76e4a",
+    "tests/ai/adfmain.c": "d9bc49d1313dd4ec1cba301d7232de3808d4bf00528dd405f833ae3a3957cb15",
+    "tests/ai/adfmain.h": "f6f195573e86f73de9dcf12309744a24e36d6f94c945410d02c3d6f2e7c8a282",
+    "ai/tests/test_adviser.py": "2d5dcb49f6d83167301c4d4a6ff304deb542753bceadd902cc3cd180af8e1bfb",
+    "ai/tests/test_adfeat.py": "98a1d72f8391c02abf715b48683d90ca3e62f01032e8c417a52553e78c9148aa",
+    "ai/workload.py": "92db6abf43a9059d236ec2798f3cb43179bf22d04c77144ed2d1a78ec3121a59",
+    "ai/records.py": "8608c4c2e8812403626a5a4c1ffe19f18b36bb6053b54270991fe52909b5ae80",
+    "firmware/src/config/cfgplan.h": "a051112d00c5e4b008bc134464e94ca43ab5643c5924490099be71063386c742"
+  },
+  "artifact_sha256": {
+    "build\\system-completion-20261026-233938\\ai-regression-final1.log": "33123342866cba701ad8180a30f15910eeac43dfedec341278608c53c4e25613",
+    "build\\system-completion-20261026-233938\\adfeat-test3.log": "76897e057350293e8ee771a0bf8720de16a9b1928908f8f8e60f8edf6f988736",
+    "build\\system-completion-20261026-233938\\c-gate-adfeat1.log": "5a030d736e4782e338255788dca689ce5c2c7eb68ccda4cb2ea2d762cc1f110d",
+    "build\\system-completion-20261026-233938\\adviser-object\\footprint.json": "2583e0bfc60d958e1b0c74da2662ec5cd8b69b4a2196d8b1204d2b75cb5d77c0",
+    "build\\system-completion-20261026-233938\\adfeat-object\\footprint.json": "29b03efc2533091a8af98ca2850358cdb73802241c6c3d326f2398d36ac68dac"
+  },
+  "retained_snapshot": "build\\system-completion-20261026-233938\\controller-preparation",
+  "pending": [
+    "Eligible model with predeclared benefit/safety/coverage evidence",
+    "Versioned advice endpoint and compiled release identity binding",
+    "Linked target time/stack/allocation and AI-on/off sampling comparison",
+    "Owner review of the concrete Desk proposal",
+    "Combined radio/workload qualification and unseen-device evaluation"
+  ]
+}

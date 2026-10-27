@@ -1,0 +1,131 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_utc": "2026-10-26T06:27:06.923761+00:00",
+  "scope": "UART retest after user selected 256000 baud in HLKRadarTool and rebooted radar",
+  "user_confirmation": "set and rebooted",
+  "preceding_bluetooth_observation": {
+    "source": "User report and screenshot",
+    "tracking": "real-time movement observed by user",
+    "firmware": "2.04.23101915",
+    "baud_before_change": "Unknown; UI showed Select Baud Rate"
+  },
+  "capture": {
+    "type": "summary",
+    "samples": 241,
+    "errors": [],
+    "quality": {
+      "environment_sensor": {
+        "fresh": 241
+      },
+      "presence_sensor": {
+        "fault": 240,
+        "fresh": 1
+      },
+      "health": {
+        "fresh": 241
+      }
+    },
+    "ages": {
+      "environment_sensor": {
+        "min": 30,
+        "max": 534
+      },
+      "presence_sensor": {
+        "min": 48,
+        "max": 232
+      },
+      "health": {
+        "min": 79,
+        "max": 587
+      }
+    },
+    "radar_counts": {
+      "1": 1
+    },
+    "max_rtt_ms": 109.50140000204556,
+    "duration_seconds": 120.07913460000418,
+    "health_delta": [
+      0,
+      0,
+      477,
+      0,
+      842,
+      0,
+      0,
+      0
+    ],
+    "runtime_end": {
+      "state": 1,
+      "generation": 2,
+      "failed_workers": 0,
+      "retained_instances": 3,
+      "service_error": 0,
+      "apply_error": 0,
+      "recovery_error": 0
+    },
+    "configuration": {
+      "active_revision": 28,
+      "saved_revision": 28,
+      "active_crc": 3623560383,
+      "saved_crc": 3623560383,
+      "flags": 80
+    }
+  },
+  "uart_discovery": {
+    "request_id": 1554882337,
+    "revision": 29,
+    "active_revision": 29,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 10250567739668367915,
+    "started_ms": 1152865,
+    "elapsed_ms": 1000,
+    "build_sha256": "6aa04a732a2d04c0176e7440f3631fc489760de8ba230ca34a81e1cf596045cd",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 0,
+        "valid_reports": 0,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "restore": {
+    "command": 1,
+    "request_id": 17,
+    "revision": 30,
+    "status": 1,
+    "active_revision": 30,
+    "saved_revision": 30,
+    "active_crc": 3623560383,
+    "saved_crc": 3623560383,
+    "flags": 95,
+    "message": "Active and saved"
+  },
+  "result": "FAIL: 240 fault snapshots and one fresh radar snapshot during 120 seconds. All 241 BMP388 snapshots fresh. Subsequent one-second discovery received zero bytes. Combined profile restored and saved as revision 30.",
+  "limits": "Baud change is user-confirmed, not independently read back. Intermittent successful reception does not establish continuous UART reliability or identify a defective component.",
+  "next_step": "User DC voltage measurement at ESP GPIO20 receive strip (Board A b35) relative to common ground; no firmware or wiring-path change.",
+  "hardware_qualified": false,
+  "evidence": [
+    {
+      "path": "build/hardware-acceptance-20261026/baud256000-retest-062137.jsonl",
+      "sha256": "fc0233fa08b03183fedef62d2f820cf2e88c51eab9b7c4e8df9d59ff6bceee6f"
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/empty-062418.json",
+      "sha256": "8f8ccedc18029c2fae660479d5d82870301e16bc160c476ca2e8699e35e579b7"
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/discover-062422.json",
+      "sha256": "ab01f1990f888697b7416abd2575a71530d636cf14df349089a33c111df70aa3"
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/restore-062424.json",
+      "sha256": "a62c43ccafb3138becd003fb0aea20db554b8171488f44b8e13fb6bb73fb8bf8"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_utc": "2026-10-26T09:56:52.029551+00:00",
+  "scope": "Read-only radar status check after protocol study, unchanged combined profile",
+  "hardware_qualified": false,
+  "user_observation": "readings are normal on the OLED",
+  "configuration_changed_by_assistant": false,
+  "firmware_changed_by_assistant": false,
+  "evidence": {
+    "path": "build/hardware-acceptance-20261026/radar-status-095531.jsonl",
+    "sha256": "21f92c596e81847f0aaaa7197b4f91838031558dd3ce78ac39c4e44d49a87f1c"
+  },
+  "summary": {
+    "type": "summary",
+    "samples": 121,
+    "errors": [],
+    "quality": {
+      "environment_sensor": {
+        "fresh": 121
+      },
+      "presence_sensor": {
+        "fresh": 121
+      },
+      "health": {
+        "fresh": 121
+      }
+    },
+    "ages": {
+      "environment_sensor": {
+        "min": 22,
+        "max": 526
+      },
+      "presence_sensor": {
+        "min": 0,
+        "max": 88
+      },
+      "health": {
+        "min": 73,
+        "max": 575
+      }
+    },
+    "radar_counts": {
+      "0": 82,
+      "1": 39
+    },
+    "max_rtt_ms": 95.62239999650046,
+    "duration_seconds": 60.0826139000128,
+    "health_delta": [
+      0,
+      0,
+      0,
+      0,
+      848,
+      0,
+      0,
+      0
+    ],
+    "runtime_end": {
+      "state": 1,
+      "generation": 58,
+      "failed_workers": 0,
+      "retained_instances": 3,
+      "service_error": 0,
+      "apply_error": 0,
+      "recovery_error": 0
+    },
+    "configuration": {
+      "active_revision": 87,
+      "saved_revision": 87,
+      "active_crc": 3623560383,
+      "saved_crc": 3623560383,
+      "flags": 80
+    }
+  },
+  "radar_sequence_delta": 674,
+  "first_uptime_ms": 11877531,
+  "last_uptime_ms": 11937535,
+  "conclusion": "Radar and BMP388 were fresh in all 121 snapshots over 60 seconds, with no new device timeouts, UART errors or missed heartbeats. Fresh zero-target and one-target reports were observed. The earlier intermittent failure remains unresolved; this is a recovery observation, not a controlled empty-scene or long-term reliability qualification."
+}

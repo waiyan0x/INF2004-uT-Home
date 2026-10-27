@@ -1,0 +1,108 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-27T01:20:04.002239+00:00",
+  "scope": "Static USB core with mixed fixed network queue partitions and version-2 sampled scheduler observations; radios inactive",
+  "firmware_elf_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+  "boots": [
+    {
+      "checks": 1699,
+      "scheduler_elapsed_ms": 101,
+      "scheduler_idle_ms": 101,
+      "log": "logs/esp32c3-scheduler-20261027-boot1.log",
+      "sha256": "8b309c296f2ecd0a447ea50f3b90f4adcffcf422edeb211f246c282e6a4f90f0",
+      "capture_record_sha256": "f99d7a0b5e3592fd14c385cb43251835e3dd9e885cf3c848ebf02e370b6dd4e4"
+    },
+    {
+      "checks": 1699,
+      "scheduler_elapsed_ms": 101,
+      "scheduler_idle_ms": 101,
+      "log": "logs/esp32c3-scheduler-20261027-boot2.log",
+      "sha256": "8b309c296f2ecd0a447ea50f3b90f4adcffcf422edeb211f246c282e6a4f90f0",
+      "capture_record_sha256": "dc9bfa1008618fe778a1f15a563beee30a479fbc2ebc4dd3830dfa1683316c86"
+    }
+  ],
+  "profile_discovery_cycles": 20,
+  "successful_profile_saves": 40,
+  "failed_activation_rollback_passed": true,
+  "capacity_rejections": 6,
+  "host_disconnect_seconds": 30,
+  "saved_profile_reboot_passed": true,
+  "allocation_scope": "Zero observed application-startup/normal successful SDK heap events, native allocator calls and normal native creates; boot/kernel initialization retained separately",
+  "memory_groups": {
+    "application_fixed": 148809,
+    "kernel_sdk_fixed": 35559,
+    "ram_code": 45784,
+    "total_dram": 230152,
+    "rtc": 0
+  },
+  "current_configuration": {
+    "active_revision": 737,
+    "saved_revision": 737,
+    "active_crc": 3623560383,
+    "saved_crc": 3623560383,
+    "flags": 80
+  },
+  "scheduler_observation": {
+    "method": "native_tick_attribution",
+    "tick_ms": 1,
+    "cpu_cycles_measured": false,
+    "isolated_isr_cost_measured": false,
+    "sdk_clock_distinct_from_kernel_clock": true
+  },
+  "quiescent_worker_unused_min": 7296,
+  "capture_correction": "First host summary failed comparing unavailable worker stack readings; safely restored preceding image, retained failure, reran with explicit null. Worker stack margins are sampled after quiescence, not scanned live.",
+  "stability": {
+    "duration_seconds": 1200,
+    "elapsed_seconds": 1200.1803075000062,
+    "windows": 1776,
+    "samples_by_name": {
+      "environment_sensor": 1776,
+      "presence_sensor": 1776,
+      "health": 1776
+    },
+    "sampled_non_idle_percent": {
+      "min": 1.0204081632653061,
+      "median": 1.610541727672035,
+      "max": 2.1739130434782608
+    },
+    "observer_max_us": 636,
+    "worker_unused_min": null,
+    "two_request_rtt_ms": {
+      "median": 180.65024999668822,
+      "max": 188.00580000970513
+    },
+    "serial_closed": true
+  },
+  "startup_and_normal_allocations_zero": true,
+  "post_startup_native_creates_zero": true,
+  "model_deployed": false,
+  "wireless_active": false,
+  "hardware_qualified": false,
+  "whole_system_static_qualified": false,
+  "visual_oled_check_deferred": true,
+  "deferred": [
+    "Wi-Fi/BLE/static services and coexistence",
+    "Physical OLED confirmation after this image",
+    "User-deferred radar zero-target test",
+    "Additional peripheral/output wiring",
+    "Controlled interrupted-power persistence and actuator acceptance"
+  ],
+  "software_record": "system-software-regression-20261027.json",
+  "local_artifacts_sha256": {
+    "build\\system-completion-20261026-233938\\cpu-sequence.json": "622a0b034e5213b399039d8467e11ab469ee87eae207f9410e1b028cf2fc4592",
+    "build\\system-completion-20261026-233938\\cpu-initial.json": "42ca5a17bb1175b04effa8362287e6bec76b70d05e59d4d5c35c448da31bcd49",
+    "build\\system-completion-20261026-233938\\cpu-initial.jsonl": "748f11169ea5404d1ac54efc2f6263ff891308ddc44ca292a2658e828f489ceb",
+    "build\\system-completion-20261026-233938\\cpu-sequence-retry.json": "efc077b60a41437665594c1aa4c800f59816f364a1e4927cbe6fbf5e340c994d",
+    "build\\system-completion-20261026-233938\\cpu-initial-retry.json": "5ac58741dfa6691a9e04fcbf531a0ecbffa40931c7bd7a332c47da363ec7f811",
+    "build\\system-completion-20261026-233938\\cpu-initial-retry.jsonl": "c82d75d173662fbff09f46f99e60e0e82a18c393bedee455d3eeaaebf9c45d0a",
+    "build\\system-completion-20261026-233938\\cpu-discovery-bench.json": "3daddbd98d48e43a89e68757502f22c6ebe041c555325dd125ee6846a3ee577d",
+    "build\\system-completion-20261026-233938\\cpu-bench-journal.jsonl": "85ac4288d542be39d67f4701acf9acd27d6dcf6b9934253864d46b0ec68b264f",
+    "build\\system-completion-20261026-233938\\cpu-rollback-bench.json": "3182475aa1a3bbe9bd1ac7f45008cc9ff12f4fecfb0395d297dc288a2718fb4c",
+    "build\\system-completion-20261026-233938\\cpu-capacity-disconnect.json": "177103e89beb5cfe97375dfcb34fd5bfde501610f1401f8ef9278dfff47ab688",
+    "build\\system-completion-20261026-233938\\cpu-reboot.json": "81ec54bcbb321aab8eefb4ec449a680dc0e7c05eb475c8a763d7a001a2ec91bd",
+    "build\\system-completion-20261026-233938\\cpu-reboot.log": "8c877a87d076b7cbe48ea4dda3540e76042a7daced11341d3578a80fe3a9bed1",
+    "build\\system-completion-20261026-233938\\cpu-soak.json": "e2e192d1b6d8c9705686c65ae6186706d22b35778319779f40bbf888d8fd7244",
+    "build\\system-completion-20261026-233938\\cpu-soak.jsonl": "ca42a730b3eb562b2e7d36118f9530662b0d9d97a675c0d1b7bb230f3a771eb6",
+    "build\\system-completion-20261026-233938\\cpu-bench-scripts.json": "c02d1afc1b926c84cf6cb4f890a8b1e0cb94185acf4a487ff655dc6032f2e057"
+  }
+}

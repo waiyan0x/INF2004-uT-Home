@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-10-26T15:47:41.521119+00:00",
+  "example": "examples/ble_gatt",
+  "diagnostic_only": true,
+  "configuration_application": false,
+  "board_kit": "iote_esp32c3_mini",
+  "target": "esp32c3",
+  "versions": {
+    "kernel_revision": "ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2",
+    "sdk_revision": "fff9895c82d744c7237be8847347bdd1b07c6643",
+    "compiler": "riscv32-esp-elf-gcc.EXE (crosstool-NG esp-15.2.0_20251204) 15.2.0",
+    "idf_version": "ESP-IDF v6.1",
+    "python": "3.14.2",
+    "cmake": "cmake version 4.0.3",
+    "ninja": "1.12.1"
+  },
+  "build_status": "passed",
+  "board_status": "not_tested",
+  "application_runtime_status": "not_tested",
+  "artifacts": {
+    "build/mtk3c3_ble_gatt.bin": {
+      "sha256": "656785cda2dfb59d6c4418c5af3b0cd4c01bd63f9f44e0ff5461ca8798be3ade",
+      "size_bytes": 486160
+    },
+    "build/mtk3c3_ble_gatt.elf": {
+      "sha256": "c965eb89d1cd4f021677d85959d0dd7b8d0d4b27dc040a8ae2d0d6b941151c1b",
+      "size_bytes": 6996168
+    },
+    "build/mtk3c3_ble_gatt.map": {
+      "sha256": "4d301808eb21101b6990ee5288e199ed8abed83ef5f3a7a23beef0c0d3f74eb5",
+      "size_bytes": 5090360
+    },
+    "build/compile_commands.json": {
+      "sha256": "18f9d78b525bb12af24012d657c47da2f5a93b0849b154752a409cb275c6b7f6",
+      "size_bytes": 9491879
+    },
+    "build/bootloader/bootloader.bin": {
+      "sha256": "70357f7902b39f936c657fdbf0fec43381007abcdfb141b9bd38c120d1028caf",
+      "size_bytes": 21232
+    },
+    "build/partition_table/partition-table.bin": {
+      "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820",
+      "size_bytes": 3072
+    },
+    "build/flasher_args.json": {
+      "sha256": "9914b9ad3d4842480d78f2d6c84ed35b102ef3ebe61689bb92e54562430c3b79",
+      "size_bytes": 945
+    },
+    "sdkconfig": {
+      "sha256": "4883696d1034306faf796165947d8bed30ac03110240f18b0d2917bcd20d0fca",
+      "size_bytes": 102388
+    },
+    "build.log": {
+      "sha256": "f8171892a997e22d979bf53e80c71fb221f1b48df13b57dc0be218bea92098f8",
+      "size_bytes": 181249
+    }
+  },
+  "coding_standard": {
+    "status": "passed",
+    "command": [
+      "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+      "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code\\tools\\c_standard\\check.py",
+      "--root",
+      "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code"
+    ],
+    "output": "C standard gate: 229 files, 0 findings, 0 tool/policy errors."
+  },
+  "kernel_archive_sha256": "005fe17b935e5c1b597fdd4b6c6434cf3a97a21dc583cce12a588099149a9806",
+  "compatibility_patch": {
+    "name": "0002-esp-idf-6.1-build.patch",
+    "sha256": "ce835addd93fb2f36b5a004971580672702879924566d5271539a59268b4677c"
+  },
+  "resource_patch": null,
+  "command": [
+    "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+    "C:\\Users\\kkak4\\esp\\uthome-c3-sdk-v6.1\\tools\\idf.py",
+    "-C",
+    "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-completion-ble-a2\\source\\examples\\ble_gatt",
+    "-B",
+    "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-completion-ble-a2\\build",
+    "-DIDF_TARGET=esp32c3",
+    "-DMTK_BOARD=iote_esp32c3_mini",
+    "-DSDKCONFIG=C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-completion-ble-a2\\sdkconfig",
+    "build"
+  ],
+  "environment_overrides": {
+    "IDF_PATH": "C:/Users/kkak4/esp/uthome-c3-sdk-v6.1",
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONUTF8": "1"
+  },
+  "build_exit_code": 0
+}

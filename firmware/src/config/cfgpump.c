@@ -73,6 +73,21 @@ int cfgpump_discovery (cfgpump_t *          p_pump,
     return 0;
 }
 
+/** @brief Bind fixed workload observation while the pump is idle. */
+int cfgpump_workcost (cfgpump_t *         p_pump,
+                      cfgpump_observe_t * p_observe,
+                      void *              p_context)
+{
+    if ((NULL == p_pump) || (NULL == p_pump->p_control) ||
+        (NULL == p_observe) || (p_pump->b_busy) || (p_pump->b_pending))
+    {
+        return -2;
+    }
+    p_pump->p_workcost         = p_observe;
+    p_pump->p_workcost_context = p_context;
+    return 0;
+}
+
 /** @brief Advance one bounded transport step from the controller's task. */
 int cfgpump_step (cfgpump_t * p_pump, uint64_t now_ms)
 {
@@ -200,13 +215,19 @@ static int make_reply (cfgpump_t * p_pump, const cfgwire_request_t * p_request)
         return 0;
     }
     if ((CFGWIRE_TELEMETRY == p_request->command) ||
-        (CFGWIRE_CAPABILITIES == p_request->command))
+        (CFGWIRE_CAPABILITIES == p_request->command) ||
+        (CFGWIRE_WORKCOST == p_request->command))
     {
         const bool          b_caps = CFGWIRE_CAPABILITIES == p_request->command;
         cfgpump_observe_t * p_observe =
             b_caps ? p_pump->p_capabilities : p_pump->p_observe;
         void * p_context =
             b_caps ? p_pump->p_capability_context : p_pump->p_observer;
+        if (CFGWIRE_WORKCOST == p_request->command)
+        {
+            p_observe = p_pump->p_workcost;
+            p_context = p_pump->p_workcost_context;
+        }
         size_t size = 0U;
         if ((NULL == p_observe) ||
             (0 != p_observe(p_context,

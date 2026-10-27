@@ -22,6 +22,11 @@ framing and finite waits from the validated instance; the LD2450 example uses
 The wrapper queries available bytes/space before I/O and reopens once to apply
 the native driver's cached settings. See [UART binding and cleanup limits](../../../drivers/hlk_ld2450/INTEGRATION.md).
 The upstream concurrent read/write limitation requires single ownership.
+UART, pulse-capture and PWM close operations accept the runtime's explicit
+cleanup-owner context after worker dormancy. They must not use ordinary
+`rt_port_is_owner` alone there: that predicate intentionally rejects lifecycle
+callback re-entry. Open operations retain the ordinary owner check. See the
+[runtime contract and manual review](../../../src/runtime/README.md).
 The port has no native μT-Kernel I2C device-manager driver. The project now
 provides `c3i2c` through the pinned SDK's low-level hardware interface. It
 supports bounded write/read/repeated-START transactions, one inherited-priority
@@ -110,6 +115,23 @@ worker calls belong in the runtime adapter. HAL synchronization uses the pinned
 kernel mutex API and the runtime operating-time clock; drivers include neither
 kernel nor SDK headers.
 
+### Integration with local cleanup fixes
+
+The 26 October `system-integration` update retains the startup-only resources
+while preserving the local `rt_port_is_cleanup_owner()` permission in UART,
+pulse and PWM close callbacks. The UART conflict resolution retains its new
+`b_ready` and poison checks. Only the lifecycle owner's guarded cleanup context
+receives this permission; it does not permit initialization/open or another
+task to claim resources. The UART descriptor/mutex are still never deleted by
+close, and failed cleanup retains logical ownership.
+
+Manual BARR-C review of this resolution covered rules 1-8: no API, ABI, cast,
+storage, loop or language-profile change; Boolean operands are explicitly
+grouped, existing initialization/error checks remain, and synchronization and
+cleanup bounds are unchanged. Existing cleanup-owner/shared-guard tests were
+retained alongside the team's lifecycle tests. This is a source review, not
+new wire-level or board-execution evidence.
+
 ## Pulse capture and PWM software
 
 `c3pin` now provides owned digital input as well as output. `c3pulse_port(0..1)`
@@ -118,3 +140,35 @@ LEDC outputs. The factories have no I/O; lifecycle setup uses the shared pin
 ledger. See [timing, ownership and deferred hardware acceptance](../../../drivers/hc_sr04/INTEGRATION.md).
 These two backends also use GNU99 solely for excluded SDK LL header syntax.
 No GPIO/actuator capability is advertised until the relevant acceptance passes.
+
+## SPI polling timing
+
+The 27 October measurements exposed a SPI FIFO polling discontinuity: sleeping
+after 25 ten-microsecond polls delayed each 64-byte chunk at clocks below roughly
+2 MHz, producing display timeouts despite adequate wire bandwidth. The revised
+adapter allows 100 bounded polls before a one-tick sleep. Interrupts remain
+enabled, the caller's absolute deadline is unchanged, and long/stalled transfers
+still yield. A 1 MHz chunk can now finish its nominal 512 microseconds before
+that sleep threshold. This is a measured-driver correction, not a changed AI
+label or a promise that physically inadequate clock/deadline pairs will pass.
+The [controlled comparison](../../../qualification/esp32c3-spi-polling-20261027.json)
+has two trials at each of six clocks: 122 render steps per clock. Before correction,
+400 kHz through 1.75 MHz timed out every time; afterward, 500 kHz through 4 MHz
+completed without errors. At 400 kHz all frames still exceeded the 20 ms deadline.
+Peer sensors stayed fresh and forbidden allocation/object counters remained zero.
+
+Manual BARR-C review: no interface, storage, casts, language profile or ownership
+changes; the unsigned counter resets at 100 and the existing finite deadline
+and error propagation remain. Real target builds and loaded peer checks are
+required because host simulations cannot establish FIFO/tick timing.
+
+## Allocation observation
+
+`c3audit` counts SDK successful heap events and calls into the kernel's separate
+allocator and eleven object-creation APIs. Its fixed state and the complete heap
+callback path are internal-RAM resident. Short saved/restored interrupt exclusion
+protects counters on the single core; no allocation, log, scheduler lock or
+pointer dereference occurs in a hook. The application marks its entry before
+idle/controller initialization and seals before profile restore. Read the
+[runtime contract and review](../../../src/runtime/README.md#allocation-and-object-counters)
+and [wire layout](../../../src/services/TELEMETRY.md#wire-contract).

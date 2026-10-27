@@ -1,0 +1,97 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-26T23:31:23.802983+00:00",
+  "model_sha256": "6f7bc4e094b8bb35141228494ad85aef6034f47f366e8f44faf2ec1e4f03d7a1",
+  "firmware_elf_sha256": "1861fc424f2123575faff8b2d7a66371a2970605951ec3f3a159d1db7a1a52f2",
+  "scope": "Isolated primary-study classifier, inactive retained USB core, four idle permanent workers",
+  "target_parity_passed": true,
+  "diagnostic_timing_passed": true,
+  "statistical_gate_passed": false,
+  "deployment_allowed": false,
+  "whole_system_qualified": false,
+  "loaded_ai_on_off_tested": false,
+  "maximum_batch_budget_us": 10000,
+  "boots": [
+    {
+      "result": 0,
+      "vectors": 1165,
+      "mismatches": 0,
+      "total_us": 6675,
+      "max_us": 53,
+      "batch4_max_us": 82,
+      "clock_max_us": 43,
+      "checksum": 1585,
+      "allocation_changes": 0,
+      "raw_log": "build\\system-completion-20261026-233938\\network-capture-probe-20261026-232223-188119.log",
+      "sha256": "b85d9ea04625e595731cb1fec99a2f50c55a4fb1d83ce9c325ae7bb1dd466eec"
+    },
+    {
+      "result": 0,
+      "vectors": 1165,
+      "mismatches": 0,
+      "total_us": 6680,
+      "max_us": 54,
+      "batch4_max_us": 83,
+      "clock_max_us": 2,
+      "checksum": 1585,
+      "allocation_changes": 0,
+      "raw_log": "build\\system-completion-20261026-233938\\network-capture-probe-20261026-232349-815233.log",
+      "sha256": "12cfbf263c3167171827c2fd052283fe704b404b07f200fbf167567f6db1a0f2"
+    }
+  ],
+  "objects": {
+    "aifrozen": {
+      "text_rodata_bytes": 442,
+      "data_bytes": 0,
+      "bss_bytes": 0,
+      "object_sha256": "cfd14a3c3b7940526642407418cc5f7d29cdc6ba5b5e9ed164362a200bcb8bd6",
+      "compiler_stack": [
+        "C:/Users/kkak4/AppData/Local/Temp/uthome-completion-modelprobe-a1/project/model/aifrozen.c:48:5:aifrozen_predict\t0\tstatic"
+      ],
+      "stack_sha256": "7cb4cf768e6a85ae19b64d7f635c8cbed0678ab021142f80e9d8565c83eac479"
+    },
+    "aicases": {
+      "text_rodata_bytes": 88612,
+      "data_bytes": 0,
+      "bss_bytes": 0,
+      "object_sha256": "9578fa889015910a34b517b47902332cea106fbf9f2e5768f3e864a290e805b1",
+      "compiler_stack": [
+        "C:/Users/kkak4/AppData/Local/Temp/uthome-completion-modelprobe-a1/project/model/aicases.c:22136:10:aicases_count\t0\tstatic",
+        "C:/Users/kkak4/AppData/Local/Temp/uthome-completion-modelprobe-a1/project/model/aicases.c:22142:18:aicases_get\t16\tstatic"
+      ],
+      "stack_sha256": "830d755b45af5e38a325b72bf30d0f025e7e80de1a99c0a8e5d11bfe5554bee1"
+    },
+    "aiprobe": {
+      "text_rodata_bytes": 748,
+      "data_bytes": 0,
+      "bss_bytes": 0,
+      "object_sha256": "f4864c2039f469a184355dad3513a2fd3be40626fd73dd48c1936af575f1ae2a",
+      "compiler_stack": [
+        "C:/Users/kkak4/AppData/Local/Temp/uthome-completion-modelprobe-a1/project/model/aiprobe.c:123:13:same_phase\t0\tstatic",
+        "C:/Users/kkak4/AppData/Local/Temp/uthome-completion-modelprobe-a1/project/model/aiprobe.c:110:12:elapsed\t32\tstatic",
+        "C:/Users/kkak4/AppData/Local/Temp/uthome-completion-modelprobe-a1/project/model/aiprobe.c:19:5:aiprobe_run\t48\tstatic"
+      ],
+      "stack_sha256": "7cf426967400437dc6eaf6d2b5dd7f9cc0b8615e72b172bbb02527ef268bd20b"
+    }
+  },
+  "memory_groups": {
+    "application_fixed": 149181,
+    "kernel_sdk_fixed": 37023,
+    "ram_code": 46852,
+    "total_dram": 233056,
+    "rtc": 0
+  },
+  "counter_claim": "No successful SDK heap event or native allocator/object call changed during inference; not a complete radio/application claim",
+  "timing_claim": "Observed wall time includes clock/call overhead and possible preemption; no overhead subtraction or WCET proof",
+  "stack_claim": "Compiler per-function frames, not a measured complete call-chain high-water mark",
+  "fixture_flash_excluded_from_model_size": true,
+  "ordinary_app_excludes_model_symbols": true,
+  "original_image_and_configuration_restored": true,
+  "artifacts_sha256": {
+    "build\\system-completion-20261026-233938\\modelprobe-a1-archive\\evidence.json": "cb6102783f65b34787ffa3626928cfc9c8bb94b24ef040c3227f087296fca9fa",
+    "build\\system-completion-20261026-233938\\app-isolated-a1-archive\\evidence.json": "3986463c38753b5f43364b76202b37c6c4e889b59ac5f7f9d832c7b151ac6d26",
+    "build\\system-completion-20261026-233938\\modelprobe-memory-a1.json": "9afa1921382bb9872891add17b1d7058aae6dad07971343fe7094f208232490d",
+    "build\\system-completion-20261026-233938\\model-sequence-20261026-232213.json": "5499e4c594dd37061dd1d3b4f9c5c35586540655bfe1a1b3d56ff3e13ae99286",
+    "tests\\target\\runtime_port_board\\model\\fixture.json": "3d25dae4a4d3c2b461a152bf4e96fbd836710b767f0b555b0db8f3a799d8566d"
+  }
+}

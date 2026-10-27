@@ -1,0 +1,119 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_utc": "2026-10-26T10:12:28.945089+00:00",
+  "hardware_qualified": false,
+  "scope": "Controlled empty-view attempt on unchanged combined profile",
+  "configuration_changed_by_assistant": false,
+  "firmware_changed_by_assistant": false,
+  "operator_instruction": "Leave boards/wiring untouched, disconnect HLKRadarTool, stop any fan moving in view, then keep view empty for 90 seconds after starting reply.",
+  "operator_reply": "Starting now; I?ll keep the view empty for 90 seconds",
+  "scene_timing_clarification": "Pending: target present at approximately 14..24 seconds, at y=2431..3673 mm; operator asked whether still leaving.",
+  "evidence": {
+    "path": "build/hardware-acceptance-20261026/radar-empty-100804.jsonl",
+    "sha256": "35137326d9839b39a6af1bd720d569757840787b430fce55e39e5f66ff01e4c4"
+  },
+  "derived_analysis": {
+    "path": "build/hardware-acceptance-20261026/radar-empty-analysis-100804.json",
+    "sha256": "5621f894b67788f1705423bd9be3f9ce59fd3b105fb01508b85414a2001852fe"
+  },
+  "settling_ms": 15000,
+  "evaluation": {
+    "start_elapsed_ms": 15078.29020000645,
+    "end_elapsed_ms": 75094.96710001258,
+    "duration_seconds": 60.01667690000613,
+    "samples": 121,
+    "quality": {
+      "fresh": 121
+    },
+    "target_counts": {
+      "1": 18,
+      "0": 103
+    },
+    "radar_sequence_delta": 674,
+    "health_delta": [
+      0,
+      0,
+      0,
+      0,
+      851,
+      0,
+      0,
+      0
+    ],
+    "zero_target_criterion_met": false
+  },
+  "final_zero_target_segment": {
+    "start_elapsed_ms": 24093.398400000297,
+    "end_elapsed_ms": 75094.96710001258,
+    "samples": 103,
+    "duration_seconds": 51.001568700012285
+  },
+  "summary": {
+    "type": "summary",
+    "samples": 151,
+    "errors": [],
+    "quality": {
+      "environment_sensor": {
+        "fresh": 151
+      },
+      "presence_sensor": {
+        "fresh": 151
+      },
+      "health": {
+        "fresh": 151
+      }
+    },
+    "ages": {
+      "environment_sensor": {
+        "min": 168,
+        "max": 670
+      },
+      "presence_sensor": {
+        "min": 2,
+        "max": 86
+      },
+      "health": {
+        "min": 217,
+        "max": 721
+      }
+    },
+    "radar_counts": {
+      "1": 34,
+      "0": 117
+    },
+    "max_rtt_ms": 95.99319999688305,
+    "duration_seconds": 75.09496710001258,
+    "health_delta": [
+      0,
+      0,
+      0,
+      0,
+      1061,
+      0,
+      0,
+      0
+    ],
+    "runtime_end": {
+      "state": 1,
+      "generation": 58,
+      "failed_workers": 0,
+      "retained_instances": 3,
+      "service_error": 0,
+      "apply_error": 0,
+      "recovery_error": 0
+    },
+    "configuration": {
+      "active_revision": 87,
+      "saved_revision": 87,
+      "active_crc": 3623560383,
+      "saved_crc": 3623560383,
+      "flags": 80
+    }
+  },
+  "result": {
+    "communication_during_capture": "PASS",
+    "fresh_zero_targets_for_entire_predefined_60_second_window": "NOT MET",
+    "earlier_intermitttent_fault_root_cause": "UNRESOLVED"
+  },
+  "conclusion": "All 151 radar and BMP388 snapshots in the 75-second capture were fresh with no new device timeouts, UART errors or missed heartbeats. After 15-second settling, 18 of 121 radar snapshots contained one target and 103 contained zero. The final 51 seconds were continuously fresh and zero-target. Do not extend or move the evaluation window retrospectively to claim the planned 60-second absence criterion passed."
+}

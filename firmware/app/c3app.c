@@ -3,6 +3,8 @@
  * @brief Compose admission, activation, storage and the USB controller loop.
  */
 #include "c3app.h"
+#include "c3audit.h"
+#include "c3clock.h"
 #include <tk/tkernel.h>
 #include "cfgjson.h"
 #include "c3bind.h"
@@ -22,17 +24,25 @@ static cfgctrl_t       g_control   = {0};
 static cfgstore_t      g_store     = {0};
 static cfgpump_t       g_pump      = {0};
 static cfgdisc_t       g_discovery = {0};
-static telemetry_t     g_telemetry = {.p_control = &g_control};
+static costview_t      g_cost      = {.p_control    = &g_control,
+                                      .p_clock      = c3clock_now,
+                                      .p_controller = c3audit_stack_unused};
+static telemetry_t     g_telemetry = {.p_control = &g_control,
+                                      .p_audit   = c3audit_capture};
 
 /** @brief Keep every large context off the kernel task stack. */
-int c3app_run (const uint8_t * p_build_hash)
+int c3app_run (const uint8_t *       p_build_hash,
+               costview_stack_fn_t * p_idle,
+               costview_cpu_fn_t *   p_cpu)
 {
+    g_cost.p_idle = p_idle;
+    g_cost.p_cpu  = p_cpu;
     /* Binary traffic exclusively owns USB after the boot banner. No regular
      * console prints or monitor reads are permitted after this handover. */
     if ((E_OK != tk_chg_pri(TSK_SELF, 20)) || (0 != cfgjson_init()) ||
-        (0 != activate_init()) || (0 != c3pulse_startup()) ||
-        (0 != c3pwm_startup()) || (0 != c3uart_init()) || (0 != c3i2c_init()) ||
-        (0 != c3spi_init()) ||
+        (0 != rt_port_clock_set(c3clock_now)) || (0 != activate_init()) ||
+        (0 != c3pulse_startup()) || (0 != c3pwm_startup()) ||
+        (0 != c3uart_init()) || (0 != c3i2c_init()) || (0 != c3spi_init()) ||
         (0 != cfgbind_init(&g_binding, c3bind_operations())))
     {
         return -1;
@@ -52,10 +62,16 @@ int c3app_run (const uint8_t * p_build_hash)
         (0 != cfgpump_init(&g_pump, &g_control, c3usb_operations(), NULL)) ||
         (0 != cfgpump_observe(&g_pump, telemetry_observe, &g_telemetry)) ||
         (0 != cfgpump_capabilities(&g_pump, cfgbind_capabilities, NULL)) ||
-        (0 != cfgpump_discovery(&g_pump, cfgdisc_observe, &g_discovery)))
+        (0 != cfgpump_discovery(&g_pump, cfgdisc_observe, &g_discovery)) ||
+        (0 != cfgpump_workcost(&g_pump, costview_observe, &g_cost)))
     {
         return -1;
     }
+    if (0 != c3audit_seal())
+    {
+        return -1;
+    }
+    /* Restore is normal operation too. Its allocations must remain visible. */
     /* Restore is attempted once; failures remain observable through QUERY. */
     (void)cfgctrl_restore(&g_control);
     for (;;)

@@ -3,6 +3,7 @@
  * @brief Serialize bounded FIFO chunks inside a single chip-select window.
  */
 #include "c3spi.h"
+#include "c3cost.h"
 #include <string.h>
 #include <tk/tkernel.h>
 #include "c3pin.h"
@@ -156,14 +157,18 @@ static int transfer (void *                   p_context,
     {
         return SPIBUS_STATE;
     }
+    c3cost_t cost = {0};
+    c3cost_begin(&cost);
     uint64_t now = 0U;
     if (0 != rt_port_now_ms(&now))
     {
+        c3cost_end(&cost, 0U, false, true);
         return SPIBUS_IO;
     }
     if ((now >= p_request->deadline_ms) ||
         ((p_request->deadline_ms - now) > UINT32_C(2147483647)))
     {
+        c3cost_end(&cost, 0U, true, true);
         return SPIBUS_TIMEOUT;
     }
     /* Remaining time was checked to fit uint32_t and the kernel TMO range. */
@@ -172,8 +177,10 @@ static int transfer (void *                   p_context,
     if (0 != locked)
     {
         /* Closed or retained: no chip select or register is touched. */
+        c3cost_end(&cost, 0U, SPIBUS_TIMEOUT == locked, true);
         return locked;
     }
+    c3cost_acquired(&cost);
     int result = SPIBUS_UNSUPPORTED;
     /* Session settings are read only after the session was confirmed open. */
     if ((NULL == p_request->p_read) ||
@@ -183,7 +190,12 @@ static int transfer (void *                   p_context,
         result = exchange(p_config, p_request);
     }
     const int unlocked = spiown_end(&g_owner);
-    return (0 != unlocked) ? unlocked : result;
+    const int final    = (0 != unlocked) ? unlocked : result;
+    c3cost_end(&cost,
+               (0 == result) ? p_request->size : 0U,
+               SPIBUS_TIMEOUT == final,
+               0 != final);
+    return final;
 }
 
 /** @brief Use the runtime operating-time clock. */
@@ -418,7 +430,13 @@ static int wait_ready (uint64_t deadline_ms, bool b_update)
         }
         esp_rom_delay_us(10U);
         ++polls;
-        if (25U == polls)
+        /* A 64-byte FIFO chunk takes 512 us at 1 MHz. Yielding after only
+         * 250 us adds a native tick to every chunk and can exhaust a 20 ms
+         * display deadline despite sufficient bus bandwidth. Keep interrupts
+         * enabled and allow one millisecond of bounded polling before sleep.
+         * The original absolute request deadline still bounds the whole I/O.
+         */
+        if (100U == polls)
         {
             polls = 0U;
             if (E_OK != tk_dly_tsk(1U))

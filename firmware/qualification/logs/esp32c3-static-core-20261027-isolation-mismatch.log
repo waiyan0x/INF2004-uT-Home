@@ -1,0 +1,7 @@
+[port-test] independent workers fast=6 slow=3; cleanup verified
+[port-test] sleeping worker cancellation=0 ms
+[port-test] timeout retained ownership; retry cleaned and deleted
+[port-test] step failure and cleanup retry verified
+[activation-test] start barrier passed
+[activation-test] PASS generation=15; typed queue, replacement, recovery, six cycles and empty stop
+[port-test] FAIL line=752 0 == uartcheck_run()

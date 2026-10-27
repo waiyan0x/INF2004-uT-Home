@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "study_id": "protocol-workloads-v1",
+  "roles": {"sensor": "environment_sensor", "display": "oled_status", "stream": "presence_sensor"},
+  "goal_ms": 800,
+  "intervals_ms": [200, 500, 1000],
+  "warmup_ms": 5000,
+  "duration_ms": 30000,
+  "repetitions": 2,
+  "cadence_ms": 137,
+  "families": [
+    {"id":"i2c-100","split":"train","i2c_clock_hz":100000,"spi_enabled":false,"spi_clock_hz":4000000,"spi_refresh_ms":250,"uart_enabled":false},
+    {"id":"i2c-400","split":"train","i2c_clock_hz":400000,"spi_enabled":false,"spi_clock_hz":4000000,"spi_refresh_ms":250,"uart_enabled":false},
+    {"id":"i2c-uart-100","split":"train","i2c_clock_hz":100000,"spi_enabled":false,"spi_clock_hz":4000000,"spi_refresh_ms":250,"uart_enabled":true},
+    {"id":"i2c-uart-400","split":"validation","i2c_clock_hz":400000,"spi_enabled":false,"spi_clock_hz":4000000,"spi_refresh_ms":250,"uart_enabled":true},
+    {"id":"i2c-spi-slow","split":"train","i2c_clock_hz":100000,"spi_enabled":true,"spi_clock_hz":1000000,"spi_refresh_ms":500,"uart_enabled":false},
+    {"id":"i2c-spi-fast","split":"train","i2c_clock_hz":400000,"spi_enabled":true,"spi_clock_hz":8000000,"spi_refresh_ms":100,"uart_enabled":false},
+    {"id":"i2c-spi-middle","split":"validation","i2c_clock_hz":100000,"spi_enabled":true,"spi_clock_hz":4000000,"spi_refresh_ms":250,"uart_enabled":false},
+    {"id":"all-current","split":"train","i2c_clock_hz":100000,"spi_enabled":true,"spi_clock_hz":4000000,"spi_refresh_ms":250,"uart_enabled":true},
+    {"id":"all-fast","split":"train","i2c_clock_hz":400000,"spi_enabled":true,"spi_clock_hz":8000000,"spi_refresh_ms":100,"uart_enabled":true},
+    {"id":"all-slow","split":"train","i2c_clock_hz":100000,"spi_enabled":true,"spi_clock_hz":1000000,"spi_refresh_ms":500,"uart_enabled":true},
+    {"id":"all-heldout-a","split":"test","i2c_clock_hz":100000,"spi_enabled":true,"spi_clock_hz":8000000,"spi_refresh_ms":100,"uart_enabled":true},
+    {"id":"all-heldout-b","split":"test","i2c_clock_hz":400000,"spi_enabled":true,"spi_clock_hz":1000000,"spi_refresh_ms":500,"uart_enabled":true}
+  ]
+}

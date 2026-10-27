@@ -128,7 +128,7 @@ static int open_port (void * p_context, const pwmio_config_t * p_config)
 static int close_port (void * p_context)
 {
     c3pwm_state_t * p_state = p_context;
-    if (!rt_port_is_owner())
+    if ((!rt_port_is_owner()) && (!rt_port_is_cleanup_owner()))
     {
         return PWMIO_STATE;
     }

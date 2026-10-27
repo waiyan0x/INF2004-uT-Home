@@ -1,0 +1,13 @@
+# Heap callbacks can execute before kernel startup or with cache disabled.
+# Place the complete counter path and its interrupt-save primitives in IRAM.
+[mapping:uthome_audit]
+archive: libmain.a
+entries:
+    c3audit (noflash)
+    memaudit (noflash)
+
+[mapping:uthome_audit_irq]
+archive: libmtkernel.a
+entries:
+    int_riscv:disint (noflash)
+    int_riscv:enaint (noflash)

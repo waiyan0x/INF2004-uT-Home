@@ -32,7 +32,7 @@ it cannot stop a healthy active plan. Apply a reviewed empty hardware profile
 through the normal path when an idle configuration is required. Saved data
 remains available for a later boot. SAVE persists the current active revision.
 
-Every command except PROBE, TELEMETRY and CAPABILITIES discovers the last request ID and queries current
+Every command except PROBE, TELEMETRY, WORKCOST and CAPABILITIES discovers the last request ID and queries current
 state first. Replies report numeric status: 0 OK, 1 SAVED, 2 UNSAVED, 3 REJECTED,
 4 RECOVERY, 5 STALE, 6 CONFLICT, 7 STORAGE, 8 EMPTY. PROBE has `last_request_id`
 instead of `status`. Flags and active/saved revisions/CRCs remain separate.
@@ -58,6 +58,23 @@ uncertain mutation remains available for an exact retry decision. No automatic
 retry occurs. See [wire format and limits](../../firmware/src/services/TELEMETRY.md).
 Earlier bench sessions used telemetry; full physical USB/recovery acceptance
 still remains open. A successful snapshot does not qualify the whole setup.
+
+## One read-only workload snapshot
+
+`python -B -m tools.config_transfer workcost --port COM8` reads command 9's
+bounded per-worker timing, transfer/error counters and empirical stack margins.
+It does not query storage, consume mutation IDs, reset counters or change the
+profile. Results distinguish a valid snapshot (exit 0) from BUSY/unavailable
+(exit 2); unavailable data never becomes a zero-cost measurement. The snapshot
+includes profile revision/CRC and binding generation. Compare deltas only within
+one verified image, profile and generation; use the AI recorder for a complete
+identity-bound dataset. Elapsed worker time includes waits and preemption and is
+not CPU utilization. Version 2 additionally carries a coherent native idle/tick
+observation. `reply.scheduler_window(previous)` computes sampled non-idle time
+over a verified 100 ms..60 s same-profile window; it is not cycle-accurate CPU
+usage and cannot isolate interrupts. Version 1 remains supported and reports
+the scheduler observation absent. See [wire details](../../firmware/src/services/TELEMETRY.md)
+and [measurement contracts](../../ai/README.md).
 
 ## Compiled capabilities
 

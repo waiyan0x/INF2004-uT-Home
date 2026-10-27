@@ -4,24 +4,21 @@
  */
 #include "cfgjson.h"
 #include "jsonscan.h"
-#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
-/* malloc alignment plus this union's size preserves cJSON/double alignment. */
-typedef union
-{
-    size_t size;
-    cJSON  alignment;
-    double number;
-} cfgjson_allocation_t;
-
-static cfgjson_value_t * gp_tree        = NULL;
-static size_t            g_used         = 0U;
-static size_t            g_peak         = 0U;
-static size_t            g_count        = 0U;
-static bool              gb_initialized = false;
-static bool              gb_parsing     = false;
+/* Typed nodes preserve alignment and effective type without casting a byte
+ * arena to cJSON. Character access to a node's representation is permitted. */
+static cfgjson_value_t   g_nodes[UTHOME_JSON_NODES] = {0};
+static uint8_t           g_text[UTHOME_JSON_TEXT]   = {0};
+static size_t            g_node_count               = 0U;
+static size_t            g_text_used                = 0U;
+static cfgjson_value_t * gp_tree                    = NULL;
+static size_t            g_used                     = 0U;
+static size_t            g_peak                     = 0U;
+static size_t            g_count                    = 0U;
+static bool              gb_initialized             = false;
+static bool              gb_parsing                 = false;
 static void * allocate (size_t size);
 static void release (void * p_memory);
 static bool inspect (const cfgjson_value_t * p_value, size_t depth);
@@ -60,6 +57,7 @@ const cfgjson_value_t * cfgjson_open (const uint8_t * p_data, size_t size)
     gb_parsing          = false;
     if (NULL == gp_tree)
     {
+        cfgjson_close();
         return NULL;
     }
     while ((p_end < (p_text + size)) && (NULL != strchr(" \t\r\n", *p_end)))
@@ -78,10 +76,14 @@ const cfgjson_value_t * cfgjson_open (const uint8_t * p_data, size_t size)
 void cfgjson_close (void)
 {
     cJSON_Delete(gp_tree);
-    gp_tree = NULL;
+    gp_tree      = NULL;
+    g_node_count = 0U;
+    g_text_used  = 0U;
+    g_used       = 0U;
+    g_count      = 0U;
 }
 
-/** @brief Report bytes requested from malloc during the most recent parse. */
+/** @brief Report occupied pool bytes at the most recent parse's high water. */
 size_t cfgjson_peak (void)
 {
     return g_peak;
@@ -246,37 +248,44 @@ bool cfgjson_bool (const cfgjson_value_t * p_value, bool * pb_result)
 /** @brief Limit every vendor allocation, including temporary number buffers. */
 static void * allocate (size_t size)
 {
-    if ((!gb_parsing) || (g_count >= 1024U) ||
-        (size > (UTHOME_JSON_HEAP - sizeof(cfgjson_allocation_t))) ||
-        ((size + sizeof(cfgjson_allocation_t)) > (UTHOME_JSON_HEAP - g_used)))
+    if ((!gb_parsing) || (0U == size) || (g_count >= UTHOME_JSON_CALLS))
     {
         return NULL;
     }
-    cfgjson_allocation_t * p_block = malloc(sizeof(*p_block) + size);
-    if (NULL == p_block)
+    void * p_result = NULL;
+    if (sizeof(cfgjson_value_t) == size)
     {
-        return NULL;
+        if (g_node_count >= UTHOME_JSON_NODES)
+        {
+            return NULL;
+        }
+        p_result = &g_nodes[g_node_count++];
     }
-    p_block->size = sizeof(*p_block) + size;
-    g_used += p_block->size;
+    else
+    {
+        if (size > (sizeof(g_text) - g_text_used))
+        {
+            return NULL;
+        }
+        p_result = &g_text[g_text_used];
+        g_text_used += size;
+    }
+    g_used += size;
     ++g_count;
     if (g_used > g_peak)
     {
         g_peak = g_used;
     }
-    return p_block + 1;
+    return p_result;
 }
 
-/** @brief Release only allocations issued by the unchanged vendor hooks. */
+/** @brief Reclaim the whole parse together, never recycle a borrowed node. */
 static void release (void * p_memory)
 {
-    if (NULL != p_memory)
-    {
-        /* This pointer is exactly one aligned header past its malloc block. */
-        cfgjson_allocation_t * p_block = (cfgjson_allocation_t *)p_memory - 1;
-        g_used -= p_block->size;
-        free(p_block);
-    }
+    /* cJSON may release temporary strings or partially constructed trees.
+     * Every supplied pointer belongs to one of our fixed pools; close resets
+     * them after all vendor traversal has finished, including failed parses. */
+    (void)p_memory;
 }
 
 /** @brief Reject duplicate decoded keys and nonfinite numbers in every object.

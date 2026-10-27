@@ -1,0 +1,472 @@
+{
+  "contract": "uthome.static-core-checkpoint",
+  "version": "0.1.0",
+  "recorded_utc": "2026-10-26T17:15:02.069230+00:00",
+  "source_branch": "system-integration",
+  "source_commit": "f1234d3",
+  "working_tree_changes_retained": true,
+  "implementation": [
+    "512 typed parser nodes and 8192 text bytes; no parser heap fallback",
+    "four permanent 8192-byte worker stacks; startup-only task creation and later rebinding",
+    "exact checked partition layout and configuration-only write guards; no allocating SDK partition lookup",
+    "explicit separation of ordinary runtime fixture from isolated UART injection",
+    "fixed USB-core RAM budgets and ELF/map checks",
+    "Windows negative allocator controls fail cleanly without deliberate assertion abort"
+  ],
+  "coding_approval": {
+    "record": "tools/c_standard/static-stack-approval-20261027.json",
+    "scope": "single host T_CTSK bufptr field",
+    "previous_49_payload_unchanged": true
+  },
+  "software": {
+    "target_tests": 120,
+    "coding_standard_tests": 54,
+    "c_gate": {
+      "files": 233,
+      "findings": 0,
+      "tool_policy_errors": 0
+    },
+    "parser_heap_controls": "scoped cJSON/parser object interception; host CRT excluded",
+    "manual_review_guides": [
+      "firmware/src/config/README.md",
+      "firmware/src/runtime/README.md",
+      "C_CODING_STANDARD.md"
+    ]
+  },
+  "builds": {
+    "app": {
+      "record": "firmware/qualification/esp32c3-static-core-20261027-app-build.json",
+      "sha256": "3c6008e17ca338ec7e5ae5471d0f2b42607182602203b1bc6bb5cf6531a1998e",
+      "artifacts": {
+        "build/uthome_runtime_port.bin": {
+          "sha256": "9ceb906b47829b2ec5ee86f3d751ed2290267cc8483d39f8ea9faa8d7a6ae83b",
+          "size_bytes": 219168
+        },
+        "build/uthome_runtime_port.elf": {
+          "sha256": "ab8a942d158bc3a6486f22f758d7211e26cc55ea2173c9e0ab23cc9696d52eaf",
+          "size_bytes": 4726280
+        },
+        "build/uthome_runtime_port.map": {
+          "sha256": "2b66a94530aaf8067041fe6e23a0ae8c48d43167765cd2db756947924bc3c248",
+          "size_bytes": 3432975
+        },
+        "build/compile_commands.json": {
+          "sha256": "001472e73895c99aaccbf973ffee5a914a7cbf9fb3d25fcb550c4f2559983939",
+          "size_bytes": 8136376
+        },
+        "build/bootloader/bootloader.bin": {
+          "sha256": "dd8700e747ddbd2d9a08d1558018189049388d29e184288b12ccdcd09f7fbf86",
+          "size_bytes": 21232
+        },
+        "build/partition_table/partition-table.bin": {
+          "sha256": "7f7b089b96a3f7c3d7c431bd974909909e60a2bb8bdf4bb6802e9edbb6d9167e",
+          "size_bytes": 3072
+        },
+        "build/flasher_args.json": {
+          "sha256": "3d8fa411379da7c602c6163efb550377de6db43de2b55aa679833eaf385dc80f",
+          "size_bytes": 953
+        },
+        "sdkconfig": {
+          "sha256": "691689225d5deb79dbcead91f0e71c872c98780080a52de2fca9eac943429979",
+          "size_bytes": 87310
+        },
+        "build.log": {
+          "sha256": "8d16f37f89154c31be1353204a8c3a61f7c81415d7fb49d0b0848d8e8fb4d00c",
+          "size_bytes": 156821
+        },
+        "project/dependencies.lock": {
+          "sha256": "abfbc8e0e96b4740d37351e3f43cc500e5efab4b1ce7413692a0ffc9abd53c61",
+          "size_bytes": 530
+        },
+        "project/sdkconfig.defaults": {
+          "sha256": "b4581a80d073a58c99f88c6330b8000c94c349e3b6340459f96dd640c344e5d0",
+          "size_bytes": 757
+        }
+      }
+    },
+    "fixture": {
+      "record": "firmware/qualification/esp32c3-static-core-20261027-fixture-build.json",
+      "sha256": "1c2e24ea05b722c006822db76af571dccdb0a90b6880cbb656e66f4c2e41e291",
+      "artifacts": {
+        "build/uthome_runtime_port.bin": {
+          "sha256": "bd395b7493502d0006f5081e88a070eeabce0df98e638608ec172e67cbe341ce",
+          "size_bytes": 239024
+        },
+        "build/uthome_runtime_port.elf": {
+          "sha256": "468b191d9dd28176abbe3d9140c21c628be0e1c3f4cc753ee6f87c1efec560d6",
+          "size_bytes": 4806440
+        },
+        "build/uthome_runtime_port.map": {
+          "sha256": "0ba92a9fc0cef21f4e779b8bef7b8c6d20f5251c05f5f7bf313fa91afc13d5bb",
+          "size_bytes": 3514758
+        },
+        "build/compile_commands.json": {
+          "sha256": "de84c39b5b9759d93cb28d652342316d7c7ff81f44d27ae5cb8a37e1cde1d1b5",
+          "size_bytes": 8160710
+        },
+        "build/bootloader/bootloader.bin": {
+          "sha256": "dd8700e747ddbd2d9a08d1558018189049388d29e184288b12ccdcd09f7fbf86",
+          "size_bytes": 21232
+        },
+        "build/partition_table/partition-table.bin": {
+          "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820",
+          "size_bytes": 3072
+        },
+        "build/flasher_args.json": {
+          "sha256": "3d8fa411379da7c602c6163efb550377de6db43de2b55aa679833eaf385dc80f",
+          "size_bytes": 953
+        },
+        "sdkconfig": {
+          "sha256": "8b09aa8645869210d38f009f72a2eed59074377792fcf3508480f7fae300f682",
+          "size_bytes": 87361
+        },
+        "build.log": {
+          "sha256": "53cb4383e12644f3c1dc7bccaed7f0fcf04c58b7206acb7fa0ee9da103c8a797",
+          "size_bytes": 156319
+        },
+        "project/dependencies.lock": {
+          "sha256": "abfbc8e0e96b4740d37351e3f43cc500e5efab4b1ce7413692a0ffc9abd53c61",
+          "size_bytes": 530
+        },
+        "project/sdkconfig.defaults": {
+          "sha256": "b4581a80d073a58c99f88c6330b8000c94c349e3b6340459f96dd640c344e5d0",
+          "size_bytes": 757
+        }
+      }
+    },
+    "ble-diagnostic": {
+      "record": "firmware/qualification/esp32c3-static-core-20261027-ble-diagnostic-build.json",
+      "sha256": "a906beb185a3e56ce70bd2120e9f95ffa17d29ca9aa9b0956a5b80ebeab3bb4d",
+      "artifacts": {
+        "build/mtk3c3_ble_gatt.bin": {
+          "sha256": "656785cda2dfb59d6c4418c5af3b0cd4c01bd63f9f44e0ff5461ca8798be3ade",
+          "size_bytes": 486160
+        },
+        "build/mtk3c3_ble_gatt.elf": {
+          "sha256": "c965eb89d1cd4f021677d85959d0dd7b8d0d4b27dc040a8ae2d0d6b941151c1b",
+          "size_bytes": 6996168
+        },
+        "build/mtk3c3_ble_gatt.map": {
+          "sha256": "4d301808eb21101b6990ee5288e199ed8abed83ef5f3a7a23beef0c0d3f74eb5",
+          "size_bytes": 5090360
+        },
+        "build/compile_commands.json": {
+          "sha256": "18f9d78b525bb12af24012d657c47da2f5a93b0849b154752a409cb275c6b7f6",
+          "size_bytes": 9491879
+        },
+        "build/bootloader/bootloader.bin": {
+          "sha256": "70357f7902b39f936c657fdbf0fec43381007abcdfb141b9bd38c120d1028caf",
+          "size_bytes": 21232
+        },
+        "build/partition_table/partition-table.bin": {
+          "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820",
+          "size_bytes": 3072
+        },
+        "build/flasher_args.json": {
+          "sha256": "9914b9ad3d4842480d78f2d6c84ed35b102ef3ebe61689bb92e54562430c3b79",
+          "size_bytes": 945
+        },
+        "sdkconfig": {
+          "sha256": "4883696d1034306faf796165947d8bed30ac03110240f18b0d2917bcd20d0fca",
+          "size_bytes": 102388
+        },
+        "build.log": {
+          "sha256": "f8171892a997e22d979bf53e80c71fb221f1b48df13b57dc0be218bea92098f8",
+          "size_bytes": 181249
+        }
+      }
+    },
+    "wifi-diagnostic": {
+      "record": "firmware/qualification/esp32c3-static-core-20261027-wifi-diagnostic-build.json",
+      "sha256": "240e01ae069f08ce80f28ed840cd640d298abde10c37dae782de9987f20eea7d",
+      "artifacts": {
+        "build/udp_pingpong_c3.bin": {
+          "sha256": "4528bc6eeda750c2c3fedfd844d897ab6d9bfd5b7571565020ed5d874a8b0a18",
+          "size_bytes": 753728
+        },
+        "build/udp_pingpong_c3.elf": {
+          "sha256": "c30a1ef4ea6210d2b62a4cf7b93a1f1a5f60161e2964152a2f5902b61e07b729",
+          "size_bytes": 9311652
+        },
+        "build/udp_pingpong_c3.map": {
+          "sha256": "c52e0c8eaebc74b46f2d7b001fb94637ef351a8046a634788b5597f6454ecc55",
+          "size_bytes": 6606305
+        },
+        "build/compile_commands.json": {
+          "sha256": "03f9dbabbb3cb835662aabc6a30f3bd83bb707fe2b82e22a885d4b9e08fddf0d",
+          "size_bytes": 7555922
+        },
+        "build/bootloader/bootloader.bin": {
+          "sha256": "5e74b3c3e3e9be01cc7a856038ac440435c7660ac3050d28b79fc5b62bc3ec2a",
+          "size_bytes": 21232
+        },
+        "build/partition_table/partition-table.bin": {
+          "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820",
+          "size_bytes": 3072
+        },
+        "build/flasher_args.json": {
+          "sha256": "63181a36ce07c1d24a9a98ce8fcb841a2cff16254b6aa39d9ca192188d2f088a",
+          "size_bytes": 945
+        },
+        "sdkconfig": {
+          "sha256": "295c3ba18a861ff673a16afd3a565c5a8cbab670449a87ef0a5d7a116f0d6252",
+          "size_bytes": 87062
+        },
+        "build.log": {
+          "sha256": "25243c313ad7050a69be663ff0e893ba2b1048bbf8716ca38d456989fdbcb205",
+          "size_bytes": 166052
+        }
+      }
+    }
+  },
+  "hardware": {
+    "identity": {
+      "chip": "ESP32-C3 revision 0.4",
+      "flash_bytes": 4194304,
+      "usb_serial": "D4:05:92:E6:C3:BC"
+    },
+    "backup": {
+      "recorded_utc": "2026-10-26T17:01:07.527515+00:00",
+      "port": "COM8",
+      "usb_serial": "D4:05:92:E6:C3:BC",
+      "path": "C:\\Users\\kkak4\\esp\\hardware-backup-20261027-static-storage\\board-before-storage.bin",
+      "size": 4194304,
+      "sha256": "1a793bfa6c6d092a72a721adab9080b23d7f8b616e33a50b7977ef2cb0b80ec6",
+      "configuration_sha256": "04963612bc3cb3dce1f43cf59e146a67b4cea8d3347d8e1f61c38b07349ea701",
+      "action": "read-only flash backup; reset performed; no erase or firmware write"
+    },
+    "fixture_boots": [
+      {
+        "path": "firmware/qualification/logs/esp32c3-static-core-20261027-boot1.log",
+        "sha256": "e8891b9029a466e657adef312ecbf1b1ccb840b7b9090f92d720cdca5536ff4c",
+        "checks": 909
+      },
+      {
+        "path": "firmware/qualification/logs/esp32c3-static-core-20261027-boot2.log",
+        "sha256": "e8891b9029a466e657adef312ecbf1b1ccb840b7b9090f92d720cdca5536ff4c",
+        "checks": 909
+      }
+    ],
+    "earlier_fixture_failure": {
+      "log": "firmware/qualification/logs/esp32c3-static-core-20261027-isolation-mismatch.log",
+      "sha256": "c6eaa87d483cbfd6a4848a9df30342e7e3b1ec5be02bc6cf7f1e50f253986852",
+      "image_sha256": "37b84f4ca4092e1a6b3d5a2ffdd884524273d778065b3ae1b024a734c17fe197",
+      "reason": "Native UART injection assumes no external sender; radar was attached. Capture failed and is not accepted. Its fixture mode is now explicit."
+    },
+    "native_uart_injection_accepted": false,
+    "configuration_unchanged_by_flash": true,
+    "discovery_cycles": 20,
+    "successful_empty_original_applies": 40,
+    "target_capacity_rejections": 20,
+    "failed_activation_rollback_passed": true,
+    "reboot_restore_passed": true,
+    "final_configuration": {
+      "active_revision": 260,
+      "saved_revision": 260,
+      "active_crc": 3623560383,
+      "saved_crc": 3623560383,
+      "flags": 80
+    },
+    "samples_fresh_after_reboot": true,
+    "oled_user_confirmation": {
+      "answer": "Yes, readable and updating",
+      "image": "app-a2 preceding permanent-worker image",
+      "current_storage_image_visual_confirmation": false
+    },
+    "serial_closed": true
+  },
+  "memory": {
+    "passed": true,
+    "groups": {
+      "application_fixed": 121705,
+      "kernel_sdk_fixed": 68315,
+      "ram_code": 37650,
+      "total_dram": 227670,
+      "rtc": 60
+    },
+    "budgets": {
+      "application_fixed_limit": 131072,
+      "kernel_sdk_fixed_limit": 98304,
+      "ram_code_limit": 49152,
+      "total_dram_limit": 278528,
+      "rtc_limit": 128
+    },
+    "modules": {
+      "c3app.c.obj": {
+        "bytes": 49732,
+        "budget": 50176
+      },
+      "tkport.c.obj": {
+        "bytes": 32960,
+        "budget": 33792
+      },
+      "cfgjson.c.obj": {
+        "bytes": 28698,
+        "budget": 29184
+      },
+      "activate.c.obj": {
+        "bytes": 3891,
+        "budget": 4096
+      },
+      "c3spi.c.obj": {
+        "bytes": 60,
+        "budget": 64
+      },
+      "cJSON.c.obj": {
+        "bytes": 20,
+        "budget": 32
+      },
+      "sampcache.c.obj": {
+        "bytes": 1440,
+        "budget": 1536
+      },
+      "c3i2c.c.obj": {
+        "bytes": 60,
+        "budget": 64
+      },
+      "msgbus.c.obj": {
+        "bytes": 2240,
+        "budget": 2304
+      },
+      "c3pulse.c.obj": {
+        "bytes": 59,
+        "budget": 64
+      },
+      "c3uart.c.obj": {
+        "bytes": 32,
+        "budget": 64
+      },
+      "shared.c.obj": {
+        "bytes": 68,
+        "budget": 128
+      },
+      "c3umem.c.obj": {
+        "bytes": 1280,
+        "budget": 1280
+      },
+      "c3pwm.c.obj": {
+        "bytes": 115,
+        "budget": 128
+      },
+      "c3pin.c.obj": {
+        "bytes": 132,
+        "budget": 160
+      },
+      "watchdog.c.obj": {
+        "bytes": 384,
+        "budget": 512
+      },
+      "c3store.c.obj": {
+        "bytes": 301,
+        "budget": 384
+      },
+      "health.c.obj": {
+        "bytes": 212,
+        "budget": 256
+      },
+      "c3usb.c.obj": {
+        "bytes": 1,
+        "budget": 16
+      },
+      "c3bind.c.obj": {
+        "bytes": 16,
+        "budget": 32
+      },
+      "main.c.obj": {
+        "bytes": 4,
+        "budget": 16
+      }
+    },
+    "linker_dram_capacity": 321296,
+    "linker_unassigned_bytes": 93626
+  },
+  "symbol_audit": {
+    "elf_sha256": "ab8a942d158bc3a6486f22f758d7211e26cc55ea2173c9e0ab23cc9696d52eaf",
+    "linked": {
+      "esp_partition_find_first": false,
+      "esp_partition_find": false,
+      "esp_ota_get_running_partition": false,
+      "c3store_region_allowed": true,
+      "malloc": true,
+      "heap_caps_malloc": true,
+      "knl_Imalloc": true
+    },
+    "objects": {
+      "config/cfgjson": [
+        "         U __fixdfsi",
+        "         U __fixunsdfsi",
+        "         U __floatsidf",
+        "         U __floatunsidf",
+        "         U __gtdf2",
+        "         U __ltdf2",
+        "         U __nedf2",
+        "         U __unorddf2",
+        "         U cJSON_Delete",
+        "         U cJSON_GetArrayItem",
+        "         U cJSON_GetArraySize",
+        "         U cJSON_GetObjectItemCaseSensitive",
+        "         U cJSON_InitHooks",
+        "         U cJSON_IsArray",
+        "         U cJSON_IsBool",
+        "         U cJSON_IsNumber",
+        "         U cJSON_IsObject",
+        "         U cJSON_IsString",
+        "         U cJSON_IsTrue",
+        "         U cJSON_ParseWithLengthOpts",
+        "         U floor",
+        "         U jsonscan_check",
+        "         U memcpy",
+        "         U strchr",
+        "         U strcmp",
+        "         U strlen"
+      ],
+      "config/cfgpart": [],
+      "hal/c3store": [
+        "         U cfgpart_check",
+        "         U cfgpart_writable",
+        "         U esp_flash_default_chip",
+        "         U esp_flash_get_size",
+        "         U esp_flash_read",
+        "         U esp_partition_erase_range",
+        "         U esp_partition_read",
+        "         U esp_partition_write",
+        "         U memcpy",
+        "         U rt_port_is_owner"
+      ],
+      "runtime/tkport": [
+        "         U __atomic_exchange_1",
+        "         U __udivdi3",
+        "         U tk_chg_pri",
+        "         U tk_cre_tsk",
+        "         U tk_dly_tsk",
+        "         U tk_ext_tsk",
+        "         U tk_get_otm",
+        "         U tk_ref_sys",
+        "         U tk_ref_tsk",
+        "         U tk_slp_tsk",
+        "         U tk_sta_tsk",
+        "         U tk_wup_tsk"
+      ]
+    }
+  },
+  "limits": {
+    "whole_system_static_qualified": false,
+    "runtime_allocation_counts_measured": false,
+    "kernel_object_counts_measured_on_board": false,
+    "stack_high_water_measured": false,
+    "wireless_board_tested": false,
+    "wireless_integrated": false,
+    "model_installed": false,
+    "radar_zero_target_check": "user_deferred",
+    "jtag": "libusb interface unavailable; no driver installation attempted"
+  },
+  "local_evidence": {
+    "build/system-completion-20261026-233938/target-suite-final.log": "501917de4414c9849c117826de2256788a7164afb18c70356a43f352086d76e9",
+    "build/system-completion-20261026-233938/c-standard-tests.log": "ae56733fe13762be6ed1b8c8cf6409a2fdc131382b73a88b1adfdd1b796a0bb3",
+    "build/system-completion-20261026-233938/storage-discovery-bench.json": "039dab1d9d19abdc83b74cc56b9027879ec9f6510b058d01b52d7edcbb7cc0aa",
+    "build/system-completion-20261026-233938/storage-rollback-bench.json": "1bbfdbc41a8008ae04f88fdb298048a62aa8f2c9fb53b381d80d8b0334bde875",
+    "build/system-completion-20261026-233938/storage-after-reboot.json": "376c5fdd3e32062936705a638d17ba5334715415c5dfc14234d7431153e4a0c1",
+    "build/system-completion-20261026-233938/memory-budget.json": "639d354d7c6910e4988fd1b7333cbf26f71522612069b2c625d94628f935718c",
+    "build/system-completion-20261026-233938/jtag-probe.log": "a1d1a44bd13541d06aa4627bf4634356458ccfa24d107a41318fca8dc19ec336"
+  }
+}

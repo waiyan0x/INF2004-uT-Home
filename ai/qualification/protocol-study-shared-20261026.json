@@ -1,0 +1,3652 @@
+{
+  "record_version": "1.0.0",
+  "date": "2026-10-26",
+  "recorded_utc": "2026-10-26T13:01:25.119464+00:00",
+  "scope": "Post-shared-guard-fix protocol workload study; host model only",
+  "origin": "hardware",
+  "hardware_qualified": false,
+  "deployment_allowed": false,
+  "firmware_changed_during_study": false,
+  "wiring_changed": false,
+  "started_utc": "2026-10-26T12:01:56.606209+00:00",
+  "finished_utc": "2026-10-26T13:00:10.189089+00:00",
+  "identity": {
+    "build": {
+      "binary_sha256": "8fd0985b7f1e06e6f741e0eddd3252c0aa0b991577bdb8c2fd1cc1f5d807370d",
+      "elf_sha256": "34eb94aefe9d3422a380fa37d490e00982d33f29d0c1092b071634b2e884fe3a",
+      "evidence_sha256": "16a894fbe891e8fd7cea6daf40724f79b40f6b820cbfceafcd5ef3413bd14b99"
+    },
+    "capabilities": {
+      "allowed_gpio_mask": 1275,
+      "board": "esp32-c3-supermini",
+      "drivers": [
+        "bmp388",
+        "ssd1306_spi",
+        "hlk_ld2450",
+        "hc_sr04",
+        "pwm_output"
+      ],
+      "features": 7,
+      "hardware_qualified": false,
+      "max_devices": 8,
+      "max_profile_bytes": 8192,
+      "max_workers": 4,
+      "node_schema": "2.1.0",
+      "request_id": 1483304756
+    },
+    "contract": "uthome.bench-identity",
+    "discovery": {
+      "active_revision": 88,
+      "build_sha256": "34eb94aefe9d3422a380fa37d490e00982d33f29d0c1092b071634b2e884fe3a",
+      "elapsed_ms": 2,
+      "preset_code": 1,
+      "records": [
+        {
+          "address": 118,
+          "register": 0,
+          "status": "not_responding",
+          "value": null
+        },
+        {
+          "address": 119,
+          "register": 0,
+          "status": "responding",
+          "value": 80
+        }
+      ],
+      "request_id": 1238505181,
+      "result": "complete",
+      "revision": 88,
+      "session_id": 1489801991899032611,
+      "started_ms": 3194922
+    },
+    "manifest": {
+      "backend": "target",
+      "board": "esp32-c3-supermini",
+      "board_capability_version": "1.0.0",
+      "build_id": "measured-8fd0985b7f1e06e6f741e0eddd3252c0aa0b991577bdb8c2fd1cc1f5d807370d",
+      "drivers": [
+        "bmp388",
+        "ssd1306_spi",
+        "hlk_ld2450",
+        "hc_sr04",
+        "pwm_output"
+      ],
+      "manifest_version": "1.0.0",
+      "qualification": "Observed compiled bindings; physical acceptance remains incomplete."
+    },
+    "recorded_utc": "2026-10-26T11:55:56.012502+00:00",
+    "usb": {
+      "pid": 4097,
+      "serial_number": "D4:05:92:E6:C3:BC",
+      "vid": 12346
+    },
+    "version": "0.1.0"
+  },
+  "study": {
+    "path": {
+      "path": "build/protocol-study-20261026-r3/study.json",
+      "bytes": 76394,
+      "sha256": "719e6fe66182327a1a414c1b33737e8b4d18e45822eba659c50d651d60caa16a"
+    },
+    "canonical_sha256": "c8c07e97b342a7215c32c36903062291626d1ac9031119a690e0214219b0cf5b",
+    "split": {
+      "test": [
+        "new-3-i400-s8-r200",
+        "new-4-i400-s2-r350"
+      ],
+      "train": [
+        "i2c-100",
+        "i2c-400",
+        "i2c-uart-100",
+        "i2c-spi-slow",
+        "i2c-spi-fast",
+        "all-current",
+        "all-fast",
+        "all-slow"
+      ],
+      "validation": [
+        "new-1-i400-s1-r350",
+        "new-2-i100-s4-r350"
+      ]
+    },
+    "features": [
+      "execution_kind",
+      "interval_ms",
+      "goal_ms",
+      "active_tasks",
+      "source_period_ms",
+      "timeout_us",
+      "target_priority",
+      "higher_priority_workers",
+      "i2c_workers",
+      "i2c_min_clock_hz",
+      "i2c_requests_millihz",
+      "spi_workers",
+      "spi_min_clock_hz",
+      "spi_refresh_millihz",
+      "uart_workers",
+      "uart_min_baud",
+      "uart_declared_bytes_per_second",
+      "uart_min_rx_buffer_bytes"
+    ],
+    "families": 12,
+    "runs": 96,
+    "observations": 24576,
+    "labelled_candidates": 48,
+    "excluded": []
+  },
+  "preregistration": {
+    "path": "build/protocol-study-20261026-r3/preregistration.json",
+    "bytes": 1953,
+    "sha256": "69f36a7b0199ce25e86c83443abeb8111f81d554c1dacdebcd7213c6f901cc31"
+  },
+  "preregistered_gate_implementation": {
+    "path": "build/protocol-study-20261026-r3/finish.py",
+    "bytes": 7910,
+    "sha256": "f7c0133e78518bbaa72d6a141a3241ad6d552eb1e7a749845c9a60ceffdc49b0"
+  },
+  "prior_study": "ai/qualification/protocol-study-20261026.json",
+  "prior_data_reused": false,
+  "old_workload_overlap_in_new_holdouts": 0,
+  "model": {
+    "path": {
+      "path": "build/protocol-study-20261026-r3/trained/model.json",
+      "bytes": 1641,
+      "sha256": "86ca10a5dd33f0fa1b511b62b2180a8db444580c024b853c080ca010d0ddbc9a"
+    },
+    "canonical_sha256": "a4f67cfba829395c11fba993b4435b517d3f121bbca2fa424a157feb30029da6",
+    "nodes": 7,
+    "training": {
+      "library": "scikit-learn",
+      "version": "1.8.0",
+      "seed": 42,
+      "max_depth": 4,
+      "min_samples_leaf": 3
+    }
+  },
+  "evaluation": {
+    "test": {
+      "tree": {
+        "families": 2,
+        "violations": 0,
+        "abstentions": 1,
+        "optimal_choices": 1
+      },
+      "simple_rule": {
+        "families": 2,
+        "violations": 0,
+        "abstentions": 0,
+        "optimal_choices": 2
+      },
+      "current_profile": {
+        "families": 2,
+        "violations": 0,
+        "abstentions": 0,
+        "optimal_choices": 2
+      },
+      "descriptor_default": {
+        "families": 2,
+        "violations": 2,
+        "abstentions": 0,
+        "optimal_choices": 0
+      }
+    },
+    "train": {
+      "tree": {
+        "families": 8,
+        "violations": 0,
+        "abstentions": 2,
+        "optimal_choices": 8
+      },
+      "simple_rule": {
+        "families": 8,
+        "violations": 2,
+        "abstentions": 0,
+        "optimal_choices": 6
+      },
+      "current_profile": {
+        "families": 8,
+        "violations": 2,
+        "abstentions": 0,
+        "optimal_choices": 6
+      },
+      "descriptor_default": {
+        "families": 8,
+        "violations": 8,
+        "abstentions": 0,
+        "optimal_choices": 0
+      }
+    },
+    "validation": {
+      "tree": {
+        "families": 2,
+        "violations": 0,
+        "abstentions": 1,
+        "optimal_choices": 2
+      },
+      "simple_rule": {
+        "families": 2,
+        "violations": 1,
+        "abstentions": 0,
+        "optimal_choices": 1
+      },
+      "current_profile": {
+        "families": 2,
+        "violations": 1,
+        "abstentions": 0,
+        "optimal_choices": 1
+      },
+      "descriptor_default": {
+        "families": 2,
+        "violations": 2,
+        "abstentions": 0,
+        "optimal_choices": 0
+      }
+    }
+  },
+  "readiness": {
+    "eligible_for_target_benchmark": false,
+    "deployment_allowed": false,
+    "reasons": [
+      "unnecessary_heldout_abstentions"
+    ],
+    "combined_holdout_tree": {
+      "families": 4,
+      "violations": 0,
+      "abstentions": 2,
+      "optimal_choices": 3
+    },
+    "combined_holdout_rule": {
+      "families": 4,
+      "violations": 1,
+      "abstentions": 0,
+      "optimal_choices": 3
+    },
+    "unnecessary_heldout_abstentions": 1,
+    "scope": "Only this measured assembly/workload range; target latency/memory and unseen-device performance remain unqualified."
+  },
+  "restoration": {
+    "confirmed": true,
+    "reply": {
+      "active_crc": 3623560383,
+      "active_revision": 138,
+      "command": 1,
+      "flags": 95,
+      "message": "Active and saved",
+      "request_id": 402,
+      "revision": 138,
+      "saved_crc": 3623560383,
+      "saved_revision": 138,
+      "status": 1
+    },
+    "runtime": {
+      "apply_error": 0,
+      "failed_workers": 0,
+      "generation": 52,
+      "recovery_error": 0,
+      "retained_instances": 3,
+      "service_error": 0,
+      "state": 1
+    }
+  },
+  "software_checks": {
+    "python": "3.14.2",
+    "ai_tests": 76,
+    "passed": true,
+    "c_gate": {
+      "files": 194,
+      "findings": 0,
+      "tool_policy_errors": 0
+    },
+    "log": {
+      "path": "build/protocol-r3-tests-20261026.log",
+      "bytes": 24388,
+      "sha256": "dccc970a73a6c56fc8c54994f3b450510db2cc91fa31766d3d57d1c71515bf33"
+    }
+  },
+  "initial_preflight_abort": {
+    "record": {
+      "path": "build/protocol-study-20261026-r3/capture/summary.json",
+      "bytes": 974,
+      "sha256": "98f42173919a094dd49803dd455761fbf1a372e6405cb5cd9c3899919db279fe"
+    },
+    "runs": 0,
+    "mutated_board": false,
+    "reason": "A canonically reordered profile copy had a different wire CRC. Used preserved original bytes in capture-verified; settings/study/splits unchanged. No measured run was retried."
+  },
+  "source_index": {
+    "path": "build/protocol-study-20261026-r3/source-index.json",
+    "bytes": 11661,
+    "sha256": "45d4d8d503c5d7be31a64f0a3111352e77d214a9721ca9aed85b71f49029a3de"
+  },
+  "decisions": {
+    "path": "build/protocol-study-20261026-r3/trained/decisions.json",
+    "bytes": 34063,
+    "sha256": "c076fc178a4155d53ddd695d3521dfd332f079e1baaaf9c93dfde5d534eb8eb3"
+  },
+  "run_details": {
+    "path": "build/protocol-study-20261026-r3/trained/run-details.json",
+    "bytes": 25926,
+    "sha256": "a0b1afb2590ac35a2f449fb1ac7913bf755457ae6f78a5e825c4b65d7d853462"
+  },
+  "artifacts": [
+    {
+      "path": "build/protocol-study-20261026-r3/capture/identity.json",
+      "bytes": 1484,
+      "sha256": "b4755e389bf797d71ea6b4ba2245e06958e7c8738e4a4aadeef4a7c598c6c00d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture/restore-profile.json",
+      "bytes": 2205,
+      "sha256": "40d48ce8a787fd6779dc25e7527f54bc08ce869343fc6d3cc1b101f4ed001486"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture/study.json",
+      "bytes": 76394,
+      "sha256": "719e6fe66182327a1a414c1b33737e8b4d18e45822eba659c50d651d60caa16a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture/summary.json",
+      "bytes": 974,
+      "sha256": "98f42173919a094dd49803dd455761fbf1a372e6405cb5cd9c3899919db279fe"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/apply-1000/receipt.json",
+      "bytes": 3123,
+      "sha256": "d5a91fedfee9fe3a798604557f7cca29f69419da303d4c2a27b600b3e999115c"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/apply-1000/reply.json",
+      "bytes": 181,
+      "sha256": "4a6b2b5e50a6c78a40abdb3cff0bb2dce7409483033abb3afc839b82f8aa39f8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/apply-1000/request.json",
+      "bytes": 5753,
+      "sha256": "1f8352a050f381210a3f165cc9088f9ad29e42e4e1f866b2e0d94904450ba053"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/apply-200/receipt.json",
+      "bytes": 3123,
+      "sha256": "244f2aaad0f5dde4206d87b855e685fd02b17f4c6a4a7f39e6c6161f76558119"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/apply-200/reply.json",
+      "bytes": 183,
+      "sha256": "8b3a820f06acaa37d51502573b0010ba86e33157cfa1fe019123208963de89ce"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/apply-200/request.json",
+      "bytes": 5749,
+      "sha256": "19c654a043a8e65bd4753ad1ed2fefbe68116246da7a5f0d9f8e472a6b06fbfe"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/apply-2000/receipt.json",
+      "bytes": 3125,
+      "sha256": "353d8574d20d685f0a54d73f9879ce0cc62c7712e2510333fa72a2513453252c"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/apply-2000/reply.json",
+      "bytes": 183,
+      "sha256": "fd16a51dcecc3c7321f8c8ce396fe1ed65cee4a5aafda624d3f0c288032e0969"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/apply-2000/request.json",
+      "bytes": 5753,
+      "sha256": "87ccc2ce8ca2c357c6a942a93c636097c7623be956e7f869215ed43fa8c77c3f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/apply-500/receipt.json",
+      "bytes": 3123,
+      "sha256": "ad6cc397ff58579872033feba927809bb3a3f65af7314e7b295824b8142633e6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/apply-500/reply.json",
+      "bytes": 183,
+      "sha256": "adcc085044705d6905943ccd8b0af6c3538115b95b35f70c74f35a67a2b53077"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/apply-500/request.json",
+      "bytes": 5747,
+      "sha256": "05667c089c6dfc7ea84110e33d6f24cf75d875affb971e467739b825a0501ddb"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/experiment.json",
+      "bytes": 5519,
+      "sha256": "34d068f41d745dcd97bf370ab7ef1cfb47849d6f70a8660a924748378343764d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-1000-0/assessment.json",
+      "bytes": 107,
+      "sha256": "21d64bfd27766037c8465b87371483a753941fa5a0cbc1cc3cd99ef121aac572"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-1000-0/experiment.json",
+      "bytes": 5519,
+      "sha256": "34d068f41d745dcd97bf370ab7ef1cfb47849d6f70a8660a924748378343764d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-1000-0/raw.jsonl",
+      "bytes": 427816,
+      "sha256": "203b125e14760b202ad1a35d550ea203610ccf1815c3e9eaa0ca890f3ef81d19"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-1000-0/run.json",
+      "bytes": 63402,
+      "sha256": "ea84ce8a6d014e43d60d658708ac92cbef25f23ee379d951308979a63e404afd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-1000-1/assessment.json",
+      "bytes": 108,
+      "sha256": "652504cb03a94e4f27a56a3104bcaef1928b0fd01f809dbc272489cbb497ba1f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-1000-1/experiment.json",
+      "bytes": 5519,
+      "sha256": "34d068f41d745dcd97bf370ab7ef1cfb47849d6f70a8660a924748378343764d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-1000-1/raw.jsonl",
+      "bytes": 429964,
+      "sha256": "0ea0d6b2889a8221ea0b9eec576afa7e92ae561978e64d2669aa3f442c13bf54"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-1000-1/run.json",
+      "bytes": 63404,
+      "sha256": "6c285a01430b4176e91f7f80789e53b040a27eb43ce9a2a5ce548dd0a36b554b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-200-0/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-200-0/experiment.json",
+      "bytes": 5519,
+      "sha256": "34d068f41d745dcd97bf370ab7ef1cfb47849d6f70a8660a924748378343764d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-200-0/raw.jsonl",
+      "bytes": 428675,
+      "sha256": "54902e880551d10788df293d92fcf02c67cf60858986b10556b73686307f4313"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-200-0/run.json",
+      "bytes": 63286,
+      "sha256": "3f947c6de71c83368fc002b2a0f3ec0f4a68fa5a5ae0aa71250e12deb5b23f88"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-200-1/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-200-1/experiment.json",
+      "bytes": 5519,
+      "sha256": "34d068f41d745dcd97bf370ab7ef1cfb47849d6f70a8660a924748378343764d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-200-1/raw.jsonl",
+      "bytes": 431497,
+      "sha256": "2b731c0b5ba8b5f4852eec6e2846edbb58e86769d091ed55d5f2cc34ee14b0c8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-200-1/run.json",
+      "bytes": 63291,
+      "sha256": "72b3b598b5687b93e13b9f6164284491e7230177ff48d15a1cafde8d5f4c48b5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-2000-0/assessment.json",
+      "bytes": 108,
+      "sha256": "9265a56c38fc23afc2e676b0252246d1ecae1c2fff1aadd54f74f1a0fb98d0f4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-2000-0/experiment.json",
+      "bytes": 5519,
+      "sha256": "34d068f41d745dcd97bf370ab7ef1cfb47849d6f70a8660a924748378343764d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-2000-0/raw.jsonl",
+      "bytes": 428369,
+      "sha256": "22fe8724a85c45040ba5e2b7a88196db15d1d1d220410b8ac9858c484610d5d6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-2000-0/run.json",
+      "bytes": 63551,
+      "sha256": "252f93c79423135125803cfb3891d1a1f9528837e05c2f1d615db6fe375e7b13"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-2000-1/assessment.json",
+      "bytes": 108,
+      "sha256": "5a712ab1130e2d674c086607208225e715f39e004b65cf055683121753883ede"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-2000-1/experiment.json",
+      "bytes": 5519,
+      "sha256": "34d068f41d745dcd97bf370ab7ef1cfb47849d6f70a8660a924748378343764d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-2000-1/raw.jsonl",
+      "bytes": 430816,
+      "sha256": "39b27169029d526b61582e5f22334425aeedc505f66d9057d2912c02ace7d6db"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-2000-1/run.json",
+      "bytes": 63542,
+      "sha256": "047cd228b5080b29b47dc50ae7299d1dbf93d6bbc4c90572f540e59a483d7aae"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-500-0/assessment.json",
+      "bytes": 106,
+      "sha256": "c2dc5ecf1f40faaea1943146e9cbfa095dc294301efcd284b0b99389b2b27da0"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-500-0/experiment.json",
+      "bytes": 5519,
+      "sha256": "34d068f41d745dcd97bf370ab7ef1cfb47849d6f70a8660a924748378343764d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-500-0/raw.jsonl",
+      "bytes": 428752,
+      "sha256": "7d9ddcb93ecc4008857ec2fa23809146dc9a5b2302bc3479ba2c6426427a1ca6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-500-0/run.json",
+      "bytes": 63374,
+      "sha256": "a0658558d0aa92dfbf1156f206e38ff291273ffb64a064dbe8285828c9332efb"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-500-1/assessment.json",
+      "bytes": 106,
+      "sha256": "8190b5818e9d558e26da4c1ea9574e2428b9c5fdd0719772c01cc5df19d01222"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-500-1/experiment.json",
+      "bytes": 5519,
+      "sha256": "34d068f41d745dcd97bf370ab7ef1cfb47849d6f70a8660a924748378343764d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-500-1/raw.jsonl",
+      "bytes": 431333,
+      "sha256": "45f461172d06a4ce8638344147b4955e6aaa3cbce744ac3d93b40d4a2b7f885d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-current/run-500-1/run.json",
+      "bytes": 63371,
+      "sha256": "65272ea9ab9017c6383406290647bfa2617cba8466ed38144064712c865afbc1"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/apply-1000/receipt.json",
+      "bytes": 3129,
+      "sha256": "7f157cd118e5e9e784e7c24637daceaef65c67866077e83d3f76dc63619acadd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/apply-1000/reply.json",
+      "bytes": 187,
+      "sha256": "aa73e9c093f828e9c57a8cc9ded29b2db270aa6cb8fb84f559db768a056d020e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/apply-1000/request.json",
+      "bytes": 5756,
+      "sha256": "adba0715f619301120fdfbb788e5a837d6236c1fe464217da2934f33d32dbfc9"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/apply-200/receipt.json",
+      "bytes": 3127,
+      "sha256": "b9dca9016c6fcf8ada50b13e5b9298792c8c73d8119eb30810d4df5ce3f81bda"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/apply-200/reply.json",
+      "bytes": 187,
+      "sha256": "aee112c63045941cb2c54d3449de41943332b8e1d5629ed428598fd364164491"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/apply-200/request.json",
+      "bytes": 5750,
+      "sha256": "f74933ce789570382b2e589721edfc0d057f0e0770aa1fbd56899e6522d58271"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/apply-2000/receipt.json",
+      "bytes": 3127,
+      "sha256": "538c90b371344af3534b595842d0907e80eb9edbeb9fd77d4d66bd17f04585ea"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/apply-2000/reply.json",
+      "bytes": 185,
+      "sha256": "968c741e520cd0942c0d3989005e775e02e27450c24acd97ea9048788b296b50"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/apply-2000/request.json",
+      "bytes": 5756,
+      "sha256": "f5269b2a279e0b103cdd01c2b061411a4277af17df7252db0fb5d2f01725a3c1"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/apply-500/receipt.json",
+      "bytes": 3127,
+      "sha256": "aebbf50e0f9cd4d59bbd68c9929c733d4fe735b5e2aa4fd28338d2d03c3b26a4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/apply-500/reply.json",
+      "bytes": 187,
+      "sha256": "b402235a9b2b259f0456d8615a781f3348f1fd572592c4bbe5187629ab633531"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/apply-500/request.json",
+      "bytes": 5752,
+      "sha256": "b63193a9ee1f939a07ff068aaaf2a783333dd5911775245e5258a49d4a7dc2c7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/experiment.json",
+      "bytes": 5510,
+      "sha256": "ad6cdca0a81d61e716ba64b2ab0d5349069d186f59fb5f74ea41bff2d95444e4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-1000-0/assessment.json",
+      "bytes": 107,
+      "sha256": "21d64bfd27766037c8465b87371483a753941fa5a0cbc1cc3cd99ef121aac572"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-1000-0/experiment.json",
+      "bytes": 5510,
+      "sha256": "ad6cdca0a81d61e716ba64b2ab0d5349069d186f59fb5f74ea41bff2d95444e4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-1000-0/raw.jsonl",
+      "bytes": 429517,
+      "sha256": "826ad5546e8533fcebc31f38f566a83041b5b5e737eb76eabc18c27301f8748f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-1000-0/run.json",
+      "bytes": 63411,
+      "sha256": "06848a5ce523fb883a1750ce709f539170f2940d13e62bcc343b47ffdbd5bbf8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-1000-1/assessment.json",
+      "bytes": 107,
+      "sha256": "f2db4258c9d34c1b24f4d72f89b3420010728791f9c5fa0cb0f94e2318dc2ff3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-1000-1/experiment.json",
+      "bytes": 5510,
+      "sha256": "ad6cdca0a81d61e716ba64b2ab0d5349069d186f59fb5f74ea41bff2d95444e4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-1000-1/raw.jsonl",
+      "bytes": 431591,
+      "sha256": "ceca5551fa3156822cfdee2d7297d3cb262b1d06b66f123ab936d121fa287db2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-1000-1/run.json",
+      "bytes": 63415,
+      "sha256": "16b3295ba3825fa592b5e71251e1a26b831e735e6e48be7deca8fe77669b167e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-200-0/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-200-0/experiment.json",
+      "bytes": 5510,
+      "sha256": "ad6cdca0a81d61e716ba64b2ab0d5349069d186f59fb5f74ea41bff2d95444e4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-200-0/raw.jsonl",
+      "bytes": 429591,
+      "sha256": "be2b03e948fb69dc6f6d7b64087c104b51171c52a733ef049bbc10241e18821b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-200-0/run.json",
+      "bytes": 63295,
+      "sha256": "a99f8b92521ca490f98d2d0a0d7acb7e2d6503458891eb435a822f5b1196e57a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-200-1/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-200-1/experiment.json",
+      "bytes": 5510,
+      "sha256": "ad6cdca0a81d61e716ba64b2ab0d5349069d186f59fb5f74ea41bff2d95444e4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-200-1/raw.jsonl",
+      "bytes": 431514,
+      "sha256": "132048d73c8dbd6edd8cebdbca8c5e97832c541737d84a9a84eadb55c2975026"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-200-1/run.json",
+      "bytes": 63299,
+      "sha256": "95ff1bc41659ebdc61a7569389ec6eb2f3d3848ee3b378bbd80c846f650ae302"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-2000-0/assessment.json",
+      "bytes": 108,
+      "sha256": "726e11a4469a616e7474ddd482c3437eeb12f53092dcb02e5b63b33d1bfdc092"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-2000-0/experiment.json",
+      "bytes": 5510,
+      "sha256": "ad6cdca0a81d61e716ba64b2ab0d5349069d186f59fb5f74ea41bff2d95444e4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-2000-0/raw.jsonl",
+      "bytes": 428681,
+      "sha256": "253b02dde695b3477de1e10566bfd5b492e45030924d1051f2038d343f7feb90"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-2000-0/run.json",
+      "bytes": 63558,
+      "sha256": "94e150c8cbeb2a5e5991a66dd2e67ba938383c10cd2812d7e8ff9f1abb7abf2d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-2000-1/assessment.json",
+      "bytes": 108,
+      "sha256": "d6f27f93bf3b0f0c5c6a2814ac01cfbea71e2d0c15a577361923ab8da2985eb3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-2000-1/experiment.json",
+      "bytes": 5510,
+      "sha256": "ad6cdca0a81d61e716ba64b2ab0d5349069d186f59fb5f74ea41bff2d95444e4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-2000-1/raw.jsonl",
+      "bytes": 431269,
+      "sha256": "b100fa58621c427e2448831b22ebc5db2653ce09d3a9c8e143591cba4910bea6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-2000-1/run.json",
+      "bytes": 63558,
+      "sha256": "f2fc0c6cc7c2e0bcf5c3afe000a97aa6cd7bef3ff331f7af9f942be0ca385d68"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-500-0/assessment.json",
+      "bytes": 106,
+      "sha256": "ce8352347547e319380ca01755e6a98bc75acde869105f4327d8376bf41a4a62"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-500-0/experiment.json",
+      "bytes": 5510,
+      "sha256": "ad6cdca0a81d61e716ba64b2ab0d5349069d186f59fb5f74ea41bff2d95444e4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-500-0/raw.jsonl",
+      "bytes": 429490,
+      "sha256": "bdb9d31b6b2e71314152ee92f58d33936b2a813fc742c640c18a95afe1cf5037"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-500-0/run.json",
+      "bytes": 63379,
+      "sha256": "404430609e86437691d35348ddf5a3d4b0223d733e829d052cfe98a3b69f71ee"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-500-1/assessment.json",
+      "bytes": 106,
+      "sha256": "984e2cac1b32a63a1efc815edc8b179dc8c49f6f763dc01a6ec8db3d3bcb78a0"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-500-1/experiment.json",
+      "bytes": 5510,
+      "sha256": "ad6cdca0a81d61e716ba64b2ab0d5349069d186f59fb5f74ea41bff2d95444e4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-500-1/raw.jsonl",
+      "bytes": 432016,
+      "sha256": "9fd25f0d69ffb6e2544157531633ba748cbe9b5d09223c498440a9b1fb10c91e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-fast/run-500-1/run.json",
+      "bytes": 63377,
+      "sha256": "c3f1c722aca9a2143156f38fb41ba560377ff6b5cf31a9cd9b2bdb75e4701cd8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/apply-1000/receipt.json",
+      "bytes": 3125,
+      "sha256": "7b223436afa5832d1ec80e25f5e18dd725a078d5b5f99040a5571caff5f6ab93"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/apply-1000/reply.json",
+      "bytes": 183,
+      "sha256": "d9082f86c544f54ea46eb249aac90bbd844a80ea2f9c02e7c94a8523e4201157"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/apply-1000/request.json",
+      "bytes": 5753,
+      "sha256": "c91e2ac06db095ee38b4813e61de3c76af2639f9e1fa6f40ca22708c465c339a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/apply-200/receipt.json",
+      "bytes": 3121,
+      "sha256": "f36d28bdcba4dc29965d2b837eacb3dd2209f4518f2b07cd4cc8123c30fc8a84"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/apply-200/reply.json",
+      "bytes": 181,
+      "sha256": "384949bffb91b3245a9516a6e03e0cfd323250c9430c41a72c2fd8d34abc7a15"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/apply-200/request.json",
+      "bytes": 5749,
+      "sha256": "92f2a142c53ad32b600edb87f0893d70a150a02b8e8ae99be7acfc5a9263ccf8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/apply-2000/receipt.json",
+      "bytes": 3125,
+      "sha256": "d0d4703b6fc4d65a8d0815bdb4890a65dbefab7582e02d303fa5c606cf427a8e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/apply-2000/reply.json",
+      "bytes": 183,
+      "sha256": "b419d1fe4cbb1e7fa81240f11a399550e3acba8305b687fbef010860a4f0a6ac"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/apply-2000/request.json",
+      "bytes": 5751,
+      "sha256": "a3619b0b99fa4a8769da27a95d08de273f8acbba4d5ef6bfdcddf118a9fd992b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/apply-500/receipt.json",
+      "bytes": 3123,
+      "sha256": "f3af337aa1b75740d5a787db9a8397f438ef1c88cd9ce6d66b94a529e0da849a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/apply-500/reply.json",
+      "bytes": 183,
+      "sha256": "7549eeed972b17a2b7a64c3ed2bd742d8ca08ea8da2965718974c9679c8dbe6b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/apply-500/request.json",
+      "bytes": 5749,
+      "sha256": "291c874be0b247820310a6c784405a82b367f1689c904ac9e6749ce1498f494c"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/experiment.json",
+      "bytes": 5510,
+      "sha256": "c028d49709f068faaf68b94a1293703a58eeb7b823aa0077888a97016e84f1d5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-1000-0/assessment.json",
+      "bytes": 108,
+      "sha256": "93fca102c97465901857a8d634df40a8f393b3ceb0980c2df04cc4b0c9ab55a7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-1000-0/experiment.json",
+      "bytes": 5510,
+      "sha256": "c028d49709f068faaf68b94a1293703a58eeb7b823aa0077888a97016e84f1d5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-1000-0/raw.jsonl",
+      "bytes": 428710,
+      "sha256": "5fb2665b00408d61512c41aebbdd3e3c8c780285751e5a29e3d186fc0a938c6a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-1000-0/run.json",
+      "bytes": 63631,
+      "sha256": "79fbd6f269712241b557d8addc86957e73843d2e2535286fddb5f3d6ff0fba76"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-1000-1/assessment.json",
+      "bytes": 108,
+      "sha256": "194583d5fb6d7b03f831cba8694aeb1487580efdea1132ac7a4f5ca85f47a9a4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-1000-1/experiment.json",
+      "bytes": 5510,
+      "sha256": "c028d49709f068faaf68b94a1293703a58eeb7b823aa0077888a97016e84f1d5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-1000-1/raw.jsonl",
+      "bytes": 431211,
+      "sha256": "95f7e10e78b21eed2c29692b604ce1f055d34b2743c3154921597cfb4d9edab9"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-1000-1/run.json",
+      "bytes": 63822,
+      "sha256": "5a7b3c7070ba213e0c2184d0b5acf176b3792ac3c6a15a1569f2f772b3ada030"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-200-0/assessment.json",
+      "bytes": 108,
+      "sha256": "8db7c6cd93ad3cd36cd37c507cd3fb948701a9dff8d61c156fe08019e7103f7b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-200-0/experiment.json",
+      "bytes": 5510,
+      "sha256": "c028d49709f068faaf68b94a1293703a58eeb7b823aa0077888a97016e84f1d5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-200-0/raw.jsonl",
+      "bytes": 428394,
+      "sha256": "4a13a6d115de2c4446ac390773081baa0e2908230518f4006120819b109b6c1c"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-200-0/run.json",
+      "bytes": 63513,
+      "sha256": "07c18bb8040c485a2d1c8b5dd5082313ad149e2120025380b36ca3506226acd5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-200-1/assessment.json",
+      "bytes": 108,
+      "sha256": "8db7c6cd93ad3cd36cd37c507cd3fb948701a9dff8d61c156fe08019e7103f7b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-200-1/experiment.json",
+      "bytes": 5510,
+      "sha256": "c028d49709f068faaf68b94a1293703a58eeb7b823aa0077888a97016e84f1d5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-200-1/raw.jsonl",
+      "bytes": 431470,
+      "sha256": "5aa5435da63b54bf48ef03d3e401542a8eba61ba994384255d8c7245574eaec2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-200-1/run.json",
+      "bytes": 63703,
+      "sha256": "7ecb9fc9ab90273d973f4776d0593e4a2fa6949297d8346f35a77b1ac5def34f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-2000-0/assessment.json",
+      "bytes": 109,
+      "sha256": "db649113863f1b3c00cdea46678353c37c3eb4e3242890a151dbe4483407845c"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-2000-0/experiment.json",
+      "bytes": 5510,
+      "sha256": "c028d49709f068faaf68b94a1293703a58eeb7b823aa0077888a97016e84f1d5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-2000-0/raw.jsonl",
+      "bytes": 428773,
+      "sha256": "44c494dc37fea3b970ba0aad285b3916c4ce6c1cc937989efd044dc95e47564a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-2000-0/run.json",
+      "bytes": 63772,
+      "sha256": "66a380e320fc041a02eab40d5036ae452df636b110b9944723013cc68d09e8b5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-2000-1/assessment.json",
+      "bytes": 109,
+      "sha256": "866dd763768c4bebc0ae92f988b08a50480a8d34f3e3ce8bfbe5d544b83e89e1"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-2000-1/experiment.json",
+      "bytes": 5510,
+      "sha256": "c028d49709f068faaf68b94a1293703a58eeb7b823aa0077888a97016e84f1d5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-2000-1/raw.jsonl",
+      "bytes": 431528,
+      "sha256": "ceed308967e50a2a8704a287325908daa9b43a7d97065e70fd727cdeb04427c8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-2000-1/run.json",
+      "bytes": 63965,
+      "sha256": "797d4f33d2bd9ab7985a792b7185d547f84f20336c73c33928ee00a631d95eca"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-500-0/assessment.json",
+      "bytes": 108,
+      "sha256": "a2ea0e2e92e6f7a38ae92727d5688544d0160ef6779d1d1ce188d8bc916d2db0"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-500-0/experiment.json",
+      "bytes": 5510,
+      "sha256": "c028d49709f068faaf68b94a1293703a58eeb7b823aa0077888a97016e84f1d5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-500-0/raw.jsonl",
+      "bytes": 428815,
+      "sha256": "b2073219d3fa99b802cb57c627f4d7fdffd52ae4cbc8989ef6b869b0525a566d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-500-0/run.json",
+      "bytes": 63598,
+      "sha256": "632a1ddcbd75b679c434ae82a7b62c5f33b0fd9570004585b8660d908b9ecad9"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-500-1/assessment.json",
+      "bytes": 108,
+      "sha256": "752c28ff23f9e397b2cab9ea9d6d4dd0ec16dbe18c9875953c0643dd7bdc7081"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-500-1/experiment.json",
+      "bytes": 5510,
+      "sha256": "c028d49709f068faaf68b94a1293703a58eeb7b823aa0077888a97016e84f1d5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-500-1/raw.jsonl",
+      "bytes": 431623,
+      "sha256": "96bf2f885d6726f0a592895a7808c5e48506e7c9798f628792c8285bc49b5ea7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/all-slow/run-500-1/run.json",
+      "bytes": 63790,
+      "sha256": "ffee96110104623b1f6508b3053fda81bfd27b188b877c8c3df6f1972cd97125"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/apply-1000/receipt.json",
+      "bytes": 3131,
+      "sha256": "a76e9cf705938fffe09bea235a9fe4c7821e376c283135a7c1ba1ac12e81beef"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/apply-1000/reply.json",
+      "bytes": 187,
+      "sha256": "92863df15c3c86c9157fe0d2f8df4380f315cbc90a4c5e79c83661f537166b81"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/apply-1000/request.json",
+      "bytes": 5761,
+      "sha256": "9021fe2e1b50345108a734e082b65e61824d8602778192c91af76c8832291405"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/apply-200/receipt.json",
+      "bytes": 3127,
+      "sha256": "ba4a942a9f9b345c7bf975dcdbdab054a165deb38dd8e04d4b7d919ee31dc82e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/apply-200/reply.json",
+      "bytes": 185,
+      "sha256": "62551f0b72aec5cd5ba475de969595be19a00003866062b1f09ffbca77b6dafd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/apply-200/request.json",
+      "bytes": 5757,
+      "sha256": "5a888f6e23e9abcddde37e35a2c934141c7ead7f264b6c9caa27d4612b1e6fb9"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/apply-2000/receipt.json",
+      "bytes": 3131,
+      "sha256": "f2df576ff368c156e3fe635958761df5c7bca8c1725d9c289c479053df64e6fb"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/apply-2000/reply.json",
+      "bytes": 187,
+      "sha256": "397fe6c889a29c64db9ee9cd586a85c214bb47b80079ca660259b3020f4d6e8f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/apply-2000/request.json",
+      "bytes": 5761,
+      "sha256": "f31744ce84c3e49eb9f27a63720527840d262b97baa0768520acee715871b9e6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/apply-500/receipt.json",
+      "bytes": 3129,
+      "sha256": "c5c0690e474571d9c53912471bc2fbcabdfd56e3408df6a59821b09d4474c19e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/apply-500/reply.json",
+      "bytes": 187,
+      "sha256": "89b71310b49b1e48e1cd78e59a40e19ccb08a47de841ee4df484b65af376069a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/apply-500/request.json",
+      "bytes": 5755,
+      "sha256": "a106e74241e34b960c31f0460f23cc2c62d5090f873af84c0fea7a659f356d65"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/experiment.json",
+      "bytes": 5508,
+      "sha256": "b932808dd1576f9fb5cb253144ae6cbde76ca66db71c52b027e937c7ad864c5d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-1000-0/assessment.json",
+      "bytes": 107,
+      "sha256": "102d3c0e2d91e5477a65b9eda5244253cbf85cdeea7139041198fc6ba4cd6081"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-1000-0/experiment.json",
+      "bytes": 5508,
+      "sha256": "b932808dd1576f9fb5cb253144ae6cbde76ca66db71c52b027e937c7ad864c5d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-1000-0/raw.jsonl",
+      "bytes": 322243,
+      "sha256": "fcf4eb1a1b6bfe5daeb7e02b4638f87069c86a24fcbffcd056694bf43e6a1eab"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-1000-0/run.json",
+      "bytes": 63412,
+      "sha256": "6f462c3759d627d4a2d18e2a0ec777634466168fc6d31ae0296b99a87e507ac4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-1000-1/assessment.json",
+      "bytes": 107,
+      "sha256": "f2db4258c9d34c1b24f4d72f89b3420010728791f9c5fa0cb0f94e2318dc2ff3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-1000-1/experiment.json",
+      "bytes": 5508,
+      "sha256": "b932808dd1576f9fb5cb253144ae6cbde76ca66db71c52b027e937c7ad864c5d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-1000-1/raw.jsonl",
+      "bytes": 325596,
+      "sha256": "81de76c883efa7d9ddac8e1305630d2a95a140df5388ccf6dd3781b0387beb81"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-1000-1/run.json",
+      "bytes": 63419,
+      "sha256": "3622d1a16047807569645c9af4043a26de12b4e56c92e66f74b46ed468b61ad6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-200-0/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-200-0/experiment.json",
+      "bytes": 5508,
+      "sha256": "b932808dd1576f9fb5cb253144ae6cbde76ca66db71c52b027e937c7ad864c5d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-200-0/raw.jsonl",
+      "bytes": 324593,
+      "sha256": "6e3497bcc493cf29aff31911d5e47757f2af393cba0bb45750637ec712cb64ed"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-200-0/run.json",
+      "bytes": 63297,
+      "sha256": "f9a6fd9ab569222ab4a76b4dbb2c96bd2287ca19ffb245dea042d0187ee9e116"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-200-1/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-200-1/experiment.json",
+      "bytes": 5508,
+      "sha256": "b932808dd1576f9fb5cb253144ae6cbde76ca66db71c52b027e937c7ad864c5d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-200-1/raw.jsonl",
+      "bytes": 326494,
+      "sha256": "41d5ec3ec38b566e735bb80cb970f087339903a06cb8b56e428c83f52f989fa2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-200-1/run.json",
+      "bytes": 63295,
+      "sha256": "d0674c7b4f88f6c7965b7bf3be417486c7c0c86f987904c9d8acdc8c90ab10c8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-2000-0/assessment.json",
+      "bytes": 108,
+      "sha256": "13a78ef0965f29e019b7db82a85e20acc908cb4f963e7d19d48c110165a9d519"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-2000-0/experiment.json",
+      "bytes": 5508,
+      "sha256": "b932808dd1576f9fb5cb253144ae6cbde76ca66db71c52b027e937c7ad864c5d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-2000-0/raw.jsonl",
+      "bytes": 320218,
+      "sha256": "152f5d19ce12e29a20959ea1d518d66469591848666f0a18d86e44814e0a079f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-2000-0/run.json",
+      "bytes": 63555,
+      "sha256": "fa23f33663ebdab3141b177547b037d13799fa7b612aee28f2b186cec0a39743"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-2000-1/assessment.json",
+      "bytes": 108,
+      "sha256": "32ba1e229725cbac1a243df049661abbd621b49fdb678e62ce4e82b94027b2b4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-2000-1/experiment.json",
+      "bytes": 5508,
+      "sha256": "b932808dd1576f9fb5cb253144ae6cbde76ca66db71c52b027e937c7ad864c5d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-2000-1/raw.jsonl",
+      "bytes": 325400,
+      "sha256": "5f41f9bb719158db3913d38d320a9d67cea694030c2a7d0b7603e4063c5af6f6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-2000-1/run.json",
+      "bytes": 63557,
+      "sha256": "a14e8bc816043e0922e2fbe8f63b5d00f444a55d12c560d95de165077fa4dedc"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-500-0/assessment.json",
+      "bytes": 106,
+      "sha256": "984e2cac1b32a63a1efc815edc8b179dc8c49f6f763dc01a6ec8db3d3bcb78a0"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-500-0/experiment.json",
+      "bytes": 5508,
+      "sha256": "b932808dd1576f9fb5cb253144ae6cbde76ca66db71c52b027e937c7ad864c5d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-500-0/raw.jsonl",
+      "bytes": 323722,
+      "sha256": "ffd0e4bde52cdfe18d58ec209969dbcded460595e8f638faa2b6dab1ba9f1964"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-500-0/run.json",
+      "bytes": 63383,
+      "sha256": "2f9d0ea49e7074c305bf43569c1be55e21a1780a9a888b283d7afa520a9178a1"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-500-1/assessment.json",
+      "bytes": 106,
+      "sha256": "c5ff85b1f434f280ca196ad3af07f3a00bb0e82510beb793bc6ac0006e2ebe53"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-500-1/experiment.json",
+      "bytes": 5508,
+      "sha256": "b932808dd1576f9fb5cb253144ae6cbde76ca66db71c52b027e937c7ad864c5d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-500-1/raw.jsonl",
+      "bytes": 326608,
+      "sha256": "fed9a64237feaa8a4100c084711248bf2dd59d24e69f0854909477e6941c4148"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-100/run-500-1/run.json",
+      "bytes": 63386,
+      "sha256": "79660ad8589fcb6085d2e1c552b43c509499e3a6ddb0ed9f9e16f8da9f894e77"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/apply-1000/receipt.json",
+      "bytes": 3131,
+      "sha256": "a08a2c2cc55b45288cc7f0c1b38924b197b7619d40f2f441f578b86f067e9b47"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/apply-1000/reply.json",
+      "bytes": 187,
+      "sha256": "c548218a997e5df01721dd14e064080cea41a4e9d6112558eef50a82fcfc57e6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/apply-1000/request.json",
+      "bytes": 5761,
+      "sha256": "a08ad65200903ac383ef0781e205556ae2f27f6711674883fb5db6f705e8038b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/apply-200/receipt.json",
+      "bytes": 3129,
+      "sha256": "a64532d81ffb3ee3b773d4d3fcfbec572d7e052b6ed300550d6e689908283150"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/apply-200/reply.json",
+      "bytes": 187,
+      "sha256": "a8bf7e9b1b751f99e1d665673ee061871599e7ad8d177ef58ca46dabb100d9ef"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/apply-200/request.json",
+      "bytes": 5757,
+      "sha256": "644437931f10105563081754ab7d5c269ff2a70c5cecaef44061b4840b8daf9e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/apply-2000/receipt.json",
+      "bytes": 3131,
+      "sha256": "6e01b212e128ae51f492a2c884f5a299f359353db67d0d9c46b70de4aad5db05"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/apply-2000/reply.json",
+      "bytes": 187,
+      "sha256": "34b492184c07e407b3c3e8fe5112a497f7671d06f9db5e2191c68c8a3fb1c051"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/apply-2000/request.json",
+      "bytes": 5761,
+      "sha256": "26b5151a8cb18d20b7486423c587fbbebd0656386723cf968702e5db9db768bc"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/apply-500/receipt.json",
+      "bytes": 3127,
+      "sha256": "e8f425c319ad54623c1a74ae0b2367a583717a20740537807d72878b3bf3c256"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/apply-500/reply.json",
+      "bytes": 185,
+      "sha256": "0270fd4485d52ffb68b0184b2bb7f176612609b1570feddc6ff77798038bd030"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/apply-500/request.json",
+      "bytes": 5757,
+      "sha256": "35c025a9aef9a203e6e3ed397edc763b060e5f8f997b86c250ccff882b1d159c"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/experiment.json",
+      "bytes": 5508,
+      "sha256": "9a90e86727c2040522f23f4360026a1091543884eaa1efc38359b7afb6b91bdd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-1000-0/assessment.json",
+      "bytes": 107,
+      "sha256": "2159c4649fb4ac5074c8531a5fd6158758ea59f6c2ef8a3d7a2e8d22f4c253f0"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-1000-0/experiment.json",
+      "bytes": 5508,
+      "sha256": "9a90e86727c2040522f23f4360026a1091543884eaa1efc38359b7afb6b91bdd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-1000-0/raw.jsonl",
+      "bytes": 322401,
+      "sha256": "9667fb14ec22ded5820e93bb5b3b672ef6b6aa5d237f711c5ed7a6dfa03cca65"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-1000-0/run.json",
+      "bytes": 63415,
+      "sha256": "8b86246064a79ab179712af5379c72b03a7f9d99364c890e42edcc557f7562ce"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-1000-1/assessment.json",
+      "bytes": 107,
+      "sha256": "f2db4258c9d34c1b24f4d72f89b3420010728791f9c5fa0cb0f94e2318dc2ff3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-1000-1/experiment.json",
+      "bytes": 5508,
+      "sha256": "9a90e86727c2040522f23f4360026a1091543884eaa1efc38359b7afb6b91bdd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-1000-1/raw.jsonl",
+      "bytes": 325497,
+      "sha256": "ac7b96303c3968ce9f00f2d6495832f5f060090c7fc316818f0ef539389c2a45"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-1000-1/run.json",
+      "bytes": 63416,
+      "sha256": "e73231673a6e5e55e01fd3f9812c8654005cca40869658530a370f7cc063f5ca"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-200-0/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-200-0/experiment.json",
+      "bytes": 5508,
+      "sha256": "9a90e86727c2040522f23f4360026a1091543884eaa1efc38359b7afb6b91bdd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-200-0/raw.jsonl",
+      "bytes": 325093,
+      "sha256": "7ada6e9525a91ccc83b4f7e257497e81dd1ee2bbd8c59a2d64c826f2ee809de7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-200-0/run.json",
+      "bytes": 63300,
+      "sha256": "cfa1867ff749c81b1bea7313cb5498a9745ef3eb89bff576967f5514183333a1"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-200-1/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-200-1/experiment.json",
+      "bytes": 5508,
+      "sha256": "9a90e86727c2040522f23f4360026a1091543884eaa1efc38359b7afb6b91bdd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-200-1/raw.jsonl",
+      "bytes": 326988,
+      "sha256": "c7c8df8fa732d56c3a4a02fe3355a66ca003aa0b34e95b5b021700e67dca846d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-200-1/run.json",
+      "bytes": 63300,
+      "sha256": "60cc669b376d5628ea1f672b66eba3df7ae4755b28e829cf0a30f168995c3cbb"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-2000-0/assessment.json",
+      "bytes": 108,
+      "sha256": "d654f7755a4ae24c2ba1ab60d6e02beeed1c35b2cbf85ba32f8577e565d9f267"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-2000-0/experiment.json",
+      "bytes": 5508,
+      "sha256": "9a90e86727c2040522f23f4360026a1091543884eaa1efc38359b7afb6b91bdd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-2000-0/raw.jsonl",
+      "bytes": 320095,
+      "sha256": "2a973a9a7ca1199b1fe7964da25bb986299297be6e947230d8712e75f9290feb"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-2000-0/run.json",
+      "bytes": 63552,
+      "sha256": "bd7181da38c698805a344dba7567d091a2c3d78480fe13ab0a8d09bcf9058ef4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-2000-1/assessment.json",
+      "bytes": 108,
+      "sha256": "27184940b5e1979372f13551e3a153f5d19a743142987cda58c99151db626405"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-2000-1/experiment.json",
+      "bytes": 5508,
+      "sha256": "9a90e86727c2040522f23f4360026a1091543884eaa1efc38359b7afb6b91bdd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-2000-1/raw.jsonl",
+      "bytes": 325337,
+      "sha256": "0479293e073f6ae7c99bf94d0111f66f0ff1628f0625740c7924eeaafa0d2acd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-2000-1/run.json",
+      "bytes": 63558,
+      "sha256": "bcb5e672d0f16fc7074baed199deded715a75c2f6d993f670b3927f0e69858c8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-500-0/assessment.json",
+      "bytes": 106,
+      "sha256": "41bbf0f7a491761d476bf0079d4e64e53d868179848e5ea02cc57be923006c37"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-500-0/experiment.json",
+      "bytes": 5508,
+      "sha256": "9a90e86727c2040522f23f4360026a1091543884eaa1efc38359b7afb6b91bdd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-500-0/raw.jsonl",
+      "bytes": 323145,
+      "sha256": "b0a582f84b44ac3a79622d19a393c79bd8bfb249dd945971ca76fcf9c128d237"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-500-0/run.json",
+      "bytes": 63381,
+      "sha256": "77873150690a34c1efc9beb901cf95c264498b2ecbb8e9c3219a42609a31b532"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-500-1/assessment.json",
+      "bytes": 106,
+      "sha256": "ce8352347547e319380ca01755e6a98bc75acde869105f4327d8376bf41a4a62"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-500-1/experiment.json",
+      "bytes": 5508,
+      "sha256": "9a90e86727c2040522f23f4360026a1091543884eaa1efc38359b7afb6b91bdd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-500-1/raw.jsonl",
+      "bytes": 326055,
+      "sha256": "5c2ae62601e480c298a85d2928dcd66790900cee9f595b74b0c62344bce757a8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-400/run-500-1/run.json",
+      "bytes": 63379,
+      "sha256": "4407e17586fb8daab6b2ac7357dcf569042b93d13769514d7937b48483d84b3d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/apply-1000/receipt.json",
+      "bytes": 3130,
+      "sha256": "3880c9744723e0aef27c2c176ab4564446d9cc2ceb827eec88bc832d78af831f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/apply-1000/reply.json",
+      "bytes": 187,
+      "sha256": "19c5c4d6753f44a2622ba7d9e037243209141c86f56a2dd954ddabce7d1c24e5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/apply-1000/request.json",
+      "bytes": 5756,
+      "sha256": "1e8d3f327a86830de2e6dbb3901534d3c39874d37700c8b43c1b2f03ce277475"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/apply-200/receipt.json",
+      "bytes": 3128,
+      "sha256": "a94799c6eecb22fd9c17cafeed5cd01a8a8c4353a7f55d0757830bf2e4cb7fa7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/apply-200/reply.json",
+      "bytes": 187,
+      "sha256": "547ca730386c12bd0cd1e959cabf5b2176cb6048689a85ab215c2ff94834abc6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/apply-200/request.json",
+      "bytes": 5752,
+      "sha256": "c962dd09284a0b39d9c51248efffc88a565e1d4626ce8f5da28263942033422b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/apply-2000/receipt.json",
+      "bytes": 3128,
+      "sha256": "d064e9f8988a9f88cbff2971c4c0c8238e162b4c4bca27179b7831680e8aa3f2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/apply-2000/reply.json",
+      "bytes": 185,
+      "sha256": "8f3c98bca38ca494b1323755f5ef524dc44d841d79a9516d8e27b64c82688613"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/apply-2000/request.json",
+      "bytes": 5758,
+      "sha256": "8ca78258c7083fae05a3531a9f5b981549e5fa18191e3cef46e0b964e13f13ae"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/apply-500/receipt.json",
+      "bytes": 3128,
+      "sha256": "2431334af3a4a3dfafd10d0f702b35ba8652278fdd129bdde6f787428be83d84"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/apply-500/reply.json",
+      "bytes": 187,
+      "sha256": "2052d199e944113ba019fd2b2fba8d98c2c7498f0031b2e3d14f706942beeb8a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/apply-500/request.json",
+      "bytes": 5754,
+      "sha256": "790406ee6c0d4d6bf96c38a4973d2deddbf24a5262b5249414baa5937c3c49f4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/experiment.json",
+      "bytes": 5522,
+      "sha256": "2d2339fa4e7437113a537a49790fa19961e0c452a55a1d4292286e1fddbecbc2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-1000-0/assessment.json",
+      "bytes": 107,
+      "sha256": "f3730f932f65cd470c9b09774fc3a60b99bc8016674f15dbbe9159ac03deb278"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-1000-0/experiment.json",
+      "bytes": 5522,
+      "sha256": "2d2339fa4e7437113a537a49790fa19961e0c452a55a1d4292286e1fddbecbc2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-1000-0/raw.jsonl",
+      "bytes": 322266,
+      "sha256": "2e1583718d8749c612c758690fb29c48f16d1d885bc1cb75d861b239e60b15aa"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-1000-0/run.json",
+      "bytes": 63413,
+      "sha256": "0760c590a3300d6f55aad6323144f89780af4bbbd05af87d4f7959eee7afa591"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-1000-1/assessment.json",
+      "bytes": 107,
+      "sha256": "f2db4258c9d34c1b24f4d72f89b3420010728791f9c5fa0cb0f94e2318dc2ff3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-1000-1/experiment.json",
+      "bytes": 5522,
+      "sha256": "2d2339fa4e7437113a537a49790fa19961e0c452a55a1d4292286e1fddbecbc2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-1000-1/raw.jsonl",
+      "bytes": 325587,
+      "sha256": "9ae31ce6f22c40023ca8200829e04c48db4f49d710275a3297c0c985f7263f8c"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-1000-1/run.json",
+      "bytes": 63415,
+      "sha256": "431683bd4db6e1b1703d53cb41c97d77040b9aa6cdace9f7721d6ae17733fe46"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-200-0/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-200-0/experiment.json",
+      "bytes": 5522,
+      "sha256": "2d2339fa4e7437113a537a49790fa19961e0c452a55a1d4292286e1fddbecbc2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-200-0/raw.jsonl",
+      "bytes": 325046,
+      "sha256": "18487855c3f11ed64cd33b32f1992ccc5c7a027ced47e315ea453cf6a5a043e3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-200-0/run.json",
+      "bytes": 63298,
+      "sha256": "75712d1b8969e0021c4775b54a5814bb96556329027e92073d35184165b3a9ac"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-200-1/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-200-1/experiment.json",
+      "bytes": 5522,
+      "sha256": "2d2339fa4e7437113a537a49790fa19961e0c452a55a1d4292286e1fddbecbc2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-200-1/raw.jsonl",
+      "bytes": 327047,
+      "sha256": "a5ded8c0f78b5a267e196a4b531c1cc3993176fbcf1412ef39ca087b6a459107"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-200-1/run.json",
+      "bytes": 63296,
+      "sha256": "d56797ecfff43188960bc2357459325a89c5698a34a7eda9e9ea2bc4cd51f42d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-2000-0/assessment.json",
+      "bytes": 108,
+      "sha256": "d6f27f93bf3b0f0c5c6a2814ac01cfbea71e2d0c15a577361923ab8da2985eb3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-2000-0/experiment.json",
+      "bytes": 5522,
+      "sha256": "2d2339fa4e7437113a537a49790fa19961e0c452a55a1d4292286e1fddbecbc2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-2000-0/raw.jsonl",
+      "bytes": 319797,
+      "sha256": "56183ef90acd81723f72886859c6de6479c2080ffc439ef19f17ff93b957cd9d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-2000-0/run.json",
+      "bytes": 63558,
+      "sha256": "51e8b9aad1e826cf115c1b40c545b8a1f5d565406872c7d3309610d86892fd14"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-2000-1/assessment.json",
+      "bytes": 108,
+      "sha256": "d6f27f93bf3b0f0c5c6a2814ac01cfbea71e2d0c15a577361923ab8da2985eb3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-2000-1/experiment.json",
+      "bytes": 5522,
+      "sha256": "2d2339fa4e7437113a537a49790fa19961e0c452a55a1d4292286e1fddbecbc2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-2000-1/raw.jsonl",
+      "bytes": 324869,
+      "sha256": "8ab360e3e852933fefcad8bb1f92930aa3e69da9c1144c977a612251c465733a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-2000-1/run.json",
+      "bytes": 63553,
+      "sha256": "aa8c0aa28f7c373264e574956190794fbcd4fb012a0e672d6296725e5c44b248"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-500-0/assessment.json",
+      "bytes": 106,
+      "sha256": "ce8352347547e319380ca01755e6a98bc75acde869105f4327d8376bf41a4a62"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-500-0/experiment.json",
+      "bytes": 5522,
+      "sha256": "2d2339fa4e7437113a537a49790fa19961e0c452a55a1d4292286e1fddbecbc2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-500-0/raw.jsonl",
+      "bytes": 323667,
+      "sha256": "c5e30b2cd1a4cf4e31ebf16a360866a25dff31bfa06c20d710b741ed96c0aee4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-500-0/run.json",
+      "bytes": 63381,
+      "sha256": "857873ab040f62cd81935af785e64f495a82110be5efc08429687f8514069513"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-500-1/assessment.json",
+      "bytes": 106,
+      "sha256": "41bbf0f7a491761d476bf0079d4e64e53d868179848e5ea02cc57be923006c37"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-500-1/experiment.json",
+      "bytes": 5522,
+      "sha256": "2d2339fa4e7437113a537a49790fa19961e0c452a55a1d4292286e1fddbecbc2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-500-1/raw.jsonl",
+      "bytes": 326596,
+      "sha256": "dedc88a0f708888f87b19522c4d919c13cc7e70643a0d74104c5915ddc32529a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-fast/run-500-1/run.json",
+      "bytes": 63380,
+      "sha256": "763866b80246b89f0b6dc42ee989a5ec1d6902c7291c7e3569a8a0347263561a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/apply-1000/receipt.json",
+      "bytes": 3130,
+      "sha256": "1920caa03650581d22d4f315b1e5be2ea6a33833b1ffdb4962e9a1b94105b1b6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/apply-1000/reply.json",
+      "bytes": 187,
+      "sha256": "dbbd7470ff042b8fcc861c91a2db779bd5efa9020038b0018a718a744e771d25"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/apply-1000/request.json",
+      "bytes": 5758,
+      "sha256": "f022856fa21b74803936cc2e616f4999aace31c54acc2fd8ff5fc8d9d61644fc"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/apply-200/receipt.json",
+      "bytes": 3126,
+      "sha256": "5605c58e5fb35722031a72373a302946d0c978b97a1a809ac0e63db6a03f69d9"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/apply-200/reply.json",
+      "bytes": 185,
+      "sha256": "0172a3d3b19524e3d9c96fc7fb5d9b91449e5d5a3f063c4e1d866151e5e4cd1a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/apply-200/request.json",
+      "bytes": 5754,
+      "sha256": "e237848aa0706f80f94cdee3ccb6aa352bdc93c91fe915d3763b32d823e201ee"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/apply-2000/receipt.json",
+      "bytes": 3130,
+      "sha256": "5a66932b6b0109bf2e876d83658d82690632c193e186a6b8d4895031c1e5d930"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/apply-2000/reply.json",
+      "bytes": 187,
+      "sha256": "b54b675842df7f8e5f6beb8ab858cd7af29a508955eaea57d68b2d100f87b4f7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/apply-2000/request.json",
+      "bytes": 5756,
+      "sha256": "9a1cdd0b62d7fa5dd7dede75692ce691233ccf519101c77587481ed861f0f365"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/apply-500/receipt.json",
+      "bytes": 3126,
+      "sha256": "014ff676891ac796d5c7baf0d52fc1c1a7775f9e41ddafb0cbbf11493d6a03bf"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/apply-500/reply.json",
+      "bytes": 185,
+      "sha256": "92f7c88c5b151f0e24bca590b0bb457d00cabac0e807f69f1ce539b0520fdc7d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/apply-500/request.json",
+      "bytes": 5754,
+      "sha256": "0ee5b32c562034afdd47b43abf4d400695fe50fdbf03dc78bdf6013e9de32767"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/experiment.json",
+      "bytes": 5522,
+      "sha256": "2216f822e1e7313731a02cd3d94b48784b81482dc043e9515cd383fa32d9b4c7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-1000-0/assessment.json",
+      "bytes": 108,
+      "sha256": "97ae6c48129c5824675f3f63d0846ecb125041957c2d9be1cf6f4b3dcd88d21c"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-1000-0/experiment.json",
+      "bytes": 5522,
+      "sha256": "2216f822e1e7313731a02cd3d94b48784b81482dc043e9515cd383fa32d9b4c7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-1000-0/raw.jsonl",
+      "bytes": 324829,
+      "sha256": "390421620e1375586cc7d0191f4b11867c6146af4ebdbb429d2704faf16ac05f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-1000-0/run.json",
+      "bytes": 63641,
+      "sha256": "bd95e5bde56a4e306232d6c9a15e48b09fb337ea14e15e0bcec10539b676fbea"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-1000-1/assessment.json",
+      "bytes": 108,
+      "sha256": "77c411c5a635bed5f0d42d9d6b73f138b1ca75343639b695b18eb2ef1ae80355"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-1000-1/experiment.json",
+      "bytes": 5522,
+      "sha256": "2216f822e1e7313731a02cd3d94b48784b81482dc043e9515cd383fa32d9b4c7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-1000-1/raw.jsonl",
+      "bytes": 326684,
+      "sha256": "4b63829010295c1665afb792d045bc588533d6784e29fe8493a5291f8d87f6ca"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-1000-1/run.json",
+      "bytes": 63828,
+      "sha256": "aeeff10fab621d10d47380bd4b7e2b4522ccba22ae21b792f310c79097764faf"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-200-0/assessment.json",
+      "bytes": 108,
+      "sha256": "8db7c6cd93ad3cd36cd37c507cd3fb948701a9dff8d61c156fe08019e7103f7b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-200-0/experiment.json",
+      "bytes": 5522,
+      "sha256": "2216f822e1e7313731a02cd3d94b48784b81482dc043e9515cd383fa32d9b4c7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-200-0/raw.jsonl",
+      "bytes": 325281,
+      "sha256": "6e88637c581fe276ebb4617eb3512ecbfe942bfb8a93b7ea5220f78cac048272"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-200-0/run.json",
+      "bytes": 63523,
+      "sha256": "b1efad897412d78848b3d0e2e4d0d3743dd2d72be4207f47337d4e6fa77a5235"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-200-1/assessment.json",
+      "bytes": 108,
+      "sha256": "7d58be8e95363d09801acb22c9cff309fc876372acb22461bff2c090a9aa4c5e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-200-1/experiment.json",
+      "bytes": 5522,
+      "sha256": "2216f822e1e7313731a02cd3d94b48784b81482dc043e9515cd383fa32d9b4c7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-200-1/raw.jsonl",
+      "bytes": 327192,
+      "sha256": "255e39b72ebe52e7689a2dfecc6f78b7fff975a62cfae445bcd828aaf6ab33e1"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-200-1/run.json",
+      "bytes": 63715,
+      "sha256": "17564a88fb1fdd8d6f8150696802c3f77075bbff08f971e0685c7a1e5539a04e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-2000-0/assessment.json",
+      "bytes": 109,
+      "sha256": "3593967064cb48146d38edb31175e8d95de6311a010a6eb7d7212f0c8cf3848c"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-2000-0/experiment.json",
+      "bytes": 5522,
+      "sha256": "2216f822e1e7313731a02cd3d94b48784b81482dc043e9515cd383fa32d9b4c7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-2000-0/raw.jsonl",
+      "bytes": 324473,
+      "sha256": "055392101aad36073d2640d0747af8b5c728ff88ae196ea896c01a4fbc63774b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-2000-0/run.json",
+      "bytes": 63777,
+      "sha256": "1f1a9ab16f30ea11852dae6d1865d7cb767b893cc82a85c627c4048affd35bac"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-2000-1/assessment.json",
+      "bytes": 109,
+      "sha256": "4986b20d581f95633da7816af95b21ff84b76459e87f468916d1c972fa221cc0"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-2000-1/experiment.json",
+      "bytes": 5522,
+      "sha256": "2216f822e1e7313731a02cd3d94b48784b81482dc043e9515cd383fa32d9b4c7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-2000-1/raw.jsonl",
+      "bytes": 326687,
+      "sha256": "c51df12f9c8eccf170b9f6d3bbb6af558768a972a4c45e0f19900a72bff2e0c5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-2000-1/run.json",
+      "bytes": 63979,
+      "sha256": "6df091eee547ca7fe9a9172225b46ca73598c8c8b42876684a0bac0891720047"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-500-0/assessment.json",
+      "bytes": 108,
+      "sha256": "752c28ff23f9e397b2cab9ea9d6d4dd0ec16dbe18c9875953c0643dd7bdc7081"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-500-0/experiment.json",
+      "bytes": 5522,
+      "sha256": "2216f822e1e7313731a02cd3d94b48784b81482dc043e9515cd383fa32d9b4c7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-500-0/raw.jsonl",
+      "bytes": 324589,
+      "sha256": "3cece63f88178f9769091e774d7e828a23b3c8b7998ee41fe851a376090463e8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-500-0/run.json",
+      "bytes": 63605,
+      "sha256": "03106d22c87c416090700b2b327467e185ffbcdf9e9e1a66add43641e8c46a39"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-500-1/assessment.json",
+      "bytes": 108,
+      "sha256": "cbeed7bedff969937b5662a952de09c8319f85969fb9de21eb2315b98317b957"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-500-1/experiment.json",
+      "bytes": 5522,
+      "sha256": "2216f822e1e7313731a02cd3d94b48784b81482dc043e9515cd383fa32d9b4c7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-500-1/raw.jsonl",
+      "bytes": 326886,
+      "sha256": "249496861fef0c1171eaa16bc915477d33470d029aaa1da3d78265e5b9b95c88"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-spi-slow/run-500-1/run.json",
+      "bytes": 63794,
+      "sha256": "c29305098b7c3eba01e7b168819bb62a94bf455f93440acade2f6a94368cb870"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/apply-1000/receipt.json",
+      "bytes": 3126,
+      "sha256": "19c293b9bbd4bc7333cbeb2c584285e169a011f7db57e05f46361adb8a8d8749"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/apply-1000/reply.json",
+      "bytes": 183,
+      "sha256": "abfc601094004894c8725ce5232a33c4933946f5431ced3d244731b863023050"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/apply-1000/request.json",
+      "bytes": 5755,
+      "sha256": "a76305ad2770aa97bb9ea95fb6f2827013c43e41c7d67a8aea6cdff717a3d19c"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/apply-200/receipt.json",
+      "bytes": 3128,
+      "sha256": "9ad6219aad4148c7208f17d918858fd4193c57f980e5e5051178e917e06ad486"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/apply-200/reply.json",
+      "bytes": 187,
+      "sha256": "ec30bb0e2973d4f278809170337f0bcff4a9f19784d9e2ce0478ea2485294e68"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/apply-200/request.json",
+      "bytes": 5754,
+      "sha256": "ebd10d05080b3d8cc62edb1f86ac29243c6663575efa1ea76fae92ffe3a633af"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/apply-2000/receipt.json",
+      "bytes": 3126,
+      "sha256": "e64c25523f3206a33c64e330f7744f2f85e322cd2f401c89156b5359ef2b419c"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/apply-2000/reply.json",
+      "bytes": 183,
+      "sha256": "67031341124368611613f8efce315c2423c0dc299ac8d3fb6403b46533bab8cd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/apply-2000/request.json",
+      "bytes": 5755,
+      "sha256": "b6d144c82205f6e679f8404d6d4b9ffead6428c021eca9ff850a5b6ae4f63a2d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/apply-500/receipt.json",
+      "bytes": 3127,
+      "sha256": "f75edd4b0bd54424bb0d6a73c6acc6a03b7f105168af6ea3f7dd25a014258868"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/apply-500/reply.json",
+      "bytes": 186,
+      "sha256": "12da8d4bb391c8df55a63eb878311eff72cd89ccd2d2498511b464d4b6ecf020"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/apply-500/request.json",
+      "bytes": 5751,
+      "sha256": "0e80a7e107350c1e51a4d95775f2299d6dd9d0db08d2432f1bbce335984f77cb"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/experiment.json",
+      "bytes": 5522,
+      "sha256": "301425610cdae5bd06748637d9205173f635ac2c4c9b12dca0b119103f72b7e6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-1000-0/assessment.json",
+      "bytes": 107,
+      "sha256": "2159c4649fb4ac5074c8531a5fd6158758ea59f6c2ef8a3d7a2e8d22f4c253f0"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-1000-0/experiment.json",
+      "bytes": 5522,
+      "sha256": "301425610cdae5bd06748637d9205173f635ac2c4c9b12dca0b119103f72b7e6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-1000-0/raw.jsonl",
+      "bytes": 428363,
+      "sha256": "52452b27bd43c0e1defe76d5b7564e5a06899eccf1ffe78c758bdaee44cdd909"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-1000-0/run.json",
+      "bytes": 63407,
+      "sha256": "495778e4b69b7ac3e1b7ddbad643a77beeb4ecab602b7a2015f15e044e51d2e6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-1000-1/assessment.json",
+      "bytes": 107,
+      "sha256": "102d3c0e2d91e5477a65b9eda5244253cbf85cdeea7139041198fc6ba4cd6081"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-1000-1/experiment.json",
+      "bytes": 5522,
+      "sha256": "301425610cdae5bd06748637d9205173f635ac2c4c9b12dca0b119103f72b7e6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-1000-1/raw.jsonl",
+      "bytes": 430695,
+      "sha256": "d914f3e02935d3b997090a5c91131857ece2eb6417d1234a1b1206017035aaaf"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-1000-1/run.json",
+      "bytes": 63403,
+      "sha256": "c5806775e4996e882a9400434a8b29306664c6433c90821208c27a4b7c161ff2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-200-0/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-200-0/experiment.json",
+      "bytes": 5522,
+      "sha256": "301425610cdae5bd06748637d9205173f635ac2c4c9b12dca0b119103f72b7e6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-200-0/raw.jsonl",
+      "bytes": 429263,
+      "sha256": "f11c847ac310370bb8afc2c8b4e8aaf69126d56f62fb5e1ecb70af54702c4663"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-200-0/run.json",
+      "bytes": 63301,
+      "sha256": "a644cf5ca768c89424c55a453138965831c60726e8ac519ef5afba804ca67a89"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-200-1/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-200-1/experiment.json",
+      "bytes": 5522,
+      "sha256": "301425610cdae5bd06748637d9205173f635ac2c4c9b12dca0b119103f72b7e6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-200-1/raw.jsonl",
+      "bytes": 431878,
+      "sha256": "d63324b6067ba658238742157cafbf14581c4fc7f84c05a5d50aca913be1f7a8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-200-1/run.json",
+      "bytes": 63298,
+      "sha256": "d5a786ef90607ee3e03bb6a531c3fd43c7fa21180db141f43a07cedcce7c09dd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-2000-0/assessment.json",
+      "bytes": 108,
+      "sha256": "d6f27f93bf3b0f0c5c6a2814ac01cfbea71e2d0c15a577361923ab8da2985eb3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-2000-0/experiment.json",
+      "bytes": 5522,
+      "sha256": "301425610cdae5bd06748637d9205173f635ac2c4c9b12dca0b119103f72b7e6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-2000-0/raw.jsonl",
+      "bytes": 428345,
+      "sha256": "8097c2d68d141d7a541b5766457c280fc08de0d24f76b261b659c196c8796036"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-2000-0/run.json",
+      "bytes": 63552,
+      "sha256": "2dd0981494b36928d7358f82d56dca5bbe70608638421780439194ed7f123742"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-2000-1/assessment.json",
+      "bytes": 108,
+      "sha256": "8b8606986d6afbc20d754d6052a1e6d83a48c196b264cb134cab6237b79d7198"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-2000-1/experiment.json",
+      "bytes": 5522,
+      "sha256": "301425610cdae5bd06748637d9205173f635ac2c4c9b12dca0b119103f72b7e6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-2000-1/raw.jsonl",
+      "bytes": 430762,
+      "sha256": "7dc3e6f2dfad6f151a9974724b294a7f9bd47929ae4d503d162e549e5c66f715"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-2000-1/run.json",
+      "bytes": 63554,
+      "sha256": "b74e8b1250c61ac94cdea05dca00e50baf134039c72d62f031c9a09e35808415"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-500-0/assessment.json",
+      "bytes": 106,
+      "sha256": "ce8352347547e319380ca01755e6a98bc75acde869105f4327d8376bf41a4a62"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-500-0/experiment.json",
+      "bytes": 5522,
+      "sha256": "301425610cdae5bd06748637d9205173f635ac2c4c9b12dca0b119103f72b7e6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-500-0/raw.jsonl",
+      "bytes": 429129,
+      "sha256": "e3c24dcd3444ce9f8e4622254390c5934bd7bb414f7bc779e35e24ea57154d52"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-500-0/run.json",
+      "bytes": 63380,
+      "sha256": "7ad83beda9d745ff802692e50e625006f7dbd4d68b847b81dcaaa959614e3081"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-500-1/assessment.json",
+      "bytes": 106,
+      "sha256": "ce8352347547e319380ca01755e6a98bc75acde869105f4327d8376bf41a4a62"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-500-1/experiment.json",
+      "bytes": 5522,
+      "sha256": "301425610cdae5bd06748637d9205173f635ac2c4c9b12dca0b119103f72b7e6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-500-1/raw.jsonl",
+      "bytes": 431755,
+      "sha256": "e4c49358cc9cf4861d1c7537a7dd8765e4f01a8871bcd36f79ca591837bf2768"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/i2c-uart-100/run-500-1/run.json",
+      "bytes": 63378,
+      "sha256": "c39522fb1f3a5ab7acf0d8d974b213934448670c57d1a53a7142d1afde27e0e7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/identity.json",
+      "bytes": 1484,
+      "sha256": "b4755e389bf797d71ea6b4ba2245e06958e7c8738e4a4aadeef4a7c598c6c00d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/apply-1000/receipt.json",
+      "bytes": 3129,
+      "sha256": "d97a457211a4fbd7c691402a200bfb525c342402dd09c73ffb84428df5654a75"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/apply-1000/reply.json",
+      "bytes": 187,
+      "sha256": "3d826c1205f99e2af0c0ed464715a85ccb410c292a620f4faff19424708340c9"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/apply-1000/request.json",
+      "bytes": 5756,
+      "sha256": "7ecc0fbb72d505eb4e6cc31d08d6f1689815c9f8109bdea25af67d85cc2e1633"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/apply-200/receipt.json",
+      "bytes": 3127,
+      "sha256": "385acddf77374bc71be71173dcdd402391acdd75bfc51275f9c383b004772d4f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/apply-200/reply.json",
+      "bytes": 187,
+      "sha256": "13964ce49f5ef06f40a5e730b27e6b166bbccb45684604d2b960c7fbfc098eb8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/apply-200/request.json",
+      "bytes": 5752,
+      "sha256": "e6202e246acd4a68f591ffdbef4b49276e27301d9cda78a31fa2001af0b86ec4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/apply-2000/receipt.json",
+      "bytes": 3129,
+      "sha256": "f4ede9e30f8bbe6c924ecfa94757b15390e0c36b12826523f20c137741303f8f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/apply-2000/reply.json",
+      "bytes": 187,
+      "sha256": "17422039b9d6e9bca3b7678b71a5f461109325b59da2912fe6d4bbf48a0330d6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/apply-2000/request.json",
+      "bytes": 5756,
+      "sha256": "c16ad1200bb3492a3a498cd5e02b3026ca6bcb33f15416029b972abc177c61c3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/apply-500/receipt.json",
+      "bytes": 3125,
+      "sha256": "10442546efcb08c67b223c5d712a238e03a2b1482c5857bc787470ce55f76031"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/apply-500/reply.json",
+      "bytes": 185,
+      "sha256": "e3c69c1ae3e8882f0a44a09d77f82304e1b7e8f99eae3fa80962526b6665dc1c"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/apply-500/request.json",
+      "bytes": 5752,
+      "sha256": "28def56d00e1a8ba88926eb072f4618f2ff9dc84528af92d21f3b2da155bb5c5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa932fb043bdaa116570b4a930afae9e47c2ec0dec36a35b8083add9caad301b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-1000-0/assessment.json",
+      "bytes": 109,
+      "sha256": "4a4d91933ddb5d741173250e80cca3605f7b1bc6dced4210c4df4f79bcbbb935"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-1000-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa932fb043bdaa116570b4a930afae9e47c2ec0dec36a35b8083add9caad301b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-1000-0/raw.jsonl",
+      "bytes": 429550,
+      "sha256": "dec3a16274eba05f1823791d2eb4620a532439eb5f06e9da72ef3035d09106ff"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-1000-0/run.json",
+      "bytes": 63654,
+      "sha256": "749e048d3428a80324479edc9043c2a5711cc24adff972d95f55dc5b6d82158b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-1000-1/assessment.json",
+      "bytes": 109,
+      "sha256": "84586e1f084de15fed59504886e6bdbe87b76eec62b455f6495064d04a0d6639"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-1000-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa932fb043bdaa116570b4a930afae9e47c2ec0dec36a35b8083add9caad301b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-1000-1/raw.jsonl",
+      "bytes": 432141,
+      "sha256": "a0e87e3cd27275c193f79b27a5188e8edc0bed44590699bb4014e3f42abf1b8d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-1000-1/run.json",
+      "bytes": 63923,
+      "sha256": "6e3033dc714fe3f86fafee62f044f87d2eec86267a3c2b0798a89e235e4a4d60"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-200-0/assessment.json",
+      "bytes": 109,
+      "sha256": "317f8124f7e7587e3b7604e9e88e2ec87c4577ec770e76f55984870ec42fcdee"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-200-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa932fb043bdaa116570b4a930afae9e47c2ec0dec36a35b8083add9caad301b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-200-0/raw.jsonl",
+      "bytes": 429728,
+      "sha256": "0da6cdb4c589b94d9d7567d8c3ebd8a68a19783faeea4a9961fa55afbb41f107"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-200-0/run.json",
+      "bytes": 63540,
+      "sha256": "2f807db1ac2762f282608a8785f01afefc21f4bf008965d2233eba0af7065065"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-200-1/assessment.json",
+      "bytes": 109,
+      "sha256": "317f8124f7e7587e3b7604e9e88e2ec87c4577ec770e76f55984870ec42fcdee"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-200-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa932fb043bdaa116570b4a930afae9e47c2ec0dec36a35b8083add9caad301b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-200-1/raw.jsonl",
+      "bytes": 432987,
+      "sha256": "6a3af9e2593f094e7e9304b246ebb6adbf81c387ce4d3bc2e14c120ef95cb288"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-200-1/run.json",
+      "bytes": 63807,
+      "sha256": "4b6299343ff2a213a0b9c07fb01c2da41de42f124edd475f381bfda1ec787f76"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-2000-0/assessment.json",
+      "bytes": 110,
+      "sha256": "cf22566583eb44f84337acc06bf934dc738b4bf026babd82030b962a73cfb4b1"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-2000-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa932fb043bdaa116570b4a930afae9e47c2ec0dec36a35b8083add9caad301b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-2000-0/raw.jsonl",
+      "bytes": 429494,
+      "sha256": "aeb796864670dac4190587d9a787c707db85bd5c695d3dfad02ca3974783406b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-2000-0/run.json",
+      "bytes": 63800,
+      "sha256": "037a48046ba03c43496d6e54097d757470f5239eb4dff481d6ee98145e8af532"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-2000-1/assessment.json",
+      "bytes": 110,
+      "sha256": "ce61a5ba6bebe7f71d7245cda0d77cf7005ca6b76a4e2bf4e08ea5bf3c349d00"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-2000-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa932fb043bdaa116570b4a930afae9e47c2ec0dec36a35b8083add9caad301b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-2000-1/raw.jsonl",
+      "bytes": 432541,
+      "sha256": "6d6dc3778de14b6f7e179b7f53ad2ca0976f0141f73721cea26658c40ac03054"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-2000-1/run.json",
+      "bytes": 64072,
+      "sha256": "77dc516eacfceea555da5b6fd0f61a927fc522c06720efb9f54ca666cc713fec"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-500-0/assessment.json",
+      "bytes": 109,
+      "sha256": "31d9cdcd004b2fcbacad7b73b0e75518c1a9087a6db83ea12588cbc5d99a3c06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-500-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa932fb043bdaa116570b4a930afae9e47c2ec0dec36a35b8083add9caad301b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-500-0/raw.jsonl",
+      "bytes": 429207,
+      "sha256": "a7949b9c0832434dbb18786fab5b9ab4527640c898f7208ce759c3b9ebed1b5a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-500-0/run.json",
+      "bytes": 63621,
+      "sha256": "1cf21841ba6f404a540a97f471f96d129915a00b29c507014b9bdf47b36bd156"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-500-1/assessment.json",
+      "bytes": 109,
+      "sha256": "cccd758f97084ed044bdf99c81f927a48695d64fbad0a0637b2f0d3558e14d1b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-500-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa932fb043bdaa116570b4a930afae9e47c2ec0dec36a35b8083add9caad301b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-500-1/raw.jsonl",
+      "bytes": 432181,
+      "sha256": "e8cca5f6b6a01f410d517dc991ffb0e6fa933da4f92341805628fa46aa550d36"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-1-i400-s1-r350/run-500-1/run.json",
+      "bytes": 63892,
+      "sha256": "7124c2e3cdb519b1f4b3c0d87d7539db4c4924e69b898457a03933cd86ce0af3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/apply-1000/receipt.json",
+      "bytes": 3129,
+      "sha256": "fb000b1479aef105ae0c8187f6dfda44d6358425daa5227686691032da69b2c5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/apply-1000/reply.json",
+      "bytes": 187,
+      "sha256": "a2c244aa7ffbf076bfd559a526271dd68000d9f08571ad010b662d41e27a4082"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/apply-1000/request.json",
+      "bytes": 5756,
+      "sha256": "c7b94cfd0221d0cd2bb63859c846412ff835fde0164ae023f61344d91301204b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/apply-200/receipt.json",
+      "bytes": 3127,
+      "sha256": "10ad989e5b9735db68cfc7c19e20ba99df38f3fb5bb4d46c462ffcb4a3cccccf"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/apply-200/reply.json",
+      "bytes": 187,
+      "sha256": "1a698c27f5691874fb6a8b2a9bdf25c6b6369b434f50cff719ef6c2ef52d9603"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/apply-200/request.json",
+      "bytes": 5752,
+      "sha256": "0b8ae147b138ff194c3d608c6fcae5200ed5f4c34b6a846cea9a74f5bcf14bab"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/apply-2000/receipt.json",
+      "bytes": 3129,
+      "sha256": "f31275850fd24bfd8c74f8c0df453770a2c5e8dce93e0ceaf227340cdda590d9"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/apply-2000/reply.json",
+      "bytes": 187,
+      "sha256": "aa5cb7d4a424f65bb079cd4751de8776cc85e683138536deeedee13fad2146e7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/apply-2000/request.json",
+      "bytes": 5756,
+      "sha256": "328eb4f54527d9b95af7644dbe94021215916e9f0c42e17d416f654da3d1beee"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/apply-500/receipt.json",
+      "bytes": 3127,
+      "sha256": "28f6104fff998b1eea669e0fbfc9146a0f4694bd1b2c5f64b8861cac1b071779"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/apply-500/reply.json",
+      "bytes": 187,
+      "sha256": "013db9d07845f5c2b8379b997e07ade158a7876bab88cd1486c2cfdbe497174d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/apply-500/request.json",
+      "bytes": 5750,
+      "sha256": "dce58cbe4dc7234764ac15da4bc017a5388a60c4a1ff9ba6c824be12aa3574d3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/experiment.json",
+      "bytes": 5540,
+      "sha256": "382ed51d1cc95b7d1f8cf79791eaa8ce2de1824d510fb7e0d2029329185bd528"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-1000-0/assessment.json",
+      "bytes": 107,
+      "sha256": "f2db4258c9d34c1b24f4d72f89b3420010728791f9c5fa0cb0f94e2318dc2ff3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-1000-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "382ed51d1cc95b7d1f8cf79791eaa8ce2de1824d510fb7e0d2029329185bd528"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-1000-0/raw.jsonl",
+      "bytes": 429148,
+      "sha256": "ced6926af53855ff892d37686b201f5bf2821eb5cdc203529b9d8283a5ead648"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-1000-0/run.json",
+      "bytes": 63415,
+      "sha256": "9d676843f52237d28696a7b082628d5d73b49ee82be6a65968675b7e5091516d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-1000-1/assessment.json",
+      "bytes": 107,
+      "sha256": "21d64bfd27766037c8465b87371483a753941fa5a0cbc1cc3cd99ef121aac572"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-1000-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "382ed51d1cc95b7d1f8cf79791eaa8ce2de1824d510fb7e0d2029329185bd528"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-1000-1/raw.jsonl",
+      "bytes": 431546,
+      "sha256": "63e8af5b91c9e8c8d8af990e721e422cb8c7d9b42adb31a5882db2247d3cdabb"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-1000-1/run.json",
+      "bytes": 63413,
+      "sha256": "c5909ea47c3c313d8834928cbbcc6b091e0adfc5fae621c20b09977c36c77cd6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-200-0/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-200-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "382ed51d1cc95b7d1f8cf79791eaa8ce2de1824d510fb7e0d2029329185bd528"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-200-0/raw.jsonl",
+      "bytes": 429631,
+      "sha256": "89edf6dd1ab615bb322136925841dd6c68c0bf8c61012fff7135c0cc41cdfdac"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-200-0/run.json",
+      "bytes": 63298,
+      "sha256": "5c6c65e82b3170da5a5b07a5fc18f0a01afc8ec1b54282da1292d2f2252da642"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-200-1/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-200-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "382ed51d1cc95b7d1f8cf79791eaa8ce2de1824d510fb7e0d2029329185bd528"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-200-1/raw.jsonl",
+      "bytes": 432186,
+      "sha256": "b0b7d4c97f43ab2724c981bc8850b0f6750670eb7687e555be01d0854a1608ad"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-200-1/run.json",
+      "bytes": 63294,
+      "sha256": "f07adb8269d85059b7c3dff5e88a329bef7e3299fe7fd9785a8ecd33f7d997da"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-2000-0/assessment.json",
+      "bytes": 108,
+      "sha256": "d6f27f93bf3b0f0c5c6a2814ac01cfbea71e2d0c15a577361923ab8da2985eb3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-2000-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "382ed51d1cc95b7d1f8cf79791eaa8ce2de1824d510fb7e0d2029329185bd528"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-2000-0/raw.jsonl",
+      "bytes": 429350,
+      "sha256": "1ec6003397504925d1cccf7886627f6e0f20155ff216c3c1166786e671f2bf48"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-2000-0/run.json",
+      "bytes": 63555,
+      "sha256": "6c1d23e5003e6b13d9542a3c384993bd20e6c345abaf1c9d5af9893f0f144f8d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-2000-1/assessment.json",
+      "bytes": 108,
+      "sha256": "726e11a4469a616e7474ddd482c3437eeb12f53092dcb02e5b63b33d1bfdc092"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-2000-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "382ed51d1cc95b7d1f8cf79791eaa8ce2de1824d510fb7e0d2029329185bd528"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-2000-1/raw.jsonl",
+      "bytes": 431482,
+      "sha256": "48999af3bf97aca846ff6847d5a11b72b4a6b06d0dc868c4d84e31723ade22be"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-2000-1/run.json",
+      "bytes": 63560,
+      "sha256": "2d9b2af7faa5024078ee1f128bf33297d232b2e91a96f43d55949c20199c10fc"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-500-0/assessment.json",
+      "bytes": 106,
+      "sha256": "ce8352347547e319380ca01755e6a98bc75acde869105f4327d8376bf41a4a62"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-500-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "382ed51d1cc95b7d1f8cf79791eaa8ce2de1824d510fb7e0d2029329185bd528"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-500-0/raw.jsonl",
+      "bytes": 429468,
+      "sha256": "632fe9a75f8f1dddb16608d55c7c3c3c51bb7273a72ee67da63e8a738bf3a2bb"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-500-0/run.json",
+      "bytes": 63382,
+      "sha256": "bc742712ee5224a3c6a0e7901c359ee5fd62e38dcadcd6094bdf548b86deff27"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-500-1/assessment.json",
+      "bytes": 106,
+      "sha256": "31789d16372c17054e4e415077e986307888b7e7cb265f7d5900c29fc150c953"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-500-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "382ed51d1cc95b7d1f8cf79791eaa8ce2de1824d510fb7e0d2029329185bd528"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-500-1/raw.jsonl",
+      "bytes": 432196,
+      "sha256": "f1772134004eb250e5fb828688c4f9d066530a6dc791f3cff007dbf0adec69e2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-2-i100-s4-r350/run-500-1/run.json",
+      "bytes": 63378,
+      "sha256": "34b163230b85501e22cb832df74ec4b4e01696efb5fa33ee0d20806a46f9d435"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/apply-1000/receipt.json",
+      "bytes": 3129,
+      "sha256": "a2d58894600cdd54d500758b13bfeea16adf095eb3db838dd55346082d955480"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/apply-1000/reply.json",
+      "bytes": 187,
+      "sha256": "c7303aacba7b3079dc2556d46d061736806c105499cf71e328596c5b1edda95b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/apply-1000/request.json",
+      "bytes": 5754,
+      "sha256": "421a4eb0d46609cb6899336311acdd9632966c92b77495efa8faa029d04c82bd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/apply-200/receipt.json",
+      "bytes": 3125,
+      "sha256": "70bfb2f78065e2206919092d1bcb0a2a6065ce49de04b3b0fb1380a886b1f208"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/apply-200/reply.json",
+      "bytes": 185,
+      "sha256": "8a0c697642218ca3cbf6d5288b39373acc7599182b09f28138ae2feb8df5b2e3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/apply-200/request.json",
+      "bytes": 5752,
+      "sha256": "86d45c958c61a3ffbe373b1c3b462768b41dba39caa6b8ba04bd09137070d532"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/apply-2000/receipt.json",
+      "bytes": 3129,
+      "sha256": "08ad8ea9965552b3b55c86b222a827668d835d43d8e082567bb71696f97ad7df"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/apply-2000/reply.json",
+      "bytes": 187,
+      "sha256": "3dd650f828ecb454915642630766fdc4351340990b8a4da564e015f7dee3d71e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/apply-2000/request.json",
+      "bytes": 5756,
+      "sha256": "cea0c5314bb5d54bbe878b99b47df8427d8edf939bda5b0ae611ddcef9237cc3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/apply-500/receipt.json",
+      "bytes": 3127,
+      "sha256": "98d339756dd8f584f4120815620a6c15330047caecea0ba05886c70dd3914f42"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/apply-500/reply.json",
+      "bytes": 187,
+      "sha256": "653e0962ceb72df5f91e0993192c1ce29ec9d7a98676401c416b30161490e0a6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/apply-500/request.json",
+      "bytes": 5750,
+      "sha256": "839e14c13a0ca95076432e07664ba129c862979d85ca18450745624225019341"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa5b075852062ec5edbd6c39c9dac73b94d8837a6f56033994480bc3938d4d1d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-1000-0/assessment.json",
+      "bytes": 107,
+      "sha256": "f3730f932f65cd470c9b09774fc3a60b99bc8016674f15dbbe9159ac03deb278"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-1000-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa5b075852062ec5edbd6c39c9dac73b94d8837a6f56033994480bc3938d4d1d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-1000-0/raw.jsonl",
+      "bytes": 429004,
+      "sha256": "8785265107e3104d3a0589030896896371e2a1370a18598bcb72c7da1631c0e0"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-1000-0/run.json",
+      "bytes": 63411,
+      "sha256": "6ae406c00a7b5031e10071d303a806c6a021464380e4864727eafbaed7eab7b3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-1000-1/assessment.json",
+      "bytes": 107,
+      "sha256": "fc657df1733f506141e4f98d1bb773c7183e3e45a3530694c76ca206c975c1ce"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-1000-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa5b075852062ec5edbd6c39c9dac73b94d8837a6f56033994480bc3938d4d1d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-1000-1/raw.jsonl",
+      "bytes": 431412,
+      "sha256": "d9b099524a5136fd8b2333bd27570754b09fc895dad74a5abfd5b54d65f886f7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-1000-1/run.json",
+      "bytes": 63414,
+      "sha256": "23aefa8b0bfe73e98d88550a365682b2de1310f204ef18c43095cbec1fa802f8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-200-0/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-200-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa5b075852062ec5edbd6c39c9dac73b94d8837a6f56033994480bc3938d4d1d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-200-0/raw.jsonl",
+      "bytes": 429196,
+      "sha256": "d194b4523c64f28203127fc957793fa87c1d4d13b631ed2571ca4d276e8e98b6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-200-0/run.json",
+      "bytes": 63295,
+      "sha256": "a1b472df60bce37edaaeead15ca4281605404d77a7d12e582c3350ed2abeee87"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-200-1/assessment.json",
+      "bytes": 106,
+      "sha256": "1302b7564e162d08b3bfbb8c81490db9dc1ae159811b5f1fefa3bf1213a7cc06"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-200-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa5b075852062ec5edbd6c39c9dac73b94d8837a6f56033994480bc3938d4d1d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-200-1/raw.jsonl",
+      "bytes": 431469,
+      "sha256": "4f6304a79329d771ce0c34289f388af2062f022b8606adc3820901ce104e1ed7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-200-1/run.json",
+      "bytes": 63295,
+      "sha256": "5e45c106af23fd77651ab8d3bb2e4e807f802064ad2d4eab39bb6a877da7da64"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-2000-0/assessment.json",
+      "bytes": 108,
+      "sha256": "9265a56c38fc23afc2e676b0252246d1ecae1c2fff1aadd54f74f1a0fb98d0f4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-2000-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa5b075852062ec5edbd6c39c9dac73b94d8837a6f56033994480bc3938d4d1d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-2000-0/raw.jsonl",
+      "bytes": 429324,
+      "sha256": "1f9b206240399b3f8d6d78ccf6f5c1dd63bda53285c5eb25aad7b61e5b15e83d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-2000-0/run.json",
+      "bytes": 63560,
+      "sha256": "71767d8a369871c9099b9b97369e6d8e3a20fb168c3041c4d87f67975928568b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-2000-1/assessment.json",
+      "bytes": 108,
+      "sha256": "6c470bdc106c455d1ab9f0dbc16694ecf7f998c8a320249a17b5c5dddcc413f3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-2000-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa5b075852062ec5edbd6c39c9dac73b94d8837a6f56033994480bc3938d4d1d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-2000-1/raw.jsonl",
+      "bytes": 431689,
+      "sha256": "fb6b2c493220cbc1f0086334b201342cb2f023d4091a97f7ff148922a81855d1"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-2000-1/run.json",
+      "bytes": 63557,
+      "sha256": "edfedb87f73f7c31d283a423d447c048f6704bd54c6517fc504cf35c819b5cc5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-500-0/assessment.json",
+      "bytes": 106,
+      "sha256": "ce8352347547e319380ca01755e6a98bc75acde869105f4327d8376bf41a4a62"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-500-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa5b075852062ec5edbd6c39c9dac73b94d8837a6f56033994480bc3938d4d1d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-500-0/raw.jsonl",
+      "bytes": 429594,
+      "sha256": "3033e95de8705279ebb5cfc85f40473f99c7c9c26195521b5be50931e946a974"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-500-0/run.json",
+      "bytes": 63383,
+      "sha256": "15e309b19d46e771b1037056360b77d09bd5f043c7da85403d302334c440cd29"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-500-1/assessment.json",
+      "bytes": 106,
+      "sha256": "ce8352347547e319380ca01755e6a98bc75acde869105f4327d8376bf41a4a62"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-500-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "fa5b075852062ec5edbd6c39c9dac73b94d8837a6f56033994480bc3938d4d1d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-500-1/raw.jsonl",
+      "bytes": 432077,
+      "sha256": "c5280fb2e9b9a04409b0126e19e023301bb9c5d49e81a172509144381c38c40c"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-3-i400-s8-r200/run-500-1/run.json",
+      "bytes": 63383,
+      "sha256": "a7c6a5c5bb41acc2e08f3564c290bcf2724155f1d5c1cafa917958f81047bd45"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/apply-1000/receipt.json",
+      "bytes": 3127,
+      "sha256": "3dd4a73ca2ec3e7695b6eb86f6653bcc5ab0c80af8a275b00bbb0421c3641ec7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/apply-1000/reply.json",
+      "bytes": 185,
+      "sha256": "3c0fa0773061e10df1298431b52663064b2c3cf3bad46e86e434dfec09322020"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/apply-1000/request.json",
+      "bytes": 5756,
+      "sha256": "141f1c089421a3a9569576b06137002be387b9f37fd4aaa344fee8c7be0ef0e0"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/apply-200/receipt.json",
+      "bytes": 3127,
+      "sha256": "652c03e40896e27b86124f4a066e1f729786b7b7c291c9928c30e15b6b4d06e7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/apply-200/reply.json",
+      "bytes": 187,
+      "sha256": "cd40a51801750851d4b5640e7f669fd6d48b06cdc308daa9f2ff2e496c3e242b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/apply-200/request.json",
+      "bytes": 5752,
+      "sha256": "27207bbd637b862149fcdbc5ad80f9d12ad162fc26be80538a981b81a0211276"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/apply-2000/receipt.json",
+      "bytes": 3129,
+      "sha256": "985633bb6d188f2d9f8e05be2a4db5cbf2b380d59dd73e85fea32375437f5956"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/apply-2000/reply.json",
+      "bytes": 187,
+      "sha256": "cf075bc82defbd47c7992c8c10e01224715205659752ca7ef6fadaa8674adf1f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/apply-2000/request.json",
+      "bytes": 5754,
+      "sha256": "72c289dcdb2f296d6e301a5aa224c34763c932057c4c77b1dc6b8a9f04034542"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/apply-500/receipt.json",
+      "bytes": 3127,
+      "sha256": "f24141bfbf3d9d7d5823375d6bf0734d1b6fa026f92339602ae27ebdf43faeda"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/apply-500/reply.json",
+      "bytes": 187,
+      "sha256": "ab2aabed33d6577c8a9ea495a5fdfde4d227793c1b6bfb80938ac4ccc98fcc7f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/apply-500/request.json",
+      "bytes": 5752,
+      "sha256": "1a545296ced33aca3ec103d5bbcf68a92e27ea9bf6174d28fb8768dabecc3b0d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/experiment.json",
+      "bytes": 5540,
+      "sha256": "8dc9f24f164adcf6da0e9769377a1a229dd137b122c0c1e26b0040e04abb1666"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-1000-0/assessment.json",
+      "bytes": 107,
+      "sha256": "372da624acf3a62708c83e36f2521d2f3b3bee0c0cd1f1b9ae8f4b97d9872074"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-1000-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "8dc9f24f164adcf6da0e9769377a1a229dd137b122c0c1e26b0040e04abb1666"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-1000-0/raw.jsonl",
+      "bytes": 429063,
+      "sha256": "dde4e176d6afab91053b60cd233935ae307122bd9e6f99618600d5f8a185eee5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-1000-0/run.json",
+      "bytes": 63412,
+      "sha256": "229c155c097de632fb9e77e2802d7128db7be3b7fb4cf81fa9b97984e400d89a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-1000-1/assessment.json",
+      "bytes": 107,
+      "sha256": "fc657df1733f506141e4f98d1bb773c7183e3e45a3530694c76ca206c975c1ce"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-1000-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "8dc9f24f164adcf6da0e9769377a1a229dd137b122c0c1e26b0040e04abb1666"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-1000-1/raw.jsonl",
+      "bytes": 431017,
+      "sha256": "cf0267fee5a186c926872089e63d58951d61449efe5638e89ca6a1709e77bc6e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-1000-1/run.json",
+      "bytes": 63409,
+      "sha256": "3f8057cbdcd89f65959919cb64c3c893ad5bed288cf85843d513cc1dd45f33ba"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-200-0/assessment.json",
+      "bytes": 106,
+      "sha256": "bbc799007a0c7e3b60046755b3604b97e21e3dc1f31de51a6199d2ccd4803249"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-200-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "8dc9f24f164adcf6da0e9769377a1a229dd137b122c0c1e26b0040e04abb1666"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-200-0/raw.jsonl",
+      "bytes": 429584,
+      "sha256": "4e6b4bd5365b91d8c70ea203e840f069e6e2ff502e569182f9da9158876053d4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-200-0/run.json",
+      "bytes": 63293,
+      "sha256": "8f61b9a3200d9298e62e7b70bba91971d79817e953f582bbce16064c84f17dc9"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-200-1/assessment.json",
+      "bytes": 106,
+      "sha256": "bbc799007a0c7e3b60046755b3604b97e21e3dc1f31de51a6199d2ccd4803249"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-200-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "8dc9f24f164adcf6da0e9769377a1a229dd137b122c0c1e26b0040e04abb1666"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-200-1/raw.jsonl",
+      "bytes": 432252,
+      "sha256": "fe744b5e3440df70b5b378bd94229570ce56b95908be4ae2758b1e276b9c4fc7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-200-1/run.json",
+      "bytes": 63296,
+      "sha256": "c0b9009a39834ce534e3b813007d8c014531cd15526309c8c73c5ba2eb0b322f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-2000-0/assessment.json",
+      "bytes": 108,
+      "sha256": "03ca74d4138662e88ba21f813dda014f15a545a89b7f476d786bb34dc4c11628"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-2000-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "8dc9f24f164adcf6da0e9769377a1a229dd137b122c0c1e26b0040e04abb1666"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-2000-0/raw.jsonl",
+      "bytes": 429332,
+      "sha256": "d8a7c6e63e563f12799dce39a63ff8f875f972c8d2ab3f65527d293f1abbac13"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-2000-0/run.json",
+      "bytes": 63553,
+      "sha256": "b3a63b04c005a7c43e940f2668347acfba1e71ecf8f3a67bc5e1eeb197e41e09"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-2000-1/assessment.json",
+      "bytes": 108,
+      "sha256": "af929d87fce96cb07c2078dfe8d689cc86b21db62acd6f7a8725e6fe501ce23f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-2000-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "8dc9f24f164adcf6da0e9769377a1a229dd137b122c0c1e26b0040e04abb1666"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-2000-1/raw.jsonl",
+      "bytes": 431653,
+      "sha256": "ab4c2aba9356a7fefcda966f0c1c6fecb5678df795d01ba5dc58de5824c93fa0"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-2000-1/run.json",
+      "bytes": 63560,
+      "sha256": "d97181235e8ca44bf5e77ea9f5c6de30b9cc0a25beb823de3253bcc56aada925"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-500-0/assessment.json",
+      "bytes": 106,
+      "sha256": "c5ff85b1f434f280ca196ad3af07f3a00bb0e82510beb793bc6ac0006e2ebe53"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-500-0/experiment.json",
+      "bytes": 5540,
+      "sha256": "8dc9f24f164adcf6da0e9769377a1a229dd137b122c0c1e26b0040e04abb1666"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-500-0/raw.jsonl",
+      "bytes": 429537,
+      "sha256": "8c6102eec9e4affb8d112427b579075a1b222215d0b8a486c7ee66550e7e6c18"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-500-0/run.json",
+      "bytes": 63381,
+      "sha256": "7655521680d0646e4d427e49fbe38f8548ccf8e2501f89c0b035c9e7bee06cae"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-500-1/assessment.json",
+      "bytes": 106,
+      "sha256": "c5ff85b1f434f280ca196ad3af07f3a00bb0e82510beb793bc6ac0006e2ebe53"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-500-1/experiment.json",
+      "bytes": 5540,
+      "sha256": "8dc9f24f164adcf6da0e9769377a1a229dd137b122c0c1e26b0040e04abb1666"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-500-1/raw.jsonl",
+      "bytes": 432155,
+      "sha256": "116235536e7cdafae6f9fdce6cbac75c541386af77c5362d16ddd0016978374e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/new-4-i400-s2-r350/run-500-1/run.json",
+      "bytes": 63379,
+      "sha256": "6f40a6fd2565318145fe25fb477dda4b224c56d01bbbb10460bd1f5ec56575e3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/restore-profile.json",
+      "bytes": 2205,
+      "sha256": "f5131bd28a8a4f6e070957ddd2c646e1123590e37a00713c8093161bc0a11472"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/restore-review.json",
+      "bytes": 5551,
+      "sha256": "9bcfaaec7bb415c7cd18e93440639552b930e0271f0f04545e79f74bed1d9ffc"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/study.json",
+      "bytes": 76394,
+      "sha256": "719e6fe66182327a1a414c1b33737e8b4d18e45822eba659c50d651d60caa16a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/capture-verified/summary.json",
+      "bytes": 19927,
+      "sha256": "536689dd25bf3179f8ac14448009331eafae2b982895123d980afc8fe49faf9f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/environment.json",
+      "bytes": 382,
+      "sha256": "a7be63ab8b5cfa0aff9c4811260cf5c88bc5412559ffa739628a5a03e9377f87"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/finish-source.json",
+      "bytes": 298,
+      "sha256": "794b720bc414ec88452e9a1faddcd68993709d4392049f602dc71dcff792d3d4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/finish.py",
+      "bytes": 7910,
+      "sha256": "f7c0133e78518bbaa72d6a141a3241ad6d552eb1e7a749845c9a60ceffdc49b0"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/identification-receipt.json",
+      "bytes": 10863,
+      "sha256": "2ee07a1c8678813421b6a0d020707fc776bef73d5f7721cc2a771e462d920f77"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/identify.py",
+      "bytes": 2663,
+      "sha256": "5e543b5b4999ed77794fd778d3324bd4f7c4d553b737815cf59f03f4b6cb89d6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/identity.json",
+      "bytes": 1484,
+      "sha256": "b4755e389bf797d71ea6b4ba2245e06958e7c8738e4a4aadeef4a7c598c6c00d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/manifest.json",
+      "bytes": 356,
+      "sha256": "17afe92b62f1cf62582422abcf5299bd0570a4e2da45e2c603e5122c49df8640"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/post-query-console.log",
+      "bytes": 7399,
+      "sha256": "ec6f4701f70f084fbc560a4666e9249178c0c879d6a7f8877b6f171425eafe61"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/prepare.py",
+      "bytes": 4670,
+      "sha256": "b6bc2719122e02eccd1a3ad6f29ed250e0662c61d04e040280b97af949e9c2f5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/preregistration.json",
+      "bytes": 1953,
+      "sha256": "69f36a7b0199ce25e86c83443abeb8111f81d554c1dacdebcd7213c6f901cc31"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/restore-profile.json",
+      "bytes": 2206,
+      "sha256": "f0b3a7a56eaac123231fcaaf4491da16431bba0981aed2cda23c45dde7199e38"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/restore-wire-profile.json",
+      "bytes": 2205,
+      "sha256": "f5131bd28a8a4f6e070957ddd2c646e1123590e37a00713c8093161bc0a11472"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/source-index.json",
+      "bytes": 11661,
+      "sha256": "45d4d8d503c5d7be31a64f0a3111352e77d214a9721ca9aed85b71f49029a3de"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/__init__.py",
+      "bytes": 65,
+      "sha256": "edff65a6312b5384418620bf17f6f0446b55f43e7efe2f2526d2a33edba995ab"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/contracts/feature-request.schema.json",
+      "bytes": 4261,
+      "sha256": "7f0f095d67d426489f22bc379577551a56bee56c7c9573a51e9c7f091ebf5381"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/contracts/model-io-contract.json",
+      "bytes": 5575,
+      "sha256": "29efcf4b92f3794d07d42d75c3e1eb4e6e3b52b1c15b5b2282c30f61315f862a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/contracts/README.md",
+      "bytes": 4939,
+      "sha256": "96569cc6a6b543ff1173dab9b156f08f853911c677feedf54b2d48f47b0ced43"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/contracts/recommendation.schema.json",
+      "bytes": 3788,
+      "sha256": "81c51256a902aadb180810361b212ba69d25568b9fc453022d7ce73bd8af3efe"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/contracts/timing-run-v0.2.schema.json",
+      "bytes": 4835,
+      "sha256": "7309900e25b3559390cdb9b38658578b2f07f5f5377d1b2d2f7971d6430c7948"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/contracts/timing-run.schema.json",
+      "bytes": 2091,
+      "sha256": "52cbe54fc67d20a5baf916b330dc64910e289f603eb19997cd18a346452699a8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/contracts/timing-scenario.schema.json",
+      "bytes": 1503,
+      "sha256": "e58f9cf13df21962ca786390d791e83245eb67537ecbe9ff95b89d187891abfb"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/data/sources/first-prototype-baseline.json",
+      "bytes": 9082,
+      "sha256": "a68c14a83d5656984d37c7cf3d64de31c611a5fb5b409e8f410865f14b2460cd"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/examples/protocol-study.json",
+      "bytes": 2102,
+      "sha256": "f9956c27c7b46555cbcb9a4276ac310e506f3d761c3ffb470c7124b9e9fb2d83"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/examples/timing-scenario.json",
+      "bytes": 478,
+      "sha256": "6eb62899d57dba0323b04629cf5bd1dc75aede87a6bfdca23d893f782eb9557e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/export.py",
+      "bytes": 5857,
+      "sha256": "c8e927dedcc4668ebfaf7e5d0cf03c7fe567f6e68df9b893a8d39195e1cf3593"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/model.py",
+      "bytes": 12165,
+      "sha256": "0634c378a0543acc6c25e0129df75975348dec692d0c4c234273f886fd7bea0d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/offline.py",
+      "bytes": 8859,
+      "sha256": "8853dc447f5cc4c7616764b6cc88e38c719953febc6edee758ead901f119140f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/protocol_capture.py",
+      "bytes": 6892,
+      "sha256": "daf3b1c3b01456e1796cafa66a40186ada85a8ac38e835ae244e399f535481cc"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/protocol_model.py",
+      "bytes": 9311,
+      "sha256": "2197c6564ef0a1209d0aecbb46bf53f044e1bb4bb502f87860c04e17c211f287"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/protocol_study.py",
+      "bytes": 11872,
+      "sha256": "23d24595566b86d3b5552652a1c34000bea90afb0ae26d0ef53268126674d33a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/provenance.py",
+      "bytes": 9881,
+      "sha256": "455f3385b81be8c0d46e0ca558481c650c5ec33e493da85af19e2c9fc3e10684"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/README.md",
+      "bytes": 29094,
+      "sha256": "6b7d812cd3fe6b75fb809a832cdde5faa4b313fd2960bbfd798a19aa40f531e5"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/recorder.py",
+      "bytes": 6831,
+      "sha256": "f13e09f7ef9a3247998693a4f2868ece267f4d1fdf40a8caa2774ef0bf3d0103"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/recording.py",
+      "bytes": 11974,
+      "sha256": "4d42852b8b2c94eeed2af7a34d8b7666e6ad0690b63b2e447dcafaf34d2102b6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/records.py",
+      "bytes": 9704,
+      "sha256": "8608c4c2e8812403626a5a4c1ffe19f18b36bb6053b54270991fe52909b5ae80"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/tests/test_baseline.py",
+      "bytes": 7118,
+      "sha256": "c78fab679aa3dfbc2c7f7e879684df6456ffdeb0bc4a80b28fba3d17332ac1ff"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/tests/test_contracts.py",
+      "bytes": 5986,
+      "sha256": "54020ff169455e3d512e0e032eee09046b02e03d4468a3dad237c859d37ab3b6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/tests/test_learning.py",
+      "bytes": 9606,
+      "sha256": "b7e317858b9d4556a1a5fb0bc0ee075fd53dae681481a8fff7946aa2452beeff"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/tests/test_protocol.py",
+      "bytes": 12665,
+      "sha256": "62c26188656cdb8f6a3acccfbcb7ad6ea974c6b340bbc19c2dfc0c4334f7a4d2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/tests/test_recording.py",
+      "bytes": 15627,
+      "sha256": "9a3c1a5944dd32bd6e03a9eabb53492131477ed382527d89e24297c0924c06a8"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/tests/test_timing.py",
+      "bytes": 12645,
+      "sha256": "993d817343b9124763bb276a6bc2c9439ce0e3d9afceba5951359f7d5277ddcc"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/timing.py",
+      "bytes": 10466,
+      "sha256": "93ac1c7a5edb7e4e64cf6f16bf5a69b990a17846672e6aa323f8ddbdd378959d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/uthome_ai/__init__.py",
+      "bytes": 446,
+      "sha256": "6505a0776621adebf3c7c7c70c2acb686afd729f8dee55202b0e7b5b2dfc16f2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/uthome_ai/cli.py",
+      "bytes": 2334,
+      "sha256": "2ee30645c23a82e47c6e8794af4d588e71a32136ee99f7d20e133b72e378e661"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/uthome_ai/contracts.py",
+      "bytes": 11367,
+      "sha256": "5925ae87077a21471fc5469c7dcd0c03e9fcb5fb3a4889b108f4d83ff1045193"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/ai/workload.py",
+      "bytes": 7137,
+      "sha256": "92db6abf43a9059d236ec2798f3cb43179bf22d04c77144ed2d1a78ec3121a59"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/catalogue/boards/esp32-c3-supermini.json",
+      "bytes": 2285,
+      "sha256": "4d7e046c1d63a16bbe6a7bc439719c405b85a3ae9d894b72d4013bd16a3540fe"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/catalogue/connections/bench-distance.json",
+      "bytes": 738,
+      "sha256": "fbdfdf73aba87654f548e7111c5a2c5e05c9e7b39648e6c39afb29994a29d5a0"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/catalogue/connections/bench-i2c.json",
+      "bytes": 1432,
+      "sha256": "224f3a9e1ef77d0e2597c974a3983fb33c9ec3a7fc8d266773978931c8bff014"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/catalogue/connections/bench-oled.json",
+      "bytes": 930,
+      "sha256": "04aad41c9919ac7ea0979f6055ed0aefc904f082f3c372ae6dcf03e625aa00be"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/catalogue/connections/bench-pwm.json",
+      "bytes": 730,
+      "sha256": "5e3d2b1cc324dc29b4770f7cec1f84034f6a42ed85ee1998d486eb2ba068fc47"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/catalogue/connections/bench-uart.json",
+      "bytes": 864,
+      "sha256": "5de6674ebbe2e490d98727038379f993dae6c372bb86ceed4a41c7f9cc0fed94"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/catalogue/devices/bmp388.json",
+      "bytes": 4046,
+      "sha256": "4dd4b9db6116d325b8c176af90f0b298a9aa891f10b03cad4b2ddd423f8f45f0"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/catalogue/devices/hc_sr04.json",
+      "bytes": 4020,
+      "sha256": "ad6206c23f97e74b4916ab4d0610e032433248b9bccce570e083a0fdee2b11d3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/catalogue/devices/hlk_ld2450.json",
+      "bytes": 4867,
+      "sha256": "dfb30909c395bcf45bfb26bed222befb8811df71eebace704c255aa5a25bc5f2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/catalogue/devices/pwm_output.json",
+      "bytes": 3601,
+      "sha256": "c8a95c8debf14a2e07276630e4342a1ad02ecfeffa2bedada603ac2a322638ac"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/catalogue/devices/ssd1306_spi.json",
+      "bytes": 5204,
+      "sha256": "1cdab07c685801fe47c064d941fada74320164bae5f76954cb85f6c51054bfcf"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/catalogue/discovery.json",
+      "bytes": 4408,
+      "sha256": "8089d6aafaffa1af92e55e59538cb7ac809df8192055fab08aa120f56143891b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/catalogue/README.md",
+      "bytes": 4132,
+      "sha256": "eeb4283430659568d0f306d39e339db848e8e61a88c0e6584471a186cba41972"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/configs/builds/host-reference.json",
+      "bytes": 402,
+      "sha256": "e762586af662ec1085d51703ac324acaf3bf73fc66b1d64dc7e52b6219be032d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/schemas/device-descriptor.schema.json",
+      "bytes": 3067,
+      "sha256": "41422b30c85d05ccb252076fb631b131103da6e4aeac493d71a3944909147405"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/schemas/discovery-catalogue.schema.json",
+      "bytes": 3164,
+      "sha256": "1529e8347e1ac135f23a11891a9196e52148768e84893b7b12675a68e5cc887d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/schemas/profile.schema.json",
+      "bytes": 11309,
+      "sha256": "f4be5dea0bba550f6f39f0e6966e89e54dcc6e3478651e33927618f1debb6743"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/schemas/README.md",
+      "bytes": 2070,
+      "sha256": "80dbb9c70aaa729bb66128c61545766eb7fab55b7906cc9fd3f46a8201da6f3e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/config_transfer/__init__.py",
+      "bytes": 74,
+      "sha256": "8cf3a7c116e865b9326896df04eb492a90f37d9b1f331ff2c3dda06af43655a2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/config_transfer/__main__.py",
+      "bytes": 4268,
+      "sha256": "b860bad517df0b2a9864c0d898e440657c642c3de2b6feee5a615e108ce5bfe7"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/config_transfer/capabilities.py",
+      "bytes": 2030,
+      "sha256": "866eb0de16af999d9e69ad1a146668dc7b6bb24041c54b5eff1470452dea8bec"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/config_transfer/client.py",
+      "bytes": 6569,
+      "sha256": "ae6d82ab67f9764512e96d850d294068c34e6ff83a90fd3b32c1175e3e87497f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/config_transfer/discovery.py",
+      "bytes": 4311,
+      "sha256": "0017bbb0fc4d612f60175635dad72d8bb5c23493dba8bb2874dd844158f6511d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/config_transfer/protocol.py",
+      "bytes": 3450,
+      "sha256": "ebc19d6e1a82003b07b99e50b9cf115f92114d49a8ae202afcd58ac920cbdfa4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/config_transfer/README.md",
+      "bytes": 5655,
+      "sha256": "a20f055419af106e4a0dd0741e46f064df3b167e92c833192fa5706c84a37ae2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/config_transfer/telemetry.py",
+      "bytes": 6096,
+      "sha256": "33424dfdc852dd4eb2458bb686700f608eb9a1120ceb69a05b95204f50c0d014"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/config_validator/__init__.py",
+      "bytes": 219,
+      "sha256": "29a2017a2d524fc058a6856f07ce931b66b1a38c76e1f41a98592c48383d38cc"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/config_validator/__main__.py",
+      "bytes": 853,
+      "sha256": "8e7037583fb54ac3a78d5fc60fe15e65d6753f7c1976c593968c08dad9ca5ace"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/config_validator/planner.py",
+      "bytes": 15694,
+      "sha256": "ffe671319b79cf2a70773b79ba517e57354aff4825f622afa48f7eb252fb89fb"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/config_validator/README.md",
+      "bytes": 2639,
+      "sha256": "6ad274cfd441605468ea4a095be8bcf80fa2e9cbf88593f21cd2cc1d64c6c286"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/__init__.py",
+      "bytes": 81,
+      "sha256": "2f26f5513204aff02ccc6579fff0a7271ef3a9dfd0e992e5f80a05443860abb2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/__main__.py",
+      "bytes": 474,
+      "sha256": "ed83073075a5da630b9d48c185b0a02c69325ed622b9f425b7ca2b13b20bc283"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/discovery.py",
+      "bytes": 10180,
+      "sha256": "236a5eb8d97d6cc3f86a04b6909d77102dac0e65ee301c45de9933ec05e731c1"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/README.md",
+      "bytes": 8809,
+      "sha256": "9b066ef32f9a6d01a6180b2e79e5c6277195b7df0bceb05a0f264811fb978464"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/app.js",
+      "bytes": 12256,
+      "sha256": "04fc50092bec4696ecc60a9336498d7b64335f328e646fe0cea9eb58cf492da2"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/assets/fonts/README.md",
+      "bytes": 814,
+      "sha256": "6488e2f5417f15af4aef48cf4a214885d492c8c9d0af0e782cc28024f48262a1"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/dashboard.js",
+      "bytes": 7957,
+      "sha256": "835118f49bf5e83e6ab7ab4ad6519f663c357182f803b46a8237d1657a341872"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/discovery.js",
+      "bytes": 8946,
+      "sha256": "ae2f040ce8a775db24bd94e6138f97907174571d0f5fc8b7c18ae543cbd81b2d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/index.html",
+      "bytes": 16965,
+      "sha256": "0ae8478908a4483a9eef33d67f0e6f5fba3662045acd51bf6e15331a9a0a7f8b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/style.css",
+      "bytes": 5276,
+      "sha256": "534b2b543448730dc84a1f5c62966cb1efbf118922133749f10ed274ceec6c2f"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/base.css",
+      "bytes": 727,
+      "sha256": "896416801245123431c1f16c8e2881b7662e0dfd20bc9b2f9d4aa68e6047392e"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/components/alert.css",
+      "bytes": 898,
+      "sha256": "9aa380c4c2ef1b09676067debeaaae8721f90966b51c99b0ff99ff5a2ea61f8d"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/components/badge.css",
+      "bytes": 366,
+      "sha256": "532d9986fb14eb99e5503408f6459fad2425f9533cb633722ab871d2ec62c077"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/components/button.css",
+      "bytes": 1491,
+      "sha256": "4b7238aeeed34f158064fe81d0fd0acd3363f3fe2db8883323b1ea2357b99f99"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/components/card.css",
+      "bytes": 226,
+      "sha256": "50ca03ef8d3d964511cd9a74792bb5211cf334d367aff17ca330c44efa37d230"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/components/empty.css",
+      "bytes": 455,
+      "sha256": "a966dbc24020a2f6cdb2ce9ee302e551d56538010ed3a49cc7cb44168f2c58dc"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/components/error-list.css",
+      "bytes": 870,
+      "sha256": "e691432c3c040b2fe512f0ddff54eab716b7bb0009f99b3c91df95340bb224ca"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/components/field.css",
+      "bytes": 1052,
+      "sha256": "18e8242b1d2f37b6dafb15165a56020b7bbb244bf615a1470d8bae19dbf13b00"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/components/icon-badge.css",
+      "bytes": 1356,
+      "sha256": "9fbd14066e780d22600245b4a9e32c8e8863d4bd30a54b86414eeabad9425fff"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/components/meter.css",
+      "bytes": 339,
+      "sha256": "27059b9c0a41e62ce0192fa42ec8741661459d723f1130e46b1d2d4cf27d80f4"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/components/pill.css",
+      "bytes": 529,
+      "sha256": "5fe2828d01838b888f5fbcd9339a27b877562172d64324f0cad8c61dbd768df0"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/components/tile.css",
+      "bytes": 1106,
+      "sha256": "0e335cab1dff82bb3479d6ced9558151b43ba18d70138fcb451a4a8a7d771370"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/fonts.css",
+      "bytes": 805,
+      "sha256": "2f55269d5f6283071d06fcf6415b6f93993dc5e0ecc379b67d3d14e951a7d2de"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/layout/appbar.css",
+      "bytes": 840,
+      "sha256": "4e0149a7e0b49c425b2381db061bba806f712c7512071b493461764046a9a055"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/layout/page.css",
+      "bytes": 1495,
+      "sha256": "5766b9f41332c63605933b64b38d9f861d76bdd4cfaf6cf5f0c7e1ff3dcc0c49"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/main.css",
+      "bytes": 731,
+      "sha256": "a0c02247d4f92e3fb9b45419d5781d40cdc3a44767385985c82d9ab3cf2c98dc"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/static/styles/tokens.css",
+      "bytes": 2169,
+      "sha256": "e435c10be5d4e8ed9da2d1828964ab234bc3cb4f6a04f9e9510c57a4a6003300"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/web.py",
+      "bytes": 5353,
+      "sha256": "d44d5e63e4e5d1485d8d4b9d5368f4fc3896f4825dc0005420ef7a21b01189af"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/sources/tools/configurator/workflow.py",
+      "bytes": 16083,
+      "sha256": "e938b1459e9167b4f0f9080e9efbe24d6b2ec02ab953eae92a625bbbce96985b"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/specification.json",
+      "bytes": 2022,
+      "sha256": "a3593a3457af5a0096c97fa87510deeec0a788cd7f113bd13484abd36d0c6894"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/study.json",
+      "bytes": 76394,
+      "sha256": "719e6fe66182327a1a414c1b33737e8b4d18e45822eba659c50d651d60caa16a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/trained/dataset.json",
+      "bytes": 71099,
+      "sha256": "91353aa9ad3aa8ff67b70bbe166d9860fa4dd5dfba448bcfc4dacc60a8572cbc"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/trained/decisions.json",
+      "bytes": 34063,
+      "sha256": "c076fc178a4155d53ddd695d3521dfd332f079e1baaaf9c93dfde5d534eb8eb3"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/trained/evaluation.json",
+      "bytes": 1498,
+      "sha256": "252de0be77bafccf1b6ef1172e1da16edeb66ba4f44df59df6c9504599b1a647"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/trained/model.json",
+      "bytes": 1641,
+      "sha256": "86ca10a5dd33f0fa1b511b62b2180a8db444580c024b853c080ca010d0ddbc9a"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/trained/readiness.json",
+      "bytes": 455,
+      "sha256": "bdf83a73782bc7e43aa81b0b09c7ca9dc832dd99082fc49ee451287394502fb6"
+    },
+    {
+      "path": "build/protocol-study-20261026-r3/trained/run-details.json",
+      "bytes": 25926,
+      "sha256": "a0b1afb2590ac35a2f449fb1ac7913bf755457ae6f78a5e825c4b65d7d853462"
+    }
+  ],
+  "limitations": [
+    "One assembly; four held-out workloads do not establish unseen-device or board accuracy.",
+    "Global faults enter labels; device fault attribution and measured SPI completion are unavailable.",
+    "Protocol target remains BMP388 sample freshness under mixed protocol load.",
+    "137 ms telemetry sampling can miss intermediate peaks; no visible-latency, utilization or energy claim.",
+    "800 ms goal is fixed; no generalization across freshness goals claimed."
+  ]
+}

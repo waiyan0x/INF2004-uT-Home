@@ -3,6 +3,7 @@
  * @brief Use the existing native rings without installing another UART driver.
  */
 #include "c3uart.h"
+#include "c3cost.h"
 #include <tk/tkernel.h>
 #include "c3umem.h"
 #include "dev_ser.h"
@@ -138,7 +139,8 @@ static int open_port (void * p_context, const uartio_config_t * p_config)
 /** @brief Release logical ownership only after bounded discard succeeds. */
 static int close_port (void * p_context)
 {
-    if ((&g_state != p_context) || (!rt_port_is_owner()) ||
+    if ((&g_state != p_context) ||
+        ((!rt_port_is_owner()) && (!rt_port_is_cleanup_owner())) ||
         (!g_state.b_ready) || (g_state.b_poisoned))
     {
         return UARTIO_STATE;
@@ -163,11 +165,15 @@ static int read_bytes (void *    p_context,
                        size_t    capacity,
                        size_t *  p_count)
 {
+    c3cost_t cost = {0};
+    c3cost_begin(&cost);
     const int locked = lock_port(p_context);
     if (0 != locked)
     {
+        c3cost_end(&cost, 0U, UARTIO_TIMEOUT == locked, locked < 0);
         return locked;
     }
+    c3cost_acquired(&cost);
     int result = read_fault();
     if (0 == result)
     {
@@ -178,7 +184,12 @@ static int read_bytes (void *    p_context,
             result = fault;
         }
     }
-    return unlock_port(result);
+    const int final = unlock_port(result);
+    c3cost_end(&cost,
+               (0 == result) ? *p_count : 0U,
+               UARTIO_TIMEOUT == final,
+               final < 0);
+    return final;
 }
 
 /** @brief Reserve the native ring's empty slot and enqueue only free space. */
@@ -187,11 +198,15 @@ static int write_bytes (void *          p_context,
                         size_t          size,
                         size_t *        p_count)
 {
+    c3cost_t cost = {0};
+    c3cost_begin(&cost);
     const int locked = lock_port(p_context);
     if (0 != locked)
     {
+        c3cost_end(&cost, 0U, UARTIO_TIMEOUT == locked, locked < 0);
         return locked;
     }
+    c3cost_acquired(&cost);
     size_t space  = 0U;
     int    result = available(true, &space);
     if ((0 == result) && (0U != space))
@@ -211,18 +226,30 @@ static int write_bytes (void *          p_context,
             result   = (E_OK == written) ? 0 : UARTIO_IO;
         }
     }
-    return unlock_port(result);
+    const int final = unlock_port(result);
+    c3cost_end(&cost,
+               (0 == result) ? *p_count : 0U,
+               UARTIO_TIMEOUT == final,
+               final < 0);
+    return final;
 }
 
 /** @brief Drain only the entry snapshot, even while more input arrives. */
 static int flush_bytes (void * p_context)
 {
+    c3cost_t cost = {0};
+    c3cost_begin(&cost);
     const int locked = lock_port(p_context);
     if (0 != locked)
     {
+        c3cost_end(&cost, 0U, UARTIO_TIMEOUT == locked, locked < 0);
         return locked;
     }
-    return unlock_port(discard_receive());
+    c3cost_acquired(&cost);
+    const int result = unlock_port(discard_receive());
+    /* Discarded bytes are not successfully delivered payload. */
+    c3cost_end(&cost, 0U, UARTIO_TIMEOUT == result, result < 0);
+    return result;
 }
 
 /** @brief Discard at most the fixed native receive capacity. */

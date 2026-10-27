@@ -3,6 +3,7 @@
  * @brief Serialize finite FIFO transfers using the pinned SDK register layer.
  */
 #include "c3i2c.h"
+#include "c3cost.h"
 #include "c3pin.h"
 #include "i2cown.h"
 
@@ -111,14 +112,18 @@ static int transfer (void * p_context, const i2cbus_request_t * p_request)
     {
         return I2CBUS_STATE;
     }
+    c3cost_t cost = {0};
+    c3cost_begin(&cost);
     uint64_t now = 0U;
     if (0 != rt_port_now_ms(&now))
     {
+        c3cost_end(&cost, 0U, false, true);
         return I2CBUS_STATE;
     }
     if ((now >= p_request->deadline_ms) ||
         ((p_request->deadline_ms - now) > UINT32_C(2147483647)))
     {
+        c3cost_end(&cost, 0U, true, true);
         return I2CBUS_TIMEOUT;
     }
     /* Remaining time was checked to fit uint32_t and the kernel TMO range. */
@@ -126,11 +131,19 @@ static int transfer (void * p_context, const i2cbus_request_t * p_request)
         i2cown_begin(&g_owner, (uint32_t)(p_request->deadline_ms - now));
     if (0 != locked)
     {
+        c3cost_end(&cost, 0U, I2CBUS_TIMEOUT == locked, true);
         return locked;
     }
+    c3cost_acquired(&cost);
     const int result   = exchange(p_request);
     const int unlocked = i2cown_end(&g_owner);
-    return (0 != unlocked) ? unlocked : result;
+    const int final    = (0 != unlocked) ? unlocked : result;
+    c3cost_end(&cost,
+               (0 == result) ? p_request->write_size + p_request->read_size
+                             : 0U,
+               I2CBUS_TIMEOUT == final,
+               0 != final);
+    return final;
 }
 
 /** @brief Use the same operating-time origin as sample timestamps. */

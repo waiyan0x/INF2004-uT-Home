@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_utc": "2026-10-26T10:13:50.366495+00:00",
+  "scope": "Operator clarification of the recorded empty-view attempt",
+  "hardware_qualified": false,
+  "prior_record": {
+    "path": "firmware/qualification/esp32c3-radar-empty-20261026.json",
+    "sha256": "9a8957d7157aefc5894f94f9f485125c2e8ce23e253a47367d0944dc8682c844"
+  },
+  "question": "During roughly the first 25 seconds after replying starting, were you or anyone else still walking away in front of the radar, about 2.4-3.7 metres away?",
+  "user_reply": "No, the view was already empty by 15 seconds",
+  "result": "FAIL for the predefined 60-second zero-target criterion; communication remained healthy throughout the recorded capture.",
+  "interpretation": "The 18 one-target snapshots after the 15-second settling period were unexpected against the user-reported empty scene. The later 103 zero-target snapshots confirm valid absence reports can reach the ESP. This does not identify whether unexpected reports originate in the module, environment, transport or decoding, and does not explain the earlier intermittent UART timeouts.",
+  "configuration_changed_by_assistant": false,
+  "firmware_changed_by_assistant": false
+}

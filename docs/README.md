@@ -121,7 +121,22 @@ changing workspaces; a new chat does not need a new clone on this workstation.
 
 | Location | State / purpose |
 |---|---|
+| `build/static-ai-20261026/` | Static AI contracts/export verification, standalone C3 objects, integration flash receipts, twenty discovery/profile cycles, failed-activation rollback and confirmed original settings; [AI record](../ai/qualification/static-adaptation-20261026.json), [bench record](../firmware/qualification/esp32c3-integration-bench-20261026.json) |
+| `%USERPROFILE%/esp/hardware-backup-20261026-static-ai/board-before.bin` | Verified 4 MiB backup before the integration image; hash/location in `build/static-ai-20261026/backup.json` |
+| `build/hardware-acceptance-20261026/` | Pre-update state/failure captures, corrected build snapshots, fixture serial logs, verified application flash, discovery and bench observations; `backup-reference-fef8c15d.json` locates the full external flash backup |
+| `build/shared-handoff-20261026/` | Shared-guard fix: preserved application/fixture build snapshots, two 895-check boots, flash receipts, unchanged configuration readback, before/after analysis and backup reference; [qualification](../firmware/qualification/esp32c3-shared-handoff-20261026.json) |
+| `build/shared-handoff-*-20261026.log` | Runtime/target host checks and isolated target-build logs for the shared-guard change |
+| `%USERPROFILE%/esp/hardware-backup-20261026-shared-3423ecff/board-before.bin` | Verified 4 MiB pre-handoff-fix flash backup; digest and original temporary location in `build/shared-handoff-20261026/backup-preserved.json` |
 | `build/ai-offline-20261013/` | Simulated runs, dataset, readable trained model and C export; see the [AI guide](../ai/README.md#existing-local-model) |
+| `build/ai-pilot-20261026-074410/` | Eight real BMP388 timing captures, raw journals, identity/build evidence, exact Apply receipts, four-row dataset and confirmed original-profile restoration; [record and hashes](../ai/qualification/recorder-pilot-20261026.json) |
+| `build/ai-recorder-final-tests-20261026.log` | 65 passing AI tests, including 15 recorder tests and the 194-file full C gate |
+| `build/protocol-study-20261026-r1/` | Superseded initial label policy: collection stopped at 25 runs after identifying an invalid FIFO-consumption proxy; original profile restored. Raw data and source copies preserved |
+| `build/protocol-study-20261026-r2/` | Completed v0.2 study: 72 new plus 24 preserved training runs listed in `reuse.json`; trained model/evaluation/dataset under `trained/`, frozen sources and confirmed restoration; [record](../ai/qualification/protocol-study-20261026.json) |
+| `build/protocol-study-20261026-r3/` | Completed post-fix 96-run study in `capture-verified/`; seven-node host model/evaluation/readiness in `trained/`, frozen sources and confirmed restoration. Predeclared coverage criterion failed; [results](../ai/qualification/protocol-study-shared-20261026.json), [analysis](../ai/qualification/protocol-analysis-shared-20261026.json). Preserve the zero-run checksum preflight abort in `capture/` |
+| `build/protocol-r3-tests-20261026.log` | 76 passing AI tests and full 194-file C gate before the post-fix study |
+| `build/protocol-full-tests-20261026.log` | 76 passing AI tests, including 11 protocol-study tests and the 194-file full C gate |
+| `build/protocol-v02-full-tests-20261026.log` | 76 passing tests after correcting the OLED latest-cache/FIFO assumption, with the full C gate |
+| `build/hardware-acceptance-20261026/query-094151.json` | Post-study active/saved revision 87, fresh BMP388 and radar fault; [analysis](../ai/qualification/protocol-analysis-20261026.json) |
 | `build/publish-20261017-*.log` | Six Python suite logs: 243 tests; the seven dashboard tests made the reported total 250. These are historical checks, not reruns on 18 October |
 | `build/ai-c-gate-final.json` | Retained 194-file full-gate result; policy and manual-review requirements remain in the [C standard](../C_CODING_STANDARD.md) |
 | `../ESP/Tribunal1/Week8_Tribunal1_Template.docx` | Only Version A was edited to match uT-Home. Front matter and Versions B/C were preserved; this document was not pushed to GitHub |

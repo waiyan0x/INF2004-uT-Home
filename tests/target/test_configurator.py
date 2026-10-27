@@ -6,6 +6,7 @@ import json
 import struct
 from threading import Thread
 import unittest
+from unittest.mock import patch
 import zlib
 from tools.configurator.workflow import Workflow
 from tools.configurator.web import make_server, ASSETS
@@ -128,6 +129,54 @@ class ConfiguratorTests(unittest.TestCase):
         headers["Origin"]="https://attacker.test"
         self.assertEqual(request("POST","/api/review",body,headers)[0],403)
         self.assertEqual(self.ports,[])
+
+    def test_rejected_post_drains_bounded_body_without_parsing_or_board_io(self):
+        server = make_server(0, self.flow)
+        Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close); self.addCleanup(server.shutdown)
+        body = b'x' * 65536
+        with patch('tools.configurator.web.parse_document', side_effect=AssertionError('Unauthorized parse')):
+            for token, origin in [('', None), (server.token, 'https://attacker.test'), ('\u00e9', None)]:
+                connection = http.client.HTTPConnection('127.0.0.1', server.server_port, timeout=3)
+                self.addCleanup(connection.close)
+                connection.putrequest('POST', '/api/review')
+                connection.putheader('Content-Type', 'application/json')
+                connection.putheader('Content-Length', str(len(body)))
+                connection.putheader('X-Session', token)
+                if origin:
+                    connection.putheader('Origin', origin)
+                connection.endheaders()
+                # Separate writes reproduce a header-before-body rejection race.
+                for offset in range(0, len(body), 4096):
+                    connection.send(body[offset:offset + 4096])
+                response = connection.getresponse()
+                self.assertEqual(response.status, 403)
+                self.assertEqual(json.loads(response.read()), {'error': 'Local session required'})
+                connection.close()
+        self.assertEqual(self.ports, [])
+
+    def test_bad_body_lengths_are_rejected_without_waiting_for_payload(self):
+        server = make_server(0, self.flow)
+        Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close); self.addCleanup(server.shutdown)
+        for lengths, transfer in [([], None), (['0'], None), (['65537'], None),
+                                  (['+2'], None), (['2', '2'], None), (['2'], 'chunked')]:
+            with self.subTest(lengths=lengths, transfer=transfer):
+                connection = http.client.HTTPConnection('127.0.0.1', server.server_port, timeout=1)
+                self.addCleanup(connection.close)
+                connection.putrequest('POST', '/api/review')
+                connection.putheader('Content-Type', 'application/json')
+                connection.putheader('X-Session', server.token)
+                for value in lengths:
+                    connection.putheader('Content-Length', value)
+                if transfer:
+                    connection.putheader('Transfer-Encoding', transfer)
+                connection.endheaders()
+                response = connection.getresponse()
+                self.assertEqual(response.status, 400)
+                response.read()
+                connection.close()
+        self.assertEqual(self.ports, [])
 
     def test_rules_require_connected_support_and_produce_a_reviewable_plan(self):
         self.text=json.dumps(load_document(ROOT/"configs/nodes/distance-controlled-output.json"))

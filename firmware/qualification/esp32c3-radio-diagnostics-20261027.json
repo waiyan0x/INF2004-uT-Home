@@ -1,0 +1,892 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-27T00:44:29.972469+00:00",
+  "scope": "Separate Wi-Fi scan/restart and nonconnectable BLE advertising under pinned uT-Kernel",
+  "wifi_comparison": [
+    {
+      "raw_log": "build\\system-completion-20261026-233938\\network-capture-probe-20261027-004005-891523.log",
+      "sha256": "40d3e633f4354ddf90fc4345157718d708977dbad20de3a29e4c5ae73952ff20",
+      "bytes": 4760,
+      "no_panic": true,
+      "stages": [
+        {
+          "stage": 1,
+          "status": 0,
+          "internal_free": 115196
+        },
+        {
+          "stage": 2,
+          "status": 0,
+          "internal_free": 110300
+        },
+        {
+          "stage": 3,
+          "status": 257,
+          "internal_free": 110300
+        }
+      ],
+      "completion": {
+        "result": -3,
+        "stage": 3,
+        "status": 257
+      },
+      "scope": "isolated diagnostic; USB core retained but inactive",
+      "operation_completed": false,
+      "scan_counts": [
+        0,
+        0
+      ],
+      "queue_requests": {
+        "calls": 20,
+        "failures": 1,
+        "last_length": 200,
+        "last_item_bytes": 8,
+        "last_kind": 0
+      },
+      "observations": [
+        {
+          "index": 0,
+          "free_bytes": 115196,
+          "largest_bytes": 106496,
+          "startup_allocations": 26,
+          "startup_allocated_bytes": 7908,
+          "normal_allocations": 0,
+          "normal_allocated_bytes": 0,
+          "application_startup_allocations": 0,
+          "sealed": 0,
+          "native_creates": {
+            "0": {
+              "startup": 7,
+              "normal": 0
+            },
+            "1": {
+              "startup": 32,
+              "normal": 0
+            },
+            "2": {
+              "startup": 50,
+              "normal": 0
+            },
+            "3": {
+              "startup": 1,
+              "normal": 0
+            },
+            "4": {
+              "startup": 0,
+              "normal": 0
+            },
+            "5": {
+              "startup": 0,
+              "normal": 0
+            },
+            "6": {
+              "startup": 0,
+              "normal": 0
+            },
+            "7": {
+              "startup": 0,
+              "normal": 0
+            },
+            "8": {
+              "startup": 0,
+              "normal": 0
+            },
+            "9": {
+              "startup": 0,
+              "normal": 0
+            },
+            "10": {
+              "startup": 0,
+              "normal": 0
+            }
+          }
+        },
+        {
+          "index": 1,
+          "free_bytes": 0,
+          "largest_bytes": 0,
+          "startup_allocations": 0,
+          "startup_allocated_bytes": 0,
+          "normal_allocations": 0,
+          "normal_allocated_bytes": 0,
+          "application_startup_allocations": 0,
+          "sealed": 0,
+          "native_creates": {
+            "0": {
+              "startup": 0,
+              "normal": 0
+            },
+            "1": {
+              "startup": 0,
+              "normal": 0
+            },
+            "2": {
+              "startup": 0,
+              "normal": 0
+            },
+            "3": {
+              "startup": 0,
+              "normal": 0
+            },
+            "4": {
+              "startup": 0,
+              "normal": 0
+            },
+            "5": {
+              "startup": 0,
+              "normal": 0
+            },
+            "6": {
+              "startup": 0,
+              "normal": 0
+            },
+            "7": {
+              "startup": 0,
+              "normal": 0
+            },
+            "8": {
+              "startup": 0,
+              "normal": 0
+            },
+            "9": {
+              "startup": 0,
+              "normal": 0
+            },
+            "10": {
+              "startup": 0,
+              "normal": 0
+            }
+          }
+        },
+        {
+          "index": 2,
+          "free_bytes": 0,
+          "largest_bytes": 0,
+          "startup_allocations": 0,
+          "startup_allocated_bytes": 0,
+          "normal_allocations": 0,
+          "normal_allocated_bytes": 0,
+          "application_startup_allocations": 0,
+          "sealed": 0,
+          "native_creates": {
+            "0": {
+              "startup": 0,
+              "normal": 0
+            },
+            "1": {
+              "startup": 0,
+              "normal": 0
+            },
+            "2": {
+              "startup": 0,
+              "normal": 0
+            },
+            "3": {
+              "startup": 0,
+              "normal": 0
+            },
+            "4": {
+              "startup": 0,
+              "normal": 0
+            },
+            "5": {
+              "startup": 0,
+              "normal": 0
+            },
+            "6": {
+              "startup": 0,
+              "normal": 0
+            },
+            "7": {
+              "startup": 0,
+              "normal": 0
+            },
+            "8": {
+              "startup": 0,
+              "normal": 0
+            },
+            "9": {
+              "startup": 0,
+              "normal": 0
+            },
+            "10": {
+              "startup": 0,
+              "normal": 0
+            }
+          }
+        },
+        {
+          "index": 3,
+          "free_bytes": 0,
+          "largest_bytes": 0,
+          "startup_allocations": 0,
+          "startup_allocated_bytes": 0,
+          "normal_allocations": 0,
+          "normal_allocated_bytes": 0,
+          "application_startup_allocations": 0,
+          "sealed": 0,
+          "native_creates": {
+            "0": {
+              "startup": 0,
+              "normal": 0
+            },
+            "1": {
+              "startup": 0,
+              "normal": 0
+            },
+            "2": {
+              "startup": 0,
+              "normal": 0
+            },
+            "3": {
+              "startup": 0,
+              "normal": 0
+            },
+            "4": {
+              "startup": 0,
+              "normal": 0
+            },
+            "5": {
+              "startup": 0,
+              "normal": 0
+            },
+            "6": {
+              "startup": 0,
+              "normal": 0
+            },
+            "7": {
+              "startup": 0,
+              "normal": 0
+            },
+            "8": {
+              "startup": 0,
+              "normal": 0
+            },
+            "9": {
+              "startup": 0,
+              "normal": 0
+            },
+            "10": {
+              "startup": 0,
+              "normal": 0
+            }
+          }
+        }
+      ],
+      "build": "probe-queue-a1",
+      "firmware_elf_sha256": "0d3a1ca8c00d37ff1734f33ad7f2f2cad8309bf3ed2c44bfb5425afeae26e410",
+      "build_record_sha256": "4e83ffa1948652b11735f23c9e963f726aac5c605b8807e92d6d8d424ae717a4",
+      "capture_record_sha256": "110f4f1b07da91a77a2ac5e51255098f4b92084c42d44fd75330b81edf3696f2",
+      "capture_helper_succeeded": true,
+      "retained_log": "logs/esp32c3-radio-20261027-wifi-before.log"
+    },
+    {
+      "raw_log": "build\\system-completion-20261026-233938\\network-capture-probe-20261027-004141-492638.log",
+      "sha256": "ee12e9462f7bfa0c665366806c79f8d3d8418e6805557b5185f6a250693ffd03",
+      "bytes": 6422,
+      "no_panic": true,
+      "stages": [
+        {
+          "stage": 1,
+          "status": 0,
+          "internal_free": 115196
+        },
+        {
+          "stage": 2,
+          "status": 0,
+          "internal_free": 110300
+        },
+        {
+          "stage": 3,
+          "status": 0,
+          "internal_free": 82976
+        },
+        {
+          "stage": 4,
+          "status": 0,
+          "internal_free": 82976
+        },
+        {
+          "stage": 5,
+          "status": 0,
+          "internal_free": 82976
+        },
+        {
+          "stage": 6,
+          "status": 0,
+          "internal_free": 81236
+        },
+        {
+          "stage": 7,
+          "status": 0,
+          "internal_free": 81236
+        },
+        {
+          "stage": 8,
+          "status": 0,
+          "internal_free": 82976
+        },
+        {
+          "stage": 9,
+          "status": 0,
+          "internal_free": 81236
+        },
+        {
+          "stage": 10,
+          "status": 0,
+          "internal_free": 81236
+        },
+        {
+          "stage": 11,
+          "status": 0,
+          "internal_free": 82976
+        }
+      ],
+      "completion": {
+        "result": 0,
+        "stage": 11,
+        "status": 0
+      },
+      "scope": "isolated diagnostic; USB core retained but inactive",
+      "operation_completed": true,
+      "scan_counts": [
+        14,
+        18
+      ],
+      "queue_requests": {
+        "calls": 25,
+        "failures": 0,
+        "last_length": 0,
+        "last_item_bytes": 0,
+        "last_kind": 0
+      },
+      "observations": [
+        {
+          "index": 0,
+          "free_bytes": 115196,
+          "largest_bytes": 106496,
+          "startup_allocations": 26,
+          "startup_allocated_bytes": 7908,
+          "normal_allocations": 0,
+          "normal_allocated_bytes": 0,
+          "application_startup_allocations": 0,
+          "sealed": 0,
+          "native_creates": {
+            "0": {
+              "startup": 7,
+              "normal": 0
+            },
+            "1": {
+              "startup": 32,
+              "normal": 0
+            },
+            "2": {
+              "startup": 50,
+              "normal": 0
+            },
+            "3": {
+              "startup": 1,
+              "normal": 0
+            },
+            "4": {
+              "startup": 0,
+              "normal": 0
+            },
+            "5": {
+              "startup": 0,
+              "normal": 0
+            },
+            "6": {
+              "startup": 0,
+              "normal": 0
+            },
+            "7": {
+              "startup": 0,
+              "normal": 0
+            },
+            "8": {
+              "startup": 0,
+              "normal": 0
+            },
+            "9": {
+              "startup": 0,
+              "normal": 0
+            },
+            "10": {
+              "startup": 0,
+              "normal": 0
+            }
+          }
+        },
+        {
+          "index": 1,
+          "free_bytes": 81236,
+          "largest_bytes": 69632,
+          "startup_allocations": 132,
+          "startup_allocated_bytes": 69656,
+          "normal_allocations": 0,
+          "normal_allocated_bytes": 0,
+          "application_startup_allocations": 106,
+          "sealed": 0,
+          "native_creates": {
+            "0": {
+              "startup": 9,
+              "normal": 0
+            },
+            "1": {
+              "startup": 32,
+              "normal": 0
+            },
+            "2": {
+              "startup": 52,
+              "normal": 0
+            },
+            "3": {
+              "startup": 1,
+              "normal": 0
+            },
+            "4": {
+              "startup": 0,
+              "normal": 0
+            },
+            "5": {
+              "startup": 0,
+              "normal": 0
+            },
+            "6": {
+              "startup": 0,
+              "normal": 0
+            },
+            "7": {
+              "startup": 0,
+              "normal": 0
+            },
+            "8": {
+              "startup": 0,
+              "normal": 0
+            },
+            "9": {
+              "startup": 0,
+              "normal": 0
+            },
+            "10": {
+              "startup": 0,
+              "normal": 0
+            }
+          }
+        },
+        {
+          "index": 2,
+          "free_bytes": 81236,
+          "largest_bytes": 69632,
+          "startup_allocations": 132,
+          "startup_allocated_bytes": 69656,
+          "normal_allocations": 62,
+          "normal_allocated_bytes": 24448,
+          "application_startup_allocations": 106,
+          "sealed": 1,
+          "native_creates": {
+            "0": {
+              "startup": 9,
+              "normal": 0
+            },
+            "1": {
+              "startup": 32,
+              "normal": 0
+            },
+            "2": {
+              "startup": 52,
+              "normal": 0
+            },
+            "3": {
+              "startup": 1,
+              "normal": 0
+            },
+            "4": {
+              "startup": 0,
+              "normal": 0
+            },
+            "5": {
+              "startup": 0,
+              "normal": 0
+            },
+            "6": {
+              "startup": 0,
+              "normal": 0
+            },
+            "7": {
+              "startup": 0,
+              "normal": 0
+            },
+            "8": {
+              "startup": 0,
+              "normal": 0
+            },
+            "9": {
+              "startup": 0,
+              "normal": 0
+            },
+            "10": {
+              "startup": 0,
+              "normal": 0
+            }
+          }
+        },
+        {
+          "index": 3,
+          "free_bytes": 82976,
+          "largest_bytes": 73728,
+          "startup_allocations": 132,
+          "startup_allocated_bytes": 69656,
+          "normal_allocations": 66,
+          "normal_allocated_bytes": 24552,
+          "application_startup_allocations": 106,
+          "sealed": 1,
+          "native_creates": {
+            "0": {
+              "startup": 9,
+              "normal": 0
+            },
+            "1": {
+              "startup": 32,
+              "normal": 0
+            },
+            "2": {
+              "startup": 52,
+              "normal": 0
+            },
+            "3": {
+              "startup": 1,
+              "normal": 0
+            },
+            "4": {
+              "startup": 0,
+              "normal": 0
+            },
+            "5": {
+              "startup": 0,
+              "normal": 0
+            },
+            "6": {
+              "startup": 0,
+              "normal": 0
+            },
+            "7": {
+              "startup": 0,
+              "normal": 0
+            },
+            "8": {
+              "startup": 0,
+              "normal": 0
+            },
+            "9": {
+              "startup": 0,
+              "normal": 0
+            },
+            "10": {
+              "startup": 0,
+              "normal": 0
+            }
+          }
+        }
+      ],
+      "build": "probe-partition-a1",
+      "firmware_elf_sha256": "04aa6c08d1db448dd53c8bcc0d91bf414edfef754c4b6177b6c8996f3d7ff7a0",
+      "build_record_sha256": "6169020300b0209af2b0d98744f1d467b6b3ff176eba6a652e4808b6f282b353",
+      "capture_record_sha256": "0887686404ba906a4078c7baaacf4831a392adf3e45b295ab501172abaedacd0",
+      "capture_helper_succeeded": true,
+      "retained_log": "logs/esp32c3-radio-20261027-wifi-after.log"
+    }
+  ],
+  "ble": {
+    "raw_log": "build\\system-completion-20261026-233938\\network-capture-probe-20261026-225902-320872.log",
+    "sha256": "becef83e07a9a78ce8bfa6625011372bb08969f7502d2d20d1faa82c6595468e",
+    "bytes": 3647,
+    "no_panic": true,
+    "stages": [
+      {
+        "stage": 4,
+        "status": 0,
+        "internal_free": 67436
+      },
+      {
+        "stage": 5,
+        "status": 0,
+        "internal_free": 67436
+      },
+      {
+        "stage": 6,
+        "status": 0,
+        "internal_free": 67436
+      }
+    ],
+    "completion": {
+      "result": 0,
+      "stage": 6,
+      "status": 0
+    },
+    "scope": "isolated diagnostic; USB core retained but inactive",
+    "operation_completed": true,
+    "advertising": {
+      "advertised": 1,
+      "resets": 0,
+      "host_exited": 0
+    },
+    "observations": [
+      {
+        "index": 0,
+        "free_bytes": 129096,
+        "largest_bytes": 114688,
+        "startup_allocations": 24,
+        "startup_allocated_bytes": 7939,
+        "normal_allocations": 0,
+        "normal_allocated_bytes": 0,
+        "application_startup_allocations": 0,
+        "sealed": 0,
+        "native_creates": {
+          "0": {
+            "startup": 7,
+            "normal": 0
+          },
+          "1": {
+            "startup": 32,
+            "normal": 0
+          },
+          "2": {
+            "startup": 50,
+            "normal": 0
+          },
+          "3": {
+            "startup": 1,
+            "normal": 0
+          },
+          "4": {
+            "startup": 0,
+            "normal": 0
+          },
+          "5": {
+            "startup": 0,
+            "normal": 0
+          },
+          "6": {
+            "startup": 0,
+            "normal": 0
+          },
+          "7": {
+            "startup": 0,
+            "normal": 0
+          },
+          "8": {
+            "startup": 0,
+            "normal": 0
+          },
+          "9": {
+            "startup": 0,
+            "normal": 0
+          },
+          "10": {
+            "startup": 0,
+            "normal": 0
+          }
+        }
+      },
+      {
+        "index": 1,
+        "free_bytes": 67436,
+        "largest_bytes": 59392,
+        "startup_allocations": 101,
+        "startup_allocated_bytes": 70051,
+        "normal_allocations": 0,
+        "normal_allocated_bytes": 0,
+        "application_startup_allocations": 77,
+        "sealed": 0,
+        "native_creates": {
+          "0": {
+            "startup": 9,
+            "normal": 0
+          },
+          "1": {
+            "startup": 32,
+            "normal": 0
+          },
+          "2": {
+            "startup": 52,
+            "normal": 0
+          },
+          "3": {
+            "startup": 1,
+            "normal": 0
+          },
+          "4": {
+            "startup": 0,
+            "normal": 0
+          },
+          "5": {
+            "startup": 0,
+            "normal": 0
+          },
+          "6": {
+            "startup": 0,
+            "normal": 0
+          },
+          "7": {
+            "startup": 0,
+            "normal": 0
+          },
+          "8": {
+            "startup": 0,
+            "normal": 0
+          },
+          "9": {
+            "startup": 0,
+            "normal": 0
+          },
+          "10": {
+            "startup": 0,
+            "normal": 0
+          }
+        }
+      },
+      {
+        "index": 2,
+        "free_bytes": 67436,
+        "largest_bytes": 59392,
+        "startup_allocations": 101,
+        "startup_allocated_bytes": 70051,
+        "normal_allocations": 1,
+        "normal_allocated_bytes": 16,
+        "application_startup_allocations": 77,
+        "sealed": 1,
+        "native_creates": {
+          "0": {
+            "startup": 9,
+            "normal": 0
+          },
+          "1": {
+            "startup": 32,
+            "normal": 0
+          },
+          "2": {
+            "startup": 52,
+            "normal": 0
+          },
+          "3": {
+            "startup": 1,
+            "normal": 0
+          },
+          "4": {
+            "startup": 0,
+            "normal": 0
+          },
+          "5": {
+            "startup": 0,
+            "normal": 0
+          },
+          "6": {
+            "startup": 0,
+            "normal": 0
+          },
+          "7": {
+            "startup": 0,
+            "normal": 0
+          },
+          "8": {
+            "startup": 0,
+            "normal": 0
+          },
+          "9": {
+            "startup": 0,
+            "normal": 0
+          },
+          "10": {
+            "startup": 0,
+            "normal": 0
+          }
+        }
+      },
+      {
+        "index": 3,
+        "free_bytes": 67436,
+        "largest_bytes": 59392,
+        "startup_allocations": 101,
+        "startup_allocated_bytes": 70051,
+        "normal_allocations": 1,
+        "normal_allocated_bytes": 16,
+        "application_startup_allocations": 77,
+        "sealed": 1,
+        "native_creates": {
+          "0": {
+            "startup": 9,
+            "normal": 0
+          },
+          "1": {
+            "startup": 32,
+            "normal": 0
+          },
+          "2": {
+            "startup": 52,
+            "normal": 0
+          },
+          "3": {
+            "startup": 1,
+            "normal": 0
+          },
+          "4": {
+            "startup": 0,
+            "normal": 0
+          },
+          "5": {
+            "startup": 0,
+            "normal": 0
+          },
+          "6": {
+            "startup": 0,
+            "normal": 0
+          },
+          "7": {
+            "startup": 0,
+            "normal": 0
+          },
+          "8": {
+            "startup": 0,
+            "normal": 0
+          },
+          "9": {
+            "startup": 0,
+            "normal": 0
+          },
+          "10": {
+            "startup": 0,
+            "normal": 0
+          }
+        }
+      }
+    ],
+    "firmware_elf_sha256": "232bf37ae36341c87d0476ca1e320fcab4b116a9f5cb2035a51b3ff2746bc768",
+    "passive_pc_observer": {
+      "observed_count": 9,
+      "connected": false,
+      "record": "build\\system-completion-20261026-233938\\ble-observation-boot-a1-20261026-225901-436756.json",
+      "sha256": "9de1bbc61ed0c36fe07838ebc9110ea935250b17c85aa5f2bcb52aa56149729b"
+    },
+    "retained_log": "logs/esp32c3-radio-20261027-ble.log"
+  },
+  "whole_system_static_qualified": false,
+  "association_tested": false,
+  "coexistence_tested": false,
+  "gatt_tested": false,
+  "mqtt_http_tested": false,
+  "credentials_used": false,
+  "automatic_deployment": false,
+  "original_application_restored": true,
+  "configuration_unchanged": true,
+  "sequence_record": "build\\system-completion-20261026-233938\\poststudy-radio-sequence-20261027-003753.json",
+  "sequence_sha256": "f3fb3f7bb3dc54eb5f3a5ee85f19a9ba2595aa673ec4c6920b8823674bbc96b9",
+  "source_audit": "esp32c3-wireless-source-audit-20261027.json",
+  "limitations": [
+    "Radio SDK heap observations remain visible; no blanket exception was added.",
+    "Only completion markers with result zero establish the scoped operation; empty/partial capture is inconclusive.",
+    "The queue layout preserves 8192 payload bytes and eight metadata slots.",
+    "Separate RF diagnostics do not qualify combined peripherals, flash saves, authenticated services or static task/timer lifecycle."
+  ]
+}

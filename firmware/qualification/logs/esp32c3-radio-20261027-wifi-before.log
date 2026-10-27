@@ -1,0 +1,114 @@
+[wifi-probe] diagnostic only; scan without association, AP or NVS; USB core RAM retained, application inactive
+E (3355773046) esp_timer: Task is already initialized
+[wifi-probe] stage=1 status=0 internal_free=115196
+[wifi-probe] stage=2 status=0 internal_free=110300
+I (3355773047) pp: pp rom version: 9387209
+I (3355773048) net80211: net80211 rom version: 9387209
+E (-939194248) wifi:create wifi task: failed to create queue
+W (3355773049) wifi_init: Failed to unregister Rx callbacks
+E (3355773049) wifi_init: Failed to deinit Wi-Fi driver (0x3001)
+E (3355773050) wifi_init: Failed to deinit Wi-Fi (0x3001)
+[wifi-probe] stage=3 status=257 internal_free=110300
+[wifi-probe] queue_calls=20 failures=1 last_length=200 last_item_bytes=8 last_kind=0
+[wifi-probe] completed result=-3 stage=3 status=257 scan_counts=0,0
+[radio-probe] observation=0 free=115196 largest=106496 startup_alloc=26 startup_bytes=7908 normal_alloc=0 normal_bytes=0 application_alloc=0 sealed=0
+[radio-probe] observation=0 kind=0 startup=7 normal=0
+[radio-probe] observation=0 kind=1 startup=32 normal=0
+[radio-probe] observation=0 kind=2 startup=50 normal=0
+[radio-probe] observation=0 kind=3 startup=1 normal=0
+[radio-probe] observation=0 kind=4 startup=0 normal=0
+[radio-probe] observation=0 kind=5 startup=0 normal=0
+[radio-probe] observation=0 kind=6 startup=0 normal=0
+[radio-probe] observation=0 kind=7 startup=0 normal=0
+[radio-probe] observation=0 kind=8 startup=0 normal=0
+[radio-probe] observation=0 kind=9 startup=0 normal=0
+[radio-probe] observation=0 kind=10 startup=0 normal=0
+[radio-probe] observation=1 free=0 largest=0 startup_alloc=0 startup_bytes=0 normal_alloc=0 normal_bytes=0 application_alloc=0 sealed=0
+[radio-probe] observation=1 kind=0 startup=0 normal=0
+[radio-probe] observation=1 kind=1 startup=0 normal=0
+[radio-probe] observation=1 kind=2 startup=0 normal=0
+[radio-probe] observation=1 kind=3 startup=0 normal=0
+[radio-probe] observation=1 kind=4 startup=0 normal=0
+[radio-probe] observation=1 kind=5 startup=0 normal=0
+[radio-probe] observation=1 kind=6 startup=0 normal=0
+[radio-probe] observation=1 kind=7 startup=0 normal=0
+[radio-probe] observation=1 kind=8 startup=0 normal=0
+[radio-probe] observation=1 kind=9 startup=0 normal=0
+[radio-probe] observation=1 kind=10 startup=0 normal=0
+[radio-probe] observation=2 free=0 largest=0 startup_alloc=0 startup_bytes=0 normal_alloc=0 normal_bytes=0 application_alloc=0 sealed=0
+[radio-probe] observation=2 kind=0 startup=0 normal=0
+[radio-probe] observation=2 kind=1 startup=0 normal=0
+[radio-probe] observation=2 kind=2 startup=0 normal=0
+[radio-probe] observation=2 kind=3 startup=0 normal=0
+[radio-probe] observation=2 kind=4 startup=0 normal=0
+[radio-probe] observation=2 kind=5 startup=0 normal=0
+[radio-probe] observation=2 kind=6 startup=0 normal=0
+[radio-probe] observation=2 kind=7 startup=0 normal=0
+[radio-probe] observation=2 kind=8 startup=0 normal=0
+[radio-probe] observation=2 kind=9 startup=0 normal=0
+[radio-probe] observation=2 kind=10 startup=0 normal=0
+[radio-probe] observation=3 free=0 largest=0 startup_alloc=0 startup_bytes=0 normal_alloc=0 normal_bytes=0 application_alloc=0 sealed=0
+[radio-probe] observation=3 kind=0 startup=0 normal=0
+[radio-probe] observation=3 kind=1 startup=0 normal=0
+[radio-probe] observation=3 kind=2 startup=0 normal=0
+[radio-probe] observation=3 kind=3 startup=0 normal=0
+[radio-probe] observation=3 kind=4 startup=0 normal=0
+[radio-probe] observation=3 kind=5 startup=0 normal=0
+[radio-probe] observation=3 kind=6 startup=0 normal=0
+[radio-probe] observation=3 kind=7 startup=0 normal=0
+[radio-probe] observation=3 kind=8 startup=0 normal=0
+[radio-probe] observation=3 kind=9 startup=0 normal=0
+[radio-probe] observation=3 kind=10 startup=0 normal=0
+[probe] alive=0
+[probe] alive=1
+[probe] alive=2
+[probe] alive=3
+[probe] alive=4
+[probe] alive=5
+[probe] alive=6
+[probe] alive=7
+[probe] alive=8
+[probe] alive=9
+[probe] alive=10
+[probe] alive=11
+[probe] alive=12
+[probe] alive=13
+[probe] alive=14
+[probe] alive=15
+[probe] alive=16
+[probe] alive=17
+[probe] alive=18
+[probe] alive=19
+[probe] alive=20
+[probe] alive=21
+[probe] alive=22
+[probe] alive=23
+[probe] alive=24
+[probe] alive=25
+[probe] alive=26
+[probe] alive=27
+[probe] alive=28
+[probe] alive=29
+[probe] alive=30
+[probe] alive=31
+[probe] alive=32
+[probe] alive=33
+[probe] alive=34
+[probe] alive=35
+[probe] alive=36
+[probe] alive=37
+[probe] alive=38
+[probe] alive=39
+[probe] alive=40
+[probe] alive=41
+[probe] alive=42
+[probe] alive=43
+[probe] alive=44
+[probe] alive=45
+[probe] alive=46
+[probe] alive=47
+[probe] alive=48
+[probe] alive=49
+[probe] alive=50
+[probe] alive=51
+[probe] alive=52

@@ -1,5 +1,71 @@
 # Generic runtime
 
+## Workload measurement handoff
+
+`workcost.c/.h` is an independently tested C99 integration helper. It is not
+linked into the current application and does not change worker scheduling.
+The runtime owner should reserve one zero-initialized `workcost_stats_t` per
+permanent slot (44 bytes each / 176 bytes for four on host and C3), publish only
+bound sources, and update/snapshot under the existing shared guard. It creates
+no tasks, queues, locks or heap allocations. Reset/rebinding must change the
+associated generation before exposing another window.
+
+Supply step wall time, completion lateness, serialized bus waiting and time
+inside transfer calls, actual transferred bytes/operations and per-source
+errors/timeouts. Timeouts are a subset of errors. Waiting and transfer-call
+time must not overlap and their sum cannot exceed step wall time. These are
+not measurements of CPU busy time or electrical wire time. Clock acquisition,
+transfer instrumentation, guarded updates and telemetry encoding remain the
+runtime/driver integration work; unavailable measurements are never zero-filled.
+
+All cumulative additions saturate at UINT32_MAX and set a sticky flag; saturated
+windows are unusable for calibration. A 32-bit microsecond sum can saturate after
+about 71 minutes of accumulated elapsed work, so use short measured windows.
+Invalid observations leave storage unchanged. Caller-owned input/output objects
+must remain valid and non-overlapping for the call. `ai/measurements.py` checks
+snapshot identity, bindings, availability and monotonic counters before producing
+deltas. It does not automatically add outcomes to model inputs.
+
+Manual BARR-C review (rules 1-8): new helper/templates use C99, fixed-width
+unsigned arithmetic and checked subtraction, explicit saturation, const input,
+private helper prototypes and paired headers. There are no casts, hardware
+registers, callbacks, recursion, hidden state or kernel dependencies. Ownership
+and guard responsibility are explicit; bounded operations cannot yield. Host
+boundary tests keep assertions enabled and warnings as errors. The C3 object
+is 254 bytes text, no writable globals, with compiler-reported 16-byte stack for
+`workcost_add` and zero for its helper. This excludes caller state and future
+instrumentation/locking overhead. No exception or compiler policy changed.
+
+## Permanent target workers
+
+The target adapter now creates its four kernel tasks during its first successful
+`rt_port_init`, with separate caller-owned 8 KiB stacks and `TA_USERBUF`.
+All 32 KiB remain reserved even for an empty profile. A partial startup failure
+is latched until reboot; it cannot retry object creation after startup. Prepare
+checks dormancy and changes priority, then binds callbacks/settings to a reserved
+slot. Stop waits for dormancy and successful cleanup before releasing the binding;
+it never deletes the kernel task. Handles still never repeat during a boot.
+
+The current 16 KiB admission limit describes requested profile stack budgets,
+not actual reserved RAM. That conservative host/target limit remains unchanged
+pending the complete wireless/system budget. Configuration changes cannot resize
+the fixed stacks. Existing telemetry is not a measured memory budget. Radio and
+other infrastructure tasks need separate reservations.
+
+Manual review: the C11 atomic profile remains restricted to its existing files.
+Caller-owned `uint64_t` arrays meet the pinned kernel's eight-byte alignment and
+8192-byte size contract. Kernel callback casts retain the existing dispatcher
+signature. Binding fields change only after confirmed dormancy; cancellation and
+result access remain atomic. Priority changes precede handle publication. Failed
+stop/cleanup retains the binding; failed bootstrap never publishes an owner.
+Tests check distinct stacks, all four bootstrap failure positions, retained
+ownership, stale handles, capacity, rollback and zero post-bootstrap task creates
+or deletes. Actual scheduling, stack headroom and whole-system object allocation
+still require target acceptance. The host double's sole added external spelling,
+`bufptr`, has [owner approval](../../../tools/c_standard/static-stack-approval-20261027.json).
+
+## Existing runtime behavior
+
 The host runtime combines platform admission and instance bindings with
 Member 1's lifecycle, resource accounting, restart and jitter APIs. It has no
 device-model branches. Member 1's code is retained through the reviewed integration history.
@@ -32,7 +98,7 @@ Its ticks increment simulated run counts and perform no driver operations.
 Neither API parses JSON or activates hardware. The tests project normalized
 plan fields into these APIs; production JSON admission and binding use the separate target path below.
 
-## Lifecycle and recovery
+## Host-model lifecycle and recovery
 
 Prepare reserves a dormant resource; start starts it; stop releases it only
 after backend success. Both running and dormant resources count toward four
@@ -71,19 +137,31 @@ Workers also use the monotonic clock and task-only shared-operation API;
 `shared.h` provides serialized queue/health wrappers. Raw modules and drivers
 are not made thread-safe merely by selecting this backend.
 
-Prepare creates a dormant kernel task. Start can immediately preempt its caller.
+Startup creates four dormant kernel tasks with permanent caller-owned stacks.
+Prepare binds an unused task. Start can immediately preempt its caller.
 Workers run periodic steps and skip missed periods instead of catching up in a
 burst. Step failure exits into a dormant, still-owned task. Stop requests
 cancellation and wakes a sleeping worker, waits up to 500 ms for dormancy, then
-runs cleanup in the owner task and checks deletion. Timeout, cleanup failure or
-delete failure retains the handle/context; retry stop without releasing storage.
-Successful cleanup is not repeated if deletion needs retrying. The wait bound
+runs cleanup in the owner task and releases the binding. Timeout, cleanup failure
+or a failed state query retains the handle/context; retry stop without releasing
+borrowed storage. The kernel task and stack persist. The wait bound
 requires bounded/yielding callbacks; cleanup needs its own finite bound.
 
+`rt_port_is_owner` rejects callback re-entry. HAL close operations additionally
+accept `rt_port_is_cleanup_owner`, which is true only inside the owner's cleanup
+callback and false for other tasks, interrupts and shared-operation callbacks.
+This permits UART, pulse-capture and PWM teardown while lifecycle/query re-entry
+and new resource creation remain blocked. The earlier ownership check rejected
+these legitimate closes, leaving one retained radar instance with cleanup error
+`-8` during the 26 October bench test. Hardware regression results are recorded
+separately from the host tests and target build.
+
 Handles are not reused within a boot. Admission enforces four workers, 16 KiB
-of stacks, priorities 5..19 and unique context pointers. Target reconfiguration
+of aggregate requested stack budgets, priorities 5..19 and unique context pointers.
+The actual fixed stack reservation is 32 KiB even with an empty profile; the
+conservative requested-budget limit is not a free-RAM measurement. Target reconfiguration
 only accepts a never-started dormant task with unchanged stack size. Live plan
-updates and stack replacement use the activation manager's stop/recreate path.
+updates and changed stack requirements use the activation manager's stop/rebind path.
 Native stream readiness is not implemented; the radar uses a bounded periodic polling worker.
 
 The generic `runtime.c` still relies on transactions. Target transaction calls
@@ -135,7 +213,7 @@ wiring. Multiple producers may publish to the same queue.
 ## Replacement and recovery
 
 Apply validates before touching the working plan, then closes the dispatch gate,
-stops all workers, checks cleanup and deletion, clears shared state, configures
+stops all workers, checks cleanup and binding release, clears shared state, configures
 the replacement and prepares its dormant workers. All starts occur behind the
 closed gate. Only a fully prepared and started plan is released for execution.
 The gate prevents new steps; an in-flight step must still finish before cleanup.
@@ -144,7 +222,7 @@ The gate prevents new steps; an in-flight step must still finish before cleanup.
 |---|---|
 | `0` | The replacement was accepted and released. Inspect status for later worker faults. |
 | `UTHOME_ACTIVATE_REJECTED` | Admission/ownership was rejected, or activation failed and the previous plan was reconstructed. Query status and its error fields. |
-| `UTHOME_ACTIVATE_RECOVERY` | Stop, cleanup, deletion or restoration failed. Preserve borrowed storage and call `activate_recover` to retry. Further apply calls are rejected. |
+| `UTHOME_ACTIVATE_RECOVERY` | Stop, cleanup, binding release or restoration failed. Preserve borrowed storage and call `activate_recover` to retry. Further apply calls are rejected. |
 
 The status includes state, generation, retained instances, activation/recovery
 errors and asynchronous worker failures. Generation advances after each
@@ -171,11 +249,16 @@ contents, counters, sensor history or past physical effects.
 
 Workers and the control/supervisor task use `shared.h` for queue, health and
 watchdog access. Never mix these wrappers with concurrent calls to the unlocked
-underlying modules. Each wrapper acquires the port's nonblocking atomic guard
-for one short operation. Interrupt calls are rejected.
+underlying modules. Each wrapper acquires the port's atomic guard for one short
+operation. Interrupt calls are rejected. On the kernel backend, contention from
+a different task permits three acquisition attempts separated by at most two
+one-ms delay requests. The caller owns no guard while yielding, so a preempted
+lower-priority holder can finish. Scheduler latency can extend those delays.
+Same-task recursion returns BUSY immediately; the serial host backend models no
+preemption.
 
-`UTHOME_PORT_ERR_BUSY` means the operation did not run: retry on a later bounded
-invocation. Never spin, sleep, perform driver I/O or call lifecycle operations
+`UTHOME_PORT_ERR_BUSY` means the operation did not run after the bounded attempts:
+retry on a later bounded invocation. Never spin, sleep, perform driver I/O or call lifecycle operations
 while holding the guard. This avoids a high-priority task waiting indefinitely
 for a lower-priority task it has preempted. Do not interpret BUSY as successful
 publication or a new sample. Queue-empty is an ordinary consumer outcome.
@@ -196,7 +279,82 @@ in-process plan/status ABI. activate_clear releases to EMPTY without restarting
 old settings; activate_recover still restores the previous plan. See
 [ownership and tests](../config/README.md#admission).
 
+## Allocation and object counters
+
+`memaudit` owns no storage and makes no kernel calls. It updates caller-owned,
+zero-initialized counters for startup and normal operation. Sealing is one-way;
+no Apply, discovery or rollback resets evidence. Saturation is sticky. The C3
+adapter `c3audit` serializes updates with saved/restored machine interrupt state
+on the single-core ESP32-C3. Its counter callbacks never allocate, log,
+dereference allocation pointers or take a scheduler lock. The application-entry marker precedes idle-task creation and controller setup;
+its heap counters retain that startup subset separately from SDK/kernel boot.
+The idle task now uses an aligned, permanent 1 KiB stack. The controller seals after infrastructure
+initialization and before restoring a profile, then copies snapshots for
+[version-3 telemetry](../services/TELEMETRY.md#wire-contract).
+
+The owned build enables SDK heap hooks and renames their two callbacks only in
+`heap_caps_base.c`. Eleven kernel create implementations retain their ABI under
+owned native names; link wrappers count external calls before forwarding native
+validation/results. Qualification checks substitution scope. Dependency files
+and revisions remain unchanged. The linker fragment places the complete counter
+module and `disint`/`enaint` in internal RAM for pre-kernel/cache-disabled use.
+
+Review: fixed-width counters, checked size conversion, saturating arithmetic,
+nonnull pointers, immutable phase boundary and bounded eleven-element loops;
+single-core interrupt exclusion covers every shared access. No object is created
+by observation. Native callback types remain exact, with ordinary owned names
+and C99; no new naming/language deviation. Host tests attack invalid kinds,
+null state, repeated seals, wide allocation sizes, saturation, missing/leaked
+build substitutions and C-to-Python wire parity. Target builds and live counter
+acceptance must be recorded separately. Successful SDK heap hooks are not an
+audit of failed allocation attempts, stack usage. Separate counters observe entry attempts to the kernel allocator
+(malloc, calloc, realloc, free), including failed calls. Native internal calls
+within calloc/realloc are not counted twice. Direct multi-heap primitives remain
+outside these hooks and require source/call-graph review.
+
 ## Verification and limits
+
+### Stack and workload instrumentation
+
+`stackmon` paints only newly owned stack storage before native context creation,
+then scans the untouched low-address prefix. The four permanent worker stacks
+are scanned only after confirmed native dormancy. Cached minima survive binding
+changes. The 1 KiB idle stack is scanned by its higher-priority controller with
+interrupt state saved/restored. The first pre-application native allocation is
+recognized only when exactly one allocation succeeded, its size is 8448 bytes,
+and `td_ref_tsk(TSK_SELF)` confirms the same stack top/size. That is the pinned
+kernel's 8192-byte initial request plus 256 system bytes. Ambiguous provenance
+leaves controller stack evidence unavailable. Painting occurs before the native
+context writes, never on an executing or reused task stack.
+
+Sentinel observations are empirical lower bounds on remaining untouched bytes,
+not worst-case stack proofs: unvisited paths and coincidentally identical bytes
+remain limitations. Fixed reservation bytes already included in the map budget
+are not added again as measured usage. The observer's duration includes scanning;
+board evidence must check its interference and retain the exercised workloads.
+
+`workmeter` assembles a worker-owned step then publishes totals under the existing
+shared guard. `tkport` installs one immutable microsecond clock before startup;
+missing/failed clocks, lost publication, inconsistent duration or overflow make
+that binding unavailable. Collection failure does not change the peripheral's
+return value. The worker's native ID selects its own meter; no driver-context
+cast or device-specific inference enters this path. Four fixed records replace
+no existing synchronization and create no objects. `c3cost` observes I2C/SPI/UART
+calls; `costview` exposes them through the independent command documented in
+[the observation guide](../services/TELEMETRY.md#read-a-snapshot).
+
+Manual review of these additions covers rules 1/5 (C99 helpers, existing C11
+atomics only in tkport/main, checked signed/size/time conversions, explicit wire
+words), 2/4/6 (paired headers, named callbacks, bounded scans and four-slot loops,
+separate kernel/SDK clocks), 3/8 (pinned formatting, initialized storage, guarded
+failure paths and no unchecked timeout extension), and 7 (single-worker partial
+steps, guarded published totals, dormant-only reset, immutable native IDs and
+saved/restored interrupt state). Byte inspection uses character aliasing of
+known owned objects. Controller stack identity is verified against the native
+debug API before access. Heap hooks still only count; the separate boot malloc
+wrapper paints a fresh cache-enabled stack before its first use. No dependency,
+exception, C dialect boundary or formatter change is introduced. Tests/builds
+and hardware measurements are separate evidence, not implied by this review.
 
 The real worker-port fixture passed 369 checks on each of two resets; its
 activation extension passed 514 on each of two resets. These are kernel/typed
@@ -211,3 +369,30 @@ gate/guard synchronization and retained cleanup after every failure. New
 activation/shared modules use C99; atomic operations stay in the two approved
 C11 paths. Kernel-interface exceptions and approval scope are unchanged.
 The dated review and test counts remain in the qualification records.
+
+Cleanup-owner change, 26 October 2026: manual BARR-C review covered the paired
+public prototype and fail-closed non-kernel implementation, Boolean expressions,
+existing atomic owner/guard reads, task/ISR context checks and unchanged borrowed
+lifetimes. No casts, allocations, new atomic types or compatibility exceptions
+were introduced. Three HAL close guards accept the narrow cleanup context;
+their open paths and all existing cleanup error checks remain unchanged. Host
+checks exercise cleanup failure/retry, rejection of other tasks/ISR/shared
+callbacks and retained lifecycle re-entry guards. The board fixture also checks
+the owner/worker distinction; building it alone is not execution evidence.
+
+Shared-guard handoff change, 26 October 2026: manual BARR-C review covered
+the existing C11 atomic profile, positive kernel task IDs, fixed three-attempt
+loop and two one-ms delay requests outside ownership. The holder ID is set
+before the callback and cleared before releasing the flag; a preemption between
+those stores can cause a bounded yield but cannot admit two callbacks. Callback
+errors propagate once, failed delays leave the other task's guard intact, and
+same-task recursion performs no wait. Production code introduces no pointer or
+structure ABI, allocation, interrupt handling, driver I/O, dependency or
+exception changes.
+The host fake checks recursion, exhausted contention and delay failure. The
+real-board case deliberately starts a higher-priority contender inside a short
+test callback to force preemption, with no blocking or I/O in that callback.
+Its generic callback cast matches the kernel's INT/void-pointer task ABI and
+the task is deleted only after confirmed dormancy. The named raw fixture task
+does not become a runtime-owned peripheral worker. Keep measured bench results
+separate from these software and source-review conclusions.

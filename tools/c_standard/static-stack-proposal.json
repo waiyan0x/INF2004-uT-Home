@@ -1,0 +1,26 @@
+{
+  "status": "approved",
+  "purpose": "Mirror caller-owned stack storage in the existing host kernel double for permanent workers.",
+  "header": "tests/target/fake_kernel/tk/tkernel.h",
+  "declaration_to_add_to_T_CTSK": "void * bufptr;",
+  "external_authority": {
+    "kernel_revision": "ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2",
+    "declaration": "firmware/third_party/esp32c3-mtk3/include/tk/syscall.h:178",
+    "consumer": "firmware/third_party/esp32c3-mtk3/kernel/tkernel/task_manage.c:59"
+  },
+  "proposed_exception": {
+    "id": "tests-target-fake_kernel-tk-tkernel.h-7.1.k-bufptr",
+    "path": "tests/target/fake_kernel/tk/tkernel.h",
+    "rule": "7.1.k",
+    "symbol": "bufptr",
+    "reason": "The host double must mirror the pinned T_CTSK caller-owned stack pointer field so unchanged target code can be tested against both interfaces. The kernel fixes the field spelling; project-owned pointer fields retain p_ prefixes.",
+    "authority": "Pinned esp32c3-mtk3 T_CTSK interface; project owner explicitly approved this one field on 2026-10-27. See static-stack-approval-20261027.json."
+  },
+  "limits": [
+    "Only this one external structure member; no wildcard or file-wide exemption.",
+    "Existing approved exceptions and source-hash evidence remain unchanged.",
+    "No formatter, compiler dialect or C11 scope change.",
+    "No new exception is applied until the project owner approves."
+  ],
+  "approval_record": "static-stack-approval-20261027.json"
+}

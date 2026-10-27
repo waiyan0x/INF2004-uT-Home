@@ -29,6 +29,13 @@ the [approval record](tools/c_standard/approval-20260928.json) and
 Additional C11 features or expanded scope require separate review and approval.
 A green automated check neither grants approval nor certifies full conformance.
 
+On 2026-10-27 the project owner additionally approved exactly the `bufptr`
+pointer field in the host-only `T_CTSK` double, needed to test caller-owned
+worker stacks against the pinned kernel API. See the
+[single-field approval](tools/c_standard/static-stack-approval-20261027.json).
+This adds one naming exception; it does not alter the earlier 49-entry approval,
+formatter or language-profile scope.
+
 Target qualification also checks the generated compiler commands. ESP-IDF can
 append its own language/warning flags after target settings, so owned source
 options enforce C99 or the approved C11 profile last. Enabled warnings remain
@@ -111,6 +118,7 @@ Link exactly one backend. This layout does not license unrelated public names.
 | Target plan activation | `activate_`, `activate.h` |
 | Serialized target queue/health access | `shared_`, `shared.h` |
 | Runtime backend contract | `rt_port_`, `rt_port.h`, `workport.h` |
+| Bounded workload measurements | `workcost_`, `workcost.h` |
 | Host backend controls | `hostport_`, `hostport.h` |
 | Message queues | `msgbus_`, `uthome/msgbus.h` |
 | Health counters | `health_`, `uthome/health.h` |
@@ -162,6 +170,19 @@ out; pinpool is pin ownership storage; digiout is the digital-output contract.
 spiown is SPI bus ownership (permanent lock plus session lifecycle); spowntest
 tests it. Both use C99 and add no exception or language scope.
 New abbreviations must be added with their meaning during review.
+
+`workcost` denotes caller-owned worker/transfer cost counters; `protree` denotes
+the experimental eighteen-input protocol decision tree. Both are C99 modules
+with paired headers and no new deviation or external-interface exception.
+
+`heaptrap` is the host parser test's allocator-call counter and rejection module.
+It uses C99 and ordinary public prefixes; object-level symbol redirection stays
+in the test build command, without adding external-name exceptions to owned C.
+
+`memaudit` is the portable memory-event counter; `c3audit` is its ESP32-C3
+interrupt-safe boundary. Both use C99 and matching public prefixes. Scoped
+vendor substitutions and linker aliases retain external ABIs without expanding
+the naming exceptions. See [review](firmware/src/runtime/README.md#allocation-and-object-counters).
 
 ## Mandatory manual review
 
@@ -230,6 +251,12 @@ These modules use C99, serialized caller-owned storage and named callback types.
 Wire/storage fields are explicit bytes, never native structure representations.
 See [the manual review](firmware/src/config/README.md#transfer-c-review).
 
+`cfgpart_` checks the exact reviewed partition-table encoding and bounded write
+window. Its constant table is independent of native structure packing. The
+`c3store_region_allowed` SDK boundary is an owned ordinary function; scoped
+compiler substitutions preserve its external Boolean/size ABI without adding
+naming exceptions. See [storage review](firmware/src/config/README.md#static-partition-access).
+
 ## Admission and binding vocabulary
 
 jsonscan, cfgjson, cfgplan, cfgdev, cfgbind and c3bind identify lexical preflight,
@@ -247,6 +274,13 @@ and headers remain mandatory. See the
 [manual review](firmware/src/config/README.md#usb-c-review).
 
 ## Observation service vocabulary
+
+`stackmon`, `workmeter`, `c3clock`, `c3cost` and `costview` identify bounded stack
+sentinels, step assembly, the SDK microsecond clock, transfer observation and
+wire encoding. Matching prefixes/headers and C99 apply. Runtime publication
+uses only the existing tkport C11 boundary. The manual review is in
+[runtime instrumentation](firmware/src/runtime/README.md#stack-and-workload-instrumentation).
+No new compatibility exception or language scope is approved by these additions.
 
 `sampcache`, `statusmon` and `telemetry` identify the sample cache, periodic status
 monitor and observation encoder; public prefixes match paired headers. They use
@@ -286,3 +320,65 @@ parity test under `tests/ai`. Generated C retains the same public prefix/header.
 These use C99 with no new deviation and are not linked into deployed firmware.
 See [manual review](ai/README.md#c-review). Exported sources receive
 explicit format/lexical/module checks even when generated under ignored `build/`.
+
+## Network compatibility vocabulary
+
+`netring`, `netwait` and `netpool` denote exact-capacity storage, absolute wait
+deadlines and permanent-resource leases. `c3nq` adapts the pinned C3 queue ABI.
+The owned code uses C99 and paired headers; linker aliases preserve the SDK
+entry names without adding project naming exceptions. See the
+[manual review and limits](firmware/src/network/README.md#verification-and-manual-barr-c-review).
+
+`nqcheck` is the native queue fixture. It borrows an existing permanent worker,
+uses C99, and compares allocation/object counters around bounded queue reuse
+and blocked transfers. Its module introduces no new kernel callback or exception.
+
+`c3wifi` is the isolated scan-only Wi-Fi feasibility diagnostic. It uses C99
+and fixed reporting buffers; SDK/shim allocations remain counted and explicitly
+unqualified. It never runs in the configuration application or erases NVS.
+
+The pinned SDK `esp_event.h` transitively includes FreeRTOS/RISC-V inline
+headers spelling assembly as `asm`. Only `c3wifi.c`, `c3ble.c` and `c3gatt.c` map that
+external spelling to GCC's C99-compatible `__asm__` spelling. Its effective
+language remains C99, warnings remain errors, and qualification rejects either
+assembly spelling or `typeof` in the owned adapter itself. SDK headers precede
+native headers so their existing macro guards prevent conflicting definitions.
+This does not add an owned-code language feature or a naming exception.
+
+`netevent` implements fixed event groups and broadcast waiter snapshots;
+`c3event` maps that state to permanent native notifications. `c3boot` provides
+the experimental twelve-KiB native startup pool through exact linker aliases.
+All three use C99, paired headers and ordinary project names, without an added
+exception. Their ABI, concurrency, integer, lifetime and hardware review is
+recorded in the network guide; fresh build/bench evidence remains separate.
+
+`c3ble` is the isolated nonconnectable advertising probe. Its SDK-only component
+avoids the native kernel's conflicting `sys/queue.h`; `c3bport` provides typed
+owned wrappers for native exclusion, delay, exit and audit capture. The compiler
+inventory rejects native include leakage into the NimBLE component. The selected
+SDK flash-controller diagnostic excludes the legacy ROM-table patch through
+owned build inputs; historical ROM-probe snapshots retain their original code.
+Neither module expands an exception or changes a vendor header.
+
+`c3gatt` adds the separately selected read-only GATT diagnostic using C99,
+fixed service definitions and a twelve-byte stack response. GATT means Generic
+Attribute Profile. It shares the SDK-only component and header-spelling boundary
+with `c3ble`; no owned assembly syntax or new naming exception is introduced.
+The network guide records its ABI, concurrency and bounds review.
+
+`adviser` is the portable, fixed-state controller preparation. It is C99 and
+has no heap, hardware, kernel-object or configuration-Apply calls. See the AI
+guide for the identity/lifetime review and the distinction between object-level
+resource measurements and a deployed, qualified model.
+
+`adfeat` means advice-feature construction. It derives the versioned protocol
+vector from stable, independently admitted typed settings. It has no writable
+globals, dynamic allocation or configuration side effects. Its range, ownership
+and Python/C parity review is recorded in the AI guide. `adfmain` is the host
+test boundary that combines the real fixed parser with that feature builder.
+
+`aifrozen` is the experimental exported tree renamed only to give the isolated
+target fixture its own module/header identity. `aicases` stores immutable Python
+prediction vectors, and `aiprobe` measures parity and bounded inference wall time.
+All are C99 with no new exception; their review and nondeployment boundary are
+documented in the runtime-board guide. Test-vector storage is not model RAM.

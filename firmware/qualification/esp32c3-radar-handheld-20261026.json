@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_utc": "2026-10-26T10:27:49.305725+00:00",
+  "scope": "User-requested handheld radar diagnostic; not stationary absence acceptance",
+  "hardware_qualified": false,
+  "user_request": "that was the usb, try again, ill hold it up this time",
+  "physical_conditions": "User proposed holding the radar up. Hand/board motion and USB-cable position were not instrumented. The USB-cable attribution is a user hypothesis, not an established cause.",
+  "configuration_changed_by_assistant": false,
+  "firmware_changed_by_assistant": false,
+  "evidence": {
+    "path": "build/hardware-acceptance-20261026/radar-handheld-102527.jsonl",
+    "sha256": "2f0fa4e0faff64da9c17a1dd527cc4bc596b655f6b3cbedfefe592e09dcabe50"
+  },
+  "settling_ms": 15000,
+  "evaluation": {
+    "start_elapsed_ms": 15093.884700007038,
+    "end_elapsed_ms": 75092.68010000233,
+    "duration_seconds": 59.99879539999529,
+    "samples": 121,
+    "radar_quality": {
+      "fresh": 121
+    },
+    "target_counts": {
+      "2": 121
+    },
+    "radar_age_ms": {
+      "min": 1,
+      "max": 83
+    },
+    "radar_sequence_delta": 674,
+    "health_delta": [
+      0,
+      0,
+      0,
+      0,
+      835,
+      2,
+      0,
+      0
+    ]
+  },
+  "summary": {
+    "type": "summary",
+    "samples": 151,
+    "errors": [],
+    "quality": {
+      "environment_sensor": {
+        "fresh": 145,
+        "stale": 6
+      },
+      "presence_sensor": {
+        "fresh": 151
+      },
+      "health": {
+        "fresh": 151
+      }
+    },
+    "ages": {
+      "environment_sensor": {
+        "min": 394,
+        "max": 1897
+      },
+      "presence_sensor": {
+        "min": 1,
+        "max": 89
+      },
+      "health": {
+        "min": 442,
+        "max": 946
+      }
+    },
+    "radar_counts": {
+      "2": 151
+    },
+    "max_rtt_ms": 95.72759998263791,
+    "duration_seconds": 75.09268010000233,
+    "health_delta": [
+      0,
+      0,
+      0,
+      0,
+      1039,
+      5,
+      0,
+      0
+    ],
+    "runtime_end": {
+      "state": 1,
+      "generation": 58,
+      "failed_workers": 0,
+      "retained_instances": 3,
+      "service_error": 0,
+      "apply_error": 0,
+      "recovery_error": 0
+    },
+    "configuration": {
+      "active_revision": 87,
+      "saved_revision": 87,
+      "active_crc": 3623560383,
+      "saved_crc": 3623560383,
+      "flags": 80
+    }
+  },
+  "result": {
+    "fresh_radar_reception_during_capture": "PASS",
+    "zero_target_condition": "NOT OBSERVED",
+    "stationary_absence_acceptance": "NOT TESTED in this handheld diagnostic",
+    "combined_stability": "FAIL within capture: six stale BMP388 observations and five new missed-heartbeat events."
+  },
+  "conclusion": "All 151 radar snapshots across 75 seconds were fresh and reported two targets, including all 121 snapshots in the predefined post-settling window. No new device timeouts or UART errors occurred. Holding the radar did not establish a no-target condition and cannot identify the source of the detections. BMP388 freshness and missed-heartbeat faults recurred. The original intermittent UART failure remains unresolved; this capture is not an AI training run."
+}

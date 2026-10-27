@@ -1,0 +1,168 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-26T23:17:16.595134+00:00",
+  "scope": "Corrected SPI polling and fixed network core, USB-only qualification for bounded measurements",
+  "capture_allowed": true,
+  "whole_system_qualified": false,
+  "hardware_qualified": false,
+  "wireless_qualified": false,
+  "deployment_allowed": false,
+  "firmware_elf_sha256": "abc9c46ce19ae23e950315107333d82ffa9650f226483d5eb8cd59adefc23024",
+  "fixture_elf_sha256": "985b3f60b95c5b27385443d955ddda124463cd213c26f2787ec2feb396d18485",
+  "checks": {
+    "startup_heap": "passed",
+    "runtime_heap": "passed",
+    "kernel_objects": "passed",
+    "module_ram_budget": "passed",
+    "stack_headroom": "passed",
+    "apply_rollback_recovery": "passed",
+    "parser_exhaustion": "passed",
+    "queue_capacity": "passed",
+    "discovery_ownership": "passed",
+    "usb_disconnect": "passed"
+  },
+  "fixture_boots": [
+    {
+      "log": "network-capture-fixture-20261026-230139-650199.log",
+      "checks": 1694
+    },
+    {
+      "log": "network-capture-fixture-20261026-230236-781914.log",
+      "checks": 1694
+    }
+  ],
+  "apply_cycles": 20,
+  "successful_discovery_cycle_applies": 40,
+  "rollback_restored": true,
+  "parser_capacity_rejections": 6,
+  "host_disconnect_seconds": 30,
+  "physical_usb_unplug": false,
+  "software": {
+    "target_tests": 172,
+    "exit_code": 0,
+    "c_standard_files": 275,
+    "c_standard_findings": 0,
+    "manual_review": "firmware/hal/ports/esp32c3/README.md and firmware/src/network/README.md"
+  },
+  "memory_groups": {
+    "application_fixed": 148801,
+    "kernel_sdk_fixed": 35555,
+    "ram_code": 45734,
+    "total_dram": 230090,
+    "rtc": 0
+  },
+  "comparison": {
+    "before-fix": {
+      "400000": {
+        "steps": 122,
+        "errors": 122,
+        "timeouts": 122,
+        "mean_step_us": 20828.286885245903
+      },
+      "500000": {
+        "steps": 122,
+        "errors": 122,
+        "timeouts": 122,
+        "mean_step_us": 20839.918032786885
+      },
+      "800000": {
+        "steps": 122,
+        "errors": 122,
+        "timeouts": 122,
+        "mean_step_us": 20721.967213114753
+      },
+      "1000000": {
+        "steps": 122,
+        "errors": 122,
+        "timeouts": 122,
+        "mean_step_us": 20804.286885245903
+      },
+      "1750000": {
+        "steps": 122,
+        "errors": 122,
+        "timeouts": 122,
+        "mean_step_us": 20727.59836065574
+      },
+      "4000000": {
+        "steps": 122,
+        "errors": 0,
+        "timeouts": 0,
+        "mean_step_us": 3506.1721311475408
+      }
+    },
+    "after-fix": {
+      "400000": {
+        "steps": 122,
+        "errors": 122,
+        "timeouts": 122,
+        "mean_step_us": 20223.090163934427
+      },
+      "500000": {
+        "steps": 122,
+        "errors": 0,
+        "timeouts": 0,
+        "mean_step_us": 17724.95901639344
+      },
+      "800000": {
+        "steps": 122,
+        "errors": 0,
+        "timeouts": 0,
+        "mean_step_us": 11732.22131147541
+      },
+      "1000000": {
+        "steps": 122,
+        "errors": 0,
+        "timeouts": 0,
+        "mean_step_us": 9817.45081967213
+      },
+      "1750000": {
+        "steps": 122,
+        "errors": 0,
+        "timeouts": 0,
+        "mean_step_us": 6166.196721311476
+      },
+      "4000000": {
+        "steps": 122,
+        "errors": 0,
+        "timeouts": 0,
+        "mean_step_us": 3472.6147540983607
+      }
+    }
+  },
+  "restored_known_image": "6e1e206aa9382aaba003fc6c361f13469493c309e53611007bb4c7d6526ea87d",
+  "restored_profile": {
+    "active_revision": 635,
+    "saved_revision": 635,
+    "active_crc": 3623560383,
+    "saved_crc": 3623560383,
+    "flags": 80
+  },
+  "limitations": [
+    "Visual OLED acceptance deferred until user wakes",
+    "No physical disconnect, isolated UART fault or actuator test",
+    "No radio traffic or finished service/adviser integration",
+    "SPI timings are API wall time, not electrical bus measurements"
+  ],
+  "artifact_sha256": {
+    "build/system-completion-20261026-233938/network-sequence5.json": "b0c09c719c15fce43538f2a353fe396ad608b6c8222e8b57c4b7dd43d81fcde8",
+    "build/system-completion-20261026-233938/network4-discovery-bench.json": "9d27142906b403cdccd0c1e38447adcbab9edee2ec6f10215cecdd275f995830",
+    "build/system-completion-20261026-233938/network4-bench-journal.jsonl": "de959e1cfd787b9a9f2e6bde0074cdf715f3c5b2a47a3cf7fb1e044b9e1e7d42",
+    "build/system-completion-20261026-233938/spi-rollback-bench.json": "3cd08d61c0cb8387068da87eb7aa0e6f7f0b406bbe6a1d1aacc60e2765524b10",
+    "build/system-completion-20261026-233938/spi-capacity-disconnect.json": "758125047a71e771377102e34d205dcb8a50228276a65dd6efec14fa5b770376",
+    "build/system-completion-20261026-233938/spi-reboot.json": "e6cea11ccb806c525633c8e58a94c5c673420c72a80c21354aeb3bf8617d7566",
+    "build/system-completion-20261026-233938/spi-reboot.log": "8c877a87d076b7cbe48ea4dda3540e76042a7daced11341d3578a80fe3a9bed1",
+    "build/system-completion-20261026-233938/app-spi-a1-memory.json": "fce5a491b43559f2cb202e853fb1a1b669bb550dcdda39f958909cc92059cba5",
+    "build/system-completion-20261026-233938/target-regression-boot-spi.log": "de94e42f06cfecbfdb2e2faf460c5a6ab44ee91dbc4daf4056cec7c1f12f5e29",
+    "build/system-completion-20261026-233938/spi-before-fix.json": "b61dbdd45c9e85adf12cf31ce167c50792dc1d9748b7194f875ec3180c1a72ac",
+    "build/system-completion-20261026-233938/spi-after-fix.json": "0228ec9407d8ad28dece5a6101e49da82911023960fc37f961dd406061679b03",
+    "build/system-completion-20261026-233938/spi-before-fix.jsonl": "7752d317ac2e8d7d54d366aeb27e197057de658685a8d57de0e943efa3670a19",
+    "build/system-completion-20261026-233938/spi-after-fix.jsonl": "c3d73c2b75da06a29196af8de775cc9939d58148b78a20f6d2d380d655838ca7",
+    "build/system-completion-20261026-233938/board-before-network.json": "50487ffb7c8aaa2b9965b275c08ef2520a23b0ee7772256dc7bbfacfd8ed2beb",
+    "build/system-completion-20261026-233938/network-capture-fixture-20261026-230139-650199.json": "12ac3ba5d3e016eec17172a31040ae9f3df48d3ee430b5eeb779f654808aec7a",
+    "build/system-completion-20261026-233938/network-capture-fixture-20261026-230139-650199.log": "82c281e52e0a8a1a69b8971d44ce53ac36a90c8a37eccb40439fde057db0db35",
+    "build/system-completion-20261026-233938/network-capture-fixture-20261026-230236-781914.json": "db5f54ca74f7e29a0fd52042a2c9b9ec70cafb233bfc45720117f98e397f3926",
+    "build/system-completion-20261026-233938/network-capture-fixture-20261026-230236-781914.log": "382fe0b2d60959ec6ea6bb440a7f14c80cbf89552640270c7479fe4cd19f5584",
+    "firmware/qualification/esp32c3-spi-polling-20261027-app-build.json": "0d1258b570b39745bdc67f81ed6b60bba47b0ecec84102751070a1b53ac533f7",
+    "firmware/qualification/esp32c3-spi-polling-20261027-fixture-build.json": "16f537be5d515304a559d0c7f247efb45abd27e40b981f74bd9b9f80d708da21"
+  }
+}

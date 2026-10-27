@@ -1,0 +1,120 @@
+{
+  "schema_version": "1.0.0",
+  "date": "2026-10-26",
+  "scope": "Follow-up supply observations and radar worker isolation; original cleanup qualification remains unchanged",
+  "supply_observations": [
+    {
+      "recorded_utc": "2026-10-26T03:46:16.669210+00:00",
+      "source": "user multimeter report",
+      "voltage_v": 5.075,
+      "requested_points": "Board A i29 (ESP5V) to i30 (ESP ground), saved layout",
+      "location_independently_verified": false,
+      "scope": "DC source voltage; does not establish radar connector voltage, ripple or current capacity"
+    },
+    {
+      "recorded_utc": "2026-10-26T03:52:45.615081+00:00",
+      "source": "user multimeter report",
+      "voltage_v": 4.817,
+      "requested_points": "Board A left red rail hole14 to right blue rail hole14 via spare male-to-male test jumpers",
+      "location_independently_verified": false,
+      "scope": "DC rail voltage; does not establish voltage at radar connector, ripple, or current capacity",
+      "previous_unreliable_report": "155v with uncertain probe contact; not accepted as a voltage measurement"
+    }
+  ],
+  "radar_only": {
+    "type": "summary",
+    "samples": 121,
+    "errors": [],
+    "quality": {
+      "presence_sensor": {
+        "fault": 107,
+        "fresh": 14
+      },
+      "health": {
+        "fresh": 121
+      }
+    },
+    "ages": {
+      "presence_sensor": {
+        "min": 0,
+        "max": 150
+      },
+      "health": {
+        "min": 652,
+        "max": 658
+      }
+    },
+    "radar_counts": {
+      "0": 1,
+      "1": 13
+    },
+    "max_rtt_ms": 87.61580000282265,
+    "duration_seconds": 120.08767830001307,
+    "health_delta": [
+      0,
+      0,
+      424,
+      0,
+      695,
+      0,
+      0,
+      0
+    ],
+    "runtime_end": {
+      "state": 1,
+      "generation": 2,
+      "failed_workers": 0,
+      "retained_instances": 1,
+      "service_error": 0,
+      "apply_error": 0,
+      "recovery_error": 0
+    },
+    "configuration": {
+      "active_revision": 25,
+      "saved_revision": 25,
+      "active_crc": 3292012571,
+      "saved_crc": 3292012571,
+      "flags": 80
+    }
+  },
+  "result": "FAIL: intermittent radar communication persists with one peripheral worker; all physical modules remained wired/powered, so this does not isolate electrical loading or prove a hardware cause.",
+  "restored_configuration": {
+    "command": 1,
+    "request_id": 10,
+    "revision": 26,
+    "status": 1,
+    "active_revision": 26,
+    "saved_revision": 26,
+    "active_crc": 3623560383,
+    "saved_crc": 3623560383,
+    "flags": 95,
+    "message": "Active and saved"
+  },
+  "next_step": "Identify actual radar connector and cable endpoints from a clear photo before module-side voltage/contact checks.",
+  "evidence": [
+    {
+      "path": "build/hardware-acceptance-20261026/supply-source-034616.json",
+      "sha256": "1cd69c96f757eee7a4f5016fbf0aa285317ee56bc8b02193251f5afa4e515d96"
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/supply-rail-035245.json",
+      "sha256": "989a16d5705e7f8ddc62a8982b6a0d3bf79ffe7263f867194f5249874f735d3f"
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/radar-return-034640.jsonl",
+      "sha256": "9b9e39c43cee140ce790a887085ce96b90c719c49e1f48d6548d5b1838566f88"
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/query-035252.json",
+      "sha256": "74f30c80f92a695c372ca8efac186a946785a26962a266b080fc176141d76e2d"
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/radar-only-035410.jsonl",
+      "sha256": "5c00884addae7e4c43923d3d6fc5c96f7c7df64b9fc1ce9db027796933c1f969"
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/radar-isolation-035407.json",
+      "sha256": "33186517ce0f06e7bc89fc949768d5b90cfa8107626db02e3b08a10e9eb3c913"
+    }
+  ]
+}

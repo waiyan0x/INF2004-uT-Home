@@ -11,7 +11,7 @@ from .protocol import Command, MAX_PROFILE_BYTES, encode_request
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("probe", "query", "apply", "save", "recover", "telemetry", "capabilities", "discover"))
+    parser.add_argument("command", choices=("probe", "query", "apply", "save", "recover", "telemetry", "workcost", "capabilities", "discover"))
     parser.add_argument("--port", required=True, help="Explicit serial port, for example COM8")
     parser.add_argument("--revision", type=int, default=0)
     parser.add_argument("--profile", type=Path, help="Reviewed node JSON for apply")
@@ -59,6 +59,8 @@ def main(argv=None):
             reply = client.capabilities()
         elif command == Command.TELEMETRY:
             reply = client.telemetry()
+        elif command == Command.WORKCOST:
+            reply = client.workcost()
         elif command == Command.PROBE:
             reply = client.exchange(command, 1)
         else:
@@ -69,7 +71,7 @@ def main(argv=None):
                 reply = client.exchange(command, reply.request_id + 1,
                                         args.revision, profile)
         print(json.dumps(asdict(reply), indent=2))
-        if command == Command.TELEMETRY:
+        if command in (Command.TELEMETRY, Command.WORKCOST):
             return 0 if reply.result == 0 else 2
         return 0 if command in (Command.PROBE, Command.CAPABILITIES) or reply.status in (0, 1, 8) else 2
     except (ImportError, OSError, ValueError, TransferError) as error:

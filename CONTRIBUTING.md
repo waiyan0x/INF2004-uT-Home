@@ -9,6 +9,13 @@ The latest application has passed software/build checks. Record physical results
 [evidence index](firmware/qualification/README.md#peripheral-bench-observations);
 this procedure does not certify the hardware.
 
+The latest [integration bench regression](firmware/qualification/esp32c3-integration-bench-20261026.json)
+passed twenty discovery/profile cycles and a failed-activation rollback check on
+the assembled BMP388/OLED/LD2450 setup. The original settings are active/saved at
+revision 179; user-confirmed OLED output is readable and updating. Full hardware
+acceptance, memory/object instrumentation, cleanup-failure and power-loss tests
+remain open. The user-deferred radar absence check remains deferred.
+
 For the bench: check the inventory and power first, use the wiring tables in
 sections 3–4, then follow the profile-change procedure and test table in
 sections 6–7. Use the [installation procedure](tools/target/README.md#install-the-configuration-application)
@@ -40,8 +47,9 @@ A four-pin I2C-only display, SH1106 display or 128×32 panel needs different
 firmware support. Do not connect it using the SPI table. BMP280/BMP390 and
 LD2410 are also not substitutes for the configured drivers.
 
-Use an external LED for today's first output test; it was not in the supplied
-inventory, so bring one or use a scope to check PWM. The optional L298N/TT motor test
+Use an external LED for the first output test; red LEDs, resistors and a
+multimeter were confirmed available on 26 October. A scope/analyser has not been
+confirmed, so waveform timing remains unmeasured. The optional L298N/TT motor test
 needs its supply ratings and module jumper arrangement confirmed first.
 GPIO is a control signal, not motor power.
 
@@ -289,7 +297,10 @@ reserve pins: remove unused device and bus entries rather than merely disabling 
 
 ## 6. Prepare software and change wiring safely
 
-**Start with the board alone.** Verify the installed **configuration application**
+For an already assembled, reviewed sensor layout, keep its wiring intact while
+checking USB and updating firmware; see the installation procedure's power and
+pin conditions. Use board-alone isolation when troubleshooting requires it.
+Verify the installed **configuration application**
 against its build evidence; the acceptance fixture cannot run these profiles.
 Use the [installation procedure](tools/target/README.md#install-the-configuration-application) if needed.
 
@@ -333,7 +344,7 @@ certification. Change them explicitly in the record if the team agrees otherwise
 
 | Test | Procedure | Pass evidence |
 |---|---|---|
-| USB/application | Board alone; connect, read capabilities, apply/save empty profile | Correct C3 board and compiled drivers; stable connection and matching revisions |
+| USB/application | Connect the identified board, read capabilities, apply/save empty profile; reviewed sensor wiring may remain attached | Correct C3 board and compiled drivers; stable connection and matching revisions |
 | BMP388 | Layout A's BMP only; `01-bmp.json`; run 2 minutes | Fresh readings identified as `environment_sensor`; temperature/pressure plausible against a local reference; no recurring I/O faults |
 | OLED | Add OLED; `02-bmp-oled.json`; run 2 minutes | Legible, changing environmental/health display, correct orientation and no corrupted rows; inspect the panel physically |
 | Radar | Wire radar alone using A's UART pins; `03-radar.json`; walk into/across/out of the field | Fresh valid target reports and changing positions/counts; observations agree with movement; record any blind areas |
@@ -381,6 +392,42 @@ GPIO1 in that setup. Missing a second sensor means this test is **NOT TESTED**.
 
 Passing the wiring tests is useful progress; full checkpoint 8 sign-off also
 needs those recovery/resource results and any real actuator acceptance.
+
+### Reproduce the existing three-protocol demonstration
+
+Use [c3-protocol-demo.json](configs/nodes/c3-protocol-demo.json) for the current
+BMP388 + six-pin OLED + LD2450 assembly. It preserves the original saved values
+(compact profile CRC 3623560383): BMP388 at I2C address `0x77`, the SPI OLED with
+GPIO4 reserved but unwired, and UART1 radar on RX20/TX21 at 256000 baud. Check
+the actual wiring and running image against the latest root README checkpoint;
+this recipe does not install firmware or authorize another wiring layout.
+
+1. Close collectors and other serial clients, enumerate the board, then open the
+   [Configuration Desk](tools/configurator/README.md). Connect to that board and
+   read its capabilities. Do not substitute a remembered COM port.
+2. Choose **c3-protocol-demo** or import the linked JSON. Use **Validate and
+   review**, inspect the three protocols and reserved resources, then **Apply &
+   save**. Confirm active and saved revisions/CRCs agree before proceeding.
+3. In **Live monitor**, observe fresh BMP388/radar samples and physically confirm
+   the OLED is readable and updating. Move across the radar view for a positive
+   movement demonstration; the deferred zero-target check is not implied here.
+4. Disconnect the Desk, leaving the board powered. Read one telemetry and one
+   work-cost snapshot with the [USB command-line client](tools/config_transfer/README.md).
+   These snapshots expose allocation/object counters, worker costs and empirical
+   stack margins. A single snapshot does not measure CPU utilization or prove
+   panel operation. The version-2 scheduler observation supports a separate
+   same-context interval calculation, with the tick/interrupt limitations
+   documented in the client guide. Worker margins are measured after quiescence;
+   a live uninterrupted binding can correctly report them unavailable.
+5. Reconnect the Desk and verify the saved profile remains active. A subsequent
+   controlled reboot/restore check requires the current backup and board procedure;
+   a successful save reply alone is not that check.
+
+This demonstrates the qualified USB/core scope. Display the linked AI study and
+target parity/timing evidence separately: an experimental or gate-failed model
+is not enabled in normal firmware. Onboard wireless services, reviewed advice
+controls and combined-radio acceptance remain separate work. Preserve the local
+study journals, immutable build archives and full flash backup for the handoff.
 
 ## 8. Troubleshooting at the bench
 

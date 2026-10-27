@@ -1,0 +1,132 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_utc": "2026-10-26T10:20:54.287925+00:00",
+  "scope": "Ceiling-facing no-target diagnostic on unchanged combined profile; separate from forward-facing absence acceptance",
+  "hardware_qualified": false,
+  "user_context": "Previous scene was object-dense without the user present; user suspected a chair and reported pointing the radar upward towards the ceiling.",
+  "operator_instruction": "Rest securely on dry cardboard with gold antenna patterns upward, fan off, wiring intact and phone app disconnected. Leave stationary and avoid nearby movement during capture.",
+  "operator_reply": "ready",
+  "configuration_changed_by_assistant": false,
+  "firmware_changed_by_assistant": false,
+  "orientation_changed_by_user": true,
+  "evidence": {
+    "path": "build/hardware-acceptance-20261026/radar-ceiling-101726.jsonl",
+    "sha256": "781039bd1c5fbad2289430bcda75815e124405d31eecf4d0441d9ef100b1e1ee"
+  },
+  "settling_ms": 15000,
+  "evaluation": {
+    "start_elapsed_ms": 15078.923799999757,
+    "end_elapsed_ms": 75085.405299993,
+    "duration_seconds": 60.00648149999324,
+    "samples": 121,
+    "quality": {
+      "fresh": 121
+    },
+    "target_counts": {
+      "1": 109,
+      "0": 12
+    },
+    "radar_age_ms": {
+      "min": 0,
+      "max": 84
+    },
+    "radar_sequence_delta": 674,
+    "health_delta": [
+      0,
+      0,
+      0,
+      0,
+      848,
+      1,
+      0,
+      0
+    ],
+    "reported_target_ranges": {
+      "x_mm": [
+        -601,
+        38
+      ],
+      "y_mm": [
+        316,
+        425
+      ],
+      "speed_cm_s": [
+        -128,
+        39
+      ]
+    },
+    "reported_target_distance_mm": [
+      361.24783736376884,
+      697.3377947594695
+    ],
+    "zero_target_criterion_met": false
+  },
+  "summary": {
+    "type": "summary",
+    "samples": 151,
+    "errors": [],
+    "quality": {
+      "environment_sensor": {
+        "fresh": 151
+      },
+      "presence_sensor": {
+        "fresh": 151
+      },
+      "health": {
+        "fresh": 151
+      }
+    },
+    "ages": {
+      "environment_sensor": {
+        "min": 95,
+        "max": 1098
+      },
+      "presence_sensor": {
+        "min": 0,
+        "max": 89
+      },
+      "health": {
+        "min": 145,
+        "max": 649
+      }
+    },
+    "radar_counts": {
+      "1": 139,
+      "0": 12
+    },
+    "max_rtt_ms": 96.06599999824539,
+    "duration_seconds": 75.085405299993,
+    "health_delta": [
+      0,
+      0,
+      0,
+      0,
+      1060,
+      1,
+      0,
+      0
+    ],
+    "runtime_end": {
+      "state": 1,
+      "generation": 58,
+      "failed_workers": 0,
+      "retained_instances": 3,
+      "service_error": 0,
+      "apply_error": 0,
+      "recovery_error": 0
+    },
+    "configuration": {
+      "active_revision": 87,
+      "saved_revision": 87,
+      "active_crc": 3623560383,
+      "saved_crc": 3623560383,
+      "flags": 80
+    }
+  },
+  "result": {
+    "fresh_radar_reception_during_capture": "PASS",
+    "zero_target_criterion": "FAIL",
+    "combined_stability": "One missed-heartbeat event; no device timeouts, UART errors or failed workers recorded."
+  },
+  "conclusion": "The predefined 60-second evaluation window had 121 fresh radar snapshots: 109 with one target, 12 with zero. Reports continued advancing and the UART did not time out. Ceiling-facing orientation did not establish a clean no-target baseline. Reported positions do not identify the reflecting object or the source of the earlier intermittent UART failures. This diagnostic is not an AI training run or a normal-mounting qualification."
+}
