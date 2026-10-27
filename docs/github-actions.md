@@ -40,9 +40,8 @@ acceptance" and select the run for this branch, then inspect both ESP32-C3
 jobs. Manual dispatch is also available once GitHub recognizes the workflow
 on the default branch. Download each image's artifacts after its run.
 
-The original extracted source folder remains separate from the publishing Git
-checkout. Future commits and pushes should run from the Git checkout, with
-`build/`, caches and local dependencies excluded.
+Use this `Code` Git checkout for integration; exclude `build/`, caches and local
+dependencies from publication. Raw captures/backups are local artifacts.
 
 A successful cloud run proves a target build, not board execution, physical
 baud/framing, timing or complete AAI13 compliance. Follow `uart-acceptance.md`
@@ -50,7 +49,7 @@ for board tests and actual kernel creation-call counting. Finish RAM accounting
 with the map and stack evidence; do not treat a stable live-object count as
 proof that no creation calls occurred.
 
-## Behavior-preserving standard cleanup
+## Standalone API compatibility notes
 
 No maintained UART, radar, sonar, runtime or GPIO algorithm was changed for
 this cleanup. The older standalone prototype required source-level naming
@@ -83,18 +82,13 @@ for both standalone suites, rather than omitting them or using unrelated
 runtime-only includes. The optional-output script now stops immediately on
 standard-gate failure. Existing tests/standard checks were not disabled.
 
-## Local verification and limits
+## Verification limits
 
-- Pinned C-standard gate: 199 files, zero findings and zero policy errors.
-- Checker suite: 54 tests passed; foundation: 26 passed; runtime: 20 passed.
-- Target-host suite: 75 passed; four additional CI-contract tests passed.
-- Standalone UART/GPIO and optional-output binaries pass under C99 with
-  `-Wall -Wextra -Werror -pedantic`.
-- YAML loads correctly; Bash syntax check passes for all 13 run steps.
-- Preserved Member 5 suite: 60 of 61 pass locally; one symlink test requires a
-  Windows privilege unavailable here. It remains enabled on the Ubuntu runner.
-- ESP-IDF was not installed locally. No GitHub target-build result is claimed;
-  the first cloud run is still required. No hardware was flashed or tested.
+Check the Actions run for the exact commit; no retained local result establishes
+a new cloud pass. Hardware tests are compiled, not executed in CI. On Windows,
+symlink tests may require additional privilege; keep them enabled on supported
+CI hosts. Historical local counts and unavailable-toolchain notes are in the
+[completed-work log](COMPLETED_WORK_LOG.md).
 
 Manual review covered module/header consistency, typed callback ABI, fixed
 buffers, exact branch/evaluation preservation, integer ranges, no new heap

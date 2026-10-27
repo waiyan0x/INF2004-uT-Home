@@ -1,31 +1,25 @@
-# UART acceptance checklist and fresh evidence
+# UART acceptance
 
-Update: the standard-gate cleanup and cloud build setup are documented in
-[GitHub Actions setup](github-actions.md). Earlier failed-gate records below
-are retained as history; hardware/target evidence still requires execution.
-
-Status: NOT COMPLETE. No target execution or physical baud/framing pass is
-claimed. This record distinguishes implemented tests from executed tests.
+The retained-handle/fixed-storage implementation has target-build and scoped
+USB-core allocation evidence. External baud/framing and the isolated native-ring
+fault suite are separate acceptance work. See
+[qualification](../firmware/qualification/README.md); earlier unavailable-SDK or
+style-gate failures are historical, not current blockers.
 
 ## Required tests
 
-| Requirement | Implemented check | Current evidence |
-| --- | --- | --- |
-| No creation calls after startup | GDB entry breakpoints on actual `tk_cre_mtx` and `tk_cre_sem` across `uartcheck_run` | Audit-accounting unit tests pass; target audit pending |
-| Baud/framing reach hardware | Board cycles through 4 rates x 4 data lengths x 3 parities x 2 stop lengths | API exercise implemented; physical/register verification pending |
-| Reject wrong owner | Real adapter read/write/close calls with different owner | Board assertions added; not executed |
-| Report overflow without growth | Inject more than the native RX ring capacity; expect OVERFLOW and zero returned count | Board assertions added; ring capacity fixed at compile time |
-| No stale data between owners | Seed native RX, queue TX, retry cleanup, claim next owner and check empty RX/TX plus fresh RX | Board assertions added; not executed |
-| Cleanup failure prevents reuse | Acceptance-only read hook returns E_IO once during cleanup; assert retained owner, blocked new open/read, successful retry | Board assertions added; not executed |
-| Startup precedes restore/requests | Application ordering and no Detect/Apply initialization | Source guards pass |
-| Failed startup stays unavailable until reboot | One-shot attempted/ready state; no creation in ordinary open | Source guard only; startup failure-injection execution pending |
-| Fixed RAM, kernel objects and capacities documented | `uart-static-storage.md` and compile-time 1,280-byte record reservation | Map, stack and full system totals pending |
-| Pinned standard gate and warnings-as-errors C tests | Gate and affected host suite attempted | BLOCKED by 588 existing findings and 6 errors; changed files have no reported findings |
-| Fresh ESP32-C3 build | Qualification attempted | BLOCKED: ESP-IDF unavailable/unactivated |
+| Remaining requirement | Required evidence |
+|---|---|
+| Isolated native-ring faults | Run the dedicated fixture with UART senders/receivers disconnected; retain wrong-owner, overflow, stale-buffer and cleanup/retry assertions. |
+| External baud/framing | Measure all supported modes with a configurable peer and suitable instruments; attribute readback/loopback alone is insufficient. |
+| Startup failures | Inject mutex/native-open/reset failures on separate boots; retries must remain unavailable without new creation calls. |
+| Live owner transitions | Peer session markers distinguish old buffered bytes from new traffic; include cleanup/unlock failures and incoming races. |
+| Combined resource budget | Repeat allocation/object and stack checks with radio/services and account shared storage exactly once. |
 
 ## Run the board acceptance image
 
-Use `tools/target/qualify_kernel.py build --runtime-port`, the pinned kernel and
+Use `tools/target/qualify_kernel.py build --runtime-port --native-uart-fixture`,
+the pinned kernel and
 SDK, and the existing compatibility/resource patches required by the project.
 Do not use `--configuration-app` for this fixture: the fault hook and
 `uartcheck.c` are deliberately excluded from the production configuration image.
@@ -88,14 +82,10 @@ perform physical communication timing tests separately without breakpoint stops.
 - Verify the static-storage object and native object-file references in the
   target map/object files, then complete the total RAM and stack budget.
 
-## Local validation record
+## Review and evidence
 
-18 Python source/build-routing/debugger-accounting tests pass. The debugger
-unit tests use a fake GDB object; they validate counter logic, not the board.
-The affected C host suite was attempted with its required gate and was blocked
-before compilation. The fresh target build attempt also failed before compiling
-because ESP-IDF was unavailable. Logs: `build/uart-acceptance-standard.txt`,
-`build/uart-acceptance-host.txt`, `build/uart-acceptance-target.txt`.
+The [completed-work log](COMPLETED_WORK_LOG.md) retains earlier local test/build
+attempts. Fake-GDB tests validate accounting logic, not board execution.
 
 Manual review: new C uses matching headers, C99, fixed stack buffers, bounded
 nested loops, native typed interfaces and no heap calls. The one-shot read

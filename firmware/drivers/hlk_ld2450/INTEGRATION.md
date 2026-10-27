@@ -132,12 +132,9 @@ overflow invalidation, bounded batches, independent registry instances, typed
 queue records/health and activation recovery. The host kernel manually invokes
 steps; it does not prove native scheduling, mutex/device semantics or wire timing.
 
-The mandatory BARR-C gate covers 113 owned C/H files. All 115 Python suite tests
-pass (54 checker, 26 foundation, 18 runtime, 17 target), including the extended C
-fixture and resource-patch failure evidence. New ordinary code compiles under
-C99 on the actual target with enabled warnings treated as errors. Board fixture
-additions inspect factories/descriptor sizes only and do not open UART.
-See [fresh software/build evidence](../../qualification/esp32c3-uart-20260928.json).
+Run the full BARR-C gate and affected host/target tests with warnings as errors.
+The ordinary fixture checks factories/descriptor sizes without opening UART;
+physical baud/framing and isolated faults require their separate acceptance suite.
 
 Manual BARR-C review checked all new modules and affected callers: names and
 module boundaries; borrowed storage/lifetime; const/static; initialization and
@@ -154,5 +151,4 @@ latency, stack/heap headroom, simultaneous peripherals and repeated plan updates
 
 
 Current [acceptance status](../../qualification/README.md) and
-[wiring procedure](../../../CONTRIBUTING.md). Historical test counts above
-refer to their dated evidence, not a new qualification.
+[wiring procedure](../../../CONTRIBUTING.md). Keep dated results in the qualification records, separate from current usage.

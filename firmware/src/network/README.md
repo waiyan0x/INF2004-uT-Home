@@ -71,11 +71,10 @@ ownership but use neither a clock nor a native lock. Every lock must be released
 before task execution begins: a retained startup lock rejects later task access
 without acquiring its unrelated native mutex. The C3 port never returns to
 startup ownership after observing a task, and ordinary ISR mutex use is rejected.
-This fixes the experimentally observed pre-scheduler `pthread_mutex_unlock`
-assertion; successful target execution must still be recorded separately.
-Two subsequent fixture boots passed 1,694 checks, and twenty application
-profile/discovery cycles kept forbidden allocation/object counters at zero; see
-the [core bench record](../../qualification/esp32c3-network-core-20261027.json).
+Startup ownership prevents pre-scheduler `pthread_mutex_unlock` assertions.
+Scoped execution evidence is in the
+[core bench record](../../qualification/esp32c3-network-core-20261027.json);
+it does not establish combined radio acceptance.
 The startup initializer and logical boot-lock helper are mapped to flash: they
 run with cache enabled. Qualification checks their placement while keeping all
 SDK queue/event entry points in internal RAM. This preserves the RAM-code limit
@@ -132,7 +131,7 @@ ISR polling, mutex ownership/recursion and failed-clock/reinitialization paths.
 These host tests do not establish RF behavior, native scheduling or physical timing.
 Fresh target build/board results must be recorded separately.
 
-Manual review for BARR-C rules 1?8: owned code is C99 with paired module headers,
+Manual review for BARR-C rules 1–8: owned code is C99 with paired module headers,
 named callback signatures and exact external ABI widths. Enum conversions follow
 explicit bounds; byte-offset multiplication is checked against actual storage.
 No variable-length arrays, heap paths, unbounded copies, pointer-key dereferences
@@ -153,13 +152,12 @@ capacity, front/back/peek/overwrite, static caller storage, counting semaphores,
 recursive mutexes and real blocked sender/receiver handoff. It borrows one of the
 four existing workers and compares allocation/object counter fields before and
 after. No peripheral I/O, new task or new synchronization object is requested by
-these tests. Two subsequent target boots passed 1,694 total fixture checks; the linked core bench record retains their raw output.
+these tests. Retain fresh execution results with the exact fixture identity.
 
-The experimental map budget is `tools/target/netqueue-budget.json`: 12 KiB for
-the adapter's fixed metadata/payload/native-ID storage. The application category
-increases by 16 KiB and the SDK/kernel category decreases by the same amount;
-the total reservation stays 278,528 bytes. This is a USB-core queue experiment,
-not a radio-services memory allocation or an increase to the total system limit.
+The selected queue/event/startup variant uses `tools/target/network-budget.json`:
+278,528 bytes overall, split into 155,648 application data, 65,536 SDK/kernel data
+and 57,344 RAM code. The older `netqueue-budget.json` belongs to the queue-only
+experiment. Neither budget alone proves that radio services fit.
 
 ## Scan-only feasibility diagnostic
 
@@ -170,8 +168,8 @@ configuration or peripheral workloads. Four permanent peripheral workers and
 idle exist; the probe scans, stops, restarts, scans again, then stops the radio.
 It does not associate, create an AP, start IP services, use credentials, initialize
 NVS or erase flash. RF calibration persistence and Wi-Fi NVS are disabled. The
-SDK tick rate is explicitly 1,000 Hz, matching the native millisecond timer and
-avoiding the other vendor shim functions' 100 Hz conversion mismatch.
+compiled SDK tick rate is 1,000 Hz, matching the native millisecond timer. No
+current tick-rate mismatch is established; verify the effective build settings.
 
 The probe records SDK stage results, AP counts (no SSID list), actual internal
 free/largest heap blocks, application/startup/normal allocation counters and
@@ -202,14 +200,11 @@ after stop. NVS persistence is disabled; no GATT connection, pairing or phone
 interaction is requested. SDK host/controller allocations remain unqualified.
 The host task is retained until reset.
 
-The first linked BLE diagnostic used 269,819 bytes overall but exceeded the
-57,344-byte RAM-code reservation with 79,022 bytes. Its immutable `bleprobe-a5`
-report records that failure. The next variant selects the pinned SDK's flash-only
-controller to reduce RAM code; it removes the incompatible legacy ROM dispatch
-patch from compilation and link inputs without changing vendor sources. The
-qualifier rejects any remaining patch symbol. Flash operations while BLE is
-active remain unqualified: the SDK explicitly documents performance/cache
-limitations for this option. This probe performs no such flash writes.
+The BLE probe selects the pinned SDK's flash-only controller to reduce RAM code.
+It removes the incompatible legacy ROM dispatch patch from compilation and link
+inputs without changing vendor sources; the qualifier rejects remaining patch
+symbols. Flash operations while BLE is active remain unqualified because this
+option has performance/cache limitations. The probe performs no flash writes.
 
 NimBLE is compiled in the SDK-only `uthome_radio` component because its BSD
 `sys/queue.h` conflicts with the native kernel header of the same name. The
@@ -221,12 +216,9 @@ including its terminator; callbacks publish fixed state under restored interrupt
 exclusion, synchronization waits are bounded, and task exit does not delete its
 native object. The probe adds no C deviation or application allocation exemption.
 
-The scan profile disables the SDK's Wi-Fi IRAM/RX-IRAM speed optimizations,
-trading peak throughput for internal RAM. The earlier unchanged-pool diagnostic
-used 300,522 bytes; this setting reduced it to 280,768 bytes. Both remain above
-the 278,528-byte reservation and are not accepted radio budgets. The reports
-under `build/system-completion-20261026-233938/wifi-memory-*.json` retain actual
-map totals and failures rather than increasing a limit to pass them.
+The scan profile disables Wi-Fi IRAM/RX-IRAM speed optimizations, trading peak
+throughput for internal RAM. Measure each linked image against the unchanged
+budget; do not increase a limit to turn a failed experiment into a pass.
 
 ## Fixed events and bounded startup pool
 
@@ -256,9 +248,8 @@ SDK/radio compatibility. Kernel notification errors stop new event operations;
 there is no dynamic recovery allocation.
 
 `c3boot` supplies a 12,288-byte, eight-byte-aligned native startup pool. This is
-separate from the unchanged four 8 KiB worker stacks. The qualified preceding
-USB core used an 8,448-byte controller stack from its 32 KiB native pool; the
-smaller experiment must repeat boot, stack-margin and allocation verification.
+separate from the four 8 KiB worker stacks. Scoped USB-core evidence covers this
+variant; changes still require boot, stack-margin and allocation verification.
 It is not a general-purpose application heap or permission for later native
 allocation. Failure to initialize is terminal until reset. The experimental
 `tools/target/network-budget.json` redistributes the same 278,528-byte total:
@@ -279,42 +270,22 @@ timeout and 6,000 independently modelled interleavings. The board fixture adds
 counters required. Build/link proof and physical execution are separate gates;
 the corrected USB study uses this variant after the linked SPI/core bench qualification. Radio qualification remains separate.
 
-## Current isolated radio observations
+## Radio evidence and diagnostic counters
 
-The `bleprobe-boot-a1` diagnostic completed advertising, stop and restart with
-result zero; a passive PC observer received the `UTHOME-DIAG` name. This establishes
-advertising only, not GATT, authentication, coexistence or static compliance.
-Application startup made 77 successful SDK allocations; restart made one 16-byte
-allocation. Internal free heap fell from 129,096 to 67,436 bytes after startup.
-The native task/sem counts rose by two each during startup, with no later creates
-in this short test. No broad exemption is inferred for BLE.
-
-The [controlled Wi-Fi comparison](../../qualification/esp32c3-radio-diagnostics-20261027.json)
-identified the rejected request as 200 items of eight bytes: it exceeded each
-old 1,024-byte partition. The revised layout retains the same 8,192-byte payload
-reservation as two 512-byte, five 1,024-byte and one 2,048-byte partitions.
-The old image rejected that request; the revised image completed initialization,
-two scans and stop/restart with result zero, finding 14 and 18 access points.
-All 25 observed queue requests succeeded. No credentials, association, IP traffic
-or configuration writes were involved; the configuration partition stayed identical.
-This is scan feasibility, not static-compliant Wi-Fi/MQTT/HTTP integration.
-The first scan/startup recorded 106 application-startup heap allocations. The
-stop/restart/second scan/final stop recorded another 66 allocations totalling
-24,552 requested bytes; this is cumulative allocation volume, not peak live RAM.
-Two native tasks and two semaphores were created during startup, with no later
-native creations in this short run. These observations identify work to remove
-or narrowly justify; they do not grant a driver or application exception.
-Earlier zero-byte captures remain inconclusive.
+[Retained radio results](../../qualification/README.md) cover isolated Wi-Fi
+scanning and BLE advertising/read-only GATT. They do not qualify association,
+authentication, services, coexistence or static compliance. SDK heap activity
+remains an unresolved requirement. Earlier zero-byte captures are inconclusive.
+Observed allocation counts/volume are cumulative, not peak live RAM.
 
 `c3nq_diagnostic` records dynamic-API call/failure counts and
 the last rejected request's length, item size and kind, only in the Wi-Fi probe.
 It stores 20 bytes, uses saved/restored interrupt exclusion and saturating counts,
 and performs no allocation/logging in queue operations. A task-context snapshot
 prints the evidence afterward. Static-API requests are outside these counters.
-The revised probe's RAM map is 261,698 bytes and passes the unchanged aggregate
-limits, including 57,138 bytes of RAM code against 57,344. That narrow code
-margin and the [remaining task/timer/notification audit](../../qualification/esp32c3-wireless-source-audit-20261027.json)
-must be addressed before service/coexistence qualification.
+Inspect each image's RAM-code margin and the
+[task/timer/notification audit](../../qualification/esp32c3-wireless-source-audit-20261027.json)
+before service/coexistence qualification. A passing aggregate map is not enough.
 
 Manual review for this diagnostic: fixed-width values preserve the SDK request,
 counts cannot wrap, null output is rejected, and the snapshot never changes
@@ -355,18 +326,12 @@ or all packet/service storage. A name containing "static" is insufficient proof.
 Measure its linked RAM against the unchanged budgets and retain separate actual
 heap observations before choosing it for the integrated application.
 
-The [final static-host GATT bench](../../qualification/esp32c3-gatt-settle-20261027.json)
-**passed** with 2 board-observed connections,
-2 disconnections and 4 reads.
-The PC also checks changing uptime and rejection of writes. Windows needs device
-access; two client contexts alone did not establish a physical reconnect. The
-eight-second settling interval changes the test client, not the board gate.
-This image records 68 application-startup
-heap allocations and 56 subsequent allocations totaling
-920 requested bytes at the last available checkpoint.
-These are cumulative allocation counts/volume, not peak live memory. No late
-native creates were observed in this bounded run. Unvisited zero-initialized
-observation slots are marked unavailable, not treated as zero heap use.
-The original USB core/profile was verified after restoration; no radio diagnostic
-remains installed. Full static compliance, sensor/configuration services,
-authentication, coexistence and phone acceptance remain open.
+Windows BLE tests need device access. Two client contexts may reuse one physical
+connection; require board-observed disconnect/reconnect and allow the client's
+eight-second settling interval. Check changing uptime and rejection of writes.
+Unvisited observation slots are unavailable, not evidence of zero heap use.
+See the [retained GATT bench](../../qualification/esp32c3-gatt-settle-20261027.json).
+
+Full static compliance, sensor/configuration services, authentication, coexistence
+and phone acceptance remain open. Query the actual board identity before testing;
+a historical restoration record does not establish what is installed now.

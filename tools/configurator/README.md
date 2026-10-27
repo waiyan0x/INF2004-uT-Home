@@ -33,8 +33,9 @@ The interface uses one fixed colour palette.
 Switching views preserves the draft and current review; editing the draft still
 requires a new review. The view tabs support Left/Right arrows and Home/End.
 
-The D2 discovery command requires a newly built application image. Physical USB,
-peripheral and persistence acceptance belongs to checkpoint 8. Offline review
+Discovery requires compatible application firmware; check its reported feature
+bits before use. Combined peripheral, radio and persistence acceptance remains
+separate from the working USB workflow. Offline review
 uses the host reference catalogue; it is not permission to wire or deploy a
 profile. Connected review enforces the narrower compiled target limits.
 The original first-prototype profile still uses unsupported GPIO2 CS.

@@ -1,13 +1,9 @@
-# UART retained-handle adaptation â€” 2026-10-20
+# UART retained-handle lifecycle
 
-Update: the two UART-record heap paths now have a project-owned fixed-storage
-adaptation; see [UART fixed native storage](uart-static-storage.md). Statements
-below describing unresolved native Kmalloc are the earlier review record;
-target verification and system-wide compliance remain outstanding.
-
-Status: implemented for review; source lifecycle guards pass. Target build,
-register/wire verification and final RAM accounting remain outstanding.
-This is not evidence of full AAI13 compliance.
+The adapter retains one native UART descriptor and mutex for the boot lifetime.
+Native record storage is fixed by [the storage adapter](uart-static-storage.md).
+Use [UART acceptance](uart-acceptance.md) for unperformed external timing/fault
+tests and [qualification](../firmware/qualification/README.md) for scoped results.
 
 ## Lifecycle and integration
 
@@ -85,95 +81,27 @@ other native errors to FRAME. Explicit cleanup consumes old error flags.
 Reads/writes remain limited to 64 bytes and use polling mutex/timeouts.
 Software bounds do not establish worst-case interrupt latency on hardware.
 
-## UART RAM accounting â€” no exemption
+## Memory and acceptance
 
-Provisional UART reservation: **2,048 bytes persistent RAM**, plus **128 bytes
-of task-stack headroom** for wrapper locals/scratch (part of, not additional to,
-the owning task's fixed stack budget). These are proposed limits, not measured
-usage. Do not approve them or add them to a claimed compliant system total
-until target sizes, allocator overhead and stack usage have been checked.
+The earlier proposed 2,048-byte UART / 128-byte stack allowance is not an approved
+or measured total. The fixed native-record reservation is 1,280 bytes; account
+wrapper state, native state, kernel tables and call-chain stack separately in
+the [storage ledger](uart-static-storage.md#fixed-ram-accounting). UART has no
+blanket heap exemption. Constant live-object counts cannot prove zero creation.
 
-| Charged item | Quantity / fixed capacity | Verification needed |
-| --- | --- | --- |
-| Wrapper state and borrowed `uartio_t` | One each, persistent; no application heap | Linker symbols `g_state`, `g_port`, alignment |
-| Operations/name constants | One table and one name | Check map placement; charge RAM if copied there |
-| Native RX and TX buffers and serial DCB | Two 513-byte arrays, 512 usable bytes each, plus indices/attributes | `sizeof(T_SER_DCB)` and allocator metadata; arrays are already inside the DCB, do not count twice |
-| Native low-level state | One unit's caches/metadata | Native map symbols and section placement |
-| Native mSDI record | One `T_MSDI` | `sizeof(T_MSDI)` and allocator overhead |
-| Native registration lock | One FastLock semaphore | Kernel semaphore control-block pool contribution |
-| Native open state | One open control block and abort semaphore | Kernel open/control-block pool contribution |
-| Wrapper mutex | One persistent mutex | Kernel mutex pool contribution |
-| Synchronous I/O requests | Serialized; use native device-manager request pool | Attribute the reserved request/control pool and manager overhead once |
-| Temporary discard scratch | One 64-byte buffer; no recursion | Compiler stack-usage output plus nested kernel call depth |
-
-IMPORTANT: `msdi_def_dev()` unconditionally calls `Kmalloc(sizeof(T_MSDI))`
-and `CreateLock`; `CreateLock` creates a semaphore. Serial DCB allocation also
-uses `Kmalloc` when `TK_SUPPORT_MEMLIB` is enabled (otherwise static storage).
-Startup-only allocation does not mean heap-free allocation. No UART exemption
-has been assumed. If AAI13 prohibits these native allocations too, this design
-still needs an approved fixed-storage native registration route or an owned
-replacement driver/registration layer. The present change intentionally does
-not modify the pinned dependency to conceal that gap.
-
-A linker map alone cannot show the payload of a runtime `Kmalloc` allocation.
-Combine the map with the pinned configuration, allocation-call audit, target
-`sizeof`/pool capacities, allocator metadata and startup high-water evidence.
-The total system budget must include other modules and shared kernel pools;
-no measured total-system claim is made here.
-
-## Verification record and remaining acceptance
-
-- Five `test_uart_startup.py` source guards pass. Three GPIO startup guards pass.
-  These check allocation placement, state separation, sequence/bounds, preserved
-  fault handling and startup ordering; they do not execute native UART code.
-- Full pinned formatter/style gate was run. The changed files have no findings;
-  the repository gate remains blocked by existing findings in unrelated
-  pwm_motor/uart_gpio files. See `build/uart-standard-check.txt`.
-- Target build was attempted with `qualify_kernel.py build --kernel
-  build/uart-kernel-reference --runtime-port --configuration-app`. It stopped
-  because ESP-IDF was not activated/available. See `build/uart-target-build.txt`.
-- No target binary, map, register readback or wire test is claimed.
-
-Before accepting this adaptation:
-
-1. Restore a clean required style gate and activate the pinned SDK/toolchain.
-   Build using the existing compatibility/resource patches and preserve logs,
-   compiler commands, linker map and stack-usage evidence.
-2. Instrument kernel object creation and allocation counters. Initialize twice,
-   then repeatedly open/close/reconfigure; prove counters do not increase after
-   startup and the native descriptor remains unchanged.
-3. With a configurable external UART peer/logic analyzer, exercise 9600, 115200,
-   256000 and 460800 baud; all supported 5â€“8 data bits, parity none/odd/even,
-   and 1/2 stop bits. Verify registers and wire timing after each change without
-   native reopen. Self-loopback alone cannot prove the actual baud rate.
-4. Queue TX and RX, close and claim with a different owner. Verify old software
-   bytes do not appear and new traffic works. Repeat with incoming traffic
-   across the close/open boundary, using explicit peer session markers.
-5. Inject full RX, framing/parity errors, full TX, mutex contention, short I/O,
-   failed attribute writes, cleanup failure and unlock failure. Verify bounded
-   return, count semantics, retained ownership, retry or reboot policy.
-6. Measure and enforce the UART reservation and total application budget. Resolve
-   the native Kmalloc compliance decision explicitly; UART is not Wi-Fi.
+The source/build checks and instrumented USB lifecycle have scoped evidence.
+External baud/framing across supported modes, marked peer traffic through owner
+changes, startup/attribute/unlock failures and incoming-traffic races remain
+acceptance work. Follow [the checklist](uart-acceptance.md); do not inject faults
+into the live driver or assume software loopback proves wire timing.
 
 Manual C review: paired declarations/callers updated; C99, fixed locals and no
 recursion; no new application allocation; polling calls and capped snapshots;
 owner required for lifecycle, worker mutex for transfers; native private header
 usage is intentionally pinned and requires re-review on dependency changes.
-Hardware timing, target ABI compilation and actual memory totals are pending.
+External timing and complete-system qualification require separate evidence.
 
-## Follow-up requirement review
-
-A failed logical open now makes one STOP attempt before returning, retaining
-ownership. A failed mutex unlock also makes one STOP attempt and poisons the
-port, retaining ownership until reboot. Neither path creates kernel objects.
-These defensive branches require fault-injection execution on the target;
-the source guard alone does not validate hardware behavior.
-
-Six UART source guards now cover these branches. The earlier five-test record
-above describes the initial implementation, not this follow-up run.
-
-Requirements still NOT established: hardware baud/framing correctness across
-all supported modes; target compilation; measured/enforced complete UART RAM
-budget and total system budget; absence of native heap allocation. The proposed
-2,048/128-byte reservations are unverified planning values, not compliant budget
-evidence. Native `Kmalloc` remains a compliance gap, not an exemption.
+A failed logical open makes one STOP attempt and retains ownership. A failed
+mutex unlock also attempts STOP, poisons the port and retains ownership until
+reboot. Neither may create objects. Source guards do not replace target fault
+injection for these branches.

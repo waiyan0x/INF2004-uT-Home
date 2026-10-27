@@ -92,6 +92,43 @@ class ProtocolTests(unittest.TestCase):
         self.assertFalse(result["fallback"]["goal_guaranteed"])
         self.assertEqual(recommend(None, experiment)["status"], "abstain")
 
+    def test_family_goals_reach_labels_and_features_without_splitting_duplicate_loads(self):
+        spec = deepcopy(self.spec)
+        spec["version"] = "0.3.0"
+        del spec["goal_ms"]
+        for index, family in enumerate(spec["families"]):
+            family["goal_ms"] = (500, 750, 1000)[index % 3]
+        study = prepare_study(self.profile, self.identity["manifest"], spec)
+        self.assertEqual(study["version"], "0.3.0")
+        self.assertEqual(validate_study(study), study)
+        for family, case in zip(spec["families"], study["cases"]):
+            experiment = case["experiment"]
+            self.assertEqual(experiment["scenario"]["goal"]["limit_ms"], family["goal_ms"])
+            self.assertTrue(all(vector[2] == family["goal_ms"] for vector in case["features"]))
+        spec["families"][1] = dict(spec["families"][0], id="same-load-new-goal", split="test", goal_ms=900)
+        with self.assertRaisesRegex(ConfigurationError, "Duplicate workload"):
+            prepare_study(self.profile, self.identity["manifest"], spec)
+
+    def test_goal_versions_are_explicit_and_invalid_goals_are_rejected(self):
+        self.assertEqual(self.study["version"], "0.2.0")
+        spec = deepcopy(self.spec)
+        spec["families"][0]["goal_ms"] = 500
+        with self.assertRaisesRegex(ConfigurationError, "Invalid family fields"):
+            prepare_study(self.profile, self.identity["manifest"], spec)
+        spec = deepcopy(self.spec)
+        spec["version"] = "0.3.0"
+        with self.assertRaisesRegex(ConfigurationError, "Unsupported study specification"):
+            prepare_study(self.profile, self.identity["manifest"], spec)
+        del spec["goal_ms"]
+        with self.assertRaisesRegex(ConfigurationError, "Invalid family fields"):
+            prepare_study(self.profile, self.identity["manifest"], spec)
+        for family in spec["families"]:
+            family["goal_ms"] = 500
+        for value in (0, 60001, True, 500.0):
+            spec["families"][0]["goal_ms"] = value
+            with self.subTest(goal=value), self.assertRaises(ConfigurationError):
+                prepare_study(self.profile, self.identity["manifest"], spec)
+
     def record(self, root, interval, rep, *, radar_quality="fresh", consume=True):
         experiment = self.experiment()
         clock, board = Clock(), None

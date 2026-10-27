@@ -1,6 +1,6 @@
 # Generic rules and output routing
 
-Checkpoint 7 implements bounded sensor-to-output rules for the broader platform.
+This module provides bounded sensor-to-output rules for the platform.
 It uses common sample types, the existing guarded source cache and the existing
 PWM component. The generic runtime and HAL gain no device-name branches.
 Physical output acceptance remains open; offline AI work is a separate pipeline.
@@ -115,19 +115,10 @@ against every manual checklist category in `C_CODING_STANDARD.md`:
 This review and the gate are software evidence, not certification of all BARR-C
 rules or hardware behavior. See [fresh build/test and memory evidence](../../qualification/esp32c3-ui-rules-20260928.json).
 
-## Verified software and memory
+## Verification and memory
 
-All 151 host tests pass (54 standard, 26 foundation, 18 runtime, 53 target),
-including extended C rule/binding/failure fixtures and nine UI workflow tests.
-The unchanged mandatory gate covers 180 owned C/H files with no findings or
-tool/policy errors. Both real target modes pass, with 122 inputs and 51 owned
-compiler profiles. Offline Edge review/error/rule/mobile checks also pass.
-
-The application binder occupies 12,800 bytes, previously
-12,640; the transport pump
-occupies 10,456 bytes. The same six application/cache objects total
-51,088 bytes, previously 50,920.
-Display GPIO handles remain 16 bytes. These are static
-ELF measurements, not available heap or measured task-stack peaks. Existing
-runtime/kernel objects and stacks are additional; AI capacity needs checkpoint
-8 measurements. The application partition layout remains byte-for-byte unchanged.
+Use the [test guide](../../../tests/README.md) for current commands and
+[qualification](../../qualification/README.md) for dated results. Static object
+sizes are not free heap or measured task-stack peaks; account kernel/SDK objects,
+all permanent stacks and additional services in the combined image. Physical
+output and fault-response acceptance remain separate from host rule tests.

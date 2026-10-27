@@ -64,10 +64,9 @@ python tools/target/qualify_kernel.py build --runtime-port --configuration-app -
 The compatibility patch supplies missing ESP-IDF 6.1 systimer dependencies; omit
 it only to reproduce the known upstream build failure. The resource patch adds
 512 usable native UART bytes and disables unused ADC startup. Patches are applied
-only to the staged copy and hashed. The retained 26 October application ELF uses
-the upstream 32 KiB `mtk_default_heap`; this guide's earlier 64 KiB application
-override claim was incorrect. Check each image's map rather than assuming a pool
-size. This is not a free-RAM measurement. The
+only to the staged copy and hashed. Native startup pool size is build-dependent:
+inspect the actual image map, not an earlier override claim. A pool reservation
+is not measured free RAM. The
 [static-memory impact review](../../firmware/README.md#mandatory-static-memory-change)
 describes the outstanding allocation, lifecycle and budget changes; existing
 build success does not establish compliance with the new requirement.
@@ -181,23 +180,11 @@ counted once; the kernel's internal pool already includes stacks carved from it.
 RAM-resident code is a separate category. A passed fixed-map check never sets
 runtime heap, stack high-water or whole-system qualification to true.
 
-For the 27 October allocation-audit application, the fixed-map results are:
-
-| Category | Linked bytes | Declared limit |
-|---|---:|---:|
-| Application writable state, including cJSON hooks | 123,089 | 131,072 |
-| Kernel/SDK writable state and alignment | 68,315 | 98,304 |
-| Code occupying shared internal RAM | 38,786 | 49,152 |
-| Total internal RAM | 230,190 | 278,528 |
-| RTC memory | 60 | 128 |
-
-The map exposes 321,296 usable internal-RAM bytes and leaves 91,106 unassigned.
-That is **not** measured free heap or stack headroom. These budgets cover the
-current USB core; wireless/AI reservations and stack evidence remain required
-before a combined-system release. Allocation/object observations are retained in
-the [audit checkpoint](../../firmware/qualification/esp32c3-allocation-audit-20261027.json).
-The per-module limits
-and actual object sizes are retained in the generated record.
+Unassigned linker space is not measured free heap or stack headroom. Keep
+per-module limits and actual sizes in the generated budget record. Wireless/AI
+reservations and complete stack evidence are required before combined release.
+Historical map and allocator results are in
+[qualification](../../firmware/qualification/README.md).
 
 The optional fixed-queue/event/startup variant uses `--static-net-queues` and
 `--budget tools/target/network-budget.json` with the memory checker. Its overall

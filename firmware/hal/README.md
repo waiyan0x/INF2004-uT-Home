@@ -21,8 +21,9 @@ independent of board pin assignments and SDK APIs.
 `spifake.c` captures SPI transactions and injects output/transport failures.
 Adding a board means adding another port without changing drivers or services.
 
-Network APIs are deferred because the first prototype uses USB serial for
-configuration and monitoring.
+USB provides configuration and monitoring. On-device wireless work is in the
+[experimental network layer](../src/network/README.md); combined radio/service
+integration and qualification remain open.
 
 ## UART
 

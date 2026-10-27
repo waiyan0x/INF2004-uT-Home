@@ -1,31 +1,10 @@
 # Verification
 
-The [static-host build experiment](../firmware/qualification/esp32c3-static-host-build-20261027.json)
-adds effective-setting/isolation checks: **183 target tests**, the unchanged
-**283-file** pinned C gate and fresh ordinary/diagnostic builds. Its static-host
-map passes the unchanged limits, at 251,813 bytes total; selecting static host
-globals alone is not a no-malloc claim. The preceding
-[GATT software checkpoint](../firmware/qualification/esp32c3-gatt-final-software-20261027.json)
-adds two isolation tests: **182 target tests**, the **283-file** pinned C gate,
-fresh isolated GATT and ordinary application builds, unchanged aggregate memory
-limits and absence of radio/model entry points in the ordinary image. It does
-not claim RF execution or static-compliant BLE. The preceding
-[software regression](../firmware/qualification/system-software-regression-20261027.json)
-records 180 target/host tests, 119 AI tests, the full 281-file C standard gate,
-and fresh application/fixture builds. It includes command-9 version-1/version-2
-C/Python parity, scheduler window validation, mixed network queue capacities,
-the checked-in three-protocol profile and the Windows HTTP rejection fix.
-Policy, foundation, runtime, discovery and existing dashboard checks also passed.
-Earlier failures and their fixes are retained in the record; assertions,
-warnings-as-errors, formatter and time limits were not weakened. Hardware,
-wireless/static compliance and model eligibility remain separately qualified.
-
-The [27 October allocation-audit checkpoint](../firmware/qualification/esp32c3-allocation-audit-20261027.json)
-records 128 passing target/host tests, 90 AI tests, the 237-file C standard gate,
-fresh application/fixture builds and two 909-check fixture boots. Version-3
-telemetry parity includes application-startup counters, legacy captures and
-maximum fragmented responses. Stack, wireless and model-release qualification
-remain separate.
+Dated test counts and build results belong in the
+[evidence index](../firmware/qualification/README.md) and
+[completed-work log](../docs/COMPLETED_WORK_LOG.md). Run the checks below for the
+source you are changing; a previous pass does not qualify a new revision.
+Hardware, wireless/static compliance and model eligibility are separate gates.
 
 Run from the repository root. Install `tools/requirements.txt`, the pinned
 formatter in `tools/c_standard/requirements.txt`, and training dependencies

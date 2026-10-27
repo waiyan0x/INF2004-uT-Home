@@ -10,10 +10,8 @@ ring injection/transmission is a **separate** `--native-uart-fixture` build that
 requires external UART senders and receivers disconnected. It retains every
 fault check; its PASS marker is `[uart-test] PASS isolated native ring faults`.
 The ordinary fixture prints `[uart-test] NOT RUN` and must not be reported as
-native UART fault acceptance. The initial 27 October fixture selected the older
-combined mode and failed the no-external-sender check with the radar attached;
-that failed capture is retained. Earlier sections below describe historical
-images and their original evidence, not the latest source's acceptance status.
+native UART fault acceptance. An attached radar invalidates the no-external-sender
+assumption; preserve failed captures instead of treating them as acceptance.
 
 The test uses the actual task adapter and pinned kernel. It checks:
 
@@ -39,14 +37,14 @@ The test uses the actual task adapter and pinned kernel. It checks:
   and stale watchdog registrations.
 
 Success prints `[activation-test] PASS`, `[port-test] PASS` and continuing
-`alive` counters. The 2026-09-28 activation image passed 514 checks per reset.
-A failed check
+`alive` counters. A failed check
 prints its expression and line, then keeps the board alive without proceeding.
 Preserve the log and repeat after reset. Startup-create and binding/state-query failure injection
 and the full 16 KiB budget rejection are checked by the separate native fake-
 kernel suite; do not describe those failures as physically induced on the board.
 
-The test uses the upstream startup/32 KiB heap and memory-only fixture callbacks.
+The test uses permanent workers and memory-only fixture callbacks. Kernel pool
+size depends on the selected build; inspect its map rather than assuming 32 KiB.
 Use the [installation procedure](../../../tools/target/README.md#install-the-configuration-application)
 for the current resource-patched build. Its reviewed BMP388/OLED/LD2450 layout
 may remain assembled with no actuator attached; other wiring needs review.
@@ -59,67 +57,23 @@ The build helper snapshots the exact adapter, activation/shared modules and
 their component/queue/health/watchdog dependencies. Preserve historical records;
 new runs belong in separate build and board evidence files.
 
-The I2C software checkpoint also links `i2cbus`, `c3i2c`, the BMP388 adapter
-and the unchanged Bosch library. Five invalid-argument/descriptor checks retain
-that code in the link without touching pins. This produces an expected 519-check
-acceptance image, but that revised image has not been flashed or board-qualified.
-The historical 514-check logs apply only to their recorded source hashes.
-Actual sensor communication needs a separate configured hardware test after the
-breakout wiring is confirmed; this default fixture never opens a real bus.
-The fixture now also checks that `c3i2c_init()` returns 0 on its first call
-and again on a repeated call. These two checks test return values only, and
-the image is unqualified. The proof that only one mutex is created comes from
-the host `owntest` creation-call counter, not from this fixture. The same two
-return-value checks for `c3spi_init()` add two more; for SPI that proof comes
-from the host `spowntest` counter.
+## Peripheral and configuration coverage
 
-The subsequent SPI/OLED checkpoint adds SPI2, shared pin ownership, simple outputs
-and the OLED driver/registry adapter. Eight further argument/descriptor checks
-give an expected **527 checks** in this image. It is build-only: no new board
-run is claimed. No bus or output is opened. All peripheral hardware testing is
-deferred to final acceptance, and the historical 514-check image remains the
-last physically qualified version.
-
-The UART checkpoint adds three factory/descriptor/invalid-argument checks,
-for an expected **530 checks**. UART is never opened by the default fixture.
-The new build applies the existing resource patch in its isolated source;
-that startup change and the UART wrapper still need physical acceptance.
-The latest actually captured image remains the earlier 514-check activation
-image. Host radar/ownership scenarios live in `tests/target/uarttest.c`.
-
-## GPIO software checkpoint
-
-Thirteen additional no-I/O factory/descriptor/invalid-argument checks bring the
-fixture to **543 expected checks**. This revised image has not been flashed or
-executed. Native RMT/LEDC and GPIO electrical tests remain deferred; host
-contracts and recovery are exercised by `tests/target/gpiotest.c`. See
-[the manual review](../../../firmware/drivers/hc_sr04/INTEGRATION.md).
-
-## Configuration core software checkpoint
-
-Nine additional invalid-argument checks link the portable configuration core,
-bringing the fixture to **552 expected checks**. No physical USB/storage
-operation is invoked. This image has not been flashed or executed; host codec,
-controller and interrupted-save tests are in `cfg_main.c` and
-`test_config_transfer.py`. See
-[the review](../../../firmware/src/config/README.md#wire-version-1).
-
-## Admission/binding software link check
-
-New C99 modules and managed cJSON 1.7.19~2 are linked, with nesting limited to
-eight. Ten no-I/O additions give **562 expected checks**, not a board capture.
-The large binder is not allocated by these link/invalid-input checks. See
-[admission contracts](../../../firmware/src/config/README.md#admission).
-The historical 514-check activation image remains physically qualified.
-
+The fixture links I2C/SPI/UART/GPIO drivers and configuration/admission modules
+with bounded no-I/O checks. These do not establish peripheral communication or
+electrical behavior. Startup return-value/idempotence checks are distinct from
+counting kernel creation calls. Use the application and hardware procedures for
+sensor/display communication, persistence and outputs; use the isolated UART
+fixture for injected ring faults. Historical incremental check counts are in
+the [completed-work log](../../../docs/COMPLETED_WORK_LOG.md).
 
 ## Current core and radio diagnostic scope
 
 The current isolated core fixture additionally checks sampled native scheduler
-time: a 100 ms delay advances elapsed/idle counters with a one-ms tick. The
-scheduler-enabled fixture passed 1,699 checks on each of two resets. Its native
+time: a 100 ms delay advances elapsed/idle counters with a one-ms tick. Native
 stack checks run after quiescence; unavailable live worker margins remain null.
-The root README identifies the current installed image and active capture owner.
+The evidence index records tested image identities; query the actual board
+and confirm serial ownership before a new capture.
 
 BLE diagnostics are separate from these core checks. `--ble-probe` selects
 nonconnectable advertising; adding `--ble-gatt-probe` selects a 45-second read-only

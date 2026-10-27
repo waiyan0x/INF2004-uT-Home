@@ -63,14 +63,15 @@ are not universal optima. Details: [hardware guide](../CONTRIBUTING.md).
 - [Firmware observer, exact wire format and manual C review](../firmware/src/discovery/README.md).
 - [Configuration Desk workflow](../tools/configurator/README.md).
 - [Host USB client](../tools/config_transfer/README.md).
-- [Tests](../tests/README.md); D1-D4 software is implemented, physical discovery
-  acceptance remains pending.
+- [Tests](../tests/README.md) and [scoped bench evidence](../firmware/qualification/README.md).
+  Discovery is implemented and has repeated USB-core bench checks; broader
+  electrical/failure and combined-radio acceptance remain open.
 
 ## Historical references
 
-Repeated checkpoint diaries were consolidated on 2026-10-17. Current status and
-remaining work are in [the project README](../README.md). Earlier text remains
-in Git at commit `37319fbd55ca622779eca498519128e6a33bcaa5`:
+Current status and remaining work are in [the project README](../README.md).
+Completed checkpoints belong in [the history log](COMPLETED_WORK_LOG.md).
+Older removed guides remain in Git at commit `37319fbd55ca622779eca498519128e6a33bcaa5`:
 
 ```console
 git show 37319fb:INTEGRATION_PLAN.md
@@ -115,32 +116,21 @@ and [approval records](../tools/c_standard/README.md) retain their own files.
 
 ## Local artifacts and review documents
 
-The following are local files, not part of the published repository. Paths are
-relative to the `Code` folder unless stated otherwise. Preserve them when
-changing workspaces; a new chat does not need a new clone on this workstation.
+These paths are local to the original workstation, not included in Git. Preserve
+them; a fresh clone does not contain raw datasets, build archives or board backups.
+Older paths and checkpoint outcomes are indexed in the
+[completed-work log](COMPLETED_WORK_LOG.md).
 
-| Location | State / purpose |
+| Location relative to `Code` | Purpose |
 |---|---|
-| `build/static-ai-20261026/` | Static AI contracts/export verification, standalone C3 objects, integration flash receipts, twenty discovery/profile cycles, failed-activation rollback and confirmed original settings; [AI record](../ai/qualification/static-adaptation-20261026.json), [bench record](../firmware/qualification/esp32c3-integration-bench-20261026.json) |
-| `%USERPROFILE%/esp/hardware-backup-20261026-static-ai/board-before.bin` | Verified 4 MiB backup before the integration image; hash/location in `build/static-ai-20261026/backup.json` |
-| `build/hardware-acceptance-20261026/` | Pre-update state/failure captures, corrected build snapshots, fixture serial logs, verified application flash, discovery and bench observations; `backup-reference-fef8c15d.json` locates the full external flash backup |
-| `build/shared-handoff-20261026/` | Shared-guard fix: preserved application/fixture build snapshots, two 895-check boots, flash receipts, unchanged configuration readback, before/after analysis and backup reference; [qualification](../firmware/qualification/esp32c3-shared-handoff-20261026.json) |
-| `build/shared-handoff-*-20261026.log` | Runtime/target host checks and isolated target-build logs for the shared-guard change |
-| `%USERPROFILE%/esp/hardware-backup-20261026-shared-3423ecff/board-before.bin` | Verified 4 MiB pre-handoff-fix flash backup; digest and original temporary location in `build/shared-handoff-20261026/backup-preserved.json` |
-| `build/ai-offline-20261013/` | Simulated runs, dataset, readable trained model and C export; see the [AI guide](../ai/README.md#existing-local-model) |
-| `build/ai-pilot-20261026-074410/` | Eight real BMP388 timing captures, raw journals, identity/build evidence, exact Apply receipts, four-row dataset and confirmed original-profile restoration; [record and hashes](../ai/qualification/recorder-pilot-20261026.json) |
-| `build/ai-recorder-final-tests-20261026.log` | 65 passing AI tests, including 15 recorder tests and the 194-file full C gate |
-| `build/protocol-study-20261026-r1/` | Superseded initial label policy: collection stopped at 25 runs after identifying an invalid FIFO-consumption proxy; original profile restored. Raw data and source copies preserved |
-| `build/protocol-study-20261026-r2/` | Completed v0.2 study: 72 new plus 24 preserved training runs listed in `reuse.json`; trained model/evaluation/dataset under `trained/`, frozen sources and confirmed restoration; [record](../ai/qualification/protocol-study-20261026.json) |
-| `build/protocol-study-20261026-r3/` | Completed post-fix 96-run study in `capture-verified/`; seven-node host model/evaluation/readiness in `trained/`, frozen sources and confirmed restoration. Predeclared coverage criterion failed; [results](../ai/qualification/protocol-study-shared-20261026.json), [analysis](../ai/qualification/protocol-analysis-shared-20261026.json). Preserve the zero-run checksum preflight abort in `capture/` |
-| `build/protocol-r3-tests-20261026.log` | 76 passing AI tests and full 194-file C gate before the post-fix study |
-| `build/protocol-full-tests-20261026.log` | 76 passing AI tests, including 11 protocol-study tests and the 194-file full C gate |
-| `build/protocol-v02-full-tests-20261026.log` | 76 passing tests after correcting the OLED latest-cache/FIFO assumption, with the full C gate |
-| `build/hardware-acceptance-20261026/query-094151.json` | Post-study active/saved revision 87, fresh BMP388 and radar fault; [analysis](../ai/qualification/protocol-analysis-20261026.json) |
-| `build/publish-20261017-*.log` | Six Python suite logs: 243 tests; the seven dashboard tests made the reported total 250. These are historical checks, not reruns on 18 October |
-| `build/ai-c-gate-final.json` | Retained 194-file full-gate result; policy and manual-review requirements remain in the [C standard](../C_CODING_STANDARD.md) |
-| `../ESP/Tribunal1/Week8_Tribunal1_Template.docx` | Only Version A was edited to match uT-Home. Front matter and Versions B/C were preserved; this document was not pushed to GitHub |
-| `build/tribunal_review_20261017/` | Original Word backup, edit script, scope verification and rendered layout checks |
+| `build/system-completion-20261026-233938/` | Frozen builds, capture scripts, core/radio observations and verified `board-before-network.bin` 4 MiB backup; use its backup JSON/hash before recovery |
+| `build/protocol-study-20261027-static-r2/` | Primary USB-core study, raw journals, frozen sources and evaluation |
+| `build/protocol-study-20261027-stress-r3/` | Separate corrected stress study and evaluation; retain r1/r2 rejected/unexecuted plans too |
+| `build/protocol-study-20261026-r1/`, `r2/`, `r3/` | Earlier independent study contexts; do not mix with later firmware labels |
+| `build/static-ai-20261026/`, `build/shared-handoff-20261026/`, `build/hardware-acceptance-20261026/` | Earlier bench/build records and external-backup references |
+| `build/ai-offline-20261013/` | Simulated regression model/data; not a hardware model |
+| `../ESP/Tribunal1/Week8_Tribunal1_Template.docx` | Local submission document; not published with this repository |
+| `build/tribunal_review_20261017/` | Original document backup, edit verification and rendered checks |
 
 **Tribunal follow-up:** the front-page Team Information table still contains the
 template's unrelated personas because it was outside the requested Version A
@@ -151,6 +141,3 @@ table is authorized for editing. Leave student details for the team to fill in.
 Buddy prompts/positions in Version A are proposals, not invented records of
 completed individual sessions. The team must confirm them and reconcile the
 Week 6 comparisons with its submitted architecture freeze before submission.
-
-On 18 October, the Word file was verified to match the saved Version A edit.
-No edits to it or to its neighboring PDF were made during the handoff check.

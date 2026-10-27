@@ -37,14 +37,9 @@ otherwise install the existing development requirements or set
 The demo prints temperature-driven ON/OFF and stale-data shutdown. It simulates
 electrical outputs; it does not flash the board or drive connected hardware.
 
-The current full standard gate reports pre-existing violations in six legacy
-starter files (`pwm_motor.c/h`, `uart_gpio_io.h`, `uart_gpio_host.c/h`, and
-`test_uart_gpio.c`). None is changed by this addition. The runner saves the full
-report to `build/output-tests/c-standard.json`, still executes the functional
-tests, and returns a failing exit code if the repository gate fails. A functional
-PASS must not be represented as a full repository PASS. No gate is disabled and
-no exception is added. New-file diagnostics should also be inspected in that
-report whenever changing these modules.
+The runner stops on a failed standard gate. Keep assertions and warnings-as-errors
+enabled; functional success cannot replace a passing policy gate. Historical
+starter naming/build failures are in the [completed-work log](COMPLETED_WORK_LOG.md).
 
 ## What the functions do
 

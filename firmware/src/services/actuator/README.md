@@ -1,5 +1,10 @@
 # Actuator services
 
-The first prototype has no physical actuator. This directory is reserved for
-later command validation, safe-state enforcement, and actuator feedback. It is
-excluded from the first-prototype firmware path.
+This directory is a placeholder for higher-level command validation and actuator
+feedback. Current PWM/rule behavior is implemented in the
+[automation modules](../../automation/README.md) and
+[PWM component](../../../drivers/pwm_output/README.md).
+
+Physical output/load acceptance remains open. Future services must reuse checked
+configuration, ownership and safe-state handling rather than introduce another
+output path. No actuator feedback implementation is provided here.

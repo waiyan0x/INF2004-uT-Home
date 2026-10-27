@@ -32,33 +32,19 @@ host. Check the total kernel mutex capacity together with UART/I2C/SPI and other
 services. Startup fails closed if capacity is exhausted. This does not prove
 that the kernel's own creation implementation is heap-free.
 
-UART, I2C and SPI now also create their resources once at startup (see the
-[C3 port guide](../firmware/hal/ports/esp32c3/README.md)). Dynamic worker tasks
-and the JSON allocator are outside this change and still require the separate
-system-wide migration.
+UART, I2C and SPI also create their resources at startup. Fixed workers and
+parsing are implemented; see the [C3 port](../firmware/hal/ports/esp32c3/README.md)
+and [system status](../README.md#current-status). Remaining system work concerns
+wireless resources and combined acceptance, not a repeat of the worker migration.
 
-## Verification record
+## Verification
 
 Run `python -m unittest discover -s tests/target -p test_gpio_startup.py -v`.
-Three source lifecycle guards pass: mutex creation confined to startup,
-open preconditions/no handle deletion, and startup ordering before restore and
-request handling. These are structural checks, not executed hardware-adapter
-or kernel failure-injection tests. The board fixture also invokes both startup
-functions twice to exercise idempotence when the fixture is built/run.
-
-Pinned clang-format 20.1.8 was applied. The full style gate was run; changed
-files have zero findings, but the repository remains failing with 588 findings
-and six formatting errors in the six older starter files. These were not
-exempted or modified. Report: `build/gpio-startup-standard.json`.
-
-Target build was attempted but not completed: the full style gate blocks it,
-the RISC-V compiler is absent from PATH, and the selected kernel/SDK sources
-are not available in their documented local locations. No target compilation,
-new map sizes, physical tests or whole-system compliance is claimed. Existing
-qualification records remain untouched. Before merging, resolve the existing
-gate failures, restore the pinned toolchain/dependencies, build both application
-and fixture modes with `tools/target/qualify_kernel.py`, and verify repeated
-open/close/configuration replacement plus mutex-exhaustion startup on target.
+Structural source checks do not execute kernel/hardware failure paths. The
+board fixture invokes startup twice for idempotence; verify creation counters
+and mutex-exhaustion behavior separately. Physical pulse/PWM timing and output
+loads still require acceptance. Historical failed-gate records are retained in
+the [history log](COMPLETED_WORK_LOG.md); they are not current build blockers.
 
 Manual BARR-C review: C99-owned syntax and existing SDK dialect boundary kept;
 named paired-header APIs; bounded loops (2/4); positive IDs only retained;

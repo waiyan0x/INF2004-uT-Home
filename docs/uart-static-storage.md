@@ -1,13 +1,11 @@
 # UART fixed native storage
 
-Update: the standard-gate cleanup and cloud build setup are documented in
-[GitHub Actions setup](github-actions.md). Earlier failed-gate records below
-are retained as history; hardware/target evidence still requires execution.
-
-This implementation supersedes the unresolved UART-record `Kmalloc` design
-in `uart-startup-allocation.md`. It changes project-owned source and build
-configuration only. The pinned native files remain byte-for-byte unchanged.
-Target compilation, map inspection and board execution remain pending.
+The native UART records use fixed typed storage in project-owned code; the
+pinned dependency remains unchanged. This replaces the earlier record-allocation
+concern in [the retained-handle guide](uart-startup-allocation.md). Target build,
+map and scoped USB-core evidence are indexed in
+[qualification](../firmware/qualification/README.md). Isolated fault injection,
+external baud/framing and complete wireless-system acceptance remain open.
 
 ## Build adaptation
 
@@ -77,18 +75,12 @@ or globally intercepted by this UART-specific change.
 
 ## Verification and required target evidence
 
-Fresh local checks: six UART lifecycle source guards plus five compiler-routing
-unit tests pass. The pinned formatter/style gate ran; no new-file findings
-remain, but 588 pre-existing findings and six policy/format errors in unrelated
-files prevent an overall pass. No gate was disabled or exceptions broadened.
-The target build attempt stopped because ESP-IDF is unavailable/unactivated.
-Consequently no target compile, executable allocator test or linker-map pass
-is claimed.
+For each changed adapter/build, run the source-routing tests, full C gate and
+fresh target qualification. The build helper verifies source-local substitutions
+and the 1,280-byte reservation; retained results do not qualify a different image.
+The ordinary fixture exercises storage guards without freeing live driver records.
 
-Board acceptance now checks seal idempotence, rejected late requests and no
-state loss on NULL frees. These checks are added, not yet executed.
-
-Required acceptance after restoring the build environment:
+Required checks when changing this path:
 
 1. Build the configuration application with the existing resource patch and
    mandatory style gate. Verify the recorded compiler substitutions and all
@@ -113,4 +105,5 @@ Manual review: C99 with matching public header; native signatures preserve
 size_t/void*; slots use native types and static lifetime; bounded exact-size
 operations; no recursion or heap fallback; registration-only ownership followed
 by irreversible sealing; explicit build rejection for unsupported native-device
-configuration. Target ABI/build and runtime evidence remain pending.
+configuration. Keep external UART timing, isolated faults and complete-system
+qualification separate from the scoped core/build evidence.

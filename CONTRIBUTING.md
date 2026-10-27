@@ -5,16 +5,12 @@ firmware in this guide target that board.
 Start with one module, then test a supported combination using the same firmware.
 This is the physical acceptance procedure. Offline AI work can proceed
 separately, but it does not qualify the hardware.
-The latest application has passed software/build checks. Record physical results for each session. Earlier partial results are in the
-[evidence index](firmware/qualification/README.md#peripheral-bench-observations);
-this procedure does not certify the hardware.
-
-The latest [integration bench regression](firmware/qualification/esp32c3-integration-bench-20261026.json)
-passed twenty discovery/profile cycles and a failed-activation rollback check on
-the assembled BMP388/OLED/LD2450 setup. The original settings are active/saved at
-revision 179; user-confirmed OLED output is readable and updating. Full hardware
-acceptance, memory/object instrumentation, cleanup-failure and power-loss tests
-remain open. The user-deferred radar absence check remains deferred.
+Record physical results against the exact image and setup. Scoped USB-core
+results are in the [evidence index](firmware/qualification/README.md); this guide
+does not certify the hardware or establish the board's current state. Full
+hardware acceptance, combined-system memory/object measurements, cleanup-failure
+and power-loss tests remain open. The user-deferred radar absence check stays
+deferred.
 
 For the bench: check the inventory and power first, use the wiring tables in
 sections 3–4, then follow the profile-change procedure and test table in
@@ -42,7 +38,7 @@ or `3V3` must be interpreted using that breakout's documentation.
 The usual seven-pin SPI OLED exposes clock, data, CS, DC and reset. The supplied
 six-pin panel exposes GND, VCC, SCL, SDA, RES and DC; see its bench wiring note
 below. Its exact controller marking is unconfirmed, but it rendered live
-128x64 output with the existing SSD1306 driver during this session.
+128x64 output with the existing SSD1306 driver in retained bench observations.
 A four-pin I2C-only display, SH1106 display or 128×32 panel needs different
 firmware support. Do not connect it using the SPI table. BMP280/BMP390 and
 LD2410 are also not substitutes for the configured drivers.
@@ -64,7 +60,7 @@ GPIO is a control signal, not motor power.
 | L298N + yellow TT motor | Optional fixed-direction enable/PWM test after LED/scope and power checks; no software direction or speed-feedback control |
 | B-LUX, possibly B-LUX-V30B | No compiled driver; verify model and leave unwired for this acceptance session |
 | W25QXX external flash | No compiled driver or MISO binding; leave unwired. Configuration persistence currently uses a partition of the ESP's onboard flash |
-| IR optical encoder/speed sensor | No configured pulse-count/speed component; leave unwired for this session |
+| IR optical encoder/speed sensor | No configured pulse-count/speed component; leave unwired until supported |
 | MH Sensor Series module | Exact sensing function, output type and voltage are unknown; leave unwired until identified |
 
 General-purpose operation means selecting supported drivers and profiles within
@@ -285,14 +281,13 @@ exposes eight. The original all-sensor prototype therefore cannot be wired as
 one simultaneous setup under the current bindings. Use A and B separately.
 Do not bypass pin validation, tie OLED control pins to rails or repurpose USB.
 
-There is also a parser allocation limit: the attempted A+LED profile passed the
-Python resource planner but exceeded the C parser's **32 KiB allocation budget**.
-The supplied lab profiles therefore separate the radar/LED test from combined A.
-All eight generated profiles passed the actual C admission harness as well as the
-Python planner during guide preparation; that is not a hardware result.
+The fixed target parser has capacity limits independent of the Python resource
+planner. An earlier A+LED attempt exhausted its then-current parser budget; do
+not treat host admission alone as target acceptance. Keep the separate reviewed
+radar/LED layout and validate any larger profile against the current target.
 
-Combined A uses 10,240 bytes of peripheral task stacks, within the 16 KiB/four-worker
-limit. This calculation does not measure remaining RAM. Disabled devices still
+Combined A requests 10,240 bytes of stack budget within the 16 KiB admission
+limit. The permanent worker pool still reserves 32 KiB; neither figure is free RAM. Disabled devices still
 reserve pins: remove unused device and bus entries rather than merely disabling them.
 
 ## 6. Prepare software and change wiring safely
@@ -335,7 +330,7 @@ plan is not proof of persistence. The hardware-qualified flag remains false
 until a later qualification review; it does not become true simply by running
 these tests. Details: [configurator](tools/configurator/README.md).
 
-## 7. Run today's acceptance tests in this order
+## 7. Run acceptance tests in this order
 
 Use a fresh record for each test: profile, wiring photo, voltages, active/saved
 revisions, observations, evidence path and **PASS / FAIL / NOT TESTED**.
@@ -371,7 +366,7 @@ Verify separate source IDs and the configured 500/5000 ms periods. Review bus
 pullups when two breakout boards share a bus. No LED may remain connected to
 GPIO1 in that setup. Missing a second sensor means this test is **NOT TESTED**.
 
-### Recovery/resource checks before signing off all of checkpoint 8
+### Recovery and resource acceptance
 
 - Disconnect/reconnect the **UI** while the board stays powered; sensor/output
   work should continue. Pulling the only USB power cable is a power-loss test,
@@ -390,7 +385,7 @@ GPIO1 in that setup. Missing a second sensor means this test is **NOT TESTED**.
   static build sizes and worker counts cannot replace runtime measurements.
   Agree instrumentation before claiming memory/timing acceptance or AI headroom.
 
-Passing the wiring tests is useful progress; full checkpoint 8 sign-off also
+Passing the wiring tests is useful progress; full system sign-off also
 needs those recovery/resource results and any real actuator acceptance.
 
 ### Reproduce the existing three-protocol demonstration
@@ -399,7 +394,7 @@ Use [c3-protocol-demo.json](configs/nodes/c3-protocol-demo.json) for the current
 BMP388 + six-pin OLED + LD2450 assembly. It preserves the original saved values
 (compact profile CRC 3623560383): BMP388 at I2C address `0x77`, the SPI OLED with
 GPIO4 reserved but unwired, and UART1 radar on RX20/TX21 at 256000 baud. Check
-the actual wiring and running image against the latest root README checkpoint;
+the actual wiring and running image against the retained build record and queried board identity;
 this recipe does not install firmware or authorize another wiring layout.
 
 1. Close collectors and other serial clients, enumerate the board, then open the
@@ -458,7 +453,7 @@ as passing. Suggested record:
 | Tests performed; readings, timings and evidence paths | |
 | Failures, omitted tests and corrective action | |
 | Wiring/peripheral acceptance: PASS / FAIL / INCOMPLETE | |
-| Full checkpoint 8 readiness: PASS / FAIL / INCOMPLETE | |
+| Full system readiness: PASS / FAIL / INCOMPLETE | |
 | Team reviewer and date | |
 
 Any C changes made while fixing hardware issues must still follow

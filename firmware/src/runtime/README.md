@@ -2,21 +2,19 @@
 
 ## Workload measurement handoff
 
-`workcost.c/.h` is an independently tested C99 integration helper. It is not
-linked into the current application and does not change worker scheduling.
-The runtime owner should reserve one zero-initialized `workcost_stats_t` per
-permanent slot (44 bytes each / 176 bytes for four on host and C3), publish only
-bound sources, and update/snapshot under the existing shared guard. It creates
-no tasks, queues, locks or heap allocations. Reset/rebinding must change the
-associated generation before exposing another window.
+`workcost.c/.h` supplies caller-owned saturating counters. `workmeter`, the C3
+clock/transfer adapters and command 9 integrate them into the USB measurement
+image. Four permanent slots reserve 176 bytes of records; only bound sources
+are published. Updates/snapshots use the existing guard, with generation changes
+on rebinding. No new task, queue, lock or heap allocation is needed.
 
-Supply step wall time, completion lateness, serialized bus waiting and time
-inside transfer calls, actual transferred bytes/operations and per-source
-errors/timeouts. Timeouts are a subset of errors. Waiting and transfer-call
-time must not overlap and their sum cannot exceed step wall time. These are
-not measurements of CPU busy time or electrical wire time. Clock acquisition,
-transfer instrumentation, guarded updates and telemetry encoding remain the
-runtime/driver integration work; unavailable measurements are never zero-filled.
+Measurements cover step wall time, completion lateness, serialized bus waiting,
+transfer-call time, bytes/operations and device errors/timeouts. Timeouts are a
+subset of errors; waiting and transfer time must not overlap or exceed step time.
+These are not isolated CPU busy time or electrical wire time. Scheduler/idle
+observations have a separate contract in [telemetry](../services/TELEMETRY.md).
+Missing values remain unavailable rather than zero-filled. Independent calibration
+and combined radio-load qualification remain open.
 
 All cumulative additions saturate at UINT32_MAX and set a sticky flag; saturated
 windows are unusable for calibration. A 32-bit microsecond sum can saturate after
@@ -31,10 +29,8 @@ unsigned arithmetic and checked subtraction, explicit saturation, const input,
 private helper prototypes and paired headers. There are no casts, hardware
 registers, callbacks, recursion, hidden state or kernel dependencies. Ownership
 and guard responsibility are explicit; bounded operations cannot yield. Host
-boundary tests keep assertions enabled and warnings as errors. The C3 object
-is 254 bytes text, no writable globals, with compiler-reported 16-byte stack for
-`workcost_add` and zero for its helper. This excludes caller state and future
-instrumentation/locking overhead. No exception or compiler policy changed.
+boundary tests keep assertions enabled and warnings as errors. Standalone object sizes exclude caller state, call-chain stack and
+instrumentation/locking overhead; use the linked image and runtime evidence. No exception or compiler policy changed.
 
 ## Permanent target workers
 
@@ -356,12 +352,10 @@ wrapper paints a fresh cache-enabled stack before its first use. No dependency,
 exception, C dialect boundary or formatter change is introduced. Tests/builds
 and hardware measurements are separate evidence, not implied by this review.
 
-The real worker-port fixture passed 369 checks on each of two resets; its
-activation extension passed 514 on each of two resets. These are kernel/typed
-plan tests, not qualification of every peripheral or flash/power-loss behavior.
-See the [evidence index](../../qualification/README.md),
+Use the [evidence index](../../qualification/README.md),
 [board fixture](../../../tests/target/runtime_port_board/README.md) and
-[software suites](../../../tests/README.md).
+[software suites](../../../tests/README.md) for scoped verification. Kernel/typed
+plan tests do not qualify every peripheral, wireless load or flash power loss.
 
 Manual BARR-C review covered bounded indices/unsigned masks, aligned copied
 settings and borrowed lifetimes, initialized outputs, ownership checks,

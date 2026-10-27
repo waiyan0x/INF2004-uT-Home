@@ -1,0 +1,141 @@
+{
+  "version": "0.3.0",
+  "study_id": "varied-goals-design-v1",
+  "roles": {
+    "sensor": "environment_sensor",
+    "display": "oled_status",
+    "stream": "presence_sensor"
+  },
+  "intervals_ms": [
+    200,
+    500,
+    750,
+    1000
+  ],
+  "warmup_ms": 5000,
+  "duration_ms": 60000,
+  "repetitions": 2,
+  "cadence_ms": 137,
+  "families": [
+    {
+      "id": "load-a",
+      "split": "train",
+      "i2c_clock_hz": 100000,
+      "spi_enabled": true,
+      "spi_clock_hz": 1000000,
+      "spi_refresh_ms": 125,
+      "uart_enabled": false,
+      "goal_ms": 500
+    },
+    {
+      "id": "load-b",
+      "split": "train",
+      "i2c_clock_hz": 200000,
+      "spi_enabled": true,
+      "spi_clock_hz": 2000000,
+      "spi_refresh_ms": 175,
+      "uart_enabled": false,
+      "goal_ms": 750
+    },
+    {
+      "id": "load-c",
+      "split": "train",
+      "i2c_clock_hz": 400000,
+      "spi_enabled": true,
+      "spi_clock_hz": 4000000,
+      "spi_refresh_ms": 225,
+      "uart_enabled": false,
+      "goal_ms": 1000
+    },
+    {
+      "id": "load-d",
+      "split": "train",
+      "i2c_clock_hz": 400000,
+      "spi_enabled": true,
+      "spi_clock_hz": 1000000,
+      "spi_refresh_ms": 125,
+      "uart_enabled": true,
+      "goal_ms": 500
+    },
+    {
+      "id": "load-e",
+      "split": "train",
+      "i2c_clock_hz": 100000,
+      "spi_enabled": true,
+      "spi_clock_hz": 2000000,
+      "spi_refresh_ms": 175,
+      "uart_enabled": true,
+      "goal_ms": 750
+    },
+    {
+      "id": "load-f",
+      "split": "train",
+      "i2c_clock_hz": 200000,
+      "spi_enabled": true,
+      "spi_clock_hz": 4000000,
+      "spi_refresh_ms": 225,
+      "uart_enabled": true,
+      "goal_ms": 1000
+    },
+    {
+      "id": "load-g",
+      "split": "validation",
+      "i2c_clock_hz": 200000,
+      "spi_enabled": true,
+      "spi_clock_hz": 1000000,
+      "spi_refresh_ms": 325,
+      "uart_enabled": true,
+      "goal_ms": 500
+    },
+    {
+      "id": "load-h",
+      "split": "validation",
+      "i2c_clock_hz": 400000,
+      "spi_enabled": true,
+      "spi_clock_hz": 2000000,
+      "spi_refresh_ms": 375,
+      "uart_enabled": false,
+      "goal_ms": 750
+    },
+    {
+      "id": "load-i",
+      "split": "validation",
+      "i2c_clock_hz": 100000,
+      "spi_enabled": true,
+      "spi_clock_hz": 4000000,
+      "spi_refresh_ms": 425,
+      "uart_enabled": true,
+      "goal_ms": 1000
+    },
+    {
+      "id": "load-j",
+      "split": "test",
+      "i2c_clock_hz": 400000,
+      "spi_enabled": true,
+      "spi_clock_hz": 1000000,
+      "spi_refresh_ms": 275,
+      "uart_enabled": false,
+      "goal_ms": 500
+    },
+    {
+      "id": "load-k",
+      "split": "test",
+      "i2c_clock_hz": 100000,
+      "spi_enabled": true,
+      "spi_clock_hz": 2000000,
+      "spi_refresh_ms": 475,
+      "uart_enabled": true,
+      "goal_ms": 750
+    },
+    {
+      "id": "load-l",
+      "split": "test",
+      "i2c_clock_hz": 200000,
+      "spi_enabled": true,
+      "spi_clock_hz": 4000000,
+      "spi_refresh_ms": 525,
+      "uart_enabled": false,
+      "goal_ms": 1000
+    }
+  ]
+}

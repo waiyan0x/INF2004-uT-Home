@@ -28,8 +28,9 @@ at most four unique worker/source pairs, explicit availability, eleven uint32
 counters matching `workcost_stats_t`, firmware/profile hashes, runtime generation
 and uint64 microsecond snapshot time. Counter resets, context changes and
 saturation invalidate a window. Maxima describe time since reset, not just the
-delta window. These fields are not on the current telemetry wire and are not
-new model inputs. Runtime integration and independent calibration remain open.
+delta window. Command 9 exposes the bounded workload snapshots; they are
+auxiliary measurements, not new model inputs. Independent calibration and
+combined wireless-load qualification remain open.
 
 `ai/protocol_export.py` emits `uthome.protocol-c-export` 0.1.0 metadata and
 `protree.c/.h` for eighteen uint32 features. It retains the original model hash,

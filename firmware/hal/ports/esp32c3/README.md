@@ -19,8 +19,9 @@ driver with exclusive ownership and bounded polling. Use the application resourc
 for a 512-byte usable ring and disabled unused ADC startup. Configure baud,
 framing and finite waits from the validated instance; the LD2450 example uses
 256000 baud and 8N1. Do not install a second UART1 driver.
-The wrapper queries available bytes/space before I/O and reopens once to apply
-the native driver's cached settings. See [UART binding and cleanup limits](../../../drivers/hlk_ld2450/INTEGRATION.md).
+The wrapper queries available bytes/space before I/O and retains the boot-opened
+native descriptor. Reconfiguration applies bounded STOP/reset/START handling
+without a native reopen. See [UART binding and cleanup limits](../../../drivers/hlk_ld2450/INTEGRATION.md).
 The upstream concurrent read/write limitation requires single ownership.
 UART, pulse-capture and PWM close operations accept the runtime's explicit
 cleanup-owner context after worker dormancy. They must not use ordinary
@@ -105,8 +106,8 @@ NACK and arbitration errors reset controller state without an unbounded retry.
 Stuck external lines still require correcting the wiring/device; this is not a
 general bus-unwedge service.
 
-Compilation is verified; physical I2C/SPI/output tests are deferred to final
-hardware acceptance. The five LL-based C3 adapters use C99 syntax; compilation needs
+Basic I2C/SPI operation has scoped bench evidence. Broader bus, output and
+combined-system acceptance remain open; consult the qualification index. The five LL-based C3 adapters use C99 syntax; compilation needs
 GNU99 because pinned external LL headers use GNU `typeof`. Other ordinary owned
 modules compile as C99.
 
@@ -139,7 +140,8 @@ borrows two RMT capture pairs; `c3pwm_port(0..3)` borrows four independently tim
 LEDC outputs. The factories have no I/O; lifecycle setup uses the shared pin
 ledger. See [timing, ownership and deferred hardware acceptance](../../../drivers/hc_sr04/INTEGRATION.md).
 These two backends also use GNU99 solely for excluded SDK LL header syntax.
-No GPIO/actuator capability is advertised until the relevant acceptance passes.
+Compiled GPIO/PWM support is distinct from hardware qualification. The
+hardware-qualified flag remains false until the relevant acceptance passes.
 
 ## SPI polling timing
 
@@ -152,10 +154,9 @@ still yield. A 1 MHz chunk can now finish its nominal 512 microseconds before
 that sleep threshold. This is a measured-driver correction, not a changed AI
 label or a promise that physically inadequate clock/deadline pairs will pass.
 The [controlled comparison](../../../qualification/esp32c3-spi-polling-20261027.json)
-has two trials at each of six clocks: 122 render steps per clock. Before correction,
-400 kHz through 1.75 MHz timed out every time; afterward, 500 kHz through 4 MHz
-completed without errors. At 400 kHz all frames still exceeded the 20 ms deadline.
-Peer sensors stayed fresh and forbidden allocation/object counters remained zero.
+records the old/new behavior. The tested 400 kHz setting still exceeds the
+20 ms frame deadline; corrected polling cannot compensate for inadequate
+clock/deadline combinations.
 
 Manual BARR-C review: no interface, storage, casts, language profile or ownership
 changes; the unsigned counter resets at 100 and the existing finite deadline

@@ -115,5 +115,4 @@ was introduced.
 
 
 Current [acceptance status](../../qualification/README.md) and
-[wiring procedure](../../../CONTRIBUTING.md). Historical test counts above
-refer to their dated evidence, not a new qualification.
+[wiring procedure](../../../CONTRIBUTING.md). Keep dated results in the qualification records, separate from current usage.

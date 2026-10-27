@@ -59,7 +59,7 @@ admission; a catalogue selection never certifies physical operation.
 
 The build manifest is a separate capability check. A catalogue entry is not
 evidence that its C3 adapter is linked. The checked-in host manifest is for host
-admission tests; the pending target manifest has no adapters. Firmware must
+admission tests; the target-pending manifest lists no hardware-qualified adapters. Firmware must
 advertise/check its actual compiled registry, not trust a host-supplied manifest.
 
 Per-item queue storage is bounded at 64 bytes in this board profile. Sample type

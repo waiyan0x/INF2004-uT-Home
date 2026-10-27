@@ -88,21 +88,16 @@ The project [hardware guide](../CONTRIBUTING.md) is the main acceptance
 procedure. [Discovery documentation](../docs/README.md) explains identification
 limits. The visualiser does not replace electrical checks or a reviewed profile.
 
-On 20 October 2026, before the user dismantled the bench to travel home,
-an empty configuration was applied/saved on the standalone ESP at revision 8,
-CRC 2260115177, with no retained peripheral instances or runtime errors.
-Local historical evidence:
-`../build/hardware-acceptance-20261020/board-alone-empty-configuration-95d7cdc3.json`.
-This is not a statement about the board's current state. The session also
-observed intermittent radar faults and a failed configuration cleanup;
-rewiring has not been shown to fix either issue. Fresh wiring acceptance
-remains pending.
+Earlier board-state and dismantling records are in the
+[history log](../docs/COMPLETED_WORK_LOG.md). Browser checkmarks and a wiring plan
+never establish the actual circuit, installed firmware or successful repair.
+Check live capabilities/state before use and follow the hardware acceptance guide.
 
 FC-51 and HC-020K are deliberately listed without a connectable plan: their
 electrical variants still need verification, and their drivers/catalogue
 support do not yet exist here. The 5 V HC-SR04 is supported through manual
-identification, not automatic model recognition. The last observed installed
-firmware lacked the newer I2C/UART discovery feature bits. Current suggested
+identification, not automatic model recognition. Query the actual firmware
+for I2C/UART discovery feature bits. Suggested
 settings come from reviewed defaults and bench observations, not a deployed
 AI model.
 

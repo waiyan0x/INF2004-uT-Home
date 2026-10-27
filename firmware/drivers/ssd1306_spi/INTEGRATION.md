@@ -89,8 +89,8 @@ No DMA, interrupt handler or heap allocation was added.
 C3 pins currently remain 0, 1, 3..7 and 10. UART20/21 belong to upstream startup;
 flash, USB and straps are excluded. The board catalogue's conditional GPIO2 CS
 policy is **not implemented by this backend**. Binding must reject it until the
-pull-up/boot policy is qualified and explicitly added. Target capabilities remain
-empty; no existing profile is silently advertised as deployable.
+pull-up/boot policy is qualified and explicitly added. The offline hardware-qualified target manifest remains empty. Connected
+firmware reports compiled capabilities separately from hardware qualification.
 
 One driver operation shares a deadline across commands, data and reset delays.
 Failed refreshes retain dirty pixels and resend the complete window/frame next
@@ -128,5 +128,4 @@ requires visual/electrical observation, not an invented acknowledgement test.
 
 
 Current [acceptance status](../../qualification/README.md) and
-[wiring procedure](../../../CONTRIBUTING.md). Historical test counts above
-refer to their dated evidence, not a new qualification.
+[wiring procedure](../../../CONTRIBUTING.md). Keep dated results in the qualification records, separate from current usage.

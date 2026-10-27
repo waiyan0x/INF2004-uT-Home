@@ -18,9 +18,13 @@ ROLES = {"sensor": ("i2c", "periodic"), "display": ("spi", "queue_consumer"), "s
 
 def prepare_study(profile, manifest, specification, catalogue=None):
     catalogue = catalogue or Catalogue()
-    require(set(specification) == {"version", "study_id", "roles", "goal_ms", "intervals_ms", "warmup_ms",
-                                 "duration_ms", "repetitions", "cadence_ms", "families"}
-            and specification["version"] == "0.2.0", "Unsupported study specification")
+    version = specification.get("version")
+    fields = {"version", "study_id", "roles", "intervals_ms", "warmup_ms",
+              "duration_ms", "repetitions", "cadence_ms", "families"}
+    if version == "0.2.0":
+        fields.add("goal_ms")
+    require(version in ("0.2.0", "0.3.0") and set(specification) == fields,
+            "Unsupported study specification")
     require(set(specification["roles"]) == set(ROLES) and len(set(specification["roles"].values())) == 3,
             "Declare distinct I2C sensor, SPI display and UART stream roles")
     require(type(specification["cadence_ms"]) is int and 100 <= specification["cadence_ms"] <= 1000,
@@ -29,8 +33,10 @@ def prepare_study(profile, manifest, specification, catalogue=None):
     require(not profile.get("rules"), "This study does not tune rule-controlled outputs")
     cases, seen, splits = [], set(), {part: [] for part in ("train", "validation", "test")}
     for family in specification["families"]:
-        require(set(family) == {"id", "split", "i2c_clock_hz", "spi_enabled", "spi_clock_hz", "spi_refresh_ms", "uart_enabled"},
-                "Invalid family fields")
+        family_fields = {"id", "split", "i2c_clock_hz", "spi_enabled", "spi_clock_hz", "spi_refresh_ms", "uart_enabled"}
+        if version == "0.3.0":
+            family_fields.add("goal_ms")
+        require(set(family) == family_fields, "Invalid family fields")
         require(family["split"] in splits and type(family["spi_enabled"]) is bool and type(family["uart_enabled"]) is bool,
                 "Invalid split or enabled flags")
         candidate = deepcopy(profile)
@@ -54,7 +60,8 @@ def prepare_study(profile, manifest, specification, catalogue=None):
                         family_id=family["id"], instance_id=specification["roles"]["sensor"],
                         conditions="Protocol workload study; fixed observer cadence and unchanged wiring. "
                                    "Configured work rates are not measured CPU/wire utilization. Family: " + family["id"],
-                        goal=dict(metric="observed_sample_age_ms", limit_ms=specification["goal_ms"]),
+                        goal=dict(metric="observed_sample_age_ms",
+                                  limit_ms=(family if version == "0.3.0" else specification)["goal_ms"]),
                         candidate_intervals_ms=specification["intervals_ms"], warmup_ms=specification["warmup_ms"],
                         duration_ms=specification["duration_ms"], repetitions=specification["repetitions"])
         experiment = prepare(candidate, manifest, scenario, catalogue)
@@ -68,7 +75,7 @@ def prepare_study(profile, manifest, specification, catalogue=None):
     require(all(len(ids) >= 2 for ids in splits.values()), "Every evaluation partition requires at least two families")
     sources = {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
                for name in ("ai/workload.py", "ai/protocol_study.py")}
-    return dict(contract="uthome.protocol-study", version="0.2.0", specification=deepcopy(specification),
+    return dict(contract="uthome.protocol-study", version=version, specification=deepcopy(specification),
                 base_profile=deepcopy(profile), build_manifest=deepcopy(manifest), split=splits,
                 feature_names=workload.FEATURES, source_sha256=sources, cases=cases, deployment_allowed=False)
 
