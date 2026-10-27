@@ -1,0 +1,20 @@
+﻿# 2026-10-27T07:07:32Z esptool read-flash 0x0 0x400000 -> C:\Users\USER\esp\hardware-backup-15abc9215b63444196310a9e60a73e9b\board-before.bin
+esptool v5.6.0
+Serial port COM5:
+Connecting...
+Connected to ESP32-C3 on COM5:
+Chip type:          ESP32-C3 (QFN32) (revision v0.4)
+Features:           Wi-Fi, BT 5 (LE), Single Core, 160MHz, Embedded Flash 4MB (XMC)
+Crystal frequency:  40MHz
+USB mode:           USB-Serial/JTAG
+MAC:                d4:05:92:e6:c3:bc
+Uploading stub flasher...
+Running stub flasher...
+Stub flasher running.
+Configuring flash size...
+Read 4194304 bytes from 0x00000000 in 27.8 seconds (1206.5 kbit/s) to 'C:\Users\USER\esp\hardware-backup-15abc9215b63444196310a9e60a73e9b\board-before.bin'.
+Hard resetting via RTS pin...
+exit 0
+size 4194304
+sha256 5ec2f7088afea087a1aa3b9e1ec1cba628ec0eebef87405ece139657745f217d
+backup C:\Users\USER\esp\hardware-backup-15abc9215b63444196310a9e60a73e9b

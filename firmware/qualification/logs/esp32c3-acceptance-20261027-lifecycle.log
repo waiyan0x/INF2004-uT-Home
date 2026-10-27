@@ -1,0 +1,144 @@
+# 2026-10-27T07:18:58Z lifecycle start rev 763, 1 cycles
+2026-10-27T07:18:59Z cycle 01 apply EMPTY rev 763: OK status=1
+2026-10-27T07:18:59Z cycle 01 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:19:01Z cycle 01 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:19:02Z cycle 01 apply DEMO rev 764: OK status=1 crc=3623560383
+2026-10-27T07:19:02Z cycle 01 active discover bench_i2c: OK result=busy
+2026-10-27T07:19:03Z cycle 01 active discover bench_uart: OK result=busy
+2026-10-27T07:19:03Z cycle 01 capacity rev 765: OK status=3 active=764
+# 2026-10-27T07:19:03Z lifecycle complete; next free rev 766; counts {"applies_ok": 2, "idle_discovery_complete": 2, "busy_discovery": 2, "capacity_rejections": 1}
+# 2026-10-27T07:19:14Z lifecycle start rev 766, 19 cycles
+2026-10-27T07:19:14Z cycle 02 apply EMPTY rev 766: OK status=1
+2026-10-27T07:19:15Z cycle 02 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:19:17Z cycle 02 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:19:17Z cycle 02 apply DEMO rev 767: OK status=1 crc=3623560383
+2026-10-27T07:19:18Z cycle 02 active discover bench_i2c: OK result=busy
+2026-10-27T07:19:18Z cycle 02 active discover bench_uart: OK result=busy
+2026-10-27T07:19:19Z cycle 02 capacity rev 768: OK status=3 active=767
+2026-10-27T07:19:19Z cycle 03 apply EMPTY rev 769: OK status=1
+2026-10-27T07:19:20Z cycle 03 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:19:22Z cycle 03 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:19:22Z cycle 03 apply DEMO rev 770: OK status=1 crc=3623560383
+2026-10-27T07:19:23Z cycle 03 active discover bench_i2c: OK result=busy
+2026-10-27T07:19:23Z cycle 03 active discover bench_uart: OK result=busy
+2026-10-27T07:19:24Z cycle 03 capacity rev 771: OK status=3 active=770
+2026-10-27T07:19:24Z cycle 04 apply EMPTY rev 772: OK status=1
+2026-10-27T07:19:25Z cycle 04 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:19:27Z cycle 04 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:19:27Z cycle 04 apply DEMO rev 773: OK status=1 crc=3623560383
+2026-10-27T07:19:28Z cycle 04 active discover bench_i2c: OK result=busy
+2026-10-27T07:19:28Z cycle 04 active discover bench_uart: OK result=busy
+2026-10-27T07:19:29Z cycle 04 capacity rev 774: OK status=3 active=773
+2026-10-27T07:19:29Z cycle 05 apply EMPTY rev 775: OK status=1
+2026-10-27T07:19:30Z cycle 05 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:19:31Z cycle 05 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:19:32Z cycle 05 apply DEMO rev 776: OK status=1 crc=3623560383
+2026-10-27T07:19:33Z cycle 05 active discover bench_i2c: OK result=busy
+2026-10-27T07:19:33Z cycle 05 active discover bench_uart: OK result=busy
+2026-10-27T07:19:34Z cycle 05 capacity rev 777: OK status=3 active=776
+2026-10-27T07:19:34Z cycle 06 apply EMPTY rev 778: OK status=1
+2026-10-27T07:19:35Z cycle 06 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:19:36Z cycle 06 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:19:37Z cycle 06 apply DEMO rev 779: OK status=1 crc=3623560383
+2026-10-27T07:19:37Z cycle 06 active discover bench_i2c: OK result=busy
+2026-10-27T07:19:38Z cycle 06 active discover bench_uart: OK result=busy
+2026-10-27T07:19:38Z cycle 06 capacity rev 780: OK status=3 active=779
+2026-10-27T07:19:39Z cycle 07 apply EMPTY rev 781: OK status=1
+2026-10-27T07:19:39Z cycle 07 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:19:41Z cycle 07 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:19:41Z cycle 07 apply DEMO rev 782: OK status=1 crc=3623560383
+2026-10-27T07:19:42Z cycle 07 active discover bench_i2c: OK result=busy
+2026-10-27T07:19:43Z cycle 07 active discover bench_uart: OK result=busy
+2026-10-27T07:19:43Z cycle 07 capacity rev 783: OK status=3 active=782
+2026-10-27T07:19:44Z cycle 08 apply EMPTY rev 784: OK status=1
+2026-10-27T07:19:44Z cycle 08 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:19:46Z cycle 08 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:19:46Z cycle 08 apply DEMO rev 785: OK status=1 crc=3623560383
+2026-10-27T07:19:47Z cycle 08 active discover bench_i2c: OK result=busy
+2026-10-27T07:19:48Z cycle 08 active discover bench_uart: OK result=busy
+2026-10-27T07:19:48Z cycle 08 capacity rev 786: OK status=3 active=785
+2026-10-27T07:19:49Z cycle 09 apply EMPTY rev 787: OK status=1
+2026-10-27T07:19:49Z cycle 09 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:19:51Z cycle 09 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:19:52Z cycle 09 apply DEMO rev 788: OK status=1 crc=3623560383
+2026-10-27T07:19:52Z cycle 09 active discover bench_i2c: OK result=busy
+2026-10-27T07:19:53Z cycle 09 active discover bench_uart: OK result=busy
+2026-10-27T07:19:53Z cycle 09 capacity rev 789: OK status=3 active=788
+2026-10-27T07:19:54Z cycle 10 apply EMPTY rev 790: OK status=1
+2026-10-27T07:19:54Z cycle 10 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:19:56Z cycle 10 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:19:56Z cycle 10 apply DEMO rev 791: OK status=1 crc=3623560383
+2026-10-27T07:19:57Z cycle 10 active discover bench_i2c: OK result=busy
+2026-10-27T07:19:58Z cycle 10 active discover bench_uart: OK result=busy
+2026-10-27T07:19:58Z cycle 10 capacity rev 792: OK status=3 active=791
+2026-10-27T07:19:59Z cycle 11 apply EMPTY rev 793: OK status=1
+2026-10-27T07:19:59Z cycle 11 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:20:01Z cycle 11 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:20:01Z cycle 11 apply DEMO rev 794: OK status=1 crc=3623560383
+2026-10-27T07:20:02Z cycle 11 active discover bench_i2c: OK result=busy
+2026-10-27T07:20:03Z cycle 11 active discover bench_uart: OK result=busy
+2026-10-27T07:20:03Z cycle 11 capacity rev 795: OK status=3 active=794
+2026-10-27T07:20:04Z cycle 12 apply EMPTY rev 796: OK status=1
+2026-10-27T07:20:04Z cycle 12 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:20:06Z cycle 12 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:20:06Z cycle 12 apply DEMO rev 797: OK status=1 crc=3623560383
+2026-10-27T07:20:07Z cycle 12 active discover bench_i2c: OK result=busy
+2026-10-27T07:20:08Z cycle 12 active discover bench_uart: OK result=busy
+2026-10-27T07:20:08Z cycle 12 capacity rev 798: OK status=3 active=797
+2026-10-27T07:20:09Z cycle 13 apply EMPTY rev 799: OK status=1
+2026-10-27T07:20:09Z cycle 13 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:20:11Z cycle 13 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:20:11Z cycle 13 apply DEMO rev 800: OK status=1 crc=3623560383
+2026-10-27T07:20:12Z cycle 13 active discover bench_i2c: OK result=busy
+2026-10-27T07:20:13Z cycle 13 active discover bench_uart: OK result=busy
+2026-10-27T07:20:13Z cycle 13 capacity rev 801: OK status=3 active=800
+2026-10-27T07:20:13Z cycle 14 apply EMPTY rev 802: OK status=1
+2026-10-27T07:20:14Z cycle 14 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:20:16Z cycle 14 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:20:16Z cycle 14 apply DEMO rev 803: OK status=1 crc=3623560383
+2026-10-27T07:20:17Z cycle 14 active discover bench_i2c: OK result=busy
+2026-10-27T07:20:17Z cycle 14 active discover bench_uart: OK result=busy
+2026-10-27T07:20:18Z cycle 14 capacity rev 804: OK status=3 active=803
+2026-10-27T07:20:18Z cycle 15 apply EMPTY rev 805: OK status=1
+2026-10-27T07:20:19Z cycle 15 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:20:21Z cycle 15 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:20:21Z cycle 15 apply DEMO rev 806: OK status=1 crc=3623560383
+2026-10-27T07:20:22Z cycle 15 active discover bench_i2c: OK result=busy
+2026-10-27T07:20:22Z cycle 15 active discover bench_uart: OK result=busy
+2026-10-27T07:20:23Z cycle 15 capacity rev 807: OK status=3 active=806
+2026-10-27T07:20:23Z cycle 16 apply EMPTY rev 808: OK status=1
+2026-10-27T07:20:24Z cycle 16 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:20:25Z cycle 16 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:20:26Z cycle 16 apply DEMO rev 809: OK status=1 crc=3623560383
+2026-10-27T07:20:26Z cycle 16 active discover bench_i2c: OK result=busy
+2026-10-27T07:20:27Z cycle 16 active discover bench_uart: OK result=busy
+2026-10-27T07:20:28Z cycle 16 capacity rev 810: OK status=3 active=809
+2026-10-27T07:20:28Z cycle 17 apply EMPTY rev 811: OK status=1
+2026-10-27T07:20:29Z cycle 17 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:20:30Z cycle 17 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:20:31Z cycle 17 apply DEMO rev 812: OK status=1 crc=3623560383
+2026-10-27T07:20:31Z cycle 17 active discover bench_i2c: OK result=busy
+2026-10-27T07:20:32Z cycle 17 active discover bench_uart: OK result=busy
+2026-10-27T07:20:32Z cycle 17 capacity rev 813: OK status=3 active=812
+2026-10-27T07:20:33Z cycle 18 apply EMPTY rev 814: OK status=1
+2026-10-27T07:20:33Z cycle 18 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:20:35Z cycle 18 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:20:36Z cycle 18 apply DEMO rev 815: OK status=1 crc=3623560383
+2026-10-27T07:20:36Z cycle 18 active discover bench_i2c: OK result=busy
+2026-10-27T07:20:37Z cycle 18 active discover bench_uart: OK result=busy
+2026-10-27T07:20:37Z cycle 18 capacity rev 816: OK status=3 active=815
+2026-10-27T07:20:38Z cycle 19 apply EMPTY rev 817: OK status=1
+2026-10-27T07:20:38Z cycle 19 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:20:40Z cycle 19 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:20:40Z cycle 19 apply DEMO rev 818: OK status=1 crc=3623560383
+2026-10-27T07:20:41Z cycle 19 active discover bench_i2c: OK result=busy
+2026-10-27T07:20:42Z cycle 19 active discover bench_uart: OK result=busy
+2026-10-27T07:20:42Z cycle 19 capacity rev 819: OK status=3 active=818
+2026-10-27T07:20:43Z cycle 20 apply EMPTY rev 820: OK status=1
+2026-10-27T07:20:43Z cycle 20 idle discover bench_i2c: OK result=complete identity=['unknown', 'verified']
+2026-10-27T07:20:45Z cycle 20 idle discover bench_uart: OK result=complete identity=['candidate']
+2026-10-27T07:20:45Z cycle 20 apply DEMO rev 821: OK status=1 crc=3623560383
+2026-10-27T07:20:46Z cycle 20 active discover bench_i2c: OK result=busy
+2026-10-27T07:20:47Z cycle 20 active discover bench_uart: OK result=busy
+2026-10-27T07:20:47Z cycle 20 capacity rev 822: OK status=3 active=821
+# 2026-10-27T07:20:47Z lifecycle complete; next free rev 823; counts {"applies_ok": 38, "idle_discovery_complete": 38, "busy_discovery": 38, "capacity_rejections": 19}

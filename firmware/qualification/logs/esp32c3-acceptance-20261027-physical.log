@@ -1,0 +1,22 @@
+# Operator-reported physical observations (jx03-9028). Not software results.
+# Format: UTC time | test step | observation (as answered by the operator)
+2026-10-27T07:13:56Z | demo step 3 | OLED readable and updating: legible, no corrupted rows, pages change about every 2 s
+2026-10-27T07:13:56Z | demo step 3 | OLED environment page shows about 24 C plus a pressure value (software reported 24.25 C)
+2026-10-27T07:13:56Z | demo step 3 | Operator walked into, across and out of the radar field during the 90 s recording
+2026-10-27T07:17:02Z | demo step 3 | Operator stayed within about 1 m of the radar while walking "out"; the field was never left, so the in/across movement is observed but exit is NOT TESTED
+2026-10-27T07:17:02Z | lifecycle prep | Operator confirms layout A wiring: BMP388 SDA GPIO0, SCL GPIO1, 3.3 V supply; LD2450 TX->GPIO20, RX->GPIO21; nothing else on those pins (basis for --wiring-confirmed discovery)
+2026-10-27T07:18:11Z | activation rollback | OLED readable and updating after the rollback (pages changing, about 24 C)
+2026-10-27T07:22:45Z | reboot restore | OLED readable and updating after the watchdog reboot (came back on its own)
+2026-10-27T07:22:45Z | reboot restore | Physical RST-button reboot skipped by the operator this session: NOT TESTED
+2026-10-27T07:27:57Z | layout conflicts | DEVIATION from "board alone": operator disconnected only the BMP388 (nothing on GPIO0/GPIO1); OLED (six-pin, GPIO4 CS unwired) and LD2450 stayed connected. Reason: GPIO4/GPIO5 have no module attached; GPIO1 SCL is the only attached pin either conflict profile could drive.
+2026-10-27T07:27:57Z | layout conflicts | USB unplugged before the change and plugged back in after (power-off wiring change)
+2026-10-27T07:29:25Z | restore layout A | Operator reconnected BMP388 (SDA GPIO0, SCL GPIO1, 3V3, GND) with USB unplugged, then reconnected USB
+2026-10-27T07:29:57Z | restore layout A | OLED readable and updating after restoring the demo profile (about 24-25 C)
+2026-10-27T07:33:13Z | reboot restore | Operator pressed the RST button once (not BOOT); after about 10 s the OLED was readable and updating
+2026-10-27T07:34:05Z | reboot restore | Operator pressed the RST button a second time (not BOOT); after about 10 s the OLED was readable and updating
+2026-10-27T07:39:21Z | demo step 3 | Operator states the radar was NOT lying antenna-patches-up during the demo walk (the patches-up photo was taken afterwards)
+2026-10-27T07:39:51Z | radar exit | Radar standing upright on its long edge, antenna patches facing the room
+2026-10-27T07:40:56Z | radar exit | Operator stood in front ~10 s, moved left beside/behind the board ~20 s, came back ~10 s; nobody else in front
+2026-10-27T07:41:48Z | radar exit | RESULT (software vs operator): operator reported being out of view, but the radar kept reporting one target 0.2-0.5 m in front; recorded as inconclusive
+2026-10-27T07:42:32Z | radar exit | Operator believes the persistent 0.2-0.5 m target was themself, still within the radar's field while beside the board
+2026-10-27T07:52:57Z | reboot restore | SUPERSEDES the 07:22:45 'RST-button reboot skipped' entry: the operator did the RST-button reboot later, at 07:33:13 and 07:34:05 (two presses, see above)

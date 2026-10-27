@@ -1,0 +1,60 @@
+"""Build the two layout-conflict profiles and their non-conflicting controls.
+
+Run from the repo root: python conflicts.py PROFILE_DIR OUT_DIR
+Each conflict adds one device to a bench profile. The control moves only the
+clashing pin to a free GPIO, so the host planner shows that the pin clash is
+the sole reason for rejection.
+"""
+import json
+import sys
+import zlib
+from copy import deepcopy
+from pathlib import Path
+
+from tools.config_validator.planner import Catalogue, build_plan
+
+profiles, out = Path(sys.argv[1]), Path(sys.argv[2])
+root = Path.cwd()
+catalogue = Catalogue(root)
+manifest = json.loads((root / 'configs/builds/host-reference.json').read_bytes())
+manifest.update(backend='target', build_id='lab-preflight-not-qualification')
+
+
+def load(name):
+    return json.loads((profiles / f'{name}.json').read_bytes())
+
+
+def merge(base, donor, driver, pin_field, pin):
+    doc = deepcopy(base)
+    device = deepcopy(next(d for d in donor['devices'] if d['driver'] == driver))
+    device['interface'][pin_field] = pin
+    doc['devices'].append(device)
+    if driver == 'pwm_output':
+        doc['schema_version'] = donor['schema_version']
+        rule = deepcopy(donor['rules'][0])
+        rule.update(source='environment_sensor', metric='temperature_centi_c', comparison='above',
+                    threshold=3000, hysteresis=100)
+        doc['rules'] = [rule]
+    for queue in donor['queues']:
+        if queue['id'] == device['behaviour'].get('destination') and queue not in doc['queues']:
+            doc['queues'].append(deepcopy(queue))
+    return doc
+
+
+def check(name, doc):
+    try:
+        build_plan(doc, manifest, catalogue)
+        verdict = 'host ACCEPTS'
+    except Exception as error:  # the planner raises ConfigurationError subclasses
+        verdict = f'host REJECTS: {error}'
+    raw = json.dumps(doc, ensure_ascii=True, separators=(',', ':')).encode('ascii')
+    (out / f'{name}.compact.json').write_bytes(raw)
+    print(f'{name}: {len(raw)} bytes crc {zlib.crc32(raw)}; {verdict}')
+
+
+distance, distance_led = load('06-distance'), load('07-distance-led')
+bmp_oled, bmp = load('02-bmp-oled'), load('01-bmp')
+check('conflict-oled-cs4-vs-trig4', merge(bmp_oled, distance, 'hc_sr04', 'trigger_gpio', 4))
+# No HC-SR04 control: BMP + OLED + HC-SR04 needs nine GPIOs; only eight are bindable.
+check('conflict-scl1-vs-pwm1', merge(bmp, distance_led, 'pwm_output', 'output_gpio', 1))
+check('control-pwm-moved-to-5', merge(bmp, distance_led, 'pwm_output', 'output_gpio', 5))

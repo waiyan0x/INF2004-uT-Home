@@ -12,6 +12,7 @@ checkpoint narrative. Keep exact hashes, failed runs and source identities.
 |---|---|---|
 | Consolidated overnight handoff | [handoff](system-overnight-handoff-20261027.json) | Core stability and AI collection; not a full release |
 | Core lifecycle/scheduler | [core](esp32c3-scheduler-20261027.json) | USB image, rollback/capacity/reboot; combined radio load separate |
+| Acceptance B/C (layout A) | [record](esp32c3-acceptance-20261027.json) | Demo, rollback, lifecycle, reboot, conflicts on 597ae600; radios inactive; not hardware qualification |
 | SPI polling correction | [comparison](esp32c3-spi-polling-20261027.json) | Tested clocks/deadlines; preserve old negative data |
 | Wi-Fi/BLE diagnostics | [radio](esp32c3-radio-diagnostics-20261027.json), [GATT](esp32c3-gatt-settle-20261027.json) | Scan/restart and read/reconnect; SDK allocations remain |
 | Remaining SDK semantics | [source audit](esp32c3-wireless-source-audit-20261027.json) | Source findings, not proof every path executed |

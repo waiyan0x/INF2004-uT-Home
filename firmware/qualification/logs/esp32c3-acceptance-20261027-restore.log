@@ -1,0 +1,25 @@
+# 2026-10-27T07:29:25Z restore: query, then apply compact demo rev 826
+{
+  "command": 2,
+  "request_id": 7,
+  "revision": 0,
+  "status": 0,
+  "active_revision": 823,
+  "saved_revision": 823,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 81
+}
+exit 0
+{
+  "command": 1,
+  "request_id": 9,
+  "revision": 826,
+  "status": 1,
+  "active_revision": 826,
+  "saved_revision": 826,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0

@@ -1,0 +1,308 @@
+{
+  "record_version": "1.0.0",
+  "status": "operator reviewed",
+  "recorded_utc": "2026-10-27T07:59:21.436240+00:00",
+  "date": "2026-10-27",
+  "scope": "Layout A (BMP388 I2C, six-pin OLED SPI, LD2450 UART) on the USB core image: start-of-session identity/backup/image check, three-protocol demonstration, activation rollback, 20-cycle integrated lifecycle, host disconnect, reboot restore and firmware-side layout-conflict rejection; radios inactive",
+  "operator": "jx03-9028",
+  "host_tools": {
+    "python": "3.14.7",
+    "esptool": "5.6.0",
+    "pyserial": "3.5",
+    "client": "python -B -m tools.config_transfer (Configuration Desk not used)"
+  },
+  "board": {
+    "vid": 12346,
+    "pid": 4097,
+    "port_observed": "COM5",
+    "usb_serial": "D4:05:92:E6:C3:BC",
+    "chip": "ESP32-C3 (QFN32) revision v0.4",
+    "flash": "4MB embedded (XMC, id 46/4016)",
+    "same_board_as_earlier_records": true
+  },
+  "backup": {
+    "path": "C:\\Users\\USER\\esp\\hardware-backup-15abc9215b63444196310a9e60a73e9b\\board-before.bin",
+    "size_bytes": 4194304,
+    "sha256": "5ec2f7088afea087a1aa3b9e1ec1cba628ec0eebef87405ece139657745f217d",
+    "uthome_cfg_0x110000_sha256": "969b26e5a36b156772c49e54d57882c8d12f8081f0aabeb868288697ca683807",
+    "kept_outside_repository": true
+  },
+  "image": {
+    "build_record": "firmware/qualification/esp32c3-scheduler-20261027-app-build.json",
+    "elf_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "app_0x10000_matches": true,
+    "partition_table_0x8000_matches": true,
+    "bootloader_0x0_matches": false,
+    "bootloader_finding": "Bootloader equals esp32c3-workcost-20261027-app-build.json (same sdkconfig 2a27fc31c7e6); consistent with an app-only install of 597ae600. The install method is not recorded in the scheduler record."
+  },
+  "software_results": {
+    "start_of_session": {
+      "first_client_attempt": "timed out after esptool RTS hard reset; recovered with esptool --after watchdog-reset (read-only)",
+      "configuration": {
+        "active_revision": 759,
+        "saved_revision": 759,
+        "active_crc": 3623560383,
+        "saved_crc": 3623560383,
+        "flags": 80
+      },
+      "runtime": {
+        "state": 1,
+        "generation": 1,
+        "failed_workers": 0,
+        "retained_instances": 3,
+        "service_error": 0,
+        "apply_error": 0,
+        "recovery_error": 0
+      },
+      "fresh_samples": [
+        "environment_sensor",
+        "presence_sensor",
+        "health"
+      ],
+      "startup_creates": {
+        "task": 6,
+        "mutex": 41,
+        "semaphore": 50,
+        "flag": 1,
+        "mailbox": 0,
+        "message_buffer": 0,
+        "fixed_pool": 0,
+        "variable_pool": 0,
+        "rendezvous": 0,
+        "cyclic": 0,
+        "alarm": 0
+      },
+      "normal_allocations": 0,
+      "normal_creates_total": 0
+    },
+    "three_protocol_demo": {
+      "profile": "configs/nodes/c3-protocol-demo.json",
+      "profile_sha256": "a25a3d9e4ce6f8a8eb959a6334d7abf59473747663beedc1c772049d9cc8e69f",
+      "raw_file_crc": 3613538721,
+      "compact_crc": 3623560383,
+      "crc_finding": "The CLI sends file bytes verbatim; the raw file (rev 760) gave CRC 3613538721. Compact JSON as sent by the Desk (rev 761) restored the documented 3623560383.",
+      "radar_walk_samples": 82,
+      "radar_fresh": 82,
+      "bmp_fresh": 82,
+      "zero_target_samples": 1,
+      "radar_x_mm": [
+        -424,
+        255
+      ],
+      "radar_y_mm": [
+        176,
+        1054
+      ],
+      "worker_stack_unused_min_bytes": {
+        "0": 7392,
+        "1": 7360,
+        "2": 7296
+      },
+      "worker_stack_bytes": 8192,
+      "controller_stack_unused_min": 7088
+    },
+    "activation_rollback": {
+      "method": "Active rev 761 = compact demo (BMP388 at 0x77, working). Requested rev 762 = same profile with BMP388 address 0x76 (no device), wiring unchanged.",
+      "reply_status": 3,
+      "reply_flags": 83,
+      "admitted_then_activation_failed": true,
+      "restored_revision": 761,
+      "runtime_after": {
+        "state": 1,
+        "generation": 4,
+        "failed_workers": 0,
+        "retained_instances": 3,
+        "service_error": 0,
+        "apply_error": -3,
+        "recovery_error": 0
+      },
+      "fresh_after": [
+        "environment_sensor",
+        "presence_sensor",
+        "health"
+      ],
+      "normal_creates_total_after": 0
+    },
+    "integrated_lifecycle": {
+      "cycles": 20,
+      "revisions": [
+        763,
+        822
+      ],
+      "cycle_definition": "apply EMPTY; discover bench_i2c and bench_uart while idle (expect complete); apply compact demo; discover both while active (expect busy); apply demo with max_device_tasks=1 (expect REJECTED, active unchanged)",
+      "successful_applies": 40,
+      "idle_discovery_complete": 40,
+      "active_discovery_busy": 40,
+      "capacity_rejections": 20,
+      "unexpected_steps": 0,
+      "idle_discovery_identity": {
+        "i2c_0x76": "unknown",
+        "i2c_0x77": "verified",
+        "uart": "candidate"
+      }
+    },
+    "host_disconnect": {
+      "seconds": 30.49,
+      "bmp_samples": 61,
+      "radar_frames": 583,
+      "health_reports": 30,
+      "all_fresh_after": true,
+      "normal_allocations": 0,
+      "normal_creates_total": 0
+    },
+    "reboot_restore": {
+      "reboots": 3,
+      "watchdog": {
+        "method": "esptool read-mac --after watchdog-reset (no write)",
+        "restored_revision": 821,
+        "uptime_ms_at_check": 7388
+      },
+      "rst_button_1": {
+        "restored_revision": 826,
+        "uptime_ms_at_check": 30779
+      },
+      "rst_button_2": {
+        "restored_revision": 826,
+        "uptime_ms_at_check": 24542
+      },
+      "restored_crc": 3623560383,
+      "generation_after_each": 1,
+      "fresh_after": true,
+      "normal_creates_total": 0,
+      "output_start_inactive": "not tested: layout A has no output; check in layout B",
+      "power_cycle_restore": "EMPTY rev 823 also restored after the operator USB power cycle"
+    },
+    "radar_exit": {
+      "orientation": "upright on its long edge, antenna patches facing the room (operator report)",
+      "samples": 74,
+      "radar_fresh": 74,
+      "errors": 0,
+      "result": "inconclusive",
+      "detail": "While the operator reported being beside/behind the board (about 07:40:15-07:40:35 UTC), one target persisted 0.2-0.5 m in front near centre; zero-target reports appeared only in 1-3 s gaps. The operator believes the target was themself, still inside the wide field while beside the board; the exit was therefore not achieved, not a radar fault.",
+      "freshness_after_repositioning": "all fresh; no unavailable readings after the board was moved"
+    },
+    "layout_conflicts": {
+      "host_planner": {
+        "oled_cs4_vs_trig4": "GPIO 4 conflict: front_range and oled_status",
+        "scl1_vs_pwm1": "GPIO 1 conflict: output.main and i2c0",
+        "pwm_control_on_gpio5": "accepted (pin clash is the only fault)"
+      },
+      "firmware": {
+        "rev_824_oled_cs4_vs_trig4": {
+          "status": 3,
+          "flags": 81
+        },
+        "rev_825_scl1_vs_pwm1": {
+          "status": 3,
+          "flags": 81
+        },
+        "active_and_saved_unchanged": 823,
+        "validated_bit_clear": true
+      },
+      "hc_sr04_control": "not possible: BMP + OLED + HC-SR04 needs nine GPIOs; eight are bindable"
+    },
+    "session_end": {
+      "configuration": {
+        "active_revision": 826,
+        "saved_revision": 826,
+        "active_crc": 3623560383,
+        "saved_crc": 3623560383,
+        "flags": 80
+      },
+      "runtime": {
+        "state": 1,
+        "generation": 2,
+        "failed_workers": 0,
+        "retained_instances": 3,
+        "service_error": 0,
+        "apply_error": 0,
+        "recovery_error": 0
+      },
+      "fresh_samples": [
+        "environment_sensor",
+        "presence_sensor",
+        "health"
+      ],
+      "startup_creates": {
+        "task": 6,
+        "mutex": 41,
+        "semaphore": 50,
+        "flag": 1,
+        "mailbox": 0,
+        "message_buffer": 0,
+        "fixed_pool": 0,
+        "variable_pool": 0,
+        "rendezvous": 0,
+        "cyclic": 0,
+        "alarm": 0
+      },
+      "normal_allocations": 0,
+      "normal_creates_total": 0
+    }
+  },
+  "physical_observations": {
+    "source": "logs/esp32c3-acceptance-20261027-physical.log (operator answers; not software results)",
+    "oled_readable_updating": [
+      "demo",
+      "after rollback",
+      "after watchdog reboot",
+      "after restoring layout A",
+      "after RST button reboot 1",
+      "after RST button reboot 2"
+    ],
+    "oled_environment_page": "about 24 C plus pressure (software 24.25 C)",
+    "radar_walk": "operator walked in and across within about 1 m; never left the field",
+    "wiring_confirmed_for_discovery": true,
+    "layout_conflict_deviation": "Only the BMP388 was disconnected instead of board alone: GPIO4 (six-pin OLED CS) and GPIO5 are unwired, GPIO1 SCL was the only attached pin at risk."
+  },
+  "not_tested": [
+    "Radar exit / zero-target: attempted, exit not achieved (operator likely still inside the field)",
+    "Combined Wi-Fi/BLE image",
+    "Profile changes (ten period changes)",
+    "Rejected profile (GPIO2/duplicate pin) on firmware",
+    "Layout B tests",
+    "Stale-data isolation, cleanup-failure injection, interrupted save/power loss"
+  ],
+  "hardware_qualified": false,
+  "logs": {
+    "logs/esp32c3-acceptance-20261027-afterA-telemetry.log": "362b998e4491263f13a335f5812e6e1bc4f1c9118f0a64b9a2a8ff1e7613c828",
+    "logs/esp32c3-acceptance-20261027-afterA-workcost.log": "50c106d7153b08d10f6ff551e5b2922206969322603540e5cb2bf625168880a5",
+    "logs/esp32c3-acceptance-20261027-backup.log": "2adbbff9dc36fb5e87bc097225f1941d96df2b5a8751ccbe3c36300a1799b47a",
+    "logs/esp32c3-acceptance-20261027-conflicts-script.py.txt": "d778254621f8b5d1ef75561e1b1d34a1c3d6fdbe8f47438ffeb35abc2f3f232e",
+    "logs/esp32c3-acceptance-20261027-conflicts.log": "9f60fdf3c40500bb8e5d576c32641da320f85657b51f9f60fe3d888d0c942a5d",
+    "logs/esp32c3-acceptance-20261027-demo-apply.log": "ddad9cf29f12faab0f299526066dd56df6e314e9308967944e2d75d64836dab0",
+    "logs/esp32c3-acceptance-20261027-demo-query.log": "7027d9cffe7888b7ec7ef7f2f5899d9665ec6655f38b9e8e1e20cbe657430289",
+    "logs/esp32c3-acceptance-20261027-demo-radar-walk.log": "6d39a126b42b9ce4135d209b6c97978325f52436aae6d20d3c2b8a0568774e1b",
+    "logs/esp32c3-acceptance-20261027-demo-telemetry.log": "e3fa3892fb3f9ef3d27b141391647ae61f14e06b0f637228be23b38d5d7e54e2",
+    "logs/esp32c3-acceptance-20261027-demo-workcost.log": "a8b1d0152f45ae6efad72bb8b06856f97dbdd7efe96a888cf3de5d40adf4fde6",
+    "logs/esp32c3-acceptance-20261027-disconnect.log": "3cd71b1d82a96c06463b1ffff900fb3a00cabaa4e3e102b87d23635c37266d61",
+    "logs/esp32c3-acceptance-20261027-end-telemetry.log": "b8c4e66499fe38f4b3a523f711ebbeea7f25d00ff00f5f33032457c28afc9be6",
+    "logs/esp32c3-acceptance-20261027-end-workcost.log": "8e76e72fd40dcb3b8e10397412c877799f68d9a2829b47c317fab11e5fb605fb",
+    "logs/esp32c3-acceptance-20261027-flashid.log": "99dbaa4759778255d902e480e82ce3b2c96c8a041d6739985502c09c686e9396",
+    "logs/esp32c3-acceptance-20261027-image.log": "6f0d002231fe2063bf8797a61ba4f87acee240f77899883fd2f078095eb67afb",
+    "logs/esp32c3-acceptance-20261027-lifecycle-before-telemetry.log": "93ca92f901a47457a77fc48d8649d6223a8ebd7f89faa5e8e5ecae8e9cad5bf5",
+    "logs/esp32c3-acceptance-20261027-lifecycle-before-workcost.log": "81e98500c9c2826dd9a34b479018c282ec2d13170d7c591848275b8ee406f9b5",
+    "logs/esp32c3-acceptance-20261027-lifecycle-raw.log": "bebed065fdf403ee8167115a059680074d45dd84bad6e4ebdbf462686607c22a",
+    "logs/esp32c3-acceptance-20261027-lifecycle-script.py.txt": "9b6f9a59506a49d5478d8fc4f943331516fa1f5ad941481903af9dd69d74e8a3",
+    "logs/esp32c3-acceptance-20261027-lifecycle.log": "63164f422de8a584f0ee045c17af67bafdb9f5b81ea606391041a4bbd48a4e0a",
+    "logs/esp32c3-acceptance-20261027-physical.log": "9175348be734f3eae1a89446f6540f143ca265470a84465ebee2b884c29c82fe",
+    "logs/esp32c3-acceptance-20261027-ports.log": "5f6bb9d18a857151d9d141365fb70b71af19b21462844a6ad1cedd4f58ddbe26",
+    "logs/esp32c3-acceptance-20261027-profile-c3-protocol-demo.json": "f5131bd28a8a4f6e070957ddd2c646e1123590e37a00713c8093161bc0a11472",
+    "logs/esp32c3-acceptance-20261027-profile-capacity.json": "8a533edf61155b341845931d15cafc024b6e02d1094f5bc2f07133228759c358",
+    "logs/esp32c3-acceptance-20261027-profile-conflict-oled-cs4-vs-trig4.json": "33bfc65f5aae63d779ef6b2f79c3373d7f7f7cf1693b8ae1f69a0d9fbb03cf2a",
+    "logs/esp32c3-acceptance-20261027-profile-conflict-scl1-vs-pwm1.json": "d11854f551fe7ac26fece9eafba28be49b50bd039252af82039bf87df0906d75",
+    "logs/esp32c3-acceptance-20261027-profile-control-pwm-moved-to-5.json": "2200bde7116d78fc8c4a3287eb76238c38a81a99d34259a0e0904060cfcaf8a5",
+    "logs/esp32c3-acceptance-20261027-profile-empty.json": "178aff3283e497ee493ebb29ffbacb66aef808886295f7e4f85231c586af913e",
+    "logs/esp32c3-acceptance-20261027-profile-rollback-0x76.json": "c26206fe0b0096d5ba2ebd6e84adbc59caca2875d9b0e7b20dba68fee9c31778",
+    "logs/esp32c3-acceptance-20261027-radar-exit.log": "707cb23ec7109fe869ac8e3c7023e4a2f5eab61d1516f2108f034e258829a901",
+    "logs/esp32c3-acceptance-20261027-reboot.log": "c2dedd17968ad559a9348565eda59fce6322c4f7005922fd90a84c157d6e3223",
+    "logs/esp32c3-acceptance-20261027-reset.log": "22dc281d0e29ab1df4f78166cea792533ea1b5c715d8579d0d2ec0f502f38a7d",
+    "logs/esp32c3-acceptance-20261027-restore.log": "831b6f7dd51fad8fe404e41085379e2c74fc18b96c2160ad1a89684d1b7697f4",
+    "logs/esp32c3-acceptance-20261027-rollback.log": "4d71e0e9d2736ef67d925b6fab8e6badd2042b170906400c88b677a6a84479ce",
+    "logs/esp32c3-acceptance-20261027-rst-button.log": "7de554ca05d022877af317e8d947564376352a2304430dff080c38b50ea487f6",
+    "logs/esp32c3-acceptance-20261027-start-capabilities.log": "17188d5ade6f24e9836f1285d3367869abf7a527359f6aaeae7f5903310f6c97",
+    "logs/esp32c3-acceptance-20261027-start-query.log": "062ea86dfe58223378de00913b2fd38ca9869a4125ada46f9c7ce1fac409ea38",
+    "logs/esp32c3-acceptance-20261027-start-telemetry.log": "e46a6409d5d02f745351b6e75af4a08ea0bec9231281ec0f41d53584df996eb7",
+    "logs/esp32c3-acceptance-20261027-start-workcost.log": "abb0b30fa17c134c46629a6bbc65a0dd1574b8bef13c150faed1ab19df486b99"
+  }
+}

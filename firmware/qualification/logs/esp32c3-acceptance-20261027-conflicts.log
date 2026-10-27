@@ -1,0 +1,151 @@
+# 2026-10-27T07:24:48Z section 6 step 1: apply EMPTY rev 823 with layout A still wired
+{
+  "command": 1,
+  "request_id": 3,
+  "revision": 823,
+  "status": 1,
+  "active_revision": 823,
+  "saved_revision": 823,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:24:49Z workcost (worker check)
+{
+  "result": 0,
+  "generation": 2,
+  "active_revision": 823,
+  "active_crc": 2260115177,
+  "timestamp_us": 180898755,
+  "capture_us": 559,
+  "controller_stack": {
+    "bytes": 8448,
+    "unused_min": 7280,
+    "measured": true,
+    "empirical": true
+  },
+  "idle_stack": {
+    "bytes": 1024,
+    "unused_min": 896,
+    "measured": true,
+    "empirical": true
+  },
+  "workers": [
+    {
+      "slot": 0,
+      "source_index": null,
+      "task_handle": null,
+      "bound": false,
+      "available": false,
+      "stats": null,
+      "stack": {
+        "bytes": 8192,
+        "unused_min": 7392,
+        "measured": true,
+        "empirical": true
+      }
+    },
+    {
+      "slot": 1,
+      "source_index": null,
+      "task_handle": null,
+      "bound": false,
+      "available": false,
+      "stats": null,
+      "stack": {
+        "bytes": 8192,
+        "unused_min": 7360,
+        "measured": true,
+        "empirical": true
+      }
+    },
+    {
+      "slot": 2,
+      "source_index": null,
+      "task_handle": null,
+      "bound": false,
+      "available": false,
+      "stats": null,
+      "stack": {
+        "bytes": 8192,
+        "unused_min": 7296,
+        "measured": true,
+        "empirical": true
+      }
+    },
+    {
+      "slot": 3,
+      "source_index": null,
+      "task_handle": null,
+      "bound": false,
+      "available": false,
+      "stats": null,
+      "stack": {
+        "bytes": 8192,
+        "unused_min": null,
+        "measured": false,
+        "empirical": true
+      }
+    }
+  ],
+  "scheduler": {
+    "elapsed_ms": 180897,
+    "idle_ms": 178236,
+    "tick_ms": 1,
+    "method": "native_tick_attribution"
+  }
+}
+exit 0
+# 2026-10-27T07:27:57Z after power-off: BMP388 removed; query
+{
+  "command": 2,
+  "request_id": 1,
+  "revision": 0,
+  "status": 0,
+  "active_revision": 823,
+  "saved_revision": 823,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 81
+}
+exit 0
+# 2026-10-27T07:28:08Z APPLY conflict-oled-cs4-vs-trig4 rev 824 (host planner rejects it; expect firmware REJECTED, rev 823 unchanged)
+{
+  "command": 1,
+  "request_id": 3,
+  "revision": 824,
+  "status": 3,
+  "active_revision": 823,
+  "saved_revision": 823,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:28:09Z APPLY conflict-scl1-vs-pwm1 rev 825 (host planner rejects it; expect firmware REJECTED, rev 823 unchanged)
+{
+  "command": 1,
+  "request_id": 5,
+  "revision": 825,
+  "status": 3,
+  "active_revision": 823,
+  "saved_revision": 823,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:28:09Z query after both
+{
+  "command": 2,
+  "request_id": 6,
+  "revision": 0,
+  "status": 0,
+  "active_revision": 823,
+  "saved_revision": 823,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 81
+}
+exit 0

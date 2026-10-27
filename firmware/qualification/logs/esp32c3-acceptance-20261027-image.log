@@ -1,0 +1,9 @@
+# 2026-10-27T07:08:13Z image check against firmware/qualification/esp32c3-scheduler-20261027-app-build.json
+build/bootloader/bootloader.bin @0x0 size 21232: MISMATCH 9ccb09c257fe958b
+build/partition_table/partition-table.bin @0x8000 size 3072: MATCH 7f7b089b96a3f7c3
+build/uthome_runtime_port.bin @0x10000 size 233104: MATCH 0e9330617d1b4240
+uthome_cfg @0x110000: contains data, sha256 969b26e5a36b1567
+RESULT image differs from build record
+NOTE bootloader @0x0 (21232 bytes) matches esp32c3-workcost-20261027-app-build.json (sha256 9ccb09c257fe...), not the scheduler build (1223ed158a51...).
+NOTE both builds use sdkconfig 2a27fc31c7e6; consistent with an app-only install of 597ae600 over the workcost image. The install method is not recorded in the scheduler record.
+FINDING app and partition table match ELF 597ae600 build record; bootloader is the earlier same-config build's.
