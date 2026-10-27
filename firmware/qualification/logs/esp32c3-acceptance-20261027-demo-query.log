@@ -1,0 +1,13 @@
+# 2026-10-27T07:14:30Z demo step 4/5: query (CLI used instead of the Desk)
+{
+  "command": 2,
+  "request_id": 7,
+  "revision": 0,
+  "status": 0,
+  "active_revision": 761,
+  "saved_revision": 761,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 0

@@ -1,0 +1,5720 @@
+# 2026-10-27T07:18:59Z c1 empty: apply --revision 763 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 13,
+  "revision": 763,
+  "status": 1,
+  "active_revision": 763,
+  "saved_revision": 763,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:18:59Z c1 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 685806681,
+    "revision": 763,
+    "active_revision": 763,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 13860683619528938964,
+    "started_ms": 563012,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:01Z c1 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 133861502,
+    "revision": 763,
+    "active_revision": 763,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 2629868228622810710,
+    "started_ms": 563698,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:02Z c1 demo: apply --revision 764 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 17,
+  "revision": 764,
+  "status": 1,
+  "active_revision": 764,
+  "saved_revision": 764,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:02Z c1 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 3715455072,
+    "revision": 764,
+    "active_revision": 764,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 12896009106400720811,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:19:03Z c1 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 4152552153,
+    "revision": 764,
+    "active_revision": 764,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 2720994779210838158,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:19:03Z c1 capacity: apply --revision 765 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 21,
+  "revision": 765,
+  "status": 3,
+  "active_revision": 764,
+  "saved_revision": 764,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:19:14Z c2 empty: apply --revision 766 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 23,
+  "revision": 766,
+  "status": 1,
+  "active_revision": 766,
+  "saved_revision": 766,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:15Z c2 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 572141697,
+    "revision": 766,
+    "active_revision": 766,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 8929720534472399772,
+    "started_ms": 578652,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:17Z c2 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 2081200032,
+    "revision": 766,
+    "active_revision": 766,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 15408171660899211536,
+    "started_ms": 579370,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:17Z c2 demo: apply --revision 767 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 27,
+  "revision": 767,
+  "status": 1,
+  "active_revision": 767,
+  "saved_revision": 767,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:18Z c2 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 383293410,
+    "revision": 767,
+    "active_revision": 767,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 8076450607922700367,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:19:18Z c2 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 3867984168,
+    "revision": 767,
+    "active_revision": 767,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 6025568816941246927,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:19:19Z c2 capacity: apply --revision 768 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 31,
+  "revision": 768,
+  "status": 3,
+  "active_revision": 767,
+  "saved_revision": 767,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:19:19Z c3 empty: apply --revision 769 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 33,
+  "revision": 769,
+  "status": 1,
+  "active_revision": 769,
+  "saved_revision": 769,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:20Z c3 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 4240954015,
+    "revision": 769,
+    "active_revision": 769,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 9205730596834292857,
+    "started_ms": 583790,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:22Z c3 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 4056337500,
+    "revision": 769,
+    "active_revision": 769,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 7342310932008655808,
+    "started_ms": 584416,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:22Z c3 demo: apply --revision 770 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 37,
+  "revision": 770,
+  "status": 1,
+  "active_revision": 770,
+  "saved_revision": 770,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:23Z c3 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 370627879,
+    "revision": 770,
+    "active_revision": 770,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 15141530770082513445,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:19:23Z c3 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 3070232084,
+    "revision": 770,
+    "active_revision": 770,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 11528510858502254002,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:19:24Z c3 capacity: apply --revision 771 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 41,
+  "revision": 771,
+  "status": 3,
+  "active_revision": 770,
+  "saved_revision": 770,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:19:24Z c4 empty: apply --revision 772 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 43,
+  "revision": 772,
+  "status": 1,
+  "active_revision": 772,
+  "saved_revision": 772,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:25Z c4 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 3148935398,
+    "revision": 772,
+    "active_revision": 772,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 10799695738401639780,
+    "started_ms": 588665,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:27Z c4 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 544056015,
+    "revision": 772,
+    "active_revision": 772,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 10385136184293197883,
+    "started_ms": 589325,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:27Z c4 demo: apply --revision 773 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 47,
+  "revision": 773,
+  "status": 1,
+  "active_revision": 773,
+  "saved_revision": 773,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:28Z c4 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 2189553938,
+    "revision": 773,
+    "active_revision": 773,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 18420769685560029075,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:19:28Z c4 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 184253015,
+    "revision": 773,
+    "active_revision": 773,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 17960643500345325152,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:19:29Z c4 capacity: apply --revision 774 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 51,
+  "revision": 774,
+  "status": 3,
+  "active_revision": 773,
+  "saved_revision": 773,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:19:29Z c5 empty: apply --revision 775 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 53,
+  "revision": 775,
+  "status": 1,
+  "active_revision": 775,
+  "saved_revision": 775,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:30Z c5 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 995378152,
+    "revision": 775,
+    "active_revision": 775,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 6827970439078880705,
+    "started_ms": 593588,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:31Z c5 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 4109685520,
+    "revision": 775,
+    "active_revision": 775,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 9760460255161435826,
+    "started_ms": 594202,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:32Z c5 demo: apply --revision 776 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 57,
+  "revision": 776,
+  "status": 1,
+  "active_revision": 776,
+  "saved_revision": 776,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:33Z c5 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 141877012,
+    "revision": 776,
+    "active_revision": 776,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 12748957648981079735,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:19:33Z c5 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 164829311,
+    "revision": 776,
+    "active_revision": 776,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 5622410066431977975,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:19:34Z c5 capacity: apply --revision 777 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 61,
+  "revision": 777,
+  "status": 3,
+  "active_revision": 776,
+  "saved_revision": 776,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:19:34Z c6 empty: apply --revision 778 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 63,
+  "revision": 778,
+  "status": 1,
+  "active_revision": 778,
+  "saved_revision": 778,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:35Z c6 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 4179868119,
+    "revision": 778,
+    "active_revision": 778,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 13372722594891879365,
+    "started_ms": 598332,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:36Z c6 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 4158975287,
+    "revision": 778,
+    "active_revision": 778,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 8210858126547693360,
+    "started_ms": 598958,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:37Z c6 demo: apply --revision 779 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 67,
+  "revision": 779,
+  "status": 1,
+  "active_revision": 779,
+  "saved_revision": 779,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:37Z c6 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 2709376622,
+    "revision": 779,
+    "active_revision": 779,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 10896468743371613073,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:19:38Z c6 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 1186274286,
+    "revision": 779,
+    "active_revision": 779,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 17126195162805195623,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:19:38Z c6 capacity: apply --revision 780 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 71,
+  "revision": 780,
+  "status": 3,
+  "active_revision": 779,
+  "saved_revision": 779,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:19:39Z c7 empty: apply --revision 781 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 73,
+  "revision": 781,
+  "status": 1,
+  "active_revision": 781,
+  "saved_revision": 781,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:39Z c7 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 2277009327,
+    "revision": 781,
+    "active_revision": 781,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 8959291840599660561,
+    "started_ms": 603113,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:41Z c7 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 2007296839,
+    "revision": 781,
+    "active_revision": 781,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 13170978987009611619,
+    "started_ms": 603725,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:41Z c7 demo: apply --revision 782 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 77,
+  "revision": 782,
+  "status": 1,
+  "active_revision": 782,
+  "saved_revision": 782,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:42Z c7 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 3555604109,
+    "revision": 782,
+    "active_revision": 782,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 17269214267179124944,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:19:43Z c7 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 1666687530,
+    "revision": 782,
+    "active_revision": 782,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 1444389728012581196,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:19:43Z c7 capacity: apply --revision 783 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 81,
+  "revision": 783,
+  "status": 3,
+  "active_revision": 782,
+  "saved_revision": 782,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:19:44Z c8 empty: apply --revision 784 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 83,
+  "revision": 784,
+  "status": 1,
+  "active_revision": 784,
+  "saved_revision": 784,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:44Z c8 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 1470333536,
+    "revision": 784,
+    "active_revision": 784,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 5585784284702806045,
+    "started_ms": 608017,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:46Z c8 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 1590703760,
+    "revision": 784,
+    "active_revision": 784,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 17522431354368893688,
+    "started_ms": 608675,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:46Z c8 demo: apply --revision 785 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 87,
+  "revision": 785,
+  "status": 1,
+  "active_revision": 785,
+  "saved_revision": 785,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:47Z c8 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 277917590,
+    "revision": 785,
+    "active_revision": 785,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 14303758132400187289,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:19:48Z c8 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 918343950,
+    "revision": 785,
+    "active_revision": 785,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 17985196731061109357,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:19:48Z c8 capacity: apply --revision 786 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 91,
+  "revision": 786,
+  "status": 3,
+  "active_revision": 785,
+  "saved_revision": 785,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:19:49Z c9 empty: apply --revision 787 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 93,
+  "revision": 787,
+  "status": 1,
+  "active_revision": 787,
+  "saved_revision": 787,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:49Z c9 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 1838493371,
+    "revision": 787,
+    "active_revision": 787,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 1224659029504528065,
+    "started_ms": 613164,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:51Z c9 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 415907365,
+    "revision": 787,
+    "active_revision": 787,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 11766797854324499714,
+    "started_ms": 613788,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:52Z c9 demo: apply --revision 788 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 97,
+  "revision": 788,
+  "status": 1,
+  "active_revision": 788,
+  "saved_revision": 788,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:52Z c9 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 2043921848,
+    "revision": 788,
+    "active_revision": 788,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 11302962483657327543,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:19:53Z c9 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 270542077,
+    "revision": 788,
+    "active_revision": 788,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 7950255209546713860,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:19:53Z c9 capacity: apply --revision 789 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 101,
+  "revision": 789,
+  "status": 3,
+  "active_revision": 788,
+  "saved_revision": 788,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:19:54Z c10 empty: apply --revision 790 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 103,
+  "revision": 790,
+  "status": 1,
+  "active_revision": 790,
+  "saved_revision": 790,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:54Z c10 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 1426927873,
+    "revision": 790,
+    "active_revision": 790,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 9933291553855099053,
+    "started_ms": 618072,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:56Z c10 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 2943450566,
+    "revision": 790,
+    "active_revision": 790,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 15837862069409966149,
+    "started_ms": 618680,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:19:56Z c10 demo: apply --revision 791 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 107,
+  "revision": 791,
+  "status": 1,
+  "active_revision": 791,
+  "saved_revision": 791,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:57Z c10 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 4005443711,
+    "revision": 791,
+    "active_revision": 791,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 5359231970014762772,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:19:58Z c10 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 648653279,
+    "revision": 791,
+    "active_revision": 791,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 4183863225923805846,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:19:58Z c10 capacity: apply --revision 792 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 111,
+  "revision": 792,
+  "status": 3,
+  "active_revision": 791,
+  "saved_revision": 791,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:19:59Z c11 empty: apply --revision 793 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 113,
+  "revision": 793,
+  "status": 1,
+  "active_revision": 793,
+  "saved_revision": 793,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:19:59Z c11 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 2758216825,
+    "revision": 793,
+    "active_revision": 793,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 16572789440156256937,
+    "started_ms": 623093,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:01Z c11 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 917351691,
+    "revision": 793,
+    "active_revision": 793,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 13724095039773068794,
+    "started_ms": 623705,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:01Z c11 demo: apply --revision 794 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 117,
+  "revision": 794,
+  "status": 1,
+  "active_revision": 794,
+  "saved_revision": 794,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:02Z c11 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 3740334582,
+    "revision": 794,
+    "active_revision": 794,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 17208923520187528435,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:20:03Z c11 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 527187309,
+    "revision": 794,
+    "active_revision": 794,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 10721354443310800145,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:20:03Z c11 capacity: apply --revision 795 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 121,
+  "revision": 795,
+  "status": 3,
+  "active_revision": 794,
+  "saved_revision": 794,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:20:04Z c12 empty: apply --revision 796 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 123,
+  "revision": 796,
+  "status": 1,
+  "active_revision": 796,
+  "saved_revision": 796,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:04Z c12 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 3191130718,
+    "revision": 796,
+    "active_revision": 796,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 12667270952492042644,
+    "started_ms": 627950,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:06Z c12 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 4293299068,
+    "revision": 796,
+    "active_revision": 796,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 15897762017831606902,
+    "started_ms": 628530,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:06Z c12 demo: apply --revision 797 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 127,
+  "revision": 797,
+  "status": 1,
+  "active_revision": 797,
+  "saved_revision": 797,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:07Z c12 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 2812674902,
+    "revision": 797,
+    "active_revision": 797,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 9445039920493313224,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:20:08Z c12 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 3159269416,
+    "revision": 797,
+    "active_revision": 797,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 3332711437003403758,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:20:08Z c12 capacity: apply --revision 798 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 131,
+  "revision": 798,
+  "status": 3,
+  "active_revision": 797,
+  "saved_revision": 797,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:20:09Z c13 empty: apply --revision 799 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 133,
+  "revision": 799,
+  "status": 1,
+  "active_revision": 799,
+  "saved_revision": 799,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:09Z c13 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 1454136853,
+    "revision": 799,
+    "active_revision": 799,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 1071770916301538563,
+    "started_ms": 633013,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:11Z c13 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 474721563,
+    "revision": 799,
+    "active_revision": 799,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 12371159771907603823,
+    "started_ms": 633621,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:11Z c13 demo: apply --revision 800 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 137,
+  "revision": 800,
+  "status": 1,
+  "active_revision": 800,
+  "saved_revision": 800,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:12Z c13 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 2410757030,
+    "revision": 800,
+    "active_revision": 800,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 14393333677952874971,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:20:13Z c13 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 2707788281,
+    "revision": 800,
+    "active_revision": 800,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 13922452872657424888,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:20:13Z c13 capacity: apply --revision 801 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 141,
+  "revision": 801,
+  "status": 3,
+  "active_revision": 800,
+  "saved_revision": 800,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:20:13Z c14 empty: apply --revision 802 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 143,
+  "revision": 802,
+  "status": 1,
+  "active_revision": 802,
+  "saved_revision": 802,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:14Z c14 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 898512687,
+    "revision": 802,
+    "active_revision": 802,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 5037540520531151421,
+    "started_ms": 637863,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:16Z c14 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 3802459065,
+    "revision": 802,
+    "active_revision": 802,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 16383821493441798242,
+    "started_ms": 638461,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:16Z c14 demo: apply --revision 803 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 147,
+  "revision": 803,
+  "status": 1,
+  "active_revision": 803,
+  "saved_revision": 803,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:17Z c14 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 3246005293,
+    "revision": 803,
+    "active_revision": 803,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 5780149727165900637,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:20:17Z c14 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 3041184934,
+    "revision": 803,
+    "active_revision": 803,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 4371153183607053778,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:20:18Z c14 capacity: apply --revision 804 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 151,
+  "revision": 804,
+  "status": 3,
+  "active_revision": 803,
+  "saved_revision": 803,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:20:18Z c15 empty: apply --revision 805 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 153,
+  "revision": 805,
+  "status": 1,
+  "active_revision": 805,
+  "saved_revision": 805,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:19Z c15 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 3779292687,
+    "revision": 805,
+    "active_revision": 805,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 16881361211688497912,
+    "started_ms": 642663,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:21Z c15 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 689826337,
+    "revision": 805,
+    "active_revision": 805,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 10512834651147325397,
+    "started_ms": 643305,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:21Z c15 demo: apply --revision 806 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 157,
+  "revision": 806,
+  "status": 1,
+  "active_revision": 806,
+  "saved_revision": 806,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:22Z c15 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 3603152161,
+    "revision": 806,
+    "active_revision": 806,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 4639388298842752590,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:20:22Z c15 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 2219812254,
+    "revision": 806,
+    "active_revision": 806,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 307627865583471654,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:20:23Z c15 capacity: apply --revision 807 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 161,
+  "revision": 807,
+  "status": 3,
+  "active_revision": 806,
+  "saved_revision": 806,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:20:23Z c16 empty: apply --revision 808 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 163,
+  "revision": 808,
+  "status": 1,
+  "active_revision": 808,
+  "saved_revision": 808,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:24Z c16 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 527781967,
+    "revision": 808,
+    "active_revision": 808,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 7640199011567057549,
+    "started_ms": 647458,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:25Z c16 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 1259557387,
+    "revision": 808,
+    "active_revision": 808,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 17229883873340176486,
+    "started_ms": 648066,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:26Z c16 demo: apply --revision 809 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 167,
+  "revision": 809,
+  "status": 1,
+  "active_revision": 809,
+  "saved_revision": 809,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:26Z c16 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 2163500649,
+    "revision": 809,
+    "active_revision": 809,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 1697642535723107403,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:20:27Z c16 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 3306737260,
+    "revision": 809,
+    "active_revision": 809,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 14056688229154886998,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:20:28Z c16 capacity: apply --revision 810 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 171,
+  "revision": 810,
+  "status": 3,
+  "active_revision": 809,
+  "saved_revision": 809,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:20:28Z c17 empty: apply --revision 811 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 173,
+  "revision": 811,
+  "status": 1,
+  "active_revision": 811,
+  "saved_revision": 811,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:29Z c17 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 1827144460,
+    "revision": 811,
+    "active_revision": 811,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 2921770732849578653,
+    "started_ms": 652291,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:30Z c17 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 3676185838,
+    "revision": 811,
+    "active_revision": 811,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 11877573369811383722,
+    "started_ms": 652931,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:31Z c17 demo: apply --revision 812 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 177,
+  "revision": 812,
+  "status": 1,
+  "active_revision": 812,
+  "saved_revision": 812,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:31Z c17 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 2104076386,
+    "revision": 812,
+    "active_revision": 812,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 10433776830017632558,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:20:32Z c17 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 731676290,
+    "revision": 812,
+    "active_revision": 812,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 4433873842368553338,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:20:32Z c17 capacity: apply --revision 813 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 181,
+  "revision": 813,
+  "status": 3,
+  "active_revision": 812,
+  "saved_revision": 812,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:20:33Z c18 empty: apply --revision 814 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 183,
+  "revision": 814,
+  "status": 1,
+  "active_revision": 814,
+  "saved_revision": 814,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:33Z c18 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 1897209115,
+    "revision": 814,
+    "active_revision": 814,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 15164471552284695498,
+    "started_ms": 657191,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:35Z c18 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 3897643054,
+    "revision": 814,
+    "active_revision": 814,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 5017086723330834172,
+    "started_ms": 657799,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:36Z c18 demo: apply --revision 815 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 187,
+  "revision": 815,
+  "status": 1,
+  "active_revision": 815,
+  "saved_revision": 815,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:36Z c18 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 2699351776,
+    "revision": 815,
+    "active_revision": 815,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 15881771749502719080,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:20:37Z c18 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 3087723476,
+    "revision": 815,
+    "active_revision": 815,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 8823677034762373380,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:20:37Z c18 capacity: apply --revision 816 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 191,
+  "revision": 816,
+  "status": 3,
+  "active_revision": 815,
+  "saved_revision": 815,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:20:38Z c19 empty: apply --revision 817 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 193,
+  "revision": 817,
+  "status": 1,
+  "active_revision": 817,
+  "saved_revision": 817,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:38Z c19 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 2335121888,
+    "revision": 817,
+    "active_revision": 817,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 11796726407952046113,
+    "started_ms": 662025,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:40Z c19 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 402001190,
+    "revision": 817,
+    "active_revision": 817,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 15780055122438106205,
+    "started_ms": 662683,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 600,
+        "valid_reports": 20,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 600,
+        "valid_reports": 20,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:40Z c19 demo: apply --revision 818 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 197,
+  "revision": 818,
+  "status": 1,
+  "active_revision": 818,
+  "saved_revision": 818,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:41Z c19 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 3385427369,
+    "revision": 818,
+    "active_revision": 818,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 14415539357905218988,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:20:42Z c19 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 307245268,
+    "revision": 818,
+    "active_revision": 818,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 15372225198688056388,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:20:42Z c19 capacity: apply --revision 819 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 201,
+  "revision": 819,
+  "status": 3,
+  "active_revision": 818,
+  "saved_revision": 818,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2
+# 2026-10-27T07:20:43Z c20 empty: apply --revision 820 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/empty.compact.json
+{
+  "command": 1,
+  "request_id": 203,
+  "revision": 820,
+  "status": 1,
+  "active_revision": 820,
+  "saved_revision": 820,
+  "active_crc": 2260115177,
+  "saved_crc": 2260115177,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:43Z c20 idle bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 3780910811,
+    "revision": 820,
+    "active_revision": 820,
+    "result": "complete",
+    "preset_code": 1,
+    "session_id": 792410664040657578,
+    "started_ms": 666949,
+    "elapsed_ms": 3,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "address": 118,
+        "register": 0,
+        "status": "not_responding",
+        "value": null
+      },
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    },
+    {
+      "observation": {
+        "address": 119,
+        "register": 0,
+        "status": "responding",
+        "value": 80
+      },
+      "identity": {
+        "status": "verified",
+        "candidates": [
+          {
+            "id": "bmp388",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": {
+          "id": "bmp388",
+          "version": "1.0.0"
+        }
+      },
+      "capabilities": {
+        "protocol": "i2c",
+        "driver": "bmp388",
+        "support": "available",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_review",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:45Z c20 idle bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 1827716971,
+    "revision": 820,
+    "active_revision": 820,
+    "result": "complete",
+    "preset_code": 2,
+    "session_id": 9523187915933485549,
+    "started_ms": 667619,
+    "elapsed_ms": 1000,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": [
+      {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      }
+    ]
+  },
+  "devices": [
+    {
+      "observation": {
+        "parser_id": "ld2450_reports",
+        "received_bytes": 570,
+        "valid_reports": 19,
+        "framing_errors": 0,
+        "discarded_bytes": 0,
+        "receive_errors": 0,
+        "pending_bytes": 0,
+        "window_ms": 1000
+      },
+      "identity": {
+        "status": "candidate",
+        "candidates": [
+          {
+            "id": "hlk_ld2450",
+            "version": "1.0.0"
+          }
+        ],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 0
+# 2026-10-27T07:20:45Z c20 demo: apply --revision 821 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/c3-protocol-demo.compact.json
+{
+  "command": 1,
+  "request_id": 207,
+  "revision": 821,
+  "status": 1,
+  "active_revision": 821,
+  "saved_revision": 821,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:20:46Z c20 busy bench_i2c: discover --preset bench_i2c --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_i2c",
+  "preset_version": "0.2.0",
+  "capture": {
+    "request_id": 1763106294,
+    "revision": 821,
+    "active_revision": 821,
+    "result": "busy",
+    "preset_code": 1,
+    "session_id": 15420289354235513192,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": []
+}
+exit 2
+# 2026-10-27T07:20:47Z c20 busy bench_uart: discover --preset bench_uart --wiring-confirmed
+{
+  "contract_version": "0.1.0",
+  "catalogue_version": "0.1.0",
+  "board": {
+    "platform": "esp32-c3",
+    "variant": "esp32-c3-supermini",
+    "capability_version": "1.0.0"
+  },
+  "preset_id": "bench_uart",
+  "preset_version": "0.1.0",
+  "capture": {
+    "request_id": 168004094,
+    "revision": 821,
+    "active_revision": 821,
+    "result": "busy",
+    "preset_code": 2,
+    "session_id": 10687410307727338693,
+    "started_ms": 0,
+    "elapsed_ms": 0,
+    "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "records": []
+  },
+  "devices": [
+    {
+      "observation": {},
+      "identity": {
+        "status": "unknown",
+        "candidates": [],
+        "selected": null
+      },
+      "capabilities": {
+        "protocol": null,
+        "driver": null,
+        "support": "unchecked",
+        "hardware_qualified": false
+      },
+      "recommendation": {
+        "status": "awaiting_identity",
+        "settings": {},
+        "source": "catalogue",
+        "automatic_apply": false
+      },
+      "operating_status": "not_configured"
+    }
+  ]
+}
+exit 2
+# 2026-10-27T07:20:47Z c20 capacity: apply --revision 822 --profile C:/Users/USER/AppData/Local/Temp/claude/c--Users-USER-Documents-GitHub-INF2004-uT-Home/98eb6908-e1a2-42c0-ad2a-de7ae3558bc0/scratchpad/capacity.compact.json
+{
+  "command": 1,
+  "request_id": 211,
+  "revision": 822,
+  "status": 3,
+  "active_revision": 821,
+  "saved_revision": 821,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 2

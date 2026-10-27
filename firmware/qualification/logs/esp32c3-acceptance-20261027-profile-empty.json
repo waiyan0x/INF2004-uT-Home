@@ -1,0 +1,1 @@
+{"schema_version":"2.0.0","node_id":"lab-00-empty","board":{"platform":"esp32-c3","variant":"esp32-c3-supermini","capability_version":"1.0.0"},"runtime":{"health_report_interval_ms":1000,"max_device_tasks":4,"queue_depth":8,"configuration_source":"usb_serial","rollback_on_error":true},"interfaces":[],"queues":[],"devices":[]}

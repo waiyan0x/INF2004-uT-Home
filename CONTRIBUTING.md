@@ -497,7 +497,7 @@ as passing. Suggested record:
 
 ### Acceptance matrix
 
-Status as of 27 October 2026. Statuses are **PASS**, **PARTIAL**, **FAIL**,
+Status as of 27 October 2026, including the 27 Oct acceptance session. Statuses are **PASS**, **PARTIAL**, **FAIL**,
 **NOT TESTED**, **BLOCKED** (depends on unfinished work) or **DEFERRED** (by
 the user). A PASS applies only to the image named; repeat it on the release
 image. Update a row only with a new dated record, never by editing old ones.
@@ -506,18 +506,21 @@ not matrix rows; record them in each session record.
 
 `597ae600…` is the USB core image with radios inactive. It includes the static
 I2C/SPI start-up code (`i2cown`, `spiown`, `c3i2c`, `c3spi`), but it is not the
-combined radio image the final acceptance requires.
+combined radio image the final acceptance requires. On the 27 Oct board its app
+and partition table match the build record, but the bootloader is the earlier
+same-configuration workcost build's; repeat the image check on the release image.
 
 | Test (section 7 unless noted) | Status | Image / evidence | Still open |
 |---|---|---|---|
-| Three-protocol demonstration | PARTIAL | `597ae600…`; [handoff](firmware/qualification/system-overnight-handoff-20261027.json): fresh BMP388 and radar samples | Physical OLED check on this image |
-| Integrated lifecycle, counters | PARTIAL | PASS on core image `597ae600…`, radios off; [core record](firmware/qualification/esp32c3-scheduler-20261027.json): 20 cycles, 6 capacity rejections, rollback, reboot, 30 s disconnect, zero post-startup allocations/creates | Repeat on the combined image |
-| Combined load (layout A) | PARTIAL | `597ae600…`; 45 min of telemetry in the handoff record | OLED visual; live worker stack margins |
+| Three-protocol demonstration | PASS | `597ae600…`; [27 Oct session](firmware/qualification/esp32c3-acceptance-20261027.json): demo profile CRC 3623560383 applied and saved, fresh BMP388/radar, operator saw a readable, updating OLED and radar tracking in-field movement (USB client, not the Desk) | Radar leaving the field; repeat on release image |
+| Integrated lifecycle, counters | PARTIAL | PASS twice on core image `597ae600…`, radios off: [core record](firmware/qualification/esp32c3-scheduler-20261027.json), and [27 Oct session](firmware/qualification/esp32c3-acceptance-20261027.json) with the cycle recorded (40 applies, 40 idle/40 busy discoveries, 20 capacity rejections, rollback, 30 s disconnect, reboot restore; zero post-startup allocations/creates) | Repeat on the combined image |
+| Combined load (layout A) | PARTIAL | `597ae600…`; 45 min of telemetry in the handoff record; OLED visually confirmed and quiescent worker stack margins 7296–7392 of 8192 bytes in the [27 Oct session](firmware/qualification/esp32c3-acceptance-20261027.json) | Live worker stack margins; 10-minute run on the release image |
 | BMP388, OLED, radar alone | PARTIAL | Earlier images only ([bench notes](firmware/qualification/README.md#peripheral-bench-observations)) | Repeat on release image |
 | Profile changes (ten period changes) | NOT TESTED | — | — |
+| Reboot restore (three reboots) | PASS | `597ae600…`; [27 Oct session](firmware/qualification/esp32c3-acceptance-20261027.json): one watchdog reboot and two RST-button reboots; saved demo profile returned each time with fresh readings, and the operator saw the OLED come back | Output-start check (outputs inactive until fresh data/rules allow) in layout B, since layout A has no output; repeat on release image |
 | Rejected profile (GPIO2/duplicate pin) | NOT TESTED | — | Firmware-side rejection |
-| Layout conflicts | PARTIAL | Host planner rejects both combinations | Firmware-side rejection |
-| Activation rollback | PARTIAL | Core record reports a passed failed-activation rollback on `597ae600…` but not how it was triggered; the [26 Oct record](firmware/qualification/esp32c3-integration-bench-20261026.json) used working `0x77` and requested absent `0x76` on an earlier image | Repeat on the combined image and record the method |
+| Layout conflicts | PASS | `597ae600…`; [27 Oct session](firmware/qualification/esp32c3-acceptance-20261027.json): host planner and firmware both reject GPIO4 CS vs TRIG and GPIO1 SCL vs PWM; active profile unchanged. Only the BMP388 was disconnected, not all modules (recorded deviation) | Repeat on release image |
+| Activation rollback | PARTIAL | PASS on core image `597ae600…` in the [27 Oct session](firmware/qualification/esp32c3-acceptance-20261027.json): working `0x77` active, requested absent `0x76`; admitted, activation failed, previous profile restored with fresh readings and a readable OLED. The [26 Oct record](firmware/qualification/esp32c3-integration-bench-20261026.json) used the same method on an earlier image | Repeat on the combined image |
 | Distance, Distance → LED, Fault → zero (layout B) | NOT TESTED | — | Rewire to layout B |
 | Radar → LED | NOT TESTED | — | — |
 | Two BMP388s on one bus (optional) | NOT TESTED | — | Needs a second sensor |

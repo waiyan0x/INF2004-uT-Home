@@ -1,0 +1,82 @@
+# 2026-10-27T07:39:52Z radar exit pre-check: telemetry every ~1 s for 4 s
+07:39:52 bmp fresh 24.53C 100707Pa | radar fresh n=1 (-47,382,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:39:53 bmp fresh 24.53C 100708Pa | radar fresh n=1 (-47,382,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:39:54 bmp fresh 24.53C 100709Pa | radar fresh n=1 (-47,382,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:39:55 bmp fresh 24.53C 100707Pa | radar fresh n=1 (-47,382,0) | rt_state=1 failed=0 allocs=0 creates=0
+# 2026-10-27T07:39:56Z end
+# 2026-10-27T07:40:05Z radar exit: in front ~10 s, beside/behind ~20 s, back ~10 s: telemetry every ~1 s for 75 s
+07:40:05 bmp fresh 24.53C 100708Pa | radar fresh n=1 (-298,779,-17) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:06 bmp fresh 24.53C 100709Pa | radar fresh n=1 (-3,598,17) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:07 bmp fresh 24.53C 100708Pa | radar fresh n=1 (-38,604,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:08 bmp fresh 24.53C 100711Pa | radar fresh n=1 (-132,274,-68) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:09 bmp fresh 24.54C 100709Pa | radar fresh n=0  | rt_state=1 failed=0 allocs=0 creates=0
+07:40:10 bmp fresh 24.53C 100710Pa | radar fresh n=1 (-2358,6448,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:11 bmp fresh 24.53C 100711Pa | radar fresh n=1 (-2101,6519,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:12 bmp fresh 24.53C 100702Pa | radar fresh n=1 (-2127,6522,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:13 bmp fresh 24.54C 100685Pa | radar fresh n=1 (-2221,6535,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:14 bmp fresh 24.54C 100690Pa | radar fresh n=1 (33,548,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:15 bmp fresh 24.54C 100712Pa | radar fresh n=1 (-18,494,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:16 bmp fresh 24.53C 100710Pa | radar fresh n=1 (-57,390,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:17 bmp fresh 24.54C 100710Pa | radar fresh n=1 (-83,353,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:18 bmp fresh 24.53C 100710Pa | radar fresh n=1 (-85,357,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:20 bmp fresh 24.54C 100710Pa | radar fresh n=1 (-32,390,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:21 bmp fresh 24.54C 100710Pa | radar fresh n=1 (1,372,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:22 bmp fresh 24.54C 100708Pa | radar fresh n=1 (-47,327,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:23 bmp fresh 24.54C 100708Pa | radar fresh n=1 (-74,305,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:24 bmp fresh 24.54C 100706Pa | radar fresh n=1 (-74,305,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:25 bmp fresh 24.53C 100706Pa | radar fresh n=1 (-74,305,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:26 bmp fresh 24.53C 100707Pa | radar fresh n=1 (-90,237,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:27 bmp fresh 24.53C 100708Pa | radar fresh n=1 (-113,329,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:28 bmp fresh 24.54C 100706Pa | radar fresh n=1 (-78,428,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:29 bmp fresh 24.53C 100710Pa | radar fresh n=1 (-103,423,-17) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:30 bmp fresh 24.53C 100708Pa | radar fresh n=1 (-55,335,-51) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:31 bmp fresh 24.53C 100708Pa | radar fresh n=1 (25,244,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:32 bmp fresh 24.53C 100707Pa | radar fresh n=1 (28,212,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:33 bmp fresh 24.53C 100706Pa | radar fresh n=1 (40,200,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:34 bmp fresh 24.53C 100709Pa | radar fresh n=1 (56,211,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:35 bmp fresh 24.53C 100706Pa | radar fresh n=1 (113,218,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:36 bmp fresh 24.53C 100709Pa | radar fresh n=1 (110,214,51) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:37 bmp fresh 24.53C 100710Pa | radar fresh n=1 (69,345,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:38 bmp fresh 24.53C 100709Pa | radar fresh n=1 (10,507,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:39 bmp fresh 24.53C 100708Pa | radar fresh n=1 (-36,417,17) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:40 bmp fresh 24.53C 100707Pa | radar fresh n=1 (-390,821,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:41 bmp fresh 24.53C 100707Pa | radar fresh n=1 (-376,802,-34) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:42 bmp fresh 24.53C 100706Pa | radar fresh n=1 (-314,747,34) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:43 bmp fresh 24.53C 100708Pa | radar fresh n=1 (-376,821,-17) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:44 bmp fresh 24.53C 100707Pa | radar fresh n=1 (-151,403,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:45 bmp fresh 24.53C 100708Pa | radar fresh n=0  | rt_state=1 failed=0 allocs=0 creates=0
+07:40:46 bmp fresh 24.53C 100709Pa | radar fresh n=0  | rt_state=1 failed=0 allocs=0 creates=0
+07:40:47 bmp fresh 24.54C 100708Pa | radar fresh n=0  | rt_state=1 failed=0 allocs=0 creates=0
+07:40:48 bmp fresh 24.54C 100710Pa | radar fresh n=1 (-77,484,-17) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:49 bmp fresh 24.54C 100709Pa | radar fresh n=1 (-118,584,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:50 bmp fresh 24.53C 100706Pa | radar fresh n=1 (-76,614,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:51 bmp fresh 24.54C 100709Pa | radar fresh n=1 (-45,515,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:52 bmp fresh 24.53C 100709Pa | radar fresh n=1 (-61,475,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:53 bmp fresh 24.53C 100707Pa | radar fresh n=1 (-146,563,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:54 bmp fresh 24.54C 100709Pa | radar fresh n=1 (-146,676,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:55 bmp fresh 24.54C 100709Pa | radar fresh n=0  | rt_state=1 failed=0 allocs=0 creates=0
+07:40:56 bmp fresh 24.54C 100708Pa | radar fresh n=1 (61,538,-17) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:57 bmp fresh 24.54C 100708Pa | radar fresh n=1 (-218,684,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:58 bmp fresh 24.54C 100710Pa | radar fresh n=1 (-198,611,-17) | rt_state=1 failed=0 allocs=0 creates=0
+07:40:59 bmp fresh 24.54C 100708Pa | radar fresh n=1 (-169,531,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:00 bmp fresh 24.54C 100707Pa | radar fresh n=1 (-169,508,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:01 bmp fresh 24.54C 100710Pa | radar fresh n=1 (-105,471,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:02 bmp fresh 24.54C 100710Pa | radar fresh n=1 (-110,445,34) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:03 bmp fresh 24.54C 100710Pa | radar fresh n=1 (-47,539,34) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:04 bmp fresh 24.54C 100712Pa | radar fresh n=0  | rt_state=1 failed=0 allocs=0 creates=0
+07:41:05 bmp fresh 24.54C 100713Pa | radar fresh n=1 (-43,626,-17) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:06 bmp fresh 24.54C 100712Pa | radar fresh n=1 (-60,595,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:07 bmp fresh 24.54C 100713Pa | radar fresh n=0  | rt_state=1 failed=0 allocs=0 creates=0
+07:41:08 bmp fresh 24.54C 100712Pa | radar fresh n=1 (-140,763,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:09 bmp fresh 24.54C 100711Pa | radar fresh n=1 (-50,1101,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:10 bmp fresh 24.54C 100712Pa | radar fresh n=1 (-50,1101,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:11 bmp fresh 24.54C 100710Pa | radar fresh n=1 (-50,1101,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:12 bmp fresh 24.54C 100712Pa | radar fresh n=1 (105,817,-17) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:13 bmp fresh 24.54C 100711Pa | radar fresh n=1 (42,731,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:14 bmp fresh 24.53C 100709Pa | radar fresh n=1 (11,730,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:15 bmp fresh 24.53C 100709Pa | radar fresh n=1 (-7,765,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:16 bmp fresh 24.53C 100711Pa | radar fresh n=1 (-7,765,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:17 bmp fresh 24.53C 100711Pa | radar fresh n=1 (-7,765,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:18 bmp fresh 24.53C 100709Pa | radar fresh n=1 (-7,765,0) | rt_state=1 failed=0 allocs=0 creates=0
+07:41:19 bmp fresh 24.53C 100709Pa | radar fresh n=1 (-7,765,0) | rt_state=1 failed=0 allocs=0 creates=0
+# 2026-10-27T07:41:20Z end

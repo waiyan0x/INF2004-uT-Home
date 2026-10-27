@@ -1,0 +1,81 @@
+"""Integrated lifecycle on layout A through the documented USB client.
+
+Usage (repo root): python lifecycle.py PORT START_REV CYCLES EMPTY DEMO CAPACITY LOGBASE
+Per cycle: APPLY EMPTY; DISCOVER bench_i2c and bench_uart while idle; APPLY the
+demo profile; DISCOVER both presets while active (expected busy); APPLY a
+capacity-exceeding profile (expected REJECTED, active unchanged). Stops at the
+first unexpected outcome. Raw replies go to LOGBASE-raw.log, one line per step
+to LOGBASE.log.
+"""
+import datetime
+import json
+import subprocess
+import sys
+
+port, rev, cycles = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
+empty, demo, capacity, base = sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7]
+first = int(sys.argv[8]) if len(sys.argv) > 8 else 1
+DEMO_CRC = 3623560383
+
+
+def now():
+    return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+def run(args, raw, label):
+    proc = subprocess.run([sys.executable, '-B', '-m', 'tools.config_transfer', *args, '--port', port],
+                          capture_output=True, text=True)
+    raw.write(f'# {now()} {label}: {" ".join(args)}\n{proc.stdout}{proc.stderr}exit {proc.returncode}\n')
+    raw.flush()
+    try:
+        return proc.returncode, json.loads(proc.stdout)
+    except ValueError:
+        return proc.returncode, None
+
+
+def main():
+    counts = dict(applies_ok=0, idle_discovery_complete=0, busy_discovery=0, capacity_rejections=0)
+    with open(base + '-raw.log', 'a', encoding='utf-8') as raw, open(base + '.log', 'a', encoding='utf-8') as out:
+        def step(cycle, name, ok, detail):
+            out.write(f'{now()} cycle {cycle:02d} {name}: {"OK" if ok else "UNEXPECTED"} {detail}\n')
+            out.flush()
+            if not ok:
+                out.write(f'{now()} STOPPED at cycle {cycle} {name}; counts {json.dumps(counts)}\n')
+                sys.exit(3)
+
+        out.write(f'# {now()} lifecycle start rev {rev}, {cycles} cycles\n')
+        r = rev
+        for cycle in range(first, first + cycles):
+            code, rep = run(['apply', '--revision', str(r), '--profile', empty], raw, f'c{cycle} empty')
+            ok = code == 0 and rep and rep['status'] == 1 and rep['active_revision'] == rep['saved_revision'] == r
+            step(cycle, f'apply EMPTY rev {r}', ok, f'status={rep and rep["status"]}')
+            counts['applies_ok'] += 1
+            r += 1
+            for preset in ('bench_i2c', 'bench_uart'):
+                code, rep = run(['discover', '--preset', preset, '--wiring-confirmed'], raw, f'c{cycle} idle {preset}')
+                result = rep and rep['capture']['result']
+                ids = rep and [d['identity']['status'] for d in rep['devices']]
+                step(cycle, f'idle discover {preset}', result == 'complete', f'result={result} identity={ids}')
+                counts['idle_discovery_complete'] += 1
+            code, rep = run(['apply', '--revision', str(r), '--profile', demo], raw, f'c{cycle} demo')
+            ok = (code == 0 and rep and rep['status'] == 1 and rep['active_revision'] == rep['saved_revision'] == r
+                  and rep['active_crc'] == DEMO_CRC)
+            step(cycle, f'apply DEMO rev {r}', ok, f'status={rep and rep["status"]} crc={rep and rep["active_crc"]}')
+            counts['applies_ok'] += 1
+            active = r
+            r += 1
+            for preset in ('bench_i2c', 'bench_uart'):
+                code, rep = run(['discover', '--preset', preset, '--wiring-confirmed'], raw, f'c{cycle} busy {preset}')
+                result = rep and rep['capture']['result']
+                step(cycle, f'active discover {preset}', result == 'busy', f'result={result}')
+                counts['busy_discovery'] += 1
+            code, rep = run(['apply', '--revision', str(r), '--profile', capacity], raw, f'c{cycle} capacity')
+            ok = (code == 2 and rep and rep['status'] == 3 and rep['active_revision'] == active
+                  and rep['saved_revision'] == active and rep['active_crc'] == DEMO_CRC)
+            step(cycle, f'capacity rev {r}', ok, f'status={rep and rep["status"]} active={rep and rep["active_revision"]}')
+            counts['capacity_rejections'] += 1
+            r += 1
+        out.write(f'# {now()} lifecycle complete; next free rev {r}; counts {json.dumps(counts)}\n')
+
+
+main()

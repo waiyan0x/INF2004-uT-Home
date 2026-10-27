@@ -1,0 +1,212 @@
+# 2026-10-27T07:09:51Z config_transfer telemetry --port COM5 (session start)
+{
+  "request_id": 2408901488,
+  "result": 0,
+  "timestamp_ms": 14809,
+  "configuration": {
+    "active_revision": 759,
+    "saved_revision": 759,
+    "active_crc": 3623560383,
+    "saved_crc": 3623560383,
+    "flags": 80
+  },
+  "runtime": {
+    "state": 1,
+    "generation": 1,
+    "failed_workers": 0,
+    "retained_instances": 3,
+    "service_error": 0,
+    "apply_error": 0,
+    "recovery_error": 0
+  },
+  "health": {
+    "total_events": 302,
+    "total_suppressed": 288,
+    "last_event": 4,
+    "last_event_time_ms": 14766,
+    "event_counts": [
+      0,
+      0,
+      0,
+      0,
+      302,
+      0,
+      0,
+      0
+    ],
+    "suppressed_counts": [
+      0,
+      0,
+      0,
+      0,
+      288,
+      0,
+      0,
+      0
+    ]
+  },
+  "queues": [
+    {
+      "index": 0,
+      "type": 1,
+      "published": 30,
+      "consumed": 0,
+      "dropped": 22,
+      "depth": 8,
+      "high_water": 8
+    },
+    {
+      "index": 1,
+      "type": 4,
+      "published": 14,
+      "consumed": 0,
+      "dropped": 6,
+      "depth": 8,
+      "high_water": 8
+    },
+    {
+      "index": 2,
+      "type": 2,
+      "published": 282,
+      "consumed": 0,
+      "dropped": 274,
+      "depth": 8,
+      "high_water": 8
+    }
+  ],
+  "samples": [
+    {
+      "queue": 0,
+      "type": 1,
+      "source_index": 0,
+      "name": "environment_sensor",
+      "quality": "fresh",
+      "timestamp_ms": 14560,
+      "sequence": 29,
+      "status": 1,
+      "stale_after_ms": 1200,
+      "age_ms": 249,
+      "value": {
+        "pressure_pa": 100713.7890625,
+        "temperature_c": 24.2169189453125
+      }
+    },
+    {
+      "queue": 2,
+      "type": 2,
+      "source_index": 2,
+      "name": "presence_sensor",
+      "quality": "fresh",
+      "timestamp_ms": 14766,
+      "sequence": 281,
+      "status": 1,
+      "stale_after_ms": 370,
+      "age_ms": 43,
+      "value": {
+        "targets": [
+          {
+            "present": true,
+            "resolution_mm": 360,
+            "x_mm": -159,
+            "y_mm": 446,
+            "speed_cm_s": 0
+          },
+          {
+            "present": false,
+            "resolution_mm": 0,
+            "x_mm": 0,
+            "y_mm": 0,
+            "speed_cm_s": 0
+          },
+          {
+            "present": false,
+            "resolution_mm": 0,
+            "x_mm": 0,
+            "y_mm": 0,
+            "speed_cm_s": 0
+          }
+        ]
+      }
+    },
+    {
+      "queue": 1,
+      "type": 4,
+      "source_index": 65535,
+      "name": "health",
+      "quality": "fresh",
+      "timestamp_ms": 14011,
+      "sequence": 13,
+      "status": 1,
+      "stale_after_ms": 2100,
+      "age_ms": 798,
+      "value": {
+        "event": 4,
+        "occurrences": 284
+      }
+    }
+  ],
+  "memory_audit": {
+    "sealed": true,
+    "saturated": false,
+    "application_startup": {
+      "allocations": 0,
+      "bytes": 0,
+      "frees": 0,
+      "kernel_calls": {
+        "malloc": 0,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    },
+    "startup": {
+      "allocations": 19,
+      "bytes": 1687,
+      "frees": 0,
+      "creates": {
+        "task": 6,
+        "mutex": 41,
+        "semaphore": 50,
+        "flag": 1,
+        "mailbox": 0,
+        "message_buffer": 0,
+        "fixed_pool": 0,
+        "variable_pool": 0,
+        "rendezvous": 0,
+        "cyclic": 0,
+        "alarm": 0
+      },
+      "kernel_calls": {
+        "malloc": 1,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    },
+    "normal": {
+      "allocations": 0,
+      "bytes": 0,
+      "frees": 0,
+      "creates": {
+        "task": 0,
+        "mutex": 0,
+        "semaphore": 0,
+        "flag": 0,
+        "mailbox": 0,
+        "message_buffer": 0,
+        "fixed_pool": 0,
+        "variable_pool": 0,
+        "rendezvous": 0,
+        "cyclic": 0,
+        "alarm": 0
+      },
+      "kernel_calls": {
+        "malloc": 0,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    }
+  }
+}
+exit 0

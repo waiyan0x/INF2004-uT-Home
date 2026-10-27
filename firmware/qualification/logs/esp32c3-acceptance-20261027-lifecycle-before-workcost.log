@@ -1,0 +1,122 @@
+# 2026-10-27T07:18:58Z lifecycle BEFORE: workcost
+{
+  "result": 0,
+  "generation": 4,
+  "active_revision": 761,
+  "active_crc": 3623560383,
+  "timestamp_us": 561775782,
+  "capture_us": 570,
+  "controller_stack": {
+    "bytes": 8448,
+    "unused_min": 7072,
+    "measured": true,
+    "empirical": true
+  },
+  "idle_stack": {
+    "bytes": 1024,
+    "unused_min": 896,
+    "measured": true,
+    "empirical": true
+  },
+  "workers": [
+    {
+      "slot": 0,
+      "source_index": 0,
+      "task_handle": 10,
+      "bound": true,
+      "available": true,
+      "stats": {
+        "steps": 201,
+        "elapsed_us": 806016,
+        "max_elapsed_us": 4110,
+        "max_lateness_us": 0,
+        "bus_wait_us": 7148,
+        "bus_active_us": 705597,
+        "transfer_bytes": 1809,
+        "transfers": 402,
+        "timeouts": 0,
+        "errors": 0,
+        "flags": 0
+      },
+      "stack": {
+        "bytes": 8192,
+        "unused_min": 7376,
+        "measured": true,
+        "empirical": true
+      }
+    },
+    {
+      "slot": 1,
+      "source_index": 1,
+      "task_handle": 11,
+      "bound": true,
+      "available": true,
+      "stats": {
+        "steps": 402,
+        "elapsed_us": 1416123,
+        "max_elapsed_us": 4060,
+        "max_lateness_us": 0,
+        "bus_wait_us": 15987,
+        "bus_active_us": 1158157,
+        "transfer_bytes": 414060,
+        "transfers": 804,
+        "timeouts": 0,
+        "errors": 0,
+        "flags": 0
+      },
+      "stack": {
+        "bytes": 8192,
+        "unused_min": 7360,
+        "measured": true,
+        "empirical": true
+      }
+    },
+    {
+      "slot": 2,
+      "source_index": 2,
+      "task_handle": 12,
+      "bound": true,
+      "available": true,
+      "stats": {
+        "steps": 10035,
+        "elapsed_us": 2422083,
+        "max_elapsed_us": 722,
+        "max_lateness_us": 0,
+        "bus_wait_us": 130077,
+        "bus_active_us": 1276565,
+        "transfer_bytes": 57600,
+        "transfers": 10035,
+        "timeouts": 0,
+        "errors": 0,
+        "flags": 0
+      },
+      "stack": {
+        "bytes": 8192,
+        "unused_min": 7296,
+        "measured": true,
+        "empirical": true
+      }
+    },
+    {
+      "slot": 3,
+      "source_index": null,
+      "task_handle": null,
+      "bound": false,
+      "available": false,
+      "stats": null,
+      "stack": {
+        "bytes": 8192,
+        "unused_min": null,
+        "measured": false,
+        "empirical": true
+      }
+    }
+  ],
+  "scheduler": {
+    "elapsed_ms": 561774,
+    "idle_ms": 553474,
+    "tick_ms": 1,
+    "method": "native_tick_attribution"
+  }
+}
+exit 0

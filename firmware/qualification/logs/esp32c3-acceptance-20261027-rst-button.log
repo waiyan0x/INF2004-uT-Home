@@ -1,0 +1,672 @@
+# 2026-10-27T07:32:18Z before RST button: query + telemetry
+{
+  "command": 2,
+  "request_id": 10,
+  "revision": 0,
+  "status": 0,
+  "active_revision": 826,
+  "saved_revision": 826,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 0
+{
+  "request_id": 1011306292,
+  "result": 0,
+  "timestamp_ms": 269181,
+  "configuration": {
+    "active_revision": 826,
+    "saved_revision": 826,
+    "active_crc": 3623560383,
+    "saved_crc": 3623560383,
+    "flags": 80
+  },
+  "runtime": {
+    "state": 1,
+    "generation": 2,
+    "failed_workers": 0,
+    "retained_instances": 3,
+    "service_error": 0,
+    "apply_error": 0,
+    "recovery_error": 0
+  },
+  "health": {
+    "total_events": 3811,
+    "total_suppressed": 3638,
+    "last_event": 4,
+    "last_event_time_ms": 269161,
+    "event_counts": [
+      0,
+      0,
+      0,
+      0,
+      3811,
+      0,
+      0,
+      0
+    ],
+    "suppressed_counts": [
+      0,
+      0,
+      0,
+      0,
+      3638,
+      0,
+      0,
+      0
+    ]
+  },
+  "queues": [
+    {
+      "index": 0,
+      "type": 1,
+      "published": 347,
+      "consumed": 0,
+      "dropped": 339,
+      "depth": 8,
+      "high_water": 8
+    },
+    {
+      "index": 1,
+      "type": 4,
+      "published": 173,
+      "consumed": 0,
+      "dropped": 165,
+      "depth": 8,
+      "high_water": 8
+    },
+    {
+      "index": 2,
+      "type": 2,
+      "published": 3315,
+      "consumed": 0,
+      "dropped": 3307,
+      "depth": 8,
+      "high_water": 8
+    }
+  ],
+  "samples": [
+    {
+      "queue": 0,
+      "type": 1,
+      "source_index": 0,
+      "name": "environment_sensor",
+      "quality": "fresh",
+      "timestamp_ms": 268985,
+      "sequence": 346,
+      "status": 1,
+      "stale_after_ms": 1200,
+      "age_ms": 196,
+      "value": {
+        "pressure_pa": 100698.171875,
+        "temperature_c": 24.561368942260742
+      }
+    },
+    {
+      "queue": 2,
+      "type": 2,
+      "source_index": 2,
+      "name": "presence_sensor",
+      "quality": "fresh",
+      "timestamp_ms": 269161,
+      "sequence": 3314,
+      "status": 1,
+      "stale_after_ms": 370,
+      "age_ms": 20,
+      "value": {
+        "targets": [
+          {
+            "present": true,
+            "resolution_mm": 360,
+            "x_mm": -252,
+            "y_mm": 781,
+            "speed_cm_s": 0
+          },
+          {
+            "present": false,
+            "resolution_mm": 0,
+            "x_mm": 0,
+            "y_mm": 0,
+            "speed_cm_s": 0
+          },
+          {
+            "present": false,
+            "resolution_mm": 0,
+            "x_mm": 0,
+            "y_mm": 0,
+            "speed_cm_s": 0
+          }
+        ]
+      }
+    },
+    {
+      "queue": 1,
+      "type": 4,
+      "source_index": 65535,
+      "name": "health",
+      "quality": "fresh",
+      "timestamp_ms": 268937,
+      "sequence": 172,
+      "status": 1,
+      "stale_after_ms": 2100,
+      "age_ms": 244,
+      "value": {
+        "event": 4,
+        "occurrences": 3804
+      }
+    }
+  ],
+  "memory_audit": {
+    "sealed": true,
+    "saturated": false,
+    "application_startup": {
+      "allocations": 0,
+      "bytes": 0,
+      "frees": 0,
+      "kernel_calls": {
+        "malloc": 0,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    },
+    "startup": {
+      "allocations": 19,
+      "bytes": 1687,
+      "frees": 0,
+      "creates": {
+        "task": 6,
+        "mutex": 41,
+        "semaphore": 50,
+        "flag": 1,
+        "mailbox": 0,
+        "message_buffer": 0,
+        "fixed_pool": 0,
+        "variable_pool": 0,
+        "rendezvous": 0,
+        "cyclic": 0,
+        "alarm": 0
+      },
+      "kernel_calls": {
+        "malloc": 1,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    },
+    "normal": {
+      "allocations": 0,
+      "bytes": 0,
+      "frees": 0,
+      "creates": {
+        "task": 0,
+        "mutex": 0,
+        "semaphore": 0,
+        "flag": 0,
+        "mailbox": 0,
+        "message_buffer": 0,
+        "fixed_pool": 0,
+        "variable_pool": 0,
+        "rendezvous": 0,
+        "cyclic": 0,
+        "alarm": 0
+      },
+      "kernel_calls": {
+        "malloc": 0,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    }
+  }
+}
+exit 0
+# 2026-10-27T07:33:13Z after RST button 1: query + telemetry
+{
+  "command": 2,
+  "request_id": 1,
+  "revision": 0,
+  "status": 0,
+  "active_revision": 826,
+  "saved_revision": 826,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 0
+{
+  "request_id": 4281992018,
+  "result": 0,
+  "timestamp_ms": 30779,
+  "configuration": {
+    "active_revision": 826,
+    "saved_revision": 826,
+    "active_crc": 3623560383,
+    "saved_crc": 3623560383,
+    "flags": 80
+  },
+  "runtime": {
+    "state": 1,
+    "generation": 1,
+    "failed_workers": 0,
+    "retained_instances": 3,
+    "service_error": 0,
+    "apply_error": 0,
+    "recovery_error": 0
+  },
+  "health": {
+    "total_events": 656,
+    "total_suppressed": 626,
+    "last_event": 4,
+    "last_event_time_ms": 30765,
+    "event_counts": [
+      0,
+      0,
+      0,
+      0,
+      656,
+      0,
+      0,
+      0
+    ],
+    "suppressed_counts": [
+      0,
+      0,
+      0,
+      0,
+      626,
+      0,
+      0,
+      0
+    ]
+  },
+  "queues": [
+    {
+      "index": 0,
+      "type": 1,
+      "published": 62,
+      "consumed": 0,
+      "dropped": 54,
+      "depth": 8,
+      "high_water": 8
+    },
+    {
+      "index": 1,
+      "type": 4,
+      "published": 30,
+      "consumed": 0,
+      "dropped": 22,
+      "depth": 8,
+      "high_water": 8
+    },
+    {
+      "index": 2,
+      "type": 2,
+      "published": 588,
+      "consumed": 0,
+      "dropped": 580,
+      "depth": 8,
+      "high_water": 8
+    }
+  ],
+  "samples": [
+    {
+      "queue": 0,
+      "type": 1,
+      "source_index": 0,
+      "name": "environment_sensor",
+      "quality": "fresh",
+      "timestamp_ms": 30560,
+      "sequence": 61,
+      "status": 1,
+      "stale_after_ms": 1200,
+      "age_ms": 219,
+      "value": {
+        "pressure_pa": 100693.9375,
+        "temperature_c": 24.562435150146484
+      }
+    },
+    {
+      "queue": 2,
+      "type": 2,
+      "source_index": 2,
+      "name": "presence_sensor",
+      "quality": "fresh",
+      "timestamp_ms": 30765,
+      "sequence": 587,
+      "status": 1,
+      "stale_after_ms": 370,
+      "age_ms": 14,
+      "value": {
+        "targets": [
+          {
+            "present": true,
+            "resolution_mm": 360,
+            "x_mm": -212,
+            "y_mm": 929,
+            "speed_cm_s": 0
+          },
+          {
+            "present": false,
+            "resolution_mm": 0,
+            "x_mm": 0,
+            "y_mm": 0,
+            "speed_cm_s": 0
+          },
+          {
+            "present": false,
+            "resolution_mm": 0,
+            "x_mm": 0,
+            "y_mm": 0,
+            "speed_cm_s": 0
+          }
+        ]
+      }
+    },
+    {
+      "queue": 1,
+      "type": 4,
+      "source_index": 65535,
+      "name": "health",
+      "quality": "fresh",
+      "timestamp_ms": 30010,
+      "sequence": 29,
+      "status": 1,
+      "stale_after_ms": 2100,
+      "age_ms": 769,
+      "value": {
+        "event": 4,
+        "occurrences": 638
+      }
+    }
+  ],
+  "memory_audit": {
+    "sealed": true,
+    "saturated": false,
+    "application_startup": {
+      "allocations": 0,
+      "bytes": 0,
+      "frees": 0,
+      "kernel_calls": {
+        "malloc": 0,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    },
+    "startup": {
+      "allocations": 19,
+      "bytes": 1687,
+      "frees": 0,
+      "creates": {
+        "task": 6,
+        "mutex": 41,
+        "semaphore": 50,
+        "flag": 1,
+        "mailbox": 0,
+        "message_buffer": 0,
+        "fixed_pool": 0,
+        "variable_pool": 0,
+        "rendezvous": 0,
+        "cyclic": 0,
+        "alarm": 0
+      },
+      "kernel_calls": {
+        "malloc": 1,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    },
+    "normal": {
+      "allocations": 0,
+      "bytes": 0,
+      "frees": 0,
+      "creates": {
+        "task": 0,
+        "mutex": 0,
+        "semaphore": 0,
+        "flag": 0,
+        "mailbox": 0,
+        "message_buffer": 0,
+        "fixed_pool": 0,
+        "variable_pool": 0,
+        "rendezvous": 0,
+        "cyclic": 0,
+        "alarm": 0
+      },
+      "kernel_calls": {
+        "malloc": 0,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    }
+  }
+}
+exit 0
+# 2026-10-27T07:34:05Z after RST button 2: query + telemetry
+{
+  "command": 2,
+  "request_id": 1,
+  "revision": 0,
+  "status": 0,
+  "active_revision": 826,
+  "saved_revision": 826,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 0
+{
+  "request_id": 2716824934,
+  "result": 0,
+  "timestamp_ms": 24542,
+  "configuration": {
+    "active_revision": 826,
+    "saved_revision": 826,
+    "active_crc": 3623560383,
+    "saved_crc": 3623560383,
+    "flags": 80
+  },
+  "runtime": {
+    "state": 1,
+    "generation": 1,
+    "failed_workers": 0,
+    "retained_instances": 3,
+    "service_error": 0,
+    "apply_error": 0,
+    "recovery_error": 0
+  },
+  "health": {
+    "total_events": 517,
+    "total_suppressed": 493,
+    "last_event": 4,
+    "last_event_time_ms": 24505,
+    "event_counts": [
+      0,
+      0,
+      0,
+      0,
+      517,
+      0,
+      0,
+      0
+    ],
+    "suppressed_counts": [
+      0,
+      0,
+      0,
+      0,
+      493,
+      0,
+      0,
+      0
+    ]
+  },
+  "queues": [
+    {
+      "index": 0,
+      "type": 1,
+      "published": 49,
+      "consumed": 0,
+      "dropped": 41,
+      "depth": 8,
+      "high_water": 8
+    },
+    {
+      "index": 1,
+      "type": 4,
+      "published": 24,
+      "consumed": 0,
+      "dropped": 16,
+      "depth": 8,
+      "high_water": 8
+    },
+    {
+      "index": 2,
+      "type": 2,
+      "published": 468,
+      "consumed": 0,
+      "dropped": 460,
+      "depth": 8,
+      "high_water": 8
+    }
+  ],
+  "samples": [
+    {
+      "queue": 0,
+      "type": 1,
+      "source_index": 0,
+      "name": "environment_sensor",
+      "quality": "fresh",
+      "timestamp_ms": 24059,
+      "sequence": 48,
+      "status": 1,
+      "stale_after_ms": 1200,
+      "age_ms": 483,
+      "value": {
+        "pressure_pa": 100706.3046875,
+        "temperature_c": 24.561077117919922
+      }
+    },
+    {
+      "queue": 2,
+      "type": 2,
+      "source_index": 2,
+      "name": "presence_sensor",
+      "quality": "fresh",
+      "timestamp_ms": 24505,
+      "sequence": 467,
+      "status": 1,
+      "stale_after_ms": 370,
+      "age_ms": 37,
+      "value": {
+        "targets": [
+          {
+            "present": true,
+            "resolution_mm": 360,
+            "x_mm": -160,
+            "y_mm": 381,
+            "speed_cm_s": 0
+          },
+          {
+            "present": false,
+            "resolution_mm": 0,
+            "x_mm": 0,
+            "y_mm": 0,
+            "speed_cm_s": 0
+          },
+          {
+            "present": false,
+            "resolution_mm": 0,
+            "x_mm": 0,
+            "y_mm": 0,
+            "speed_cm_s": 0
+          }
+        ]
+      }
+    },
+    {
+      "queue": 1,
+      "type": 4,
+      "source_index": 65535,
+      "name": "health",
+      "quality": "fresh",
+      "timestamp_ms": 24010,
+      "sequence": 23,
+      "status": 1,
+      "stale_after_ms": 2100,
+      "age_ms": 532,
+      "value": {
+        "event": 4,
+        "occurrences": 505
+      }
+    }
+  ],
+  "memory_audit": {
+    "sealed": true,
+    "saturated": false,
+    "application_startup": {
+      "allocations": 0,
+      "bytes": 0,
+      "frees": 0,
+      "kernel_calls": {
+        "malloc": 0,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    },
+    "startup": {
+      "allocations": 19,
+      "bytes": 1687,
+      "frees": 0,
+      "creates": {
+        "task": 6,
+        "mutex": 41,
+        "semaphore": 50,
+        "flag": 1,
+        "mailbox": 0,
+        "message_buffer": 0,
+        "fixed_pool": 0,
+        "variable_pool": 0,
+        "rendezvous": 0,
+        "cyclic": 0,
+        "alarm": 0
+      },
+      "kernel_calls": {
+        "malloc": 1,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    },
+    "normal": {
+      "allocations": 0,
+      "bytes": 0,
+      "frees": 0,
+      "creates": {
+        "task": 0,
+        "mutex": 0,
+        "semaphore": 0,
+        "flag": 0,
+        "mailbox": 0,
+        "message_buffer": 0,
+        "fixed_pool": 0,
+        "variable_pool": 0,
+        "rendezvous": 0,
+        "cyclic": 0,
+        "alarm": 0
+      },
+      "kernel_calls": {
+        "malloc": 0,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    }
+  }
+}
+exit 0

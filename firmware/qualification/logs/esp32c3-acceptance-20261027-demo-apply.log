@@ -1,0 +1,40 @@
+# 2026-10-27T07:11:01Z demo step 2: config_transfer apply --revision 760 --profile configs/nodes/c3-protocol-demo.json (sha256 a25a3d9e4ce6f8a8eb959a6334d7abf59473747663beedc1c772049d9cc8e69f)
+{
+  "command": 1,
+  "request_id": 3,
+  "revision": 760,
+  "status": 1,
+  "active_revision": 760,
+  "saved_revision": 760,
+  "active_crc": 3613538721,
+  "saved_crc": 3613538721,
+  "flags": 95
+}
+exit 0
+# 2026-10-27T07:11:02Z query
+{
+  "command": 2,
+  "request_id": 4,
+  "revision": 0,
+  "status": 0,
+  "active_revision": 760,
+  "saved_revision": 760,
+  "active_crc": 3613538721,
+  "saved_crc": 3613538721,
+  "flags": 81
+}
+exit 0
+# NOTE revision 760 used the raw JSON file (3573 bytes, CRC 3613538721); the Desk sends compact JSON (workflow.py:139). Same content.
+# 2026-10-27T07:11:35Z apply --revision 761 compact form of configs/nodes/c3-protocol-demo.json (2205 bytes)
+{
+  "command": 1,
+  "request_id": 6,
+  "revision": 761,
+  "status": 1,
+  "active_revision": 761,
+  "saved_revision": 761,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 95
+}
+exit 0
