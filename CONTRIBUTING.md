@@ -14,7 +14,8 @@ deferred.
 
 For the bench: check the inventory and power first, use the wiring tables in
 sections 3–4, then follow the profile-change procedure and test table in
-sections 6–7. Use the [installation procedure](tools/target/README.md#install-the-configuration-application)
+sections 6–7. Current pass/fail/open status is in the
+[acceptance matrix](#acceptance-matrix). Use the [installation procedure](tools/target/README.md#install-the-configuration-application)
 if needed and [generate bench profiles](configs/README.md#bench-profiles).
 
 ## 1. Bring these items and identify the modules
@@ -337,6 +338,35 @@ revisions, observations, evidence path and **PASS / FAIL / NOT TESTED**.
 The durations/tolerances below are proposed bench criteria, not sensor accuracy
 certification. Change them explicitly in the record if the team agrees otherwise.
 
+Start every session the same way, so its results bind to one board and image:
+
+1. Close other serial clients, then [identify the board](tools/target/README.md#identify-or-recover-the-board):
+   port, USB serial number, ESP32-C3 and 4 MB flash.
+2. Take and hash a full [flash backup](tools/target/README.md#install-the-configuration-application)
+   before any install. Keep it outside the repository.
+3. Record the running image against its build record. The latest core image
+   with board evidence is ELF `597ae600…` ([build record](firmware/qualification/esp32c3-scheduler-20261027-app-build.json)).
+4. With the Desk disconnected, read the board's state with the
+   [USB client](tools/config_transfer/README.md), replacing `COMX`:
+
+   ```powershell
+   python -B -m tools.config_transfer capabilities --port COMX
+   python -B -m tools.config_transfer query --port COMX
+   python -B -m tools.config_transfer telemetry --port COMX
+   python -B -m tools.config_transfer workcost --port COMX
+   ```
+
+   Repeat `telemetry` and `workcost` at the end of the session and compare the
+   allocation/object counters within the same image and profile.
+5. Generate the [bench profiles](configs/README.md#bench-profiles) and keep the
+   exact files used with the session record.
+
+Store each session's results as a new record,
+`firmware/qualification/esp32c3-<scope>-<YYYYMMDD>.json`, and its raw serial or
+client output under `firmware/qualification/logs/` using the same name plus a
+suffix (for example `-boot1.log`). Keep flash backups and large captures
+outside the repository, and record their SHA-256 in the session record.
+
 | Test | Procedure | Pass evidence |
 |---|---|---|
 | USB/application | Connect the identified board, read capabilities, apply/save empty profile; reviewed sensor wiring may remain attached | Correct C3 board and compiled drivers; stable connection and matching revisions |
@@ -351,6 +381,8 @@ certification. Change them explicitly in the record if the team agrees otherwise
 | Profile changes | On unchanged A wiring, apply ten valid changes to sample/display periods within allowed limits; finish by saving the original A profile | Correct periods/source identities and active/saved revisions after each change; no unexplained retained workers or faults |
 | Reboot restore | Leave wiring unchanged and reboot three times after a confirmed save; reconnect each time | Saved configuration returns; outputs start inactive until fresh data/rules allow activation; record revision and readings |
 | Rejected profile | Edit a copy to use reserved GPIO2 or duplicate an occupied pin, then validate | Rejected; live profile/revisions and readings unchanged. UI rejection alone does not demonstrate firmware-side rejection |
+| Layout conflicts | Combine `02-bmp-oled.json` with the HC-SR04 device (TRIG GPIO4), and `01-bmp.json` with the PWM output on GPIO1; validate, then APPLY each with the USB client to the **board alone** (save EMPTY and disconnect all modules first, per section 6). If firmware wrongly accepted the GPIO1 profile, PWM would drive the BMP388's SCL line | Host and firmware both reject them (GPIO4 OLED CS vs TRIG; GPIO1 I2C SCL vs PWM); live profile unchanged. Never wire these combinations |
+| Integrated lifecycle | On unchanged A wiring: twenty profile/discovery cycles, capacity rejections, one failed activation with rollback, save and reboot restore, and a 30-second host disconnect; take telemetry/workcost before and after | All cycles succeed or reject as expected; the previous profile returns after rollback/reboot; no application allocations or native object creation after startup in the counters |
 | Activation rollback | With one known-working BMP at `0x76`, request absent `0x77` without changing wires (reverse if appropriate) | If admission succeeds but activation fails, previous working profile is restored; capture error, revisions and recovered readings |
 
 Check the empty-save sequence before each added/removed module. Normal profile
@@ -384,6 +416,11 @@ GPIO1 in that setup. Missing a second sensor means this test is **NOT TESTED**.
   stack high-water usage. The current UI does **not** expose all these metrics;
   static build sizes and worker counts cannot replace runtime measurements.
   Agree instrumentation before claiming memory/timing acceptance or AI headroom.
+- Combined radio load (simultaneous Wi-Fi/BLE traffic, broker/AP loss and
+  configuration saves) is **blocked** until the onboard wireless services are
+  part of the configuration application. The separate Wi-Fi/BLE diagnostic
+  images do not qualify combined operation; do not install them on the
+  assembled board for this purpose. Record these rows as BLOCKED, not NOT TESTED.
 
 Passing the wiring tests is useful progress; full system sign-off also
 needs those recovery/resource results and any real actuator acceptance.
@@ -451,10 +488,45 @@ as passing. Suggested record:
 | Layout/photo; measured 3.3 V/5 V rails and echo peak | |
 | Profile file; active/saved revisions | |
 | Tests performed; readings, timings and evidence paths | |
+| Physically observed (panel visible, LED state, movement seen, meter/scope readings) | |
+| Software-reported only (telemetry, replies, counters); not confirmed physically | |
 | Failures, omitted tests and corrective action | |
 | Wiring/peripheral acceptance: PASS / FAIL / INCOMPLETE | |
 | Full system readiness: PASS / FAIL / INCOMPLETE | |
 | Team reviewer and date | |
+
+### Acceptance matrix
+
+Status as of 27 October 2026. Statuses are **PASS**, **PARTIAL**, **FAIL**,
+**NOT TESTED**, **BLOCKED** (depends on unfinished work) or **DEFERRED** (by
+the user). A PASS applies only to the image named; repeat it on the release
+image. Update a row only with a new dated record, never by editing old ones.
+Board identification and backup are per-session steps (start of section 7),
+not matrix rows; record them in each session record.
+
+`597ae600…` is the USB core image with radios inactive. It includes the static
+I2C/SPI start-up code (`i2cown`, `spiown`, `c3i2c`, `c3spi`), but it is not the
+combined radio image the final acceptance requires.
+
+| Test (section 7 unless noted) | Status | Image / evidence | Still open |
+|---|---|---|---|
+| Three-protocol demonstration | PARTIAL | `597ae600…`; [handoff](firmware/qualification/system-overnight-handoff-20261027.json): fresh BMP388 and radar samples | Physical OLED check on this image |
+| Integrated lifecycle, counters | PARTIAL | PASS on core image `597ae600…`, radios off; [core record](firmware/qualification/esp32c3-scheduler-20261027.json): 20 cycles, 6 capacity rejections, rollback, reboot, 30 s disconnect, zero post-startup allocations/creates | Repeat on the combined image |
+| Combined load (layout A) | PARTIAL | `597ae600…`; 45 min of telemetry in the handoff record | OLED visual; live worker stack margins |
+| BMP388, OLED, radar alone | PARTIAL | Earlier images only ([bench notes](firmware/qualification/README.md#peripheral-bench-observations)) | Repeat on release image |
+| Profile changes (ten period changes) | NOT TESTED | — | — |
+| Rejected profile (GPIO2/duplicate pin) | NOT TESTED | — | Firmware-side rejection |
+| Layout conflicts | PARTIAL | Host planner rejects both combinations | Firmware-side rejection |
+| Activation rollback | PARTIAL | Core record reports a passed failed-activation rollback on `597ae600…` but not how it was triggered; the [26 Oct record](firmware/qualification/esp32c3-integration-bench-20261026.json) used working `0x77` and requested absent `0x76` on an earlier image | Repeat on the combined image and record the method |
+| Distance, Distance → LED, Fault → zero (layout B) | NOT TESTED | — | Rewire to layout B |
+| Radar → LED | NOT TESTED | — | — |
+| Two BMP388s on one bus (optional) | NOT TESTED | — | Needs a second sensor |
+| Stale-data loss (signal isolation) | NOT TESTED | — | Reviewed isolation setup |
+| Cleanup-failure injection on the board | NOT TESTED | — | Reviewed injection method |
+| Controlled interrupted save / power loss | NOT TESTED | — | Operator and power-cut setup |
+| Combined Wi-Fi/BLE load, broker/AP loss | BLOCKED | Diagnostic images only | Unblocked by README delivery phases 1–3 (static radio resources and on-device MQTT/HTTP/BLE services in the configuration application); owner to be agreed |
+| Radar zero-target | DEFERRED | — | Only on request |
+| Final demonstration script | NOT TESTED | — | Release build and profile CRC to be chosen |
 
 Any C changes made while fixing hardware issues must still follow
 [BARR-C:2018 project requirements](C_CODING_STANDARD.md) and [AGENTS.md](AGENTS.md):
