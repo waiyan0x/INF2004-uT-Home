@@ -20,93 +20,405 @@
 #endif
 
 /*
- * Task resources have not yet been approved or allocated.
- * The public interface must not report successful initialization.
- *
- * No heap allocation or native kernel object creation occurs here.
+ * The isolated Wi-Fi and BLE builds have different, mutually exclusive task
+ * sets. Capacities are the actual byte requests made by their selected ESP-IDF
+ * 6.1 paths. ESP-IDF already includes its libc allowance in those requests.
+ * The pinned kernel has a separate 4 KiB interrupt stack, so no unmeasured
+ * per-task interrupt allowance is added here.
  */
 
-int c3task_init (void)
-{
-    return -1;
-}
+#if defined(UTHOME_WIFI_PROBE) && UTHOME_WIFI_PROBE
+#define C3TASK_STACK_SLOTS   4U
+#define C3TASK_STACK_0_BYTES 2816U
+#define C3TASK_STACK_1_BYTES 3584U
+#define C3TASK_STACK_2_BYTES 4096U
+#define C3TASK_STACK_3_BYTES 6656U
+#elif defined(UTHOME_BLE_PROBE) && UTHOME_BLE_PROBE
+#define C3TASK_STACK_SLOTS   3U
+#define C3TASK_STACK_0_BYTES 4096U
+#define C3TASK_STACK_1_BYTES 4096U
+#define C3TASK_STACK_2_BYTES 4096U
+#elif defined(UTHOME_C3TASK_HOST_TEST) && UTHOME_C3TASK_HOST_TEST
+#define C3TASK_STACK_SLOTS   4U
+#define C3TASK_STACK_0_BYTES 2816U
+#define C3TASK_STACK_1_BYTES 3584U
+#define C3TASK_STACK_2_BYTES 4096U
+#define C3TASK_STACK_3_BYTES 6656U
+#else
+#define C3TASK_STACK_SLOTS 0U
+#endif
 
-uint32_t c3task_capacity (void)
-{
-    return 0U;
-}
-
-uint32_t c3task_used (void)
-{
-    return 0U;
-}
-
-/*
- * Preliminary reservation helpers retained for existing host tests.
- * They are not yet part of the target runtime.
- */
-
-#if defined(UTHOME_C3TASK_HOST_TEST) && UTHOME_C3TASK_HOST_TEST
-
-typedef enum
-{
-    C3TASK_SLOT_FREE = 0,
-    C3TASK_SLOT_RESERVED,
-    C3TASK_SLOT_RUNNING,
-    C3TASK_SLOT_STOPPING
-} c3task_slot_state_t;
+#define C3TASK_STACK_ALIGNMENT    16U
+#define C3TASK_REAPER_STACK_BYTES 1024U
+#define C3TASK_REAPER_PRIORITY    31
+#define C3TASK_REAPER_PERIOD_MS   100
+#define C3TASK_ALIGNED_16         __attribute__((aligned(16)))
 
 typedef struct
 {
-    c3task_slot_state_t state;
-    int32_t             kernel_task_id;
-    int32_t             notification_sem_id;
-    uint32_t            stack_capacity_bytes;
-    uint32_t            requested_stack_bytes;
-} c3task_slot_t;
+    uintptr_t owner;
+    bool      b_used;
+} c3task_stack_slot_t;
 
-static bool c3task_slot_available (const c3task_slot_t * p_slot)
+typedef enum
 {
-    return (NULL != p_slot) && (C3TASK_SLOT_FREE == p_slot->state);
+    C3TASK_REAPER_OFF = 0,
+    C3TASK_REAPER_STARTING,
+    C3TASK_REAPER_READY,
+    C3TASK_REAPER_FAILED
+} c3task_reaper_state_t;
+
+#if 0U < C3TASK_STACK_SLOTS
+static uint8_t g_stack_0[C3TASK_STACK_0_BYTES] C3TASK_ALIGNED_16;
+static uint8_t g_stack_1[C3TASK_STACK_1_BYTES] C3TASK_ALIGNED_16;
+static uint8_t g_stack_2[C3TASK_STACK_2_BYTES] C3TASK_ALIGNED_16;
+#if 4U == C3TASK_STACK_SLOTS
+static uint8_t g_stack_3[C3TASK_STACK_3_BYTES] C3TASK_ALIGNED_16;
+#endif
+#if !C3TASK_HOST_BUILD
+static uint8_t g_reaper_stack[C3TASK_REAPER_STACK_BYTES] C3TASK_ALIGNED_16;
+#endif
+static c3task_stack_slot_t   g_stack_slots[C3TASK_STACK_SLOTS];
+static c3task_reap_t *       gp_reap        = NULL;
+static c3task_reaper_state_t g_reaper_state = C3TASK_REAPER_OFF;
+
+static uint32_t c3task_resource_enter (void);
+static void c3task_resource_leave (uint32_t saved);
+static uint32_t c3task_stack_capacity_at (uint32_t index);
+static void * c3task_stack_at (uint32_t index);
+static int32_t c3task_stack_best_fit (uint32_t requested_bytes);
+#if !C3TASK_HOST_BUILD
+static void c3task_reaper_task (INT code, void * p_context);
+#endif
+#endif
+
+/** @brief Enter the task-resource critical section. */
+static uint32_t c3task_resource_enter (void)
+{
+#if C3TASK_HOST_BUILD
+    return 0U;
+#else
+    return (uint32_t)disint();
+#endif
 }
 
-static bool c3task_slot_reserve (c3task_slot_t * p_slot,
-                                 uint32_t        requested_stack_bytes)
+/** @brief Restore the previous interrupt state. */
+static void c3task_resource_leave (uint32_t saved)
 {
-    if ((!c3task_slot_available(p_slot)) || (0U == requested_stack_bytes) ||
-        (requested_stack_bytes > p_slot->stack_capacity_bytes))
+#if C3TASK_HOST_BUILD
+    (void)saved;
+#else
+    enaint((UW)saved);
+#endif
+}
+
+/** @brief Start the bounded deferred-cleanup execution context. */
+int c3task_init (void)
+{
+#if 0U == C3TASK_STACK_SLOTS
+    return -1;
+#else
+    uint32_t saved = c3task_resource_enter();
+
+    if (C3TASK_REAPER_READY == g_reaper_state)
     {
-        return false;
+        c3task_resource_leave(saved);
+        return 0;
+    }
+    if (C3TASK_REAPER_OFF != g_reaper_state)
+    {
+        c3task_resource_leave(saved);
+        return -1;
+    }
+    g_reaper_state = C3TASK_REAPER_STARTING;
+    c3task_resource_leave(saved);
+
+#if C3TASK_HOST_BUILD
+    saved          = c3task_resource_enter();
+    g_reaper_state = C3TASK_REAPER_READY;
+    c3task_resource_leave(saved);
+    return 0;
+#else
+    if (0U != ((uintptr_t)g_reaper_stack & (C3TASK_STACK_ALIGNMENT - 1U)))
+    {
+        saved          = c3task_resource_enter();
+        g_reaper_state = C3TASK_REAPER_FAILED;
+        c3task_resource_leave(saved);
+        return -1;
     }
 
-    p_slot->state                 = C3TASK_SLOT_RESERVED;
-    p_slot->requested_stack_bytes = requested_stack_bytes;
+    T_CTSK   config = {.exinf   = NULL,
+                       .tskatr  = TA_HLNG | TA_RNG0 | TA_USERBUF,
+                       .task    = (FP)c3task_reaper_task,
+                       .itskpri = C3TASK_REAPER_PRIORITY,
+                       .stksz   = (SZ)sizeof(g_reaper_stack),
+                       .bufptr  = g_reaper_stack};
+    const ID h_task = tk_cre_tsk(&config);
 
-    return true;
+    if (h_task <= 0)
+    {
+        saved          = c3task_resource_enter();
+        g_reaper_state = C3TASK_REAPER_FAILED;
+        c3task_resource_leave(saved);
+        return -1;
+    }
+    if (E_OK != tk_sta_tsk(h_task, 0))
+    {
+        (void)tk_del_tsk(h_task);
+        saved          = c3task_resource_enter();
+        g_reaper_state = C3TASK_REAPER_FAILED;
+        c3task_resource_leave(saved);
+        return -1;
+    }
+
+    saved          = c3task_resource_enter();
+    g_reaper_state = C3TASK_REAPER_READY;
+    c3task_resource_leave(saved);
+    return 0;
+#endif
+#endif
 }
 
-static int32_t c3task_find_and_reserve (c3task_slot_t * p_slots,
-                                        uint32_t        slot_count,
-                                        uint32_t        requested_stack_bytes)
+/** @brief Return the selected static stack-slot capacity. */
+uint32_t c3task_capacity (void)
 {
-    if ((NULL == p_slots) || (0U == slot_count) ||
-        (0U == requested_stack_bytes))
+    return C3TASK_STACK_SLOTS;
+}
+
+/** @brief Count occupied stack slots under one consistent snapshot. */
+uint32_t c3task_used (void)
+{
+    uint32_t       used  = 0U;
+    const uint32_t saved = c3task_resource_enter();
+
+#if 0U < C3TASK_STACK_SLOTS
+    for (uint32_t index = 0U; index < C3TASK_STACK_SLOTS; ++index)
+    {
+        if (g_stack_slots[index].b_used)
+        {
+            ++used;
+        }
+    }
+#endif
+
+    c3task_resource_leave(saved);
+    return used;
+}
+
+/** @brief Bind exactly one shim cleanup implementation. */
+int c3task_reaper_bind (c3task_reap_t * p_reap)
+{
+#if 0U == C3TASK_STACK_SLOTS
+    (void)p_reap;
+    return -1;
+#else
+    int            result = -1;
+    const uint32_t saved  = c3task_resource_enter();
+
+    if ((NULL != p_reap) && ((NULL == gp_reap) || (p_reap == gp_reap)))
+    {
+        gp_reap = p_reap;
+        result  = 0;
+    }
+
+    c3task_resource_leave(saved);
+    return result;
+#endif
+}
+
+/** @brief Reserve the smallest suitable fixed stack. */
+int c3task_stack_acquire (uintptr_t  owner,
+                          uint32_t   requested_bytes,
+                          void **    pp_stack,
+                          uint32_t * p_capacity_bytes)
+{
+#if 0U == C3TASK_STACK_SLOTS
+    (void)owner;
+    (void)requested_bytes;
+    (void)pp_stack;
+    (void)p_capacity_bytes;
+    return -1;
+#else
+    if ((0U == owner) || (0U == requested_bytes) || (NULL == pp_stack) ||
+        (NULL == p_capacity_bytes) ||
+        (requested_bytes > (UINT32_MAX - (C3TASK_STACK_ALIGNMENT - 1U))))
     {
         return -1;
     }
 
-    for (uint32_t index = 0U; index < slot_count; ++index)
+    const uint32_t aligned = (requested_bytes + (C3TASK_STACK_ALIGNMENT - 1U)) &
+                             ~(C3TASK_STACK_ALIGNMENT - 1U);
+    const uint32_t saved = c3task_resource_enter();
+
+    for (uint32_t index = 0U; index < C3TASK_STACK_SLOTS; ++index)
     {
-        if (c3task_slot_reserve(&p_slots[index], requested_stack_bytes))
+        if ((g_stack_slots[index].b_used) &&
+            (owner == g_stack_slots[index].owner))
         {
-            return (int32_t)index;
+            c3task_resource_leave(saved);
+            return -1;
         }
     }
 
+    const int32_t selected = c3task_stack_best_fit(aligned);
+
+    if (0 <= selected)
+    {
+        const uint32_t index   = (uint32_t)selected;
+        void * const   p_stack = c3task_stack_at(index);
+
+        if ((NULL != p_stack) &&
+            (0U == ((uintptr_t)p_stack & (C3TASK_STACK_ALIGNMENT - 1U))))
+        {
+            g_stack_slots[index].owner  = owner;
+            g_stack_slots[index].b_used = true;
+            *pp_stack                   = p_stack;
+            *p_capacity_bytes           = c3task_stack_capacity_at(index);
+            c3task_resource_leave(saved);
+            return 0;
+        }
+    }
+
+    c3task_resource_leave(saved);
     return -1;
+#endif
 }
 
-#endif /* UTHOME_C3TASK_HOST_TEST */
+/** @brief Release an exactly matched stack only after kernel deletion. */
+int c3task_stack_release (uintptr_t owner,
+                          void *    p_stack,
+                          bool      b_kernel_deleted)
+{
+#if 0U == C3TASK_STACK_SLOTS
+    (void)owner;
+    (void)p_stack;
+    (void)b_kernel_deleted;
+    return -1;
+#else
+    if ((0U == owner) || (NULL == p_stack) || (!b_kernel_deleted))
+    {
+        return -1;
+    }
+
+    int            result = -1;
+    const uint32_t saved  = c3task_resource_enter();
+
+    for (uint32_t index = 0U; index < C3TASK_STACK_SLOTS; ++index)
+    {
+        if ((g_stack_slots[index].b_used) &&
+            (owner == g_stack_slots[index].owner) &&
+            (p_stack == c3task_stack_at(index)))
+        {
+            g_stack_slots[index] = (c3task_stack_slot_t){0};
+            result               = 0;
+            break;
+        }
+    }
+
+    c3task_resource_leave(saved);
+    return result;
+#endif
+}
+
+#if 0U < C3TASK_STACK_SLOTS
+/** @brief Return one fixed slot's capacity. */
+static uint32_t c3task_stack_capacity_at (uint32_t index)
+{
+    static const uint32_t capacities[C3TASK_STACK_SLOTS] = {
+        C3TASK_STACK_0_BYTES,
+        C3TASK_STACK_1_BYTES,
+        C3TASK_STACK_2_BYTES,
+#if 4U == C3TASK_STACK_SLOTS
+        C3TASK_STACK_3_BYTES
+#endif
+    };
+    return (index < C3TASK_STACK_SLOTS) ? capacities[index] : 0U;
+}
+
+/** @brief Return one fixed slot's storage address. */
+static void * c3task_stack_at (uint32_t index)
+{
+    void * p_stack = NULL;
+
+    switch (index)
+    {
+    case 0U:
+        p_stack = g_stack_0;
+    break;
+
+    case 1U:
+        p_stack = g_stack_1;
+    break;
+
+    case 2U:
+        p_stack = g_stack_2;
+    break;
+
+#if 4U == C3TASK_STACK_SLOTS
+    case 3U:
+        p_stack = g_stack_3;
+    break;
+#endif
+
+    default:
+    break;
+    }
+
+    return p_stack;
+}
+
+/** @brief Find the smallest free slot meeting a rounded byte request. */
+static int32_t c3task_stack_best_fit (uint32_t requested_bytes)
+{
+    int32_t  selected          = -1;
+    uint32_t selected_capacity = UINT32_MAX;
+
+    for (uint32_t index = 0U; index < C3TASK_STACK_SLOTS; ++index)
+    {
+        const uint32_t capacity = c3task_stack_capacity_at(index);
+
+        if ((!g_stack_slots[index].b_used) && (requested_bytes <= capacity) &&
+            (capacity < selected_capacity))
+        {
+            selected          = (int32_t)index;
+            selected_capacity = capacity;
+        }
+    }
+
+    return selected;
+}
+
+#if !C3TASK_HOST_BUILD
+/** @brief Reclaim bounded shim resources from a surviving low-priority task. */
+static void c3task_reaper_task (INT code, void * p_context)
+{
+    (void)code;
+    (void)p_context;
+
+    for (;;)
+    {
+        c3task_reap_t * p_reap = NULL;
+        const uint32_t  saved  = c3task_resource_enter();
+
+        p_reap = gp_reap;
+        c3task_resource_leave(saved);
+
+        if (NULL != p_reap)
+        {
+            for (uint32_t attempt = 0U; attempt < C3TASK_STACK_SLOTS; ++attempt)
+            {
+                if (0 >= p_reap())
+                {
+                    break;
+                }
+            }
+        }
+
+        (void)tk_dly_tsk((TMO)C3TASK_REAPER_PERIOD_MS);
+    }
+}
+#endif
+#endif
 
 /* -------------------------------------------------------------------------
  * Fixed-capacity wireless task observer

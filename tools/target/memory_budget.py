@@ -8,10 +8,16 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 WRITABLE = (".dram0.bss", ".dram0.data", ".noinit")
+SUPPORTED_BUILD_MODES = ("configuration_application", "wifi_probe", "ble_probe")
 
 
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def build_is_supported(evidence):
+    return (evidence.get("build_status") == "passed"
+            and any(evidence.get(mode) for mode in SUPPORTED_BUILD_MODES))
 
 
 def analyze(files, summary, budget):
@@ -71,8 +77,8 @@ def main(argv=None):
     if args.output.exists():
         parser.error("Use a new output path; historical evidence is never overwritten")
     evidence = json.loads((args.build / "evidence.json").read_text())
-    if evidence["build_status"] != "passed" or not evidence.get("configuration_application"):
-        parser.error("A passed configuration-application build is required")
+    if not build_is_supported(evidence):
+        parser.error("A passed configuration-application or isolated radio build is required")
     for name in ("build/uthome_runtime_port.map", "build/uthome_runtime_port.elf"):
         if digest(args.build / name) != evidence["artifacts"][name]["sha256"]:
             parser.error("Artifact hash mismatch: " + name)

@@ -188,10 +188,13 @@ Historical map and allocator results are in
 
 The optional fixed-queue/event/startup variant uses `--static-net-queues` and
 `--budget tools/target/network-budget.json` with the memory checker. Its overall
-278,528-byte reservation remains unchanged. The older `netqueue-budget.json`
-describes the preceding queue-only experiment, not the current selected variant.
-The scan-only
-`--wifi-probe` additionally requires that queue option and the isolated runtime
+278,528-byte reservation remains unchanged. The selected limits are 168,192
+bytes of application fixed data, 53,184 bytes of SDK/kernel fixed data and
+57,152 bytes of RAM code. The checker accepts passed configuration-application
+builds and passed isolated Wi-Fi/BLE diagnostics; the resulting record retains
+`whole_system_static_qualified=false`. The older `netqueue-budget.json` describes
+the preceding queue-only experiment, not the current selected variant. The
+scan-only `--wifi-probe` additionally requires that queue option and the isolated runtime
 fixture (without `--configuration-app`). Its explicit noncompliant scope and
 memory observations are described in the [network guide](../../firmware/src/network/README.md).
 Do not install either while the AI collector owns serial. Diagnostic binaries

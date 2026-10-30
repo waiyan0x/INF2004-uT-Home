@@ -6,7 +6,9 @@ Production integration requires a separate C implementation and RAM approval.
 
 from dataclasses import dataclass
 
-STACK_SIZES = (5632, 5120, 6144)
+# Wi-Fi is the larger isolated profile. ESP-IDF 6.1 already includes its
+# configured libc allowance in these byte requests.
+STACK_SIZES = (2816, 3584, 4096, 6656)
 
 
 @dataclass

@@ -1,10 +1,15 @@
-Task,Requested bytes,Additional headroom bytes,Candidate reservation bytes
-ESP Timer,3584,2048,5632
-lwIP TCP/IP,3072,2048,5120
-BLE NimBLE Host,4096,2048,6144
-
-Existing reservations,152692
-Application fixed limit,155648
-Available headroom,2956
-Candidate requirement,16896
-Reservation shortfall,13940
+Record,Profile,Item,Bytes,Notes
+Stack,WiFi,Event loop,2816,Selected SDK configuration
+Stack,WiFi,TCP/IP,3584,Selected SDK configuration
+Stack,WiFi,ESP timer,4096,Selected SDK configuration
+Stack,WiFi,Wi-Fi,6656,Selected SDK configuration
+Stack total,WiFi,Radio task stacks,17152,Four bounded pool slots
+Stack,BLE,ESP timer,4096,Selected SDK configuration
+Stack,BLE,NimBLE host,4096,Selected SDK configuration
+Stack,BLE,Controller,4096,Selected SDK configuration
+Stack total,BLE,Radio task stacks,12288,Three bounded pool slots
+Stack,Common,Deferred-cleanup reaper,1024,Permanent stack outside pool
+ELF,WiFi,c3task writable object,18504,Includes pool metadata and reaper stack
+ELF,WiFi,Total DRAM used,278402,126 bytes beneath 278528-byte cap
+ELF,BLE,c3task writable object,13632,Includes pool metadata and reaper stack
+ELF,BLE,Total DRAM used,259127,19401 bytes beneath 278528-byte cap

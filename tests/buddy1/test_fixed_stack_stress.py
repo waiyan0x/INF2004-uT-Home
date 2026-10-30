@@ -1,4 +1,7 @@
-from fixed_stack_pool import FixedStackPool
+try:
+    from fixed_stack_pool import FixedStackPool
+except ModuleNotFoundError:
+    from tests.buddy1.fixed_stack_pool import FixedStackPool
 
 pool = FixedStackPool()
 
@@ -6,9 +9,10 @@ for round_number in range(1000):
     allocations = []
 
     for owner, size in [
-        ("timer", 5632),
-        ("tcpip", 5120),
-        ("ble", 6144),
+        ("event", 2816),
+        ("tcpip", 3584),
+        ("timer", 4096),
+        ("wifi", 6656),
     ]:
         token = pool.acquire(owner, size)
         assert token is not None

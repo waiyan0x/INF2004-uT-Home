@@ -11,24 +11,27 @@ class FixedStackPoolTests(unittest.TestCase):
     def test_three_tasks_acquire_exclusive_stacks(self):
         pool = FixedStackPool()
 
-        timer = pool.acquire("timer", 5632)
-        tcpip = pool.acquire("tcpip", 5120)
-        ble = pool.acquire("ble", 6144)
+        event = pool.acquire("event", 2816)
+        tcpip = pool.acquire("tcpip", 3584)
+        timer = pool.acquire("timer", 4096)
+        wifi = pool.acquire("wifi", 6656)
 
+        self.assertIsNotNone(event)
         self.assertIsNotNone(timer)
         self.assertIsNotNone(tcpip)
-        self.assertIsNotNone(ble)
+        self.assertIsNotNone(wifi)
 
-        self.assertEqual(len({timer[0], tcpip[0], ble[0]}), 3)
-        self.assertEqual(pool.used_bytes(), 16896)
+        self.assertEqual(len({event[0], tcpip[0], timer[0], wifi[0]}), 4)
+        self.assertEqual(pool.used_bytes(), 17152)
 
     def test_exhaustion_rejected(self):
         pool = FixedStackPool()
 
         for name, size in (
-            ("timer", 5632),
-            ("tcpip", 5120),
-            ("ble", 6144),
+            ("event", 2816),
+            ("tcpip", 3584),
+            ("timer", 4096),
+            ("wifi", 6656),
         ):
             self.assertIsNotNone(pool.acquire(name, size))
 
@@ -40,16 +43,16 @@ class FixedStackPoolTests(unittest.TestCase):
 
     def test_running_task_cannot_release(self):
         pool = FixedStackPool()
-        token = pool.acquire("timer", 5632)
+        token = pool.acquire("timer", 4096)
 
         self.assertFalse(
             pool.release(token, "timer", kernel_task_deleted=False)
         )
-        self.assertEqual(pool.used_bytes(), 5632)
+        self.assertEqual(pool.used_bytes(), 4096)
 
     def test_verified_deleted_task_can_release(self):
         pool = FixedStackPool()
-        token = pool.acquire("timer", 5632)
+        token = pool.acquire("timer", 4096)
 
         self.assertTrue(
             pool.release(token, "timer", kernel_task_deleted=True)
@@ -59,14 +62,14 @@ class FixedStackPoolTests(unittest.TestCase):
     def test_stale_handle_cannot_release_new_owner(self):
         pool = FixedStackPool()
 
-        old_token = pool.acquire("timer", 5632)
+        old_token = pool.acquire("timer", 4096)
         self.assertTrue(
             pool.release(
                 old_token, "timer", kernel_task_deleted=True
             )
         )
 
-        new_token = pool.acquire("new_timer", 5632)
+        new_token = pool.acquire("new_timer", 4096)
 
         self.assertFalse(
             pool.release(
@@ -75,13 +78,13 @@ class FixedStackPoolTests(unittest.TestCase):
         )
 
         self.assertNotEqual(old_token, new_token)
-        self.assertEqual(pool.used_bytes(), 5632)
+        self.assertEqual(pool.used_bytes(), 4096)
 
     def test_duplicate_owner_rejected(self):
         pool = FixedStackPool()
 
-        self.assertIsNotNone(pool.acquire("timer", 5632))
-        self.assertIsNone(pool.acquire("timer", 5120))
+        self.assertIsNotNone(pool.acquire("timer", 4096))
+        self.assertIsNone(pool.acquire("timer", 3584))
 
 
 if __name__ == "__main__":

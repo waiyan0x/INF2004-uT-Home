@@ -183,8 +183,18 @@ set_source_files_properties("nqcheck.c" "../network/netring.c" "../network/netwa
     PROPERTIES COMPILE_OPTIONS "-std=c99;${UTHOME_WARNINGS}")
 include("${CMAKE_CURRENT_LIST_DIR}/netqueue.cmake")
 
-set_source_files_properties("../hal/c3task.c"
-    APPEND PROPERTY COMPILE_DEFINITIONS
+# The project-owned fixed-stack contract is consumed only by the patched shim
+# in isolated radio builds. Keep the vendor source unchanged and expose just
+# this reviewed interface to its target.
+if(UTHOME_WIFI_PROBE OR UTHOME_BLE_PROBE)
+    if(NOT UTHOME_SHIM_LIB)
+        message(FATAL_ERROR "Static radio task stacks require the shim target")
+    endif()
+    target_include_directories(${UTHOME_SHIM_LIB} PRIVATE
+        "${CMAKE_CURRENT_LIST_DIR}/../hal")
+endif()
+
+set_property(SOURCE "../hal/c3task.c" APPEND PROPERTY COMPILE_DEFINITIONS
     UTHOME_C3TASK_TARGET=1)
 
 if(UTHOME_WIFI_PROBE OR UTHOME_BLE_PROBE OR UTHOME_MODEL_PROBE)

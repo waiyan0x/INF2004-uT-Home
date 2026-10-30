@@ -9,13 +9,21 @@
 #ifndef UTHOME_C3TASK_H
 #define UTHOME_C3TASK_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #define C3TASK_OBSERVER_SLOTS      8U
 #define C3TASK_OBSERVER_NAME_BYTES 16U
 
+/** @brief Deferred shim cleanup callback. */
+typedef int c3task_reap_t (void);
+
 /**
- * @brief Initialize fixed wireless task resources.
+ * @brief Start the permanent low-priority cleanup task.
+ *
+ * Static stack allocation is available before this call so SDK startup tasks
+ * can be created before the project entry point. Initialization only starts
+ * the surviving context used for deferred lifecycle cleanup.
  *
  * @return Zero on success or a negative value on failure.
  */
@@ -26,6 +34,43 @@ uint32_t c3task_capacity (void);
 
 /** @brief Return the number of occupied static task slots. */
 uint32_t c3task_used (void);
+
+/**
+ * @brief Bind the patched shim's bounded cleanup operation.
+ *
+ * Rebinding to a different function is rejected. The callback is invoked only
+ * by the permanent cleanup task, never from an ISR or a terminating task.
+ *
+ * @param p_reap Cleanup operation that reclaims at most one shim task.
+ * @return Zero on success or a negative value on failure.
+ */
+int c3task_reaper_bind (c3task_reap_t * p_reap);
+
+/**
+ * @brief Reserve the smallest available fixed stack that fits a request.
+ *
+ * @param owner Nonzero generation-aware shim task token.
+ * @param requested_bytes Requested ESP-IDF stack bytes.
+ * @param pp_stack Destination for the aligned caller-owned stack.
+ * @param p_capacity_bytes Destination for the physical stack capacity.
+ * @return Zero on success or a negative value on invalid input/exhaustion.
+ */
+int c3task_stack_acquire (uintptr_t  owner,
+                          uint32_t   requested_bytes,
+                          void **    pp_stack,
+                          uint32_t * p_capacity_bytes);
+
+/**
+ * @brief Release a stack after the corresponding kernel task is deleted.
+ *
+ * @param owner Generation-aware token used for acquisition.
+ * @param p_stack Exact stack address returned by acquisition.
+ * @param b_kernel_deleted True only after no kernel task can use the stack.
+ * @return Zero on success or a negative value on stale/unsafe release.
+ */
+int c3task_stack_release (uintptr_t owner,
+                          void *    p_stack,
+                          bool      b_kernel_deleted);
 
 /** @brief Aggregate task-observation statistics. */
 typedef struct

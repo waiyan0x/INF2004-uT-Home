@@ -48,8 +48,22 @@ with tempfile.TemporaryDirectory(prefix='buddy1_reservation_') as folder:
     source = staged_file.read_text()
     if not re.search(r'#define\s+SHIM_TASK_RESERVED\s+\(\(ID\)-1\)', source):
         raise SystemExit('Missing explicit reserved-slot sentinel')
-    reserve = extract_function(source, 'alloc_task_entry')
-    release = extract_function(source, 'free_task_entry')
+    state = re.search(
+        r'typedef\s+enum\s*\{.*?\}\s*shim_task_state_t\s*;',
+        source,
+        re.DOTALL,
+    )
+    if state is None:
+        raise RuntimeError('Missing lifecycle state in patched shim')
+    helpers = '\n\n'.join(
+        extract_function(source, name)
+        for name in (
+            'make_handle',
+            'clear_task_entry',
+            'alloc_task_entry',
+            'release_unstarted_entry',
+        )
+    )
     program = r'''
 #include <assert.h>
 #include <pthread.h>
@@ -60,9 +74,16 @@ with tempfile.TemporaryDirectory(prefix='buddy1_reservation_') as folder:
 typedef int ID;
 typedef unsigned int UINT;
 typedef struct { ID tsk_id; } shim_task_t;
-#define SHIM_TASK_MAX 48
+#define SHIM_TASK_MAX 4
 #define SHIM_TASK_RESERVED ((ID)-1)
+@@STATE@@
 static shim_task_t s_tasks[SHIM_TASK_MAX];
+static shim_task_state_t s_task_states[SHIM_TASK_MAX];
+static uint8_t s_cleanup_busy[SHIM_TASK_MAX];
+static uint8_t s_observed[SHIM_TASK_MAX];
+static uint8_t s_self_exit[SHIM_TASK_MAX];
+static uintptr_t s_handles[SHIM_TASK_MAX];
+static uint32_t s_generations[SHIM_TASK_MAX];
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 #define DI(saved) do { (saved) = 0; assert(pthread_mutex_lock(&g_lock) == 0); } while (0)
 #define EI(saved) do { (void)(saved); assert(pthread_mutex_unlock(&g_lock) == 0); } while (0)
@@ -71,10 +92,15 @@ static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
 @@HELPERS@@
 
 static shim_task_t *g_allocations[SHIM_TASK_MAX];
+static int g_indices[SHIM_TASK_MAX];
+static uintptr_t g_handles[SHIM_TASK_MAX];
 static void *worker(void *arg)
 {
     uintptr_t index = (uintptr_t)arg;
-    g_allocations[index] = alloc_task_entry();
+    g_indices[index] = -1;
+    g_handles[index] = 0U;
+    g_allocations[index] = alloc_task_entry(&g_indices[index],
+                                             &g_handles[index]);
     return NULL;
 }
 
@@ -90,20 +116,31 @@ int main(void)
         for (int i = 0; i < SHIM_TASK_MAX; ++i) {
             assert(g_allocations[i] != NULL);
             assert(g_allocations[i]->tsk_id == SHIM_TASK_RESERVED);
+            assert(g_indices[i] >= 0 && g_indices[i] < SHIM_TASK_MAX);
+            assert(g_handles[i] != 0U);
             for (int j = i + 1; j < SHIM_TASK_MAX; ++j)
+            {
                 assert(g_allocations[i] != g_allocations[j]);
+                assert(g_handles[i] != g_handles[j]);
+            }
         }
-        assert(alloc_task_entry() == NULL);
+        int rejected_index = -1;
+        uintptr_t rejected_handle = 0U;
+        assert(alloc_task_entry(&rejected_index, &rejected_handle) == NULL);
         for (int i = 0; i < SHIM_TASK_MAX; ++i)
-            free_task_entry(g_allocations[i]);
+            release_unstarted_entry(g_indices[i]);
         for (int i = 0; i < SHIM_TASK_MAX; ++i)
+        {
             assert(s_tasks[i].tsk_id == 0);
+            assert(s_task_states[i] == SHIM_TASK_FREE);
+        }
     }
-    puts("PASS: 48 distinct reservations, exhaustion, cleanup, 100 rounds");
+    puts("PASS: 4 distinct generation reservations, exhaustion, cleanup, 100 rounds");
     return 0;
 }
 '''
-    code = program.replace('@@HELPERS@@', reserve + '\n\n' + release)
+    code = program.replace('@@STATE@@', state.group(0))
+    code = code.replace('@@HELPERS@@', helpers)
     test_file = workspace / 'reservation_test.c'
     exe = workspace / 'reservation_test'
     test_file.write_text(code)

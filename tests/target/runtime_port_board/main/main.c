@@ -12,6 +12,7 @@
 #include "c3clock.h"
 #include "nqcheck.h"
 #include "c3nq.h"
+#include "c3task.h"
 #include "c3wifi.h"
 #include "c3ble.h"
 #include "aiprobe.h"
@@ -159,6 +160,9 @@ EXPORT INT usermain (void)
 {
     CHECK(0 == c3audit_begin());
 #if UTHOME_WIFI_PROBE || UTHOME_BLE_PROBE || UTHOME_MODEL_PROBE
+#if UTHOME_WIFI_PROBE || UTHOME_BLE_PROBE
+    CHECK(0 == c3task_init());
+#endif
     start_idle();
     CHECK(0 == rt_port_clock_set(c3clock_now));
     CHECK(0 == rt_port_init());

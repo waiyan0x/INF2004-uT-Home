@@ -1,240 +1,456 @@
 diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shim_task.c
 --- a/components/freertos_shim/shim_task.c
 +++ b/components/freertos_shim/shim_task.c
-@@ -2,6 +2,13 @@
+@@ -2,44 +2,176 @@
  #include "freertos/shim_internal.h"
  #include "freertos/task.h"
  #include "esp_rom_sys.h"
-+
-+/* Project-owned observer: linked by the runtime-port fixture only. */
-+extern uint32_t c3task_observer_begin(const char *name, uint32_t stack_bytes);
-+extern int c3task_observer_commit(uint32_t token, void *handle);
-+extern int c3task_observer_abort(uint32_t token);
-+extern int c3task_observer_cancel(void *handle);
-+extern int c3task_observer_release(void *handle);
- 
++#include "c3task.h"
+
  /* -------------------------------------------------------------------------
   * Task handle table — maps µT-Kernel task IDs to shim_task_t wrappers.
-@@ -9,18 +16,50 @@
+  * The table is protected by a critical section (DI/EI) since task creation
   * can happen from multiple tasks during WiFi init.
   * ------------------------------------------------------------------------- */
- #define SHIM_TASK_MAX  48   /* must match CNF_MAX_TSKID */
-+#define SHIM_TASK_RESERVED ((ID)-1) /* valid task IDs are positive */
- 
+-#define SHIM_TASK_MAX  48   /* must match CNF_MAX_TSKID */
++#define SHIM_TASK_MAX 4
++#define SHIM_TASK_RESERVED ((ID)-1)
+
  static shim_task_t s_tasks[SHIM_TASK_MAX];
+
+-static shim_task_t *alloc_task_entry(void)
++typedef enum {
++    SHIM_TASK_FREE = 0,
++    SHIM_TASK_SLOT_RESERVED,
++    SHIM_TASK_RUNNING,
++    SHIM_TASK_STOPPING,
++    SHIM_TASK_TERMINATE_PENDING,
++    SHIM_TASK_WAIT_DORMANT,
++    SHIM_TASK_DELETED,
++    SHIM_TASK_SEM_DELETED,
++    SHIM_TASK_STACK_RELEASED
++} shim_task_state_t;
 +
-+/* One fixed cleanup flag per task slot; no heap allocation. */
-+/*
-+ * Deferred cleanup lifecycle.
-+ * State is protected by DI/EI.
-+ */
-+enum {
-+    SHIM_CLEANUP_NONE = 0,
-+    SHIM_CLEANUP_PENDING = 1,
-+    SHIM_CLEANUP_CLAIMED = 2,
-+    SHIM_CLEANUP_TASK_DELETED = 3,
-+    SHIM_CLEANUP_SEM_DELETED = 4,
-+    SHIM_CLEANUP_CLAIMED_TASK_DELETED = 5,
-+    SHIM_CLEANUP_CLAIMED_SEM_DELETED = 6
-+};
++static shim_task_state_t s_task_states[SHIM_TASK_MAX];
++static uint8_t s_cleanup_busy[SHIM_TASK_MAX];
++static uint8_t s_observed[SHIM_TASK_MAX];
++static uint8_t s_self_exit[SHIM_TASK_MAX];
++static uintptr_t s_handles[SHIM_TASK_MAX];
++static uint32_t s_generations[SHIM_TASK_MAX];
 +
++int shim_task_reap_one(void);
 +
-+
-+static uint8_t s_cleanup_pending[SHIM_TASK_MAX];
- 
- static shim_task_t *alloc_task_entry(void)
++static uintptr_t make_handle(int index)
  {
-     UINT saved; DI(saved);
-     shim_task_t *t = NULL;
+-    UINT saved; DI(saved);
+-    shim_task_t *t = NULL;
++    uint32_t generation = s_generations[index] + 1U;
++
++    if (generation > ((UINT32_MAX - SHIM_TASK_MAX) / SHIM_TASK_MAX)) {
++        generation = 1U;
++    }
++
++    s_generations[index] = generation;
++    return ((uintptr_t)generation * SHIM_TASK_MAX) + (uintptr_t)index + 1U;
++}
++
++static void clear_task_entry(int index)
++{
++    memset(&s_tasks[index], 0, sizeof(s_tasks[index]));
++    s_handles[index] = 0U;
++    s_cleanup_busy[index] = 0U;
++    s_observed[index] = 0U;
++    s_self_exit[index] = 0U;
++    s_task_states[index] = SHIM_TASK_FREE;
++}
++
++static shim_task_t *alloc_task_entry(int *out_index, uintptr_t *out_handle)
++{
++    UINT saved;
++    shim_task_t *task = NULL;
++
++    DI(saved);
      for (int i = 0; i < SHIM_TASK_MAX; i++) {
 -        if (s_tasks[i].tsk_id == 0) { t = &s_tasks[i]; break; }
-+        if (s_tasks[i].tsk_id == 0) {
-+            /* Reserve before EI: no other creator may take this slot. */
++        if (s_task_states[i] == SHIM_TASK_FREE) {
++            clear_task_entry(i);
++            s_task_states[i] = SHIM_TASK_SLOT_RESERVED;
 +            s_tasks[i].tsk_id = SHIM_TASK_RESERVED;
-+            t = &s_tasks[i];
++            s_handles[i] = make_handle(i);
++            *out_index = i;
++            *out_handle = s_handles[i];
++            task = &s_tasks[i];
 +            break;
 +        }
      }
      EI(saved);
-     return t;
+-    return t;
++    return task;
+ }
+
++static int find_index_by_tk_id(ID id)
++{
++    UINT saved;
++    int index = -1;
++
++    if (id <= 0) return -1;
++
++    DI(saved);
++    for (int i = 0; i < SHIM_TASK_MAX; i++) {
++        if (s_tasks[i].tsk_id == id && s_task_states[i] != SHIM_TASK_FREE) {
++            index = i;
++            break;
++        }
++    }
++    EI(saved);
++    return index;
 +}
 +
-+static void free_task_entry(shim_task_t *entry)
++static int find_index_by_handle(TaskHandle_t handle)
 +{
-+    UINT saved; DI(saved);
-+    entry->tsk_id = 0;
++    UINT saved;
++    int index = -1;
++    uintptr_t token = (uintptr_t)handle;
++
++    if (token == 0U) return -1;
++
++    DI(saved);
++    for (int i = 0; i < SHIM_TASK_MAX; i++) {
++        if (s_handles[i] == token && s_task_states[i] != SHIM_TASK_FREE) {
++            index = i;
++            break;
++        }
++    }
 +    EI(saved);
- }
- 
++    return index;
++}
++
  static shim_task_t *find_by_tk_id(ID id)
-@@ -47,9 +86,13 @@
+ {
+-    for (int i = 0; i < SHIM_TASK_MAX; i++)
+-        if (s_tasks[i].tsk_id == id) return &s_tasks[i];
+-    return NULL;
++    int index = find_index_by_tk_id(id);
++    return index >= 0 ? &s_tasks[index] : NULL;
+ }
+
+-static shim_task_t *find_by_handle(TaskHandle_t h)
++static shim_task_t *find_by_handle(TaskHandle_t handle)
+ {
+-    return (shim_task_t *)h;
++    UINT saved;
++    shim_task_t *task = NULL;
++    int index = find_index_by_handle(handle);
++
++    if (index < 0) return NULL;
++
++    DI(saved);
++    if (s_task_states[index] == SHIM_TASK_RUNNING &&
++        s_handles[index] == (uintptr_t)handle) {
++        task = &s_tasks[index];
++    }
++    EI(saved);
++    return task;
+ }
+
++static void release_unstarted_entry(int index)
++{
++    UINT saved;
++
++    DI(saved);
++    clear_task_entry(index);
++    EI(saved);
++}
++
++static void defer_cleanup(int index, shim_task_state_t state)
++{
++    UINT saved;
++
++    DI(saved);
++    s_task_states[index] = state;
++    s_cleanup_busy[index] = 0U;
++    EI(saved);
++}
++
++static void paint_stack(void *stack, uint32_t stack_size)
++{
++    uint32_t *words = (uint32_t *)stack;
++
++    for (uint32_t i = 0U; i < stack_size / sizeof(uint32_t); i++) {
++        words[i] = 0xA5A5A5A5U;
++    }
++}
++
+ /* -------------------------------------------------------------------------
+  * xTaskCreatePinnedToCore / xTaskCreate
+  *
+- * FreeRTOS stack_words is in 32-bit words; T_CTSK.stksz is in bytes.
+- * Minimum stack: 2 KB (512 words * 4) — the WiFi tasks ask for 3072+ words.
++ * ESP-IDF passes stack sizes in bytes. The project allocator supplies bounded,
++ * aligned TA_USERBUF storage and rejects requests outside the selected profile.
+  * ------------------------------------------------------------------------- */
+ BaseType_t __wrap_xTaskCreatePinnedToCore(TaskFunction_t fn, const char *name,
+     uint32_t stack_words, void *param, UBaseType_t prio,
+@@ -47,87 +179,109 @@
  {
      (void)core; /* single-core */
- 
-+    /* Zero token means full diagnostic table; never reject the real task. */
-+    uint32_t observer_token = c3task_observer_begin(name, stack_words);
+
+-    shim_task_t *entry = alloc_task_entry();
++    if (c3task_reaper_bind(shim_task_reap_one) != 0) {
++        return pdFALSE;
++    }
 +
-     shim_task_t *entry = alloc_task_entry();
++    uint32_t observer_token = c3task_observer_begin(name, stack_words);
++    int index = -1;
++    uintptr_t handle = 0U;
++    shim_task_t *entry = alloc_task_entry(&index, &handle);
      if (!entry) {
          tm_printf((UB*)"[shim] xTaskCreate: no free task entry (%s)\n", name ? name : "?");
 +        if (observer_token) (void)c3task_observer_abort(observer_token);
          return pdFALSE;
      }
- 
-@@ -58,6 +101,8 @@
+
++    void *stack = NULL;
++    uint32_t stack_size = 0U;
++    if (c3task_stack_acquire(handle, stack_words, &stack, &stack_size) != 0) {
++        tm_printf((UB*)"[shim] xTaskCreate: fixed stack unavailable (%s, %u)\n",
++                  name ? name : "?", (unsigned)stack_words);
++        if (observer_token) (void)c3task_observer_abort(observer_token);
++        release_unstarted_entry(index);
++        return pdFALSE;
++    }
++
++    entry->stack = stack;
++    entry->stack_sz = stack_size;
++    paint_stack(stack, stack_size);
++
+     /* Notification semaphore (binary, initially empty) */
+     T_CSEM cs = { .sematr = TA_TFIFO, .isemcnt = 0, .maxsem = 1 };
      ID notify_sem = tk_cre_sem(&cs);
      if (notify_sem <= 0) {
          tm_printf((UB*)"[shim] xTaskCreate: tk_cre_sem failed (%s)\n", name ? name : "?");
 +        if (observer_token) (void)c3task_observer_abort(observer_token);
-+        free_task_entry(entry);
++        if (c3task_stack_release(handle, stack, true) == 0) {
++            release_unstarted_entry(index);
++        } else {
++            defer_cleanup(index, SHIM_TASK_SEM_DELETED);
++        }
          return pdFALSE;
      }
- 
-@@ -90,6 +135,8 @@
-                        name ? name : "?", (unsigned)stack_sz,
-                        (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
-                        (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
-+        if (observer_token) (void)c3task_observer_abort(observer_token);
-+        free_task_entry(entry);
-         return pdFALSE;
-     }
- 
-@@ -108,6 +155,8 @@
-         tk_del_sem(notify_sem);
+
+-    /* IMPORTANT unit fix: ESP-IDF's xTaskCreate[PinnedToCore] takes the stack
+-     * size in BYTES (see freertos task.h: "the stack size DEFINED IN BYTES.
+-     * Note that this differs from vanilla FreeRTOS").  IDF components call this
+-     * wrapper with byte counts (esp_timer 4096, wifi 6656, ...).  The previous
+-     * code multiplied by sizeof(StackType_t), over-allocating every task stack
+-     * 4x and wasting ~76 KB of internal RAM — which starved the BLE connection
+-     * path and broke nimble_host allocation under any added memory pressure.
+-     *
+-     * Allocate the requested bytes plus a fixed headroom.  µT-Kernel runs ISRs
+-     * on the current task's stack (unlike IDF FreeRTOS, which has a dedicated
+-     * interrupt stack), so add 2 KB of margin on top of IDF's sizing.  Measured
+-     * peak usage across all tasks (incl. ISR frames) is < 1.8 KB, so this is
+-     * very safe. */
+-    SZ stack_sz = (SZ)stack_words + 2048;
+-    void *stack = heap_caps_malloc(stack_sz, MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
+-
+-    /* Paint the stack with a sentinel so uxTaskGetStackHighWaterMark() and
+-     * shim_dump_stack_watermarks() can measure peak usage by scanning for the
+-     * first overwritten word. */
+-    if (stack) {
+-        uint32_t *w = (uint32_t *)stack;
+-        for (SZ i = 0; i < stack_sz / 4; i++) w[i] = 0xA5A5A5A5u;
+-    }
+-    if (!stack) {
+-        tk_del_sem(notify_sem);
+-        esp_rom_printf("[shim] xTaskCreate: stack alloc FAILED (%s) need=%u free_int=%u largest=%u\n",
+-                       name ? name : "?", (unsigned)stack_sz,
+-                       (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+-                       (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
+-        return pdFALSE;
+-    }
+-
+     T_CTSK ctsk = {
+         .exinf   = NULL,
+         .tskatr  = TA_HLNG | TA_RNG0 | TA_USERBUF,
+         .task    = (FP)fn,
+         .itskpri = shim_prio_to_tk((uint32_t)prio),
+-        .stksz   = stack_sz,
++        .stksz   = (SZ)stack_size,
+         .bufptr  = stack,
+     };
+
+     ID tsk_id = tk_cre_tsk(&ctsk);
+     if (tsk_id <= 0) {
+-        heap_caps_free(stack);
+-        tk_del_sem(notify_sem);
          tm_printf((UB*)"[shim] xTaskCreate: tk_cre_tsk failed (%s) err=%d\n",
                    name ? name : "?", (int)tsk_id);
 +        if (observer_token) (void)c3task_observer_abort(observer_token);
-+        free_task_entry(entry);
++        entry->tsk_id = 0;
++        entry->notify_sem = notify_sem;
++        if (tk_del_sem(notify_sem) == E_OK) {
++            entry->notify_sem = 0;
++            if (c3task_stack_release(handle, stack, true) == 0) {
++                release_unstarted_entry(index);
++            } else {
++                defer_cleanup(index, SHIM_TASK_SEM_DELETED);
++            }
++        } else {
++            defer_cleanup(index, SHIM_TASK_DELETED);
++        }
          return pdFALSE;
      }
- 
-@@ -119,11 +168,22 @@
+
+     entry->hdr.tag    = (shim_tag_t)0; /* not a queue type */
+     entry->tsk_id     = tsk_id;
+     entry->notify_sem = notify_sem;
+-    entry->stack      = stack;
+-    entry->stack_sz   = (uint32_t)stack_sz;
      if (name) { strncpy(entry->name, name, sizeof(entry->name) - 1); entry->name[sizeof(entry->name) - 1] = '\0'; }
      else      { entry->name[0] = '\0'; }
- 
+
 +    /* Commit before the new task can run and delete itself. */
 +    if (observer_token) {
-+        (void)c3task_observer_commit(observer_token, (void *)entry);
++        if (c3task_observer_commit(observer_token, (void *)handle) == 0) {
++            s_observed[index] = 1U;
++        } else {
++            (void)c3task_observer_abort(observer_token);
++        }
 +    }
++
++    UINT saved;
++    DI(saved);
++    s_task_states[index] = SHIM_TASK_RUNNING;
++    EI(saved);
 +
      ER er = tk_sta_tsk(tsk_id, (INT)(intptr_t)param);
      if (er != E_OK) {
-         tk_del_tsk(tsk_id);
-         tk_del_sem(notify_sem);
+-        tk_del_tsk(tsk_id);
+-        tk_del_sem(notify_sem);
 -        entry->tsk_id = 0;
-+        /* Startup failure must also reclaim the TA_USERBUF stack. */
-+        heap_caps_free(stack);
-+        entry->stack = NULL;
-+        entry->stack_sz = 0;
-+        entry->notify_sem = 0;
-+        if (observer_token) (void)c3task_observer_cancel((void *)entry);
-+        free_task_entry(entry);
++        if (s_observed[index]) {
++            if (c3task_observer_cancel((void *)handle) == 0) {
++                s_observed[index] = 0U;
++            }
++        }
++        defer_cleanup(index, SHIM_TASK_WAIT_DORMANT);
          return pdFALSE;
      }
- 
-@@ -137,22 +197,181 @@
+
+-    if (out) *out = (TaskHandle_t)entry;
++    if (out) *out = (TaskHandle_t)handle;
+     return pdTRUE;
+ }
+
+@@ -137,22 +291,167 @@
      return __wrap_xTaskCreatePinnedToCore(fn, name, stack_words, param, prio, out, 0);
  }
- 
-+/*
-+ * Reclaim at most one self-deleted task per call.
-+ * Must run from a surviving task, never from an ISR or the dying task.
-+ * Returns 1 if reclaimed, 0 if none ready, -1 on cleanup failure.
-+ */
-+/*
-+ * Attempt to reclaim one self-deleted task.
-+ * Must be invoked from a surviving task context.
-+ */
+
+-void __wrap_vTaskDelete(TaskHandle_t h)
++/* Reclaim at most one task from the permanent project reaper context. */
 +int shim_task_reap_one(void)
-+{
+ {
+-    if (!h) {
+-        /* Delete self — not supported cleanly; just call tk_ext_tsk() */
 +    for (int i = 0; i < SHIM_TASK_MAX; i++) {
 +        UINT saved;
 +        ID id;
-+        uint8_t phase;
++        shim_task_state_t phase;
++        uintptr_t handle;
 +
 +        DI(saved);
-+        phase = s_cleanup_pending[i];
-+
-+        if (phase != SHIM_CLEANUP_PENDING &&
-+            phase != SHIM_CLEANUP_TASK_DELETED &&
-+            phase != SHIM_CLEANUP_SEM_DELETED) {
++        phase = s_task_states[i];
++        if (s_cleanup_busy[i] ||
++            (phase != SHIM_TASK_TERMINATE_PENDING &&
++             phase != SHIM_TASK_WAIT_DORMANT &&
++             phase != SHIM_TASK_DELETED &&
++             phase != SHIM_TASK_SEM_DELETED &&
++             phase != SHIM_TASK_STACK_RELEASED)) {
 +            EI(saved);
 +            continue;
 +        }
-+
-+        if (phase == SHIM_CLEANUP_PENDING) {
-+            s_cleanup_pending[i] = SHIM_CLEANUP_CLAIMED;
-+        } else if (phase == SHIM_CLEANUP_TASK_DELETED) {
-+            s_cleanup_pending[i] = SHIM_CLEANUP_CLAIMED_TASK_DELETED;
-+        } else {
-+            s_cleanup_pending[i] = SHIM_CLEANUP_CLAIMED_SEM_DELETED;
-+        }
-+
++        s_cleanup_busy[i] = 1U;
 +        id = s_tasks[i].tsk_id;
++        handle = s_handles[i];
 +        EI(saved);
 +
-+        if (phase == SHIM_CLEANUP_PENDING) {
++        if (phase == SHIM_TASK_TERMINATE_PENDING) {
++            T_RTSK state;
++            if (id <= 0 || tk_ref_tsk(id, &state) != E_OK) {
++                defer_cleanup(i, SHIM_TASK_TERMINATE_PENDING);
++                return -1;
++            }
++            if (state.tskstat != TTS_DMT && tk_ter_tsk(id) != E_OK) {
++                defer_cleanup(i, SHIM_TASK_TERMINATE_PENDING);
++                return -1;
++            }
++            phase = SHIM_TASK_WAIT_DORMANT;
++            defer_cleanup(i, phase);
++            DI(saved);
++            s_cleanup_busy[i] = 1U;
++            EI(saved);
++        }
++
++        if (phase == SHIM_TASK_WAIT_DORMANT) {
 +            T_RTSK state;
 +
 +            if (id <= 0 || tk_ref_tsk(id, &state) != E_OK) {
-+                DI(saved);
-+                s_cleanup_pending[i] = SHIM_CLEANUP_PENDING;
-+                EI(saved);
++                defer_cleanup(i, SHIM_TASK_WAIT_DORMANT);
 +                return -1;
 +            }
-+
 +            if (state.tskstat != TTS_DMT) {
-+                DI(saved);
-+                s_cleanup_pending[i] = SHIM_CLEANUP_PENDING;
-+                EI(saved);
++                defer_cleanup(i, SHIM_TASK_WAIT_DORMANT);
 +                continue;
 +            }
-+
 +            if (tk_del_tsk(id) != E_OK) {
-+                DI(saved);
-+                s_cleanup_pending[i] = SHIM_CLEANUP_PENDING;
-+                EI(saved);
++                defer_cleanup(i, SHIM_TASK_WAIT_DORMANT);
 +                return -1;
 +            }
-+
-+            phase = SHIM_CLEANUP_TASK_DELETED;
-+        }
-+
-+        if (phase == SHIM_CLEANUP_TASK_DELETED) {
-+            if (s_tasks[i].notify_sem > 0) {
-+                if (tk_del_sem(s_tasks[i].notify_sem) != E_OK) {
-+                    DI(saved);
-+                    s_cleanup_pending[i] = SHIM_CLEANUP_TASK_DELETED;
-+                    EI(saved);
-+                    return -1;
-+                }
-+
-+                s_tasks[i].notify_sem = 0;
-+            }
-+
-+            phase = SHIM_CLEANUP_SEM_DELETED;
-+        }
-+
-+        if (phase == SHIM_CLEANUP_SEM_DELETED) {
-+            if (s_tasks[i].stack != NULL) {
-+                heap_caps_free(s_tasks[i].stack);
-+                s_tasks[i].stack = NULL;
-+            }
-+
-+            s_tasks[i].stack_sz = 0;
-+
-+            if (c3task_observer_release((void *)&s_tasks[i]) != 0) {
-+                DI(saved);
-+                s_cleanup_pending[i] = SHIM_CLEANUP_SEM_DELETED;
-+                EI(saved);
-+                return -1;
-+            }
-+
 +            DI(saved);
 +            s_tasks[i].tsk_id = 0;
-+            s_cleanup_pending[i] = SHIM_CLEANUP_NONE;
++            s_task_states[i] = SHIM_TASK_DELETED;
 +            EI(saved);
++            phase = SHIM_TASK_DELETED;
++        }
 +
++        if (phase == SHIM_TASK_DELETED) {
++            if (s_tasks[i].notify_sem > 0) {
++                if (tk_del_sem(s_tasks[i].notify_sem) != E_OK) {
++                    defer_cleanup(i, SHIM_TASK_DELETED);
++                    return -1;
++                }
++                s_tasks[i].notify_sem = 0;
++            }
++            DI(saved);
++            s_task_states[i] = SHIM_TASK_SEM_DELETED;
++            EI(saved);
++            phase = SHIM_TASK_SEM_DELETED;
++        }
++
++        if (phase == SHIM_TASK_SEM_DELETED) {
++            if (s_tasks[i].stack != NULL) {
++                if (c3task_stack_release(handle, s_tasks[i].stack, true) != 0) {
++                    defer_cleanup(i, SHIM_TASK_SEM_DELETED);
++                    return -1;
++                }
++                s_tasks[i].stack = NULL;
++            }
++            s_tasks[i].stack_sz = 0;
++            DI(saved);
++            s_task_states[i] = SHIM_TASK_STACK_RELEASED;
++            EI(saved);
++            phase = SHIM_TASK_STACK_RELEASED;
++        }
++
++        if (phase == SHIM_TASK_STACK_RELEASED) {
++            if (s_observed[i] && c3task_observer_release((void *)handle) != 0) {
++                defer_cleanup(i, SHIM_TASK_STACK_RELEASED);
++                return -1;
++            }
++            DI(saved);
++            clear_task_entry(i);
++            EI(saved);
 +            return 1;
 +        }
 +    }
@@ -242,85 +458,89 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +    return 0;
 +}
 +
- void __wrap_vTaskDelete(TaskHandle_t h)
- {
--    if (!h) {
--        /* Delete self — not supported cleanly; just call tk_ext_tsk() */
-+    if (h == NULL) {
-+        shim_task_t *self = find_by_tk_id(tk_get_tid());
-+
-+        if (self != NULL) {
++void __wrap_vTaskDelete(TaskHandle_t handle)
++{
++    if (handle == NULL) {
++        int index = find_index_by_tk_id(tk_get_tid());
++        if (index >= 0) {
 +            UINT saved;
 +            DI(saved);
-+
-+            for (int i = 0; i < SHIM_TASK_MAX; i++) {
-+                if (self == &s_tasks[i] &&
-+                    s_cleanup_pending[i] == SHIM_CLEANUP_NONE) {
-+                    s_cleanup_pending[i] = SHIM_CLEANUP_PENDING;
-+                    break;
-+                }
++            if (s_task_states[index] == SHIM_TASK_RUNNING) {
++                s_task_states[index] = SHIM_TASK_WAIT_DORMANT;
++            } else if (s_task_states[index] == SHIM_TASK_STOPPING) {
++                s_self_exit[index] = 1U;
 +            }
-+
 +            EI(saved);
 +        }
-+
          tk_ext_tsk();
          return;
      }
-+
-+    /*
-+     * Explicit deletion is not yet qualified for deferred reclamation.
-+     * Do not free task resources without verified termination.
-+     */
-     shim_task_t *entry = find_by_handle(h);
+-    shim_task_t *entry = find_by_handle(h);
 -    if (!entry || entry->tsk_id == 0) return;
--
+
 -    tk_ter_tsk(entry->tsk_id);
 -    tk_del_tsk(entry->tsk_id);
 -    tk_del_sem(entry->notify_sem);
 -    if (entry->stack) { heap_caps_free(entry->stack); entry->stack = NULL; }
 -    entry->tsk_id     = 0;
 -    entry->notify_sem = 0;
-+
-+    if (entry == NULL)
-+        return;
-+
 +    UINT saved;
-+    int index = -1;
++    int index = find_index_by_handle(handle);
 +    ID id = 0;
 +
++    if (index < 0) return;
++
 +    DI(saved);
-+
-+    for (int i = 0; i < SHIM_TASK_MAX; i++) {
-+        if (entry == &s_tasks[i] &&
-+            entry->tsk_id > 0 &&
-+            s_cleanup_pending[i] == SHIM_CLEANUP_NONE) {
-+            s_cleanup_pending[i] = SHIM_CLEANUP_CLAIMED;
-+            index = i;
-+            id = entry->tsk_id;
-+            break;
-+        }
++    if (s_task_states[index] == SHIM_TASK_RUNNING &&
++        s_handles[index] == (uintptr_t)handle) {
++        s_task_states[index] = SHIM_TASK_STOPPING;
++        s_cleanup_busy[index] = 1U;
++        id = s_tasks[index].tsk_id;
 +    }
-+
 +    EI(saved);
 +
-+    if (index < 0)
-+        return;
++    if (id <= 0) return;
 +
 +    T_RTSK state;
 +    ER result = tk_ref_tsk(id, &state);
-+
 +    if (result == E_OK && state.tskstat != TTS_DMT)
 +        result = tk_ter_tsk(id);
 +
-+    /*
-+     * Keep the slot reserved for deferred cleanup.
-+     * The reaper must confirm dormancy before deleting resources.
-+     * A failed termination does not imply that the task has stopped.
-+     */
 +    DI(saved);
-+    s_cleanup_pending[index] = SHIM_CLEANUP_PENDING;
++    if (s_handles[index] == (uintptr_t)handle &&
++        s_task_states[index] == SHIM_TASK_STOPPING) {
++        if (s_self_exit[index] ||
++            (result == E_OK && state.tskstat == TTS_DMT) ||
++            result == E_OK) {
++            s_task_states[index] = SHIM_TASK_WAIT_DORMANT;
++        } else {
++            s_task_states[index] = SHIM_TASK_TERMINATE_PENDING;
++        }
++        s_cleanup_busy[index] = 0U;
++    }
 +    EI(saved);
  }
- 
+
  /* -------------------------------------------------------------------------
+@@ -191,9 +490,18 @@
+  * ------------------------------------------------------------------------- */
+ TaskHandle_t __wrap_xTaskGetCurrentTaskHandle(void)
+ {
+-    ID cur = tk_get_tid();
+-    shim_task_t *e = find_by_tk_id(cur);
+-    return (TaskHandle_t)e; /* may be NULL if task not created via shim */
++    UINT saved;
++    int index = find_index_by_tk_id(tk_get_tid());
++    TaskHandle_t handle = NULL;
++
++    if (index < 0) return NULL;
++
++    DI(saved);
++    if (s_task_states[index] == SHIM_TASK_RUNNING) {
++        handle = (TaskHandle_t)s_handles[index];
++    }
++    EI(saved);
++    return handle;
+ }
+
+ TaskHandle_t __wrap_xTaskGetHandle(const char *name)

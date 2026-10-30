@@ -107,19 +107,41 @@ RAM. The wait arithmetic and event-state core, together with native kernel
 notification and mutex callees, are flash-resident. Operations that could reach these paths
 while flash cache is disabled **return failure**; they do not claim cache-off
 radio compatibility. This behavior must be exercised with radio traffic and
-flash saves before acceptance. Remaining task-stack/notification,
-timer-callback, BLE allocation and lwIP/service paths are separate open work.
+flash saves before acceptance. Native stacks for the tasks created by the isolated
+radio diagnostics are bounded as described below. Notification, timer-callback,
+BLE allocation and lwIP/service paths remain separate open work.
 The vendor timer callback currently runs in task-independent context, whereas
 [FreeRTOS specifies timer-service task context](https://github.com/FreeRTOS/FreeRTOS-Kernel-Book/blob/main/ch06.md).
 
 The [pinned source audit](../../qualification/esp32c3-wireless-source-audit-20261027.json)
-records the exact files and remaining task/notification/TLS/timer gaps. It is a
-source review, not proof that every path was reached in a radio test. Next work
-is a fixed service-task/notification adapter, a permanent timer service with
-bounded commands, and explicit NimBLE/lwIP/service storage. The current task
-wrapper allocates stacks and creates native objects per request; notification
-increment/no-overwrite/clear behavior and timer period/context semantics need
-replacement. A blanket SDK heap exemption would not satisfy the requirement.
+records the exact files and task/notification/TLS/timer gaps at its historical
+revision. The staged task-wrapper patch now acquires caller-owned stacks from
+`c3task`, creates native objects without a stack heap path and defers cleanup to
+a permanent reaper task. Generation-tagged handles and ordered retry states cover
+creation rollback, self/external deletion, concurrent requests and stale handles.
+The patch never edits the pinned vendor checkout. This is build/link and host-test
+evidence, not proof of stack high-water, scheduling or cleanup behavior on hardware.
+Next work is the notification adapter, a permanent timer service with bounded
+commands, and explicit NimBLE/lwIP/service storage. A blanket SDK heap exemption
+would not satisfy the requirement.
+
+### Fixed diagnostic task stacks
+
+The Wi-Fi profile reserves four 16-byte-aligned slots: 2,816 bytes for the event
+loop, 3,584 for TCP/IP, 4,096 for the ESP timer task and 6,656 for the Wi-Fi task
+(17,152 bytes total). The BLE profile reserves three 4,096-byte slots for the
+ESP timer, NimBLE host and controller tasks (12,288 bytes total). The profiles
+are mutually exclusive build selections; there is no combined Wi-Fi/BLE claim.
+The native kernel has a separate 4 KiB interrupt stack, so these task reservations
+do not add the obsolete per-task interrupt margin.
+
+Allocation uses a bounded best-fit search and records the owning generation.
+Oversize or exhausted requests fail without heap fallback. A slot is released
+only after task deletion, semaphore deletion and observer release succeed. The
+permanent 1,024-byte reaper runs at native priority 31 (idle is 32), polls every
+100 ms and attempts at most four cleanup records per pass. Its own stack is not
+allocated through the pool. See the [Buddy 1 report](../../../reports/buddy1/README.md)
+for failure recovery, compiled tests, final ELF budgets and remaining hardware work.
 
 ## Verification and manual BARR-C review
 
@@ -154,10 +176,11 @@ four existing workers and compares allocation/object counter fields before and
 after. No peripheral I/O, new task or new synchronization object is requested by
 these tests. Retain fresh execution results with the exact fixture identity.
 
-The selected queue/event/startup variant uses `tools/target/network-budget.json`:
-278,528 bytes overall, split into 155,648 application data, 65,536 SDK/kernel data
-and 57,344 RAM code. The older `netqueue-budget.json` belongs to the queue-only
-experiment. Neither budget alone proves that radio services fit.
+The selected queue/event/startup/task-stack variant uses
+`tools/target/network-budget.json`: 278,528 bytes overall, split into 168,192
+bytes of application data, 53,184 bytes of SDK/kernel data and 57,152 bytes of
+RAM code. The older `netqueue-budget.json` belongs to the queue-only experiment.
+Neither budget alone proves that radio services fit.
 
 ## Scan-only feasibility diagnostic
 
@@ -253,8 +276,10 @@ variant; changes still require boot, stack-margin and allocation verification.
 It is not a general-purpose application heap or permission for later native
 allocation. Failure to initialize is terminal until reset. The experimental
 `tools/target/network-budget.json` redistributes the same 278,528-byte total:
-155,648 application data, 65,536 SDK/kernel data and 57,344 RAM code. It is a
-reservation to test, not evidence that the complete wireless system fits.
+168,192 application data, 53,184 SDK/kernel data and 57,152 RAM code. It is a
+reservation to test, not evidence that the complete wireless system fits. The
+isolated Wi-Fi link leaves only 126 bytes beneath that total; any growth requires
+deliberate remeasurement and rebudgeting, not a relaxed cap.
 
 Manual BARR-C review (rules 1–8): these modules remain C99 with paired headers,
 fixed-width SDK/native ABIs and no added exceptions. Stack/pool alignment uses

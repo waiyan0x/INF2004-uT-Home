@@ -470,11 +470,13 @@ class QualificationTests(unittest.TestCase):
             defaults.parent.mkdir(parents=True)
             defaults.write_bytes(b"CONFIG_IDF_TARGET=\"esp32c3\"\n")
             project, sources = qualification.stage_runtime_port(work)
-            self.assertEqual(len(sources), 195)
+            self.assertEqual(len(sources), 197)
             for name in ('stackmon', 'workcost', 'workmeter'):
                 self.assertIn(f'firmware/src/runtime/{name}.c', sources)
                 self.assertIn(f'firmware/src/runtime/{name}.h', sources)
             for name in ("hal/c3umem.c", "hal/c3umem.h", "main/uartcheck.c", "main/uartcheck.h"):
+                self.assertTrue((project / name).is_file())
+            for name in ("hal/c3task.c", "hal/c3task.h"):
                 self.assertTrue((project / name).is_file())
             qualification.verify_runtime_snapshot(project)
             for source, entry in sources.items():

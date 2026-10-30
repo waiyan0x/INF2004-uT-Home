@@ -760,6 +760,55 @@ def verify_model_probe(work, enabled):
     return result
 
 
+def verify_static_task_source(source, enabled):
+    """Verify the staged vendor adapter has the bounded project contract."""
+    text = source.read_text(encoding="utf-8")
+    if not enabled:
+        return {"enabled": False}
+    required = {
+        "fixed stack acquisition": "c3task_stack_acquire",
+        "post-deletion release": "c3task_stack_release",
+        "surviving reaper binding": "c3task_reaper_bind",
+        "bounded cleanup step": "shim_task_reap_one",
+        "generation-aware handles": "s_generations",
+        "caller-owned kernel stack": "TA_USERBUF",
+    }
+    missing = [description for description, token in required.items()
+               if token not in text]
+    if missing:
+        raise QualificationError("Static task patch is incomplete: " +
+                                 ", ".join(missing))
+    if re.search(r"\bheap_caps_(?:malloc|free)\s*\(", text):
+        raise QualificationError("Patched task shim still allocates task stacks from the heap")
+    if not re.search(r"#define\s+SHIM_TASK_MAX\s+4\b", text):
+        raise QualificationError("Patched task shim capacity differs from reviewed bound")
+    return {
+        "enabled": True,
+        "source": "components/freertos_shim/shim_task.c",
+        "source_sha256": sha256(source),
+        "shim_task_capacity": 4,
+        "dynamic_task_stack_calls": 0,
+    }
+
+
+def verify_static_task_link(work, enabled):
+    """Verify the final radio ELF retained the allocator and reaper boundary."""
+    if not enabled:
+        return {"enabled": False}
+    output = run(["riscv32-esp-elf-nm", "-n",
+                  work / "build/uthome_runtime_port.elf"])
+    symbols = {name for _, _, name in re.findall(
+        r"^([0-9a-fA-F]+)\s+(\w)\s+(\S+)$", output, re.MULTILINE)}
+    required = {"c3task_stack_acquire", "c3task_stack_release",
+                "c3task_reaper_bind", "c3task_reaper_task",
+                "g_reaper_stack", "shim_task_reap_one"}
+    missing = sorted(required - symbols)
+    if missing:
+        raise QualificationError("Static task symbols missing from ELF: " +
+                                 ", ".join(missing))
+    return {"enabled": True, "linked_symbols": sorted(required)}
+
+
 def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_patch=None,
           configuration_app=False, upstream_example=None, native_uart_fixture=False, static_net_queues=False,
           wifi_probe=False, ble_probe=False, model_probe=False, ble_gatt_probe=False,
@@ -777,6 +826,8 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
     if ble_probe and (not runtime_port or not static_net_queues or configuration_app
                       or native_uart_fixture or upstream_example is not None or wifi_probe):
         raise QualificationError("BLE probe requires the isolated runtime fixture and static queues")
+    if (wifi_probe or ble_probe) and observer_patch is None:
+        raise QualificationError("Radio probes require the reviewed static-task patch")
     if static_net_queues and (not runtime_port or native_uart_fixture or upstream_example is not None):
         raise QualificationError("Static network queues require ordinary runtime/application mode")
     if native_uart_fixture and (not runtime_port or configuration_app or upstream_example is not None):
@@ -838,6 +889,9 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
             staged_patch.write_bytes(observer_patch.read_bytes())
             evidence["observer_patch"] = {"name": observer_patch.name, "sha256": sha256(staged_patch)}
             apply_patch(staged_patch, work / "source")
+        evidence["static_task_source"] = verify_static_task_source(
+            work / "source/components/freertos_shim/shim_task.c",
+            wifi_probe or ble_probe)
         project = work / "source/examples" / example
         image_name = UPSTREAM_EXAMPLES[example]
         if runtime_port:
@@ -880,6 +934,8 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
             evidence["compiler_profiles"] = verify_compile_profiles(work)
             evidence["memory_audit_link"] = verify_audit_link(work)
             evidence["network_queue_adapter"] = verify_queue_adapter(work, static_net_queues)
+            evidence["static_task_link"] = verify_static_task_link(
+                work, wifi_probe or ble_probe)
             evidence["model_isolation"] = verify_model_probe(work, model_probe)
             if wifi_probe:
                 config_lines = set((work / "sdkconfig").read_text().splitlines())

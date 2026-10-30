@@ -1,7 +1,7 @@
 """Fixed-budget failures must not be mistaken for whole-runtime qualification."""
 from copy import deepcopy
 import unittest
-from tools.target.memory_budget import analyze
+from tools.target.memory_budget import analyze, build_is_supported
 
 
 class MemoryBudgetTests(unittest.TestCase):
@@ -48,3 +48,9 @@ class MemoryBudgetTests(unittest.TestCase):
         self.assertTrue(result['passed'])
         self.assertEqual(result['groups']['application_fixed'], 12)
         self.assertEqual(result['groups']['kernel_sdk_fixed'], 18)
+
+    def test_supported_build_modes_require_a_passed_evidence_record(self):
+        for mode in ("configuration_application", "wifi_probe", "ble_probe"):
+            self.assertTrue(build_is_supported({"build_status": "passed", mode: True}))
+        self.assertFalse(build_is_supported({"build_status": "failed", "wifi_probe": True}))
+        self.assertFalse(build_is_supported({"build_status": "passed", "model_probe": True}))
