@@ -1,6 +1,7 @@
+
 idf_component_register(SRCS "../discovery/discuart.c" "../discovery/disci2c.c" "../discovery/cfgdisc.c" "../config/cfgpump.c" "../hal/c3usb.c"
                        "../hal/c3store.c" "../config/cfgpart.c" "../app/c3app.c" "../config/jsonscan.c" "../config/cfgjson.c" "../config/cfgplan.c" "../config/cfgdev.c" "../config/cfgrule.c" "../automation/rulecalc.c" "../config/cfgbind.c" "../hal/c3bind.c"
-                       "../network/netring.c" "../network/netwait.c" "../network/netpool.c" "../network/netevent.c" "../hal/c3event.c" "../hal/c3boot.c" "../hal/c3nq.c" "../hal/c3wifi.c" "../hal/c3bport.c"
+                       "../network/netring.c" "../network/netwait.c" "../network/netpool.c" "../network/netevent.c" "../hal/c3event.c" "../hal/c3boot.c" "../hal/c3nq.c" "../hal/c3task.c" "../hal/c3wifi.c" "../hal/c3bport.c"
                        "main.c" "nqcheck.c" "../runtime/tkport.c" "../runtime/stackmon.c" "../runtime/workcost.c" "../runtime/workmeter.c" "../hal/c3clock.c" "../hal/c3cost.c" "../services/costview.c" "../runtime/memaudit.c" "../hal/c3audit.c"
                        "../runtime/activate.c" "../runtime/shared.c" "../services/sampcache.c" "../services/statusmon.c" "../services/telemetry.c" "../services/oledview.c"
                        "../runtime/component.c" "../messaging/msgbus.c"
@@ -178,9 +179,13 @@ endif()
 # Compile the owned adapter in every build; enable its startup hook and link
 # substitutions only for the explicit experimental queue mode.
 set_source_files_properties("nqcheck.c" "../network/netring.c" "../network/netwait.c"
-    "../network/netpool.c" "../network/netevent.c" "../hal/c3event.c" "../hal/c3boot.c" "../hal/c3nq.c" "../hal/c3wifi.c" "../hal/c3bport.c"
+    "../network/netpool.c" "../network/netevent.c" "../hal/c3event.c" "../hal/c3boot.c" "../hal/c3nq.c" "../hal/c3task.c" "../hal/c3wifi.c" "../hal/c3bport.c"
     PROPERTIES COMPILE_OPTIONS "-std=c99;${UTHOME_WARNINGS}")
 include("${CMAKE_CURRENT_LIST_DIR}/netqueue.cmake")
+
+set_source_files_properties("../hal/c3task.c"
+    APPEND PROPERTY COMPILE_DEFINITIONS
+    UTHOME_C3TASK_TARGET=1)
 
 if(UTHOME_WIFI_PROBE OR UTHOME_BLE_PROBE OR UTHOME_MODEL_PROBE)
     # Keep the USB core's complete fixed RAM/code footprint in the diagnostic.

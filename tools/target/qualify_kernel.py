@@ -55,6 +55,8 @@ RUNTIME_SOURCE_FILES = {
     "firmware/hal/ports/esp32c3/c3boot.h": "hal/c3boot.h",
     "firmware/hal/ports/esp32c3/c3event.c": "hal/c3event.c",
     "firmware/hal/ports/esp32c3/c3event.h": "hal/c3event.h",
+    "firmware/hal/ports/esp32c3/c3task.c": "hal/c3task.c",
+    "firmware/hal/ports/esp32c3/c3task.h": "hal/c3task.h",
     "firmware/src/network/netevent.c": "network/netevent.c",
     "firmware/src/network/netevent.h": "network/netevent.h",
     "firmware/hal/ports/esp32c3/c3wifi.c": "hal/c3wifi.c",
@@ -761,7 +763,7 @@ def verify_model_probe(work, enabled):
 def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_patch=None,
           configuration_app=False, upstream_example=None, native_uart_fixture=False, static_net_queues=False,
           wifi_probe=False, ble_probe=False, model_probe=False, ble_gatt_probe=False,
-          ble_static_host=False):
+          ble_static_host=False, observer_patch=None):
     if ble_gatt_probe and not ble_probe:
         raise QualificationError("GATT probe requires the isolated BLE diagnostic")
     if ble_static_host and not ble_probe:
@@ -829,6 +831,12 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
             staged_patch = work / "kernel-resources.patch"
             staged_patch.write_bytes(resource_patch.read_bytes())
             evidence["resource_patch"] = {"name": resource_patch.name, "sha256": sha256(staged_patch)}
+            apply_patch(staged_patch, work / "source")
+        evidence["observer_patch"] = None
+        if observer_patch is not None:
+            staged_patch = work / "kernel-observer.patch"
+            staged_patch.write_bytes(observer_patch.read_bytes())
+            evidence["observer_patch"] = {"name": observer_patch.name, "sha256": sha256(staged_patch)}
             apply_patch(staged_patch, work / "source")
         project = work / "source/examples" / example
         image_name = UPSTREAM_EXAMPLES[example]
@@ -942,6 +950,7 @@ def main(argv=None):
     parser.add_argument("--project-dir", type=Path, help="staged project for verify-snapshot")
     parser.add_argument("--compat-patch", type=Path, help="explicit reviewed build compatibility patch; recorded by hash")
     parser.add_argument("--resource-patch", type=Path, help="explicit reviewed kernel resource patch; isolated and hashed")
+    parser.add_argument("--observer-patch", type=Path, help="explicit reviewed task-observer patch; isolated and hashed")
     parser.add_argument("--runtime-port", action="store_true",
                         help="build the project task-port acceptance test instead of the upstream example")
     parser.add_argument("--configuration-app", action="store_true",
@@ -987,7 +996,8 @@ def main(argv=None):
                            args.resource_patch.resolve() if args.resource_patch else None, args.configuration_app,
                            args.upstream_example, args.native_uart_fixture, args.static_net_queues,
                            args.wifi_probe, args.ble_probe, args.model_probe, args.ble_gatt_probe,
-                           args.ble_static_host)
+                           args.ble_static_host,
+                           observer_patch=args.observer_patch.resolve() if args.observer_patch else None)
             print(f"Build evidence: {report}\nPhysical board and application runtime remain untested.")
     except (QualificationError, OSError) as exc:
         print(str(exc), file=sys.stderr)

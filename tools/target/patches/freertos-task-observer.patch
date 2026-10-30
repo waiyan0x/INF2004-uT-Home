@@ -1,0 +1,135 @@
+diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shim_task.c
+--- a/components/freertos_shim/shim_task.c
++++ b/components/freertos_shim/shim_task.c
+@@ -3,12 +3,20 @@
+ #include "freertos/task.h"
+ #include "esp_rom_sys.h"
+ 
++/* Project-owned observer: linked by the runtime-port fixture only. */
++extern uint32_t c3task_observer_begin(const char *name, uint32_t stack_bytes);
++extern int c3task_observer_commit(uint32_t token, void *handle);
++extern int c3task_observer_abort(uint32_t token);
++extern int c3task_observer_cancel(void *handle);
++extern int c3task_observer_release(void *handle);
++
+ /* -------------------------------------------------------------------------
+  * Task handle table — maps µT-Kernel task IDs to shim_task_t wrappers.
+  * The table is protected by a critical section (DI/EI) since task creation
+  * can happen from multiple tasks during WiFi init.
+  * ------------------------------------------------------------------------- */
+ #define SHIM_TASK_MAX  48   /* must match CNF_MAX_TSKID */
++#define SHIM_TASK_RESERVED ((ID)-1) /* valid task IDs are positive */
+ 
+ static shim_task_t s_tasks[SHIM_TASK_MAX];
+ 
+@@ -17,10 +25,22 @@
+     UINT saved; DI(saved);
+     shim_task_t *t = NULL;
+     for (int i = 0; i < SHIM_TASK_MAX; i++) {
+-        if (s_tasks[i].tsk_id == 0) { t = &s_tasks[i]; break; }
++        if (s_tasks[i].tsk_id == 0) {
++            /* Reserve before EI: no other creator may take this slot. */
++            s_tasks[i].tsk_id = SHIM_TASK_RESERVED;
++            t = &s_tasks[i];
++            break;
++        }
+     }
+     EI(saved);
+     return t;
++}
++
++static void free_task_entry(shim_task_t *entry)
++{
++    UINT saved; DI(saved);
++    entry->tsk_id = 0;
++    EI(saved);
+ }
+ 
+ static shim_task_t *find_by_tk_id(ID id)
+@@ -47,9 +67,13 @@
+ {
+     (void)core; /* single-core */
+ 
++    /* Zero token means full diagnostic table; never reject the real task. */
++    uint32_t observer_token = c3task_observer_begin(name, stack_words);
++
+     shim_task_t *entry = alloc_task_entry();
+     if (!entry) {
+         tm_printf((UB*)"[shim] xTaskCreate: no free task entry (%s)\n", name ? name : "?");
++        if (observer_token) (void)c3task_observer_abort(observer_token);
+         return pdFALSE;
+     }
+ 
+@@ -58,6 +82,8 @@
+     ID notify_sem = tk_cre_sem(&cs);
+     if (notify_sem <= 0) {
+         tm_printf((UB*)"[shim] xTaskCreate: tk_cre_sem failed (%s)\n", name ? name : "?");
++        if (observer_token) (void)c3task_observer_abort(observer_token);
++        free_task_entry(entry);
+         return pdFALSE;
+     }
+ 
+@@ -90,6 +116,8 @@
+                        name ? name : "?", (unsigned)stack_sz,
+                        (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+                        (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
++        if (observer_token) (void)c3task_observer_abort(observer_token);
++        free_task_entry(entry);
+         return pdFALSE;
+     }
+ 
+@@ -108,6 +136,8 @@
+         tk_del_sem(notify_sem);
+         tm_printf((UB*)"[shim] xTaskCreate: tk_cre_tsk failed (%s) err=%d\n",
+                   name ? name : "?", (int)tsk_id);
++        if (observer_token) (void)c3task_observer_abort(observer_token);
++        free_task_entry(entry);
+         return pdFALSE;
+     }
+ 
+@@ -119,11 +149,22 @@
+     if (name) { strncpy(entry->name, name, sizeof(entry->name) - 1); entry->name[sizeof(entry->name) - 1] = '\0'; }
+     else      { entry->name[0] = '\0'; }
+ 
++    /* Commit before the new task can run and delete itself. */
++    if (observer_token) {
++        (void)c3task_observer_commit(observer_token, (void *)entry);
++    }
++
+     ER er = tk_sta_tsk(tsk_id, (INT)(intptr_t)param);
+     if (er != E_OK) {
+         tk_del_tsk(tsk_id);
+         tk_del_sem(notify_sem);
+-        entry->tsk_id = 0;
++        /* Startup failure must also reclaim the TA_USERBUF stack. */
++        heap_caps_free(stack);
++        entry->stack = NULL;
++        entry->stack_sz = 0;
++        entry->notify_sem = 0;
++        if (observer_token) (void)c3task_observer_cancel((void *)entry);
++        free_task_entry(entry);
+         return pdFALSE;
+     }
+ 
+@@ -140,7 +181,9 @@
+ void __wrap_vTaskDelete(TaskHandle_t h)
+ {
+     if (!h) {
+-        /* Delete self — not supported cleanly; just call tk_ext_tsk() */
++        /* Self-deletion remains a vendor resource-cleanup limitation. */
++        shim_task_t *self = find_by_tk_id(tk_get_tid());
++        if (self) (void)c3task_observer_release((void *)self);
+         tk_ext_tsk();
+         return;
+     }
+@@ -151,8 +194,9 @@
+     tk_del_tsk(entry->tsk_id);
+     tk_del_sem(entry->notify_sem);
+     if (entry->stack) { heap_caps_free(entry->stack); entry->stack = NULL; }
+-    entry->tsk_id     = 0;
++    (void)c3task_observer_release((void *)entry);
+     entry->notify_sem = 0;
++    free_task_entry(entry);
+ }
+ 
+ /* -------------------------------------------------------------------------
