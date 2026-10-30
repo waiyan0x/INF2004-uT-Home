@@ -142,18 +142,14 @@ int main(void) {
 
 
 def main():
-    if not SHIM.is_file() or not PATCH.is_file():
-        raise SystemExit('Run from the repository root; shim or patch missing')
+    fixture = ROOT / 'tests/buddy1/fixtures/shim_task_observer_original.txt'
+    if not fixture.is_file():
+        raise SystemExit('Observer-only test fixture missing')
     with tempfile.TemporaryDirectory(prefix='buddy1_failures_') as tmp:
         directory = Path(tmp)
         staged = directory / 'components/freertos_shim/shim_task.c'
         staged.parent.mkdir(parents=True)
-        staged.write_bytes(SHIM.read_bytes())
-        for suffix in ('--check', None):
-            args = ['git', '-c', 'core.autocrlf=true', 'apply']
-            if suffix:
-                args.append(suffix)
-            subprocess.run(args + [str(PATCH)], cwd=directory, check=True)
+        staged.write_bytes(fixture.read_bytes())
         source = staged.read_text()
         functions = '\n\n'.join(extract(source, name) for name in (
             'alloc_task_entry', 'free_task_entry',

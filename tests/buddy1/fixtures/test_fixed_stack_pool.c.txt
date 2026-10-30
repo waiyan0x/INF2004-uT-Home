@@ -1,0 +1,47 @@
+#include <assert.h>
+#include <stdio.h>
+
+#include "fixed_stack_pool.h"
+
+int main(void)
+{
+    buddy1_stack_pool_t pool;
+    buddy1_stack_token_t timer;
+    buddy1_stack_token_t tcpip;
+    buddy1_stack_token_t ble;
+    buddy1_stack_token_t reused;
+
+    buddy1_pool_init(&pool);
+
+    assert(buddy1_pool_acquire(&pool, 1U, 5632U, &timer));
+    assert(buddy1_pool_acquire(&pool, 2U, 5120U, &tcpip));
+    assert(buddy1_pool_acquire(&pool, 3U, 6144U, &ble));
+
+    assert(timer.index != tcpip.index);
+    assert(timer.index != ble.index);
+    assert(tcpip.index != ble.index);
+
+    assert(!buddy1_pool_acquire(&pool, 4U, 1024U, &reused));
+    assert(!buddy1_pool_acquire(&pool, 1U, 1024U, &reused));
+
+    assert(!buddy1_pool_release(&pool, timer, 1U, false));
+    assert(buddy1_pool_release(&pool, timer, 1U, true));
+
+    assert(buddy1_pool_acquire(&pool, 4U, 5632U, &reused));
+
+    assert(!buddy1_pool_release(&pool, timer, 1U, true));
+    assert(!buddy1_pool_release(&pool, reused, 1U, true));
+
+    assert(buddy1_pool_release(&pool, reused, 4U, true));
+    assert(buddy1_pool_release(&pool, tcpip, 2U, true));
+    assert(buddy1_pool_release(&pool, ble, 3U, true));
+
+    puts("PASS: Exclusive stack ownership");
+    puts("PASS: Capacity and exhaustion");
+    puts("PASS: Running-task release protection");
+    puts("PASS: Stale token rejection");
+    puts("PASS: Stack-slot reuse");
+    puts("PASS: Five C allocator scenarios");
+
+    return 0;
+}

@@ -1,0 +1,10 @@
+Task,Requested bytes,Additional headroom bytes,Candidate reservation bytes
+ESP Timer,3584,2048,5632
+lwIP TCP/IP,3072,2048,5120
+BLE NimBLE Host,4096,2048,6144
+
+Existing reservations,152692
+Application fixed limit,155648
+Available headroom,2956
+Candidate requirement,16896
+Reservation shortfall,13940
