@@ -8,7 +8,7 @@ function text(tag, value, className = '') {
   return node;
 }
 
-export function renderDiscovery(report, add, message = 'Connect, confirm the wiring, then check the connection. Results do not change the running setup.', confirm = null) {
+export function renderDiscovery(report, add, message = 'Connect a board and confirm the wiring, then detect.', confirm = null) {
   const container = el('discovery-results');
   container.replaceChildren();
   el('discovery-status').textContent = message;

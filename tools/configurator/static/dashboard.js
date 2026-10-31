@@ -56,9 +56,6 @@ export function renderProfile(text) {
   el('appbarNode').textContent = typeof profile.node_id === 'string' ? profile.node_id : 'no valid profile loaded';
   el('profileMeta').textContent = profile.board?.variant
     ? `${display(profile.board.variant)} · schema ${display(profile.schema_version ?? '—')}` : 'JSON draft';
-  el('profileRuntime').textContent = profile.runtime
-    ? `Source: ${display(profile.runtime.configuration_source ?? 'unset')} · ${display(profile.runtime.max_device_tasks ?? '—')} task limit · configuration only`
-    : 'No valid configuration loaded.';
 
   const devices = rows(profile.devices);
   el('devicesMeta').textContent = `${devices.filter(d => d.enabled === true).length}/${devices.length} enabled`;
@@ -66,7 +63,7 @@ export function renderProfile(text) {
     const [name, glyph, accent] = typeof device.driver === 'string' && Object.hasOwn(drivers, device.driver)
       ? drivers[device.driver] : ['Unrecognized driver', 'package', 'slate'];
     return tile(device.device_id ?? 'Unnamed device',
-      `${name} · ${device.enabled === true ? 'configured; not hardware-verified' : 'disabled'}`, glyph, accent);
+      `${name} · ${device.enabled === true ? 'enabled' : 'disabled'}`, glyph, accent);
   }), 'Load a profile to list its configured devices.');
 
   const interfaces = rows(profile.interfaces);

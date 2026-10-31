@@ -115,8 +115,9 @@ test('profile tiles describe configuration, never simulated hardware status', ()
   ], interfaces: [{ id: 'bus', protocol: 'i2c', sda_gpio: 8, clock_hz: 100000 }],
   queues: [{ id: 'samples', depth: 4, overflow_policy: 'drop_oldest' }] }));
   assert.equal(text('devicesMeta'), '1/2 enabled');
-  assert.match(text('devices'), /configured; not hardware-verified/);
-  assert.match(text('devices'), /disabled/);
+  assert.match(text('devices'), /HC-SR04 · enabled/);
+  assert.match(text('devices'), /PWM output · disabled/);
+  assert.doesNotMatch(text('devices'), /verified|working|connected/);
   assert.match(text('interfaces'), /SDA 8/);
   assert.match(text('queues'), /Capacity 4/);
   renderProfile('{');

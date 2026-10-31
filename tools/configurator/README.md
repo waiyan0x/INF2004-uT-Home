@@ -14,7 +14,7 @@ The interface uses one fixed colour palette.
 
 1. In **Profile**, choose an example or import JSON. Open **Edit profile JSON**
    for custom instances, wiring, timing and routes. Optional discovery is under
-   **Add a device**; interfaces, queues and the catalogue are under
+   **Add a device**; interfaces and queues are under
    **Wiring & resources**.
 2. Select **Validate and review** to open **Review & apply** with the requested
    resources, devices and rules. Errors remain visible above all three views.
