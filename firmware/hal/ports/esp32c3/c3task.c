@@ -58,7 +58,15 @@ typedef struct
 {
     uintptr_t owner;
     bool      b_used;
+    bool      b_committed;
 } c3task_stack_slot_t;
+
+typedef struct
+{
+    uintptr_t owner;
+    uint32_t  started_ms;
+    bool      b_pending;
+} c3task_cleanup_slot_t;
 
 typedef enum
 {
@@ -78,15 +86,20 @@ static uint8_t g_stack_3[C3TASK_STACK_3_BYTES] C3TASK_ALIGNED_16;
 #if !C3TASK_HOST_BUILD
 static uint8_t g_reaper_stack[C3TASK_REAPER_STACK_BYTES] C3TASK_ALIGNED_16;
 #endif
-static c3task_stack_slot_t   g_stack_slots[C3TASK_STACK_SLOTS];
-static c3task_reap_t *       gp_reap        = NULL;
-static c3task_reaper_state_t g_reaper_state = C3TASK_REAPER_OFF;
+static c3task_stack_slot_t     g_stack_slots[C3TASK_STACK_SLOTS];
+static c3task_cleanup_slot_t   g_cleanup_slots[C3TASK_STACK_SLOTS];
+static c3task_reap_t *         gp_reap        = NULL;
+static c3task_reaper_state_t   g_reaper_state = C3TASK_REAPER_OFF;
+static c3task_resource_stats_t g_resource_stats;
+static bool                    gb_sealed = false;
 
 static uint32_t c3task_resource_enter (void);
 static void c3task_resource_leave (uint32_t saved);
 static uint32_t c3task_stack_capacity_at (uint32_t index);
 static void * c3task_stack_at (uint32_t index);
 static int32_t c3task_stack_best_fit (uint32_t requested_bytes);
+static uint32_t c3task_stack_unused (const void * p_stack,
+                                     uint32_t     capacity_bytes);
 #if !C3TASK_HOST_BUILD
 static void c3task_reaper_task (INT code, void * p_context);
 #endif
@@ -146,6 +159,8 @@ int c3task_init (void)
         c3task_resource_leave(saved);
         return -1;
     }
+
+    (void)memset(g_reaper_stack, 0xA5, sizeof(g_reaper_stack));
 
     T_CTSK   config = {.exinf   = NULL,
                        .tskatr  = TA_HLNG | TA_RNG0 | TA_USERBUF,
@@ -250,6 +265,16 @@ int c3task_stack_acquire (uintptr_t  owner,
                              ~(C3TASK_STACK_ALIGNMENT - 1U);
     const uint32_t saved = c3task_resource_enter();
 
+    if (gb_sealed)
+    {
+        if (UINT32_MAX > g_resource_stats.post_seal_rejections)
+        {
+            ++g_resource_stats.post_seal_rejections;
+        }
+        c3task_resource_leave(saved);
+        return -1;
+    }
+
     for (uint32_t index = 0U; index < C3TASK_STACK_SLOTS; ++index)
     {
         if ((g_stack_slots[index].b_used) &&
@@ -270,10 +295,11 @@ int c3task_stack_acquire (uintptr_t  owner,
         if ((NULL != p_stack) &&
             (0U == ((uintptr_t)p_stack & (C3TASK_STACK_ALIGNMENT - 1U))))
         {
-            g_stack_slots[index].owner  = owner;
-            g_stack_slots[index].b_used = true;
-            *pp_stack                   = p_stack;
-            *p_capacity_bytes           = c3task_stack_capacity_at(index);
+            g_stack_slots[index].owner       = owner;
+            g_stack_slots[index].b_used      = true;
+            g_stack_slots[index].b_committed = false;
+            *pp_stack                        = p_stack;
+            *p_capacity_bytes                = c3task_stack_capacity_at(index);
             c3task_resource_leave(saved);
             return 0;
         }
@@ -281,6 +307,40 @@ int c3task_stack_acquire (uintptr_t  owner,
 
     c3task_resource_leave(saved);
     return -1;
+#endif
+}
+
+/** @brief Commit one reservation before its native task is started. */
+int c3task_stack_commit (uintptr_t owner, void * p_stack)
+{
+#if 0U == C3TASK_STACK_SLOTS
+    (void)owner;
+    (void)p_stack;
+    return -1;
+#else
+    if ((0U == owner) || (NULL == p_stack))
+    {
+        return -1;
+    }
+
+    int            result = -1;
+    const uint32_t saved  = c3task_resource_enter();
+
+    for (uint32_t index = 0U; index < C3TASK_STACK_SLOTS; ++index)
+    {
+        if ((g_stack_slots[index].b_used) &&
+            (!g_stack_slots[index].b_committed) &&
+            (owner == g_stack_slots[index].owner) &&
+            (p_stack == c3task_stack_at(index)))
+        {
+            g_stack_slots[index].b_committed = true;
+            result                           = 0;
+            break;
+        }
+    }
+
+    c3task_resource_leave(saved);
+    return result;
 #endif
 }
 
@@ -317,6 +377,178 @@ int c3task_stack_release (uintptr_t owner,
 
     c3task_resource_leave(saved);
     return result;
+#endif
+}
+
+/** @brief Permanently close startup allocation after all slots commit. */
+int c3task_seal (void)
+{
+#if 0U == C3TASK_STACK_SLOTS
+    return -1;
+#else
+    int            result = -1;
+    const uint32_t saved  = c3task_resource_enter();
+
+    if (gb_sealed)
+    {
+        result = 0;
+    }
+    else if (C3TASK_REAPER_READY == g_reaper_state)
+    {
+        result = 0;
+        for (uint32_t index = 0U; index < C3TASK_STACK_SLOTS; ++index)
+        {
+            if ((!g_stack_slots[index].b_used) ||
+                (!g_stack_slots[index].b_committed))
+            {
+                result = -1;
+                break;
+            }
+        }
+        if (0 == result)
+        {
+            gb_sealed                 = true;
+            g_resource_stats.b_sealed = true;
+        }
+    }
+    else
+    {
+        /* Startup cannot seal before the permanent cleanup owner is ready. */
+    }
+
+    c3task_resource_leave(saved);
+    return result;
+#endif
+}
+
+/** @brief Report the permanent startup seal state. */
+bool c3task_is_sealed (void)
+{
+    const uint32_t saved   = c3task_resource_enter();
+    const bool     b_value = gb_sealed;
+
+    c3task_resource_leave(saved);
+    return b_value;
+}
+
+/** @brief Record the first cleanup request for an owner generation. */
+void c3task_cleanup_pending (uintptr_t owner, uint32_t now_ms)
+{
+#if 0U < C3TASK_STACK_SLOTS
+    if (0U != owner)
+    {
+        const uint32_t saved      = c3task_resource_enter();
+        int32_t        free_index = -1;
+        bool           b_found    = false;
+
+        for (uint32_t index = 0U; index < C3TASK_STACK_SLOTS; ++index)
+        {
+            if ((g_cleanup_slots[index].b_pending) &&
+                (owner == g_cleanup_slots[index].owner))
+            {
+                b_found = true;
+                break;
+            }
+            if ((!g_cleanup_slots[index].b_pending) && (0 > free_index))
+            {
+                free_index = (int32_t)index;
+            }
+        }
+        if ((!b_found) && (0 <= free_index))
+        {
+            const uint32_t index              = (uint32_t)free_index;
+            g_cleanup_slots[index].owner      = owner;
+            g_cleanup_slots[index].started_ms = now_ms;
+            g_cleanup_slots[index].b_pending  = true;
+            if (UINT32_MAX > g_resource_stats.cleanup_requests)
+            {
+                ++g_resource_stats.cleanup_requests;
+            }
+        }
+        c3task_resource_leave(saved);
+    }
+#else
+    (void)owner;
+    (void)now_ms;
+#endif
+}
+
+/** @brief Record successful final cleanup and maximum observed latency. */
+void c3task_cleanup_complete (uintptr_t owner, uint32_t now_ms)
+{
+#if 0U < C3TASK_STACK_SLOTS
+    const uint32_t saved = c3task_resource_enter();
+
+    for (uint32_t index = 0U; index < C3TASK_STACK_SLOTS; ++index)
+    {
+        if ((g_cleanup_slots[index].b_pending) &&
+            (owner == g_cleanup_slots[index].owner))
+        {
+            const uint32_t latency = now_ms - g_cleanup_slots[index].started_ms;
+
+            if (latency > g_resource_stats.maximum_cleanup_latency_ms)
+            {
+                g_resource_stats.maximum_cleanup_latency_ms = latency;
+            }
+            if (UINT32_MAX > g_resource_stats.cleanup_completions)
+            {
+                ++g_resource_stats.cleanup_completions;
+            }
+            g_cleanup_slots[index] = (c3task_cleanup_slot_t){0};
+            break;
+        }
+    }
+    c3task_resource_leave(saved);
+#else
+    (void)owner;
+    (void)now_ms;
+#endif
+}
+
+/** @brief Capture fixed stack sentinel and cleanup measurements. */
+int c3task_resource_snapshot (c3task_stack_record_t *   p_records,
+                              uint32_t                  record_count,
+                              c3task_resource_stats_t * p_stats)
+{
+#if 0U == C3TASK_STACK_SLOTS
+    (void)p_records;
+    (void)record_count;
+    (void)p_stats;
+    return -1;
+#else
+    if ((NULL == p_records) || (C3TASK_STACK_SLOTS > record_count) ||
+        (NULL == p_stats))
+    {
+        return -1;
+    }
+
+    const uint32_t saved = c3task_resource_enter();
+
+    for (uint32_t index = 0U; index < C3TASK_STACK_SLOTS; ++index)
+    {
+        const uint32_t capacity = c3task_stack_capacity_at(index);
+        void * const   p_stack  = c3task_stack_at(index);
+
+        p_records[index].owner          = g_stack_slots[index].owner;
+        p_records[index].capacity_bytes = capacity;
+        p_records[index].unused_bytes =
+            g_stack_slots[index].b_used ? c3task_stack_unused(p_stack, capacity)
+                                        : capacity;
+        p_records[index].b_used      = g_stack_slots[index].b_used;
+        p_records[index].b_committed = g_stack_slots[index].b_committed;
+    }
+    *p_stats          = g_resource_stats;
+    p_stats->b_sealed = gb_sealed;
+#if C3TASK_HOST_BUILD
+    p_stats->reaper_capacity_bytes = 0U;
+    p_stats->reaper_unused_bytes   = 0U;
+#else
+    p_stats->reaper_capacity_bytes = (uint32_t)sizeof(g_reaper_stack);
+    p_stats->reaper_unused_bytes =
+        c3task_stack_unused(g_reaper_stack, (uint32_t)sizeof(g_reaper_stack));
+#endif
+    c3task_resource_leave(saved);
+    return 0;
 #endif
 }
 
@@ -388,6 +620,21 @@ static int32_t c3task_stack_best_fit (uint32_t requested_bytes)
     return selected;
 }
 
+/** @brief Count low-address sentinel bytes that have never been used. */
+static uint32_t c3task_stack_unused (const void * p_stack,
+                                     uint32_t     capacity_bytes)
+{
+    const uint32_t * const p_words = (const uint32_t *)p_stack;
+    const uint32_t         words   = capacity_bytes / sizeof(uint32_t);
+    uint32_t               unused  = 0U;
+
+    while ((unused < words) && (0xA5A5A5A5U == p_words[unused]))
+    {
+        ++unused;
+    }
+    return unused * (uint32_t)sizeof(uint32_t);
+}
+
 #if !C3TASK_HOST_BUILD
 /** @brief Reclaim bounded shim resources from a surviving low-priority task. */
 static void c3task_reaper_task (INT code, void * p_context)
@@ -407,7 +654,35 @@ static void c3task_reaper_task (INT code, void * p_context)
         {
             for (uint32_t attempt = 0U; attempt < C3TASK_STACK_SLOTS; ++attempt)
             {
-                if (0 >= p_reap())
+                SYSTIM before = {0};
+                SYSTIM after  = {0};
+                (void)tk_get_otm(&before);
+                const int result = p_reap();
+                (void)tk_get_otm(&after);
+                const uint32_t elapsed      = after.lo - before.lo;
+                const uint32_t metric_saved = c3task_resource_enter();
+
+                if (UINT32_MAX > g_resource_stats.reaper_calls)
+                {
+                    ++g_resource_stats.reaper_calls;
+                }
+                if (elapsed > g_resource_stats.maximum_reaper_call_ms)
+                {
+                    g_resource_stats.maximum_reaper_call_ms = elapsed;
+                }
+                if (0 > result)
+                {
+                    if (UINT32_MAX > g_resource_stats.cleanup_failures)
+                    {
+                        ++g_resource_stats.cleanup_failures;
+                    }
+                    if (UINT32_MAX > g_resource_stats.cleanup_retries)
+                    {
+                        ++g_resource_stats.cleanup_retries;
+                    }
+                }
+                c3task_resource_leave(metric_saved);
+                if (0 >= result)
                 {
                     break;
                 }

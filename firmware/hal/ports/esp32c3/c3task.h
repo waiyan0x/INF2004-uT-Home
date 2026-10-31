@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define C3TASK_OBSERVER_SLOTS      8U
+#define C3TASK_OBSERVER_SLOTS      4U
 #define C3TASK_OBSERVER_NAME_BYTES 16U
 
 /** @brief Deferred shim cleanup callback. */
@@ -61,6 +61,15 @@ int c3task_stack_acquire (uintptr_t  owner,
                           uint32_t * p_capacity_bytes);
 
 /**
+ * @brief Commit one reservation after its native task and semaphore exist.
+ *
+ * @param owner Generation-aware token used for acquisition.
+ * @param p_stack Exact stack address returned by acquisition.
+ * @return Zero on success or a negative value on a stale reservation.
+ */
+int c3task_stack_commit (uintptr_t owner, void * p_stack);
+
+/**
  * @brief Release a stack after the corresponding kernel task is deleted.
  *
  * @param owner Generation-aware token used for acquisition.
@@ -71,6 +80,76 @@ int c3task_stack_acquire (uintptr_t  owner,
 int c3task_stack_release (uintptr_t owner,
                           void *    p_stack,
                           bool      b_kernel_deleted);
+
+/**
+ * @brief Seal startup after every reserved native object is committed.
+ *
+ * Once sealed, stack acquisition is permanently rejected until reset. This
+ * makes rejection occur before the shim can create a task or notification
+ * semaphore.
+ *
+ * @return Zero on success or a negative value while startup is incomplete.
+ */
+int c3task_seal (void);
+
+/** @brief Return true after startup task allocation has been sealed. */
+bool c3task_is_sealed (void);
+
+/** @brief Fixed-stack and cleanup diagnostics captured without allocation. */
+typedef struct
+{
+    uintptr_t owner;
+    uint32_t  capacity_bytes;
+    uint32_t  unused_bytes;
+    bool      b_used;
+    bool      b_committed;
+} c3task_stack_record_t;
+
+/** @brief Aggregate resource-lifecycle diagnostics. */
+typedef struct
+{
+    uint32_t post_seal_rejections;
+    uint32_t cleanup_requests;
+    uint32_t cleanup_completions;
+    uint32_t cleanup_retries;
+    uint32_t cleanup_failures;
+    uint32_t maximum_cleanup_latency_ms;
+    uint32_t reaper_calls;
+    uint32_t maximum_reaper_call_ms;
+    uint32_t reaper_capacity_bytes;
+    uint32_t reaper_unused_bytes;
+    bool     b_sealed;
+} c3task_resource_stats_t;
+
+/**
+ * @brief Mark the first deferred-cleanup request for one generation.
+ *
+ * Repeated calls for the same owner are ignored.
+ *
+ * @param owner Generation-aware task token.
+ * @param now_ms Monotonic millisecond timestamp.
+ */
+void c3task_cleanup_pending (uintptr_t owner, uint32_t now_ms);
+
+/**
+ * @brief Record completed cleanup and its end-to-end latency.
+ *
+ * @param owner Generation-aware task token.
+ * @param now_ms Monotonic millisecond timestamp.
+ */
+void c3task_cleanup_complete (uintptr_t owner, uint32_t now_ms);
+
+/**
+ * @brief Capture all fixed-stack and reaper diagnostics.
+ *
+ * @param p_records Caller-owned array with at least c3task_capacity() rows.
+ * @param record_count Number of rows available.
+ * @param p_stats Destination for aggregate diagnostics.
+ * @return Zero on success or a negative value on invalid input.
+ */
+int c3task_resource_snapshot (c3task_stack_record_t *   p_records,
+                              uint32_t                  record_count,
+                              c3task_resource_stats_t * p_stats);
 
 /** @brief Aggregate task-observation statistics. */
 typedef struct

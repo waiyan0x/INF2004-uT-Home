@@ -76,12 +76,14 @@ typedef unsigned int UINT;
 typedef struct { ID tsk_id; } shim_task_t;
 #define SHIM_TASK_MAX 4
 #define SHIM_TASK_RESERVED ((ID)-1)
+#define SHIM_FLAG_CLEANUP_BUSY 0x01U
+#define SHIM_FLAG_OBSERVED 0x02U
+#define SHIM_FLAG_SELF_EXIT 0x04U
+#define SHIM_FLAG_NOTIFY_PENDING 0x08U
 @@STATE@@
 static shim_task_t s_tasks[SHIM_TASK_MAX];
-static shim_task_state_t s_task_states[SHIM_TASK_MAX];
-static uint8_t s_cleanup_busy[SHIM_TASK_MAX];
-static uint8_t s_observed[SHIM_TASK_MAX];
-static uint8_t s_self_exit[SHIM_TASK_MAX];
+static uint8_t s_task_states[SHIM_TASK_MAX];
+static uint8_t s_task_flags[SHIM_TASK_MAX];
 static uintptr_t s_handles[SHIM_TASK_MAX];
 static uint32_t s_generations[SHIM_TASK_MAX];
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;

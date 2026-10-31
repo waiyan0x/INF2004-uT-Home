@@ -111,6 +111,9 @@ static void model_report (void);
 static void radio_observations (memaudit_t const * p_rows,
                                 uint32_t const *   p_free,
                                 uint32_t const *   p_largest);
+static void radio_task_resources (void);
+static void radio_cpu_report (costview_cpu_t const * p_before,
+                              costview_cpu_t const * p_after);
 #endif
 
 static void fail (const char * p_expression, int line);
@@ -250,9 +253,14 @@ static void wifi_log (uint32_t stage, int32_t status, uint32_t free_bytes)
 /** @brief Print diagnostic memory evidence; never emit a compliance claim. */
 static void wifi_report (void)
 {
+    costview_cpu_t before = {0};
+    costview_cpu_t after  = {0};
+
     tm_printf((UB *)"[wifi-probe] diagnostic only; scan without association, "
                     "AP or NVS; USB core RAM retained, application inactive\n");
-    const int         result       = c3wifi_probe(&g_wifi_report, wifi_log);
+    CHECK(0 == cpu_capture(&before));
+    const int result = c3wifi_probe(&g_wifi_report, wifi_log);
+    CHECK(0 == cpu_capture(&after));
     c3nq_diagnostic_t queue_report = {0};
     CHECK(0 == c3nq_diagnostic(&queue_report));
     tm_printf((UB *)"[wifi-probe] queue_calls=%u failures=%u "
@@ -272,6 +280,9 @@ static void wifi_report (void)
     radio_observations(g_wifi_report.observations,
                        g_wifi_report.free_bytes,
                        g_wifi_report.largest_bytes);
+    radio_cpu_report(&before, &after);
+    radio_task_resources();
+    CHECK(0 == result);
 }
 #endif
 
@@ -289,6 +300,9 @@ static void ble_log (uint32_t stage, int32_t status, uint32_t free_bytes)
  */
 static void ble_report (void)
 {
+    costview_cpu_t before = {0};
+    costview_cpu_t after  = {0};
+
 #if UTHOME_BLE_GATT_PROBE
     tm_printf((UB *)"[ble-probe] diagnostic only; UTHOME-GATT read-only "
                     "uptime; no pairing, NVS or configuration access\n");
@@ -297,7 +311,9 @@ static void ble_report (void)
         (UB *)"[ble-probe] diagnostic only; nonconnectable UTHOME-DIAG; "
               "no GATT or NVS; USB core inactive; SDK flash controller\n");
 #endif
+    CHECK(0 == cpu_capture(&before));
     const int result = c3ble_probe(&g_ble_report, ble_log);
+    CHECK(0 == cpu_capture(&after));
     tm_printf((UB *)"[ble-probe] completed result=%d stage=%u status=%d "
                     "advertised=%u resets=%u host_exited=%u\n",
               result,
@@ -315,6 +331,9 @@ static void ble_report (void)
     radio_observations(g_ble_report.observations,
                        g_ble_report.free_bytes,
                        g_ble_report.largest_bytes);
+    radio_cpu_report(&before, &after);
+    radio_task_resources();
+    CHECK(0 == result);
 }
 #endif
 
@@ -349,6 +368,91 @@ static void radio_observations (memaudit_t const * p_rows,
                       (unsigned)p_audit->normal.creates[kind]);
         }
     }
+    tm_printf((UB *)"[radio-probe] post_seal_task_creates=%u "
+                    "post_seal_notification_sem_creates=%u\n",
+              (unsigned)p_rows[3U].normal.creates[UTHOME_AUDIT_TASK],
+              (unsigned)p_rows[3U].normal.creates[UTHOME_AUDIT_SEM]);
+    CHECK(0U == p_rows[3U].normal.creates[UTHOME_AUDIT_TASK]);
+    CHECK(0U == p_rows[3U].normal.creates[UTHOME_AUDIT_SEM]);
+}
+
+/** @brief Report radio-window scheduler usage from cumulative native clocks. */
+static void radio_cpu_report (costview_cpu_t const * p_before,
+                              costview_cpu_t const * p_after)
+{
+    const uint64_t elapsed = p_after->elapsed_ms - p_before->elapsed_ms;
+    const uint32_t idle    = p_after->idle_ms - p_before->idle_ms;
+    const uint64_t busy    = (idle <= elapsed) ? elapsed - idle : elapsed;
+    const uint32_t permille =
+        (0U < elapsed) ? (uint32_t)((busy * 1000U) / elapsed) : 0U;
+
+    tm_printf((UB *)"[radio-probe] cpu_elapsed_ms=%u idle_ms=%u "
+                    "busy_ms=%u busy_permille=%u tick_ms=%u\n",
+              (unsigned)elapsed,
+              (unsigned)idle,
+              (unsigned)busy,
+              (unsigned)permille,
+              (unsigned)p_after->tick_ms);
+}
+
+/** @brief Capture static stacks, cleanup health and sealed exhaustion policy.
+ */
+static void radio_task_resources (void)
+{
+    c3task_stack_record_t   records[4]        = {0};
+    c3task_resource_stats_t before            = {0};
+    c3task_resource_stats_t after             = {0};
+    c3task_observer_stats_t observer          = {0};
+    void *                  p_rejected        = NULL;
+    uint32_t                rejected_capacity = 0U;
+    const uint32_t          capacity          = c3task_capacity();
+    const uint32_t          used              = c3task_used();
+
+    CHECK(0 == c3task_resource_snapshot(records, 4U, &before));
+    CHECK(c3task_is_sealed());
+    CHECK(0 != c3task_stack_acquire(
+                   UINTPTR_MAX, 1U, &p_rejected, &rejected_capacity));
+    CHECK(used == c3task_used());
+    CHECK(0 == c3task_resource_snapshot(records, 4U, &after));
+    CHECK((UINT32_MAX == before.post_seal_rejections) ||
+          ((before.post_seal_rejections + 1U) == after.post_seal_rejections));
+    c3task_observer_snapshot(&observer);
+
+    for (uint32_t index = 0U; index < capacity; ++index)
+    {
+        tm_printf((UB *)"[radio-task] slot=%u owner=%u capacity=%u unused=%u "
+                        "used=%u committed=%u\n",
+                  (unsigned)index,
+                  (unsigned)records[index].owner,
+                  (unsigned)records[index].capacity_bytes,
+                  (unsigned)records[index].unused_bytes,
+                  records[index].b_used ? 1U : 0U,
+                  records[index].b_committed ? 1U : 0U);
+    }
+    tm_printf((UB *)"[radio-task] requests=%u successes=%u failures=%u "
+                    "deletions=%u active=%u peak=%u max_request=%u\n",
+              (unsigned)observer.requests,
+              (unsigned)observer.successes,
+              (unsigned)observer.failures,
+              (unsigned)observer.deletions,
+              (unsigned)observer.active,
+              (unsigned)observer.peak_active,
+              (unsigned)observer.maximum_requested_stack);
+    tm_printf((UB *)"[radio-task] sealed=%u post_seal_rejections=%u "
+                    "cleanup_requests=%u completions=%u retries=%u "
+                    "failures=%u max_cleanup_ms=%u reaper_calls=%u "
+                    "max_reaper_call_ms=%u reaper_unused=%u/%u\n",
+              after.b_sealed ? 1U : 0U,
+              (unsigned)after.post_seal_rejections,
+              (unsigned)after.cleanup_requests,
+              (unsigned)after.cleanup_completions,
+              (unsigned)after.cleanup_retries,
+              (unsigned)after.cleanup_failures,
+              (unsigned)after.maximum_cleanup_latency_ms,
+              (unsigned)after.reaper_calls,
+              (unsigned)after.maximum_reaper_call_ms,
+              (unsigned)after.reaper_unused_bytes,
+              (unsigned)after.reaper_capacity_bytes);
 }
 #endif
 

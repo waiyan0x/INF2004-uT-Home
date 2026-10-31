@@ -98,8 +98,18 @@ typedef struct
     int tskstat;
 } T_RTSK;
 
+typedef struct
+{
+    int32_t  hi;
+    uint32_t lo;
+} SYSTIM;
+
 #define SHIM_TASK_MAX      4
 #define SHIM_TASK_RESERVED ((ID)-1)
+#define SHIM_FLAG_CLEANUP_BUSY 0x01U
+#define SHIM_FLAG_OBSERVED     0x02U
+#define SHIM_FLAG_SELF_EXIT    0x04U
+#define SHIM_FLAG_NOTIFY_PENDING 0x08U
 #define pdFALSE            0
 #define pdTRUE             1
 #define E_OK               0
@@ -128,10 +138,8 @@ static pthread_mutex_t g_shim_guard = PTHREAD_MUTEX_INITIALIZER;
 @@STATE_ENUM@@
 
 static shim_task_t       s_tasks[SHIM_TASK_MAX];
-static shim_task_state_t s_task_states[SHIM_TASK_MAX];
-static uint8_t           s_cleanup_busy[SHIM_TASK_MAX];
-static uint8_t           s_observed[SHIM_TASK_MAX];
-static uint8_t           s_self_exit[SHIM_TASK_MAX];
+static uint8_t           s_task_states[SHIM_TASK_MAX];
+static uint8_t           s_task_flags[SHIM_TASK_MAX];
 static uintptr_t         s_handles[SHIM_TASK_MAX];
 static uint32_t          s_generations[SHIM_TASK_MAX];
 
@@ -173,6 +181,7 @@ static const uint32_t g_capacities[4] = {2816U, 3584U, 4096U, 6656U};
 static uintptr_t      g_stack_owners[4];
 static pthread_mutex_t g_pool_guard = PTHREAD_MUTEX_INITIALIZER;
 static int             g_fail_stack_release;
+static int             g_pool_sealed;
 static int (*gp_bound_reaper)(void);
 
 static int c3task_reaper_bind (int (*p_reap)(void))
@@ -195,6 +204,11 @@ static int c3task_stack_acquire (uintptr_t  owner,
     uint32_t best     = UINT32_MAX;
 
     assert(0 == pthread_mutex_lock(&g_pool_guard));
+    if (g_pool_sealed)
+    {
+        assert(0 == pthread_mutex_unlock(&g_pool_guard));
+        return -1;
+    }
     for (int index = 0; index < 4; ++index)
     {
         if (owner == g_stack_owners[index])
@@ -248,6 +262,31 @@ static int c3task_stack_release (uintptr_t owner,
     }
     assert(0 == pthread_mutex_unlock(&g_pool_guard));
     return result;
+}
+
+static int c3task_stack_commit (uintptr_t owner, void * p_stack)
+{
+    for (int index = 0; index < 4; ++index)
+    {
+        if ((owner == g_stack_owners[index]) &&
+            (p_stack == gp_stacks[index]))
+        {
+            return 0;
+        }
+    }
+    return -1;
+}
+
+static void c3task_cleanup_pending (uintptr_t owner, uint32_t now_ms)
+{
+    assert(0U != owner);
+    (void)now_ms;
+}
+
+static void c3task_cleanup_complete (uintptr_t owner, uint32_t now_ms)
+{
+    assert(0U != owner);
+    (void)now_ms;
 }
 
 static int stack_count (void)
@@ -349,6 +388,8 @@ static int             g_fail_task_terminate;
 static int             g_fail_task_delete;
 static int             g_task_delete_calls;
 static int             g_sem_delete_calls;
+static int             g_task_create_calls;
+static int             g_sem_create_calls;
 static _Thread_local ID g_current_task;
 
 static ID next_free (const int * p_values)
@@ -367,6 +408,7 @@ static ID tk_cre_sem (T_CSEM * p_config)
 {
     (void)p_config;
     assert(0 == pthread_mutex_lock(&g_kernel_guard));
+    ++g_sem_create_calls;
     if (g_fail_sem_create > 0)
     {
         --g_fail_sem_create;
@@ -404,6 +446,7 @@ static ID tk_cre_tsk (T_CTSK * p_config)
 {
     assert((NULL != p_config->bufptr) && (0 < p_config->stksz));
     assert(0 == pthread_mutex_lock(&g_kernel_guard));
+    ++g_task_create_calls;
     if (g_fail_task_create > 0)
     {
         --g_fail_task_create;
@@ -486,6 +529,15 @@ static ER tk_del_tsk (ID id)
 static ID tk_get_tid (void)
 {
     return g_current_task;
+}
+
+static ER tk_get_otm (SYSTIM * p_time)
+{
+    static uint32_t now_ms;
+
+    p_time->hi = 0;
+    p_time->lo = now_ms++;
+    return E_OK;
 }
 
 static ER tk_ext_tsk (void)
@@ -799,8 +851,22 @@ int main (void)
         reap_until_clean();
     }
 
+    const int task_creates_before_seal = g_task_create_calls;
+    const int sem_creates_before_seal  = g_sem_create_calls;
+    g_pool_sealed = 1;
+    assert(pdFALSE == __wrap_xTaskCreatePinnedToCore(dummy_task,
+                                                     "sealed",
+                                                     4096U,
+                                                     NULL,
+                                                     3U,
+                                                     NULL,
+                                                     0));
+    assert(task_creates_before_seal == g_task_create_calls);
+    assert(sem_creates_before_seal == g_sem_create_calls);
+    assert_clean();
+
     puts("PASS: applied shim patch creation rollback, exhaustion, lifecycle retries,");
-    puts("      self/concurrent/stale deletion and 1000 reuse cycles under ASan/UBSan");
+    puts("      post-seal zero-create rejection and 1000 reuse cycles under ASan/UBSan");
     return 0;
 }
 """
@@ -840,6 +906,7 @@ def main():
             "find_index_by_tk_id",
             "find_index_by_handle",
             "release_unstarted_entry",
+            "cleanup_time_ms",
             "defer_cleanup",
             "paint_stack",
             "__wrap_xTaskCreatePinnedToCore",

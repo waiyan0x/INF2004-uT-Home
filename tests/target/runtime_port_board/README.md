@@ -81,6 +81,132 @@ uptime service, with one connection permitted and no configuration commands.
 See the [network guide](../../../firmware/src/network/README.md#read-only-gatt-diagnostic)
 for its contract and C review. SDK allocations remain exposed and unqualified.
 
+## Buddy 1 radio resource acceptance
+
+The Wi-Fi and BLE fixtures now print a common `[radio-task]` resource record and
+`[radio-probe]` allocation/CPU record. The task record includes each fixed stack's
+capacity, measured unused sentinel bytes, committed state, observer creation and
+deletion totals, post-seal rejections, cleanup latency/retries/failures, reaper
+calls and reaper stack headroom. The allocation record separately reports native
+task and notification-semaphore creates after the startup seal. Wi-Fi scan restart
+and BLE advertising restart reuse their existing native tasks; full radio
+deinitialization/reinitialization after sealing is outside this diagnostic's
+supported recovery contract.
+
+Run the following from the repository root in a fresh shell. The work directories
+must not already exist. These commands build only; they do not access a board:
+
+```sh
+source "$HOME/esp/esp-idf/export.sh"
+buddy1_run_root="$(mktemp -d /tmp/uthome-buddy1-radio.XXXXXX)"
+buddy1_wifi="$buddy1_run_root/wifi"
+buddy1_ble="$buddy1_run_root/ble"
+
+python tools/target/qualify_kernel.py build \
+  --sdk "$IDF_PATH" \
+  --kernel firmware/third_party/esp32c3-mtk3 \
+  --runtime-port --static-net-queues --wifi-probe \
+  --work-dir "$buddy1_wifi" \
+  --compat-patch tools/target/patches/freertos-systimer.patch \
+  --observer-patch tools/target/patches/freertos-task-observer.patch
+python tools/target/memory_budget.py \
+  --build "$buddy1_wifi" \
+  --output "$buddy1_wifi/memory-budget.json" \
+  --budget tools/target/network-budget.json
+
+python tools/target/qualify_kernel.py build \
+  --sdk "$IDF_PATH" \
+  --kernel firmware/third_party/esp32c3-mtk3 \
+  --runtime-port --static-net-queues --ble-probe \
+  --work-dir "$buddy1_ble" \
+  --compat-patch tools/target/patches/freertos-systimer.patch \
+  --observer-patch tools/target/patches/freertos-task-observer.patch
+python tools/target/memory_budget.py \
+  --build "$buddy1_ble" \
+  --output "$buddy1_ble/memory-budget.json" \
+  --budget tools/target/network-budget.json
+
+python - "$buddy1_wifi" "$buddy1_ble" <<'PY'
+import hashlib
+import json
+import pathlib
+import sys
+
+for root_text in sys.argv[1:]:
+    root = pathlib.Path(root_text)
+    evidence = json.loads((root / "evidence.json").read_text())
+    for relative, expected in evidence["artifacts"].items():
+        payload = (root / relative).read_bytes()
+        assert len(payload) == expected["size_bytes"], relative
+        assert hashlib.sha256(payload).hexdigest() == expected["sha256"], relative
+    print(f"verified {root}")
+PY
+```
+
+Before flashing, follow the project procedure to identify the current port,
+confirm ESP32-C3/4 MB, verify the artifact hashes in `evidence.json`, and take a
+hashed 4 MB backup. Do not substitute an old port or image. With `buddy1_port`
+set to the identified port and all competing serial clients closed, the relevant
+commands are:
+
+```sh
+python -m serial.tools.list_ports -v
+buddy1_port=/dev/cu.usbmodemXXXX
+python -m esptool --chip esp32c3 --port "$buddy1_port" flash-id
+buddy1_backup="$buddy1_run_root/board-before.bin"
+python -m esptool --chip esp32c3 --port "$buddy1_port" \
+  read-flash 0x0 0x400000 "$buddy1_backup"
+test "$(stat -f %z "$buddy1_backup")" -eq 4194304
+shasum -a 256 "$buddy1_backup"
+
+cd "$buddy1_wifi/build"
+python -m esptool --chip esp32c3 --port "$buddy1_port" \
+  --after watchdog-reset write-flash "@flash_args"
+cd -
+script -q "$buddy1_run_root/wifi-boot1.log" \
+  python -m serial.tools.miniterm "$buddy1_port" 115200 --raw
+```
+
+Reset once while capturing the first image, then end miniterm with Control-].
+Capture a second boot in `wifi-boot2.log`. Repeat the same flash and two-log
+sequence with `$buddy1_ble/build`. The PowerShell equivalent, including artifact
+hash verification and reviewed flash options, is in the
+[target tool guide](../../../tools/target/README.md#install-the-configuration-application).
+
+For each boot, preserve the full log and extract the diagnostic lines without
+editing the capture:
+
+```sh
+rg '\[(wifi-probe|ble-probe|radio-probe|radio-task)\]' \
+  "$buddy1_run_root"/*.log
+```
+
+The on-board acceptance checklist is:
+
+- The selected probe prints `completed result=0`; continuing `alive` output is
+  present, and the same result is obtained after reset.
+- `post_seal_task_creates=0` and
+  `post_seal_notification_sem_creates=0` on both boots.
+- Every printed used slot has `committed=1` and nonzero `unused`; reaper
+  `reaper_unused` is nonzero. Record the exact margins rather than imposing a
+  new stack threshold without review.
+- `sealed=1`; the deliberate post-seal exhaustion check increments
+  `post_seal_rejections` and leaves the occupied count unchanged (a failed
+  `CHECK` prevents a successful final report).
+- CPU elapsed is nonzero, idle does not exceed elapsed, and busy permille is at
+  most 1000. Compare both boots and retain the values; a build is not a CPU test.
+- Observer requests/successes/deletions/active/peak and cleanup
+  requests/completions/latency/retries/failures are retained. A normal restart
+  can show no cleanup because the radio workers are reused.
+- No `CHECK failed`, panic, watchdog reset, unexpected reboot or missing stage is
+  present.
+
+The fixture observes cleanup health and verifies sealed resource exhaustion, but
+does not deliberately inject task-deletion or semaphore-deletion failures on a
+physical radio stack. Host sanitizer tests cover those production-patch paths.
+On-board cleanup retry and reclaimed-stack recovery remain **NOT TESTED** until a
+separately reviewed fault-injection image is run.
+
 ## Experimental model resource probe
 
 `--runtime-port --static-net-queues --model-probe` isolates the frozen primary

@@ -54,6 +54,24 @@ int main (void)
 
     void *   stacks[4]     = {NULL};
     uint32_t capacities[4] = {0U};
+    for (uint32_t cycle = 0U; cycle < 10000U; ++cycle)
+    {
+        const uintptr_t owner = (uintptr_t)cycle + 1000U;
+        acquire(owner, 4096U, &stacks[0], &capacities[0]);
+        assert(1U == c3task_used());
+        assert(0 == c3task_stack_release(owner, stacks[0], true));
+        assert(0U == c3task_used());
+    }
+
+    uintptr_t stale_owner    = 100U;
+    void *    stale_stack    = NULL;
+    uint32_t  stale_capacity = 0U;
+    acquire(stale_owner, 2816U, &stale_stack, &stale_capacity);
+    assert(0 == c3task_stack_release(stale_owner, stale_stack, true));
+    acquire(stale_owner + 1U, 2816U, &stacks[0], &capacities[0]);
+    assert(stale_stack == stacks[0]);
+    assert(0 != c3task_stack_release(stale_owner, stale_stack, true));
+    assert(0 == c3task_stack_release(stale_owner + 1U, stacks[0], true));
 
     acquire(1U, 2800U, &stacks[0], &capacities[0]);
     acquire(2U, 3500U, &stacks[1], &capacities[1]);
@@ -64,14 +82,20 @@ int main (void)
     assert(4096U == capacities[2]);
     assert(6656U == capacities[3]);
     assert(4U == c3task_used());
+    assert(0 != c3task_seal());
 
-    for (uint32_t first = 0U; first < 4U; ++first)
+    for (uint32_t index = 0U; index < 4U; ++index)
     {
-        for (uint32_t second = first + 1U; second < 4U; ++second)
+        assert(0 == c3task_stack_commit((uintptr_t)index + 1U,
+                                        stacks[index]));
+        for (uint32_t other = index + 1U; other < 4U; ++other)
         {
-            assert(stacks[first] != stacks[second]);
+            assert(stacks[index] != stacks[other]);
         }
     }
+    assert(0 == c3task_seal());
+    assert(0 == c3task_seal());
+    assert(c3task_is_sealed());
 
     void *   rejected_stack    = NULL;
     uint32_t rejected_capacity = 0U;
@@ -79,47 +103,36 @@ int main (void)
                                      1U,
                                      &rejected_stack,
                                      &rejected_capacity));
-    assert(0 != c3task_stack_acquire(1U,
-                                     1U,
-                                     &rejected_stack,
-                                     &rejected_capacity));
     assert(0 != c3task_stack_release(1U, stacks[0], false));
     assert(0 != c3task_stack_release(9U, stacks[0], true));
-    assert(4U == c3task_used());
 
+    c3task_cleanup_pending(1U, 100U);
+    c3task_cleanup_pending(1U, 101U);
+    c3task_cleanup_complete(1U, 112U);
+    c3task_stack_record_t   records[4] = {0};
+    c3task_resource_stats_t stats      = {0};
+    assert(0 == c3task_resource_snapshot(records, 4U, &stats));
+    assert(stats.b_sealed);
+    assert(1U == stats.post_seal_rejections);
+    assert(1U == stats.cleanup_requests);
+    assert(1U == stats.cleanup_completions);
+    assert(12U == stats.maximum_cleanup_latency_ms);
     for (uint32_t index = 0U; index < 4U; ++index)
     {
+        assert(records[index].b_used);
+        assert(records[index].b_committed);
+        assert(capacities[index] == records[index].capacity_bytes);
         assert(0 == c3task_stack_release((uintptr_t)index + 1U,
                                          stacks[index],
                                          true));
     }
     assert(0U == c3task_used());
-    assert(0 != c3task_stack_release(1U, stacks[0], true));
     assert(0 != c3task_stack_acquire(20U,
-                                     6657U,
+                                     4096U,
                                      &rejected_stack,
                                      &rejected_capacity));
 
-    uintptr_t stale_owner = 100U;
-    void *    stale_stack = NULL;
-    uint32_t  stale_capacity = 0U;
-    acquire(stale_owner, 2816U, &stale_stack, &stale_capacity);
-    assert(0 == c3task_stack_release(stale_owner, stale_stack, true));
-    acquire(stale_owner + 1U, 2816U, &stacks[0], &capacities[0]);
-    assert(stale_stack == stacks[0]);
-    assert(0 != c3task_stack_release(stale_owner, stale_stack, true));
-    assert(0 == c3task_stack_release(stale_owner + 1U, stacks[0], true));
-
-    for (uint32_t cycle = 0U; cycle < 10000U; ++cycle)
-    {
-        const uintptr_t owner = (uintptr_t)cycle + 1000U;
-        acquire(owner, 4096U, &stacks[0], &capacities[0]);
-        assert(1U == c3task_used());
-        assert(0 == c3task_stack_release(owner, stacks[0], true));
-        assert(0U == c3task_used());
-    }
-
-    puts("PASS: actual c3task pool alignment, best-fit, rejection and 10000 reuse cycles");
+    puts("PASS: actual c3task pool, startup seal, diagnostics and 10000 reuse cycles");
     return 0;
 }
 """

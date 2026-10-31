@@ -772,6 +772,11 @@ def verify_static_task_source(source, enabled):
         "bounded cleanup step": "shim_task_reap_one",
         "generation-aware handles": "s_generations",
         "caller-owned kernel stack": "TA_USERBUF",
+        "startup allocation seal": "c3task_stack_commit",
+        "notification pending state": "SHIM_FLAG_NOTIFY_PENDING",
+        "no-overwrite notification": "eSetValueWithoutOverwrite",
+        "notification state clear": "__wrap_xTaskGenericNotifyStateClear",
+        "notification value clear": "__wrap_ulTaskGenericNotifyValueClear",
     }
     missing = [description for description, token in required.items()
                if token not in text]
@@ -801,7 +806,9 @@ def verify_static_task_link(work, enabled):
         r"^([0-9a-fA-F]+)\s+(\w)\s+(\S+)$", output, re.MULTILINE)}
     required = {"c3task_stack_acquire", "c3task_stack_release",
                 "c3task_reaper_bind", "c3task_reaper_task",
-                "g_reaper_stack", "shim_task_reap_one"}
+                "c3task_stack_commit", "c3task_seal",
+                "c3task_resource_snapshot", "g_reaper_stack",
+                "shim_task_reap_one"}
     missing = sorted(required - symbols)
     if missing:
         raise QualificationError("Static task symbols missing from ELF: " +

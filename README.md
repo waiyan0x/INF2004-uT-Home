@@ -28,9 +28,11 @@ and [C policy](C_CODING_STANDARD.md) before changing implementation.
 The USB configuration system supports BMP388/I2C, six-pin OLED/SPI and
 LD2450/UART. Fixed workers, parsing/storage, discovery and timing/allocation
 telemetry are implemented. Isolated Wi-Fi and BLE diagnostics now use bounded,
-caller-owned native task stacks with deferred lifecycle cleanup. Wireless services
-are not integrated or whole-system static-memory qualified; runtime stack margin,
-remaining SDK allocation and hardware lifecycle checks are still open.
+caller-owned native task stacks, startup-only native task/notification creation,
+FreeRTOS-compatible single-slot notifications and deferred lifecycle cleanup.
+Wireless services are not integrated or whole-system static-memory qualified;
+on-device stack margins, remaining SDK allocation and hardware lifecycle checks
+are still open.
 The timing models remain experimental: none passed its deployment-benefit gate.
 
 Do not assume a previous COM port, firmware image, wiring or free serial port.

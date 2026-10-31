@@ -1,7 +1,8 @@
 diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shim_task.c
+index d4bdafa..d4dc55f 100644
 --- a/components/freertos_shim/shim_task.c
 +++ b/components/freertos_shim/shim_task.c
-@@ -2,44 +2,176 @@
+@@ -2,44 +2,186 @@
  #include "freertos/shim_internal.h"
  #include "freertos/task.h"
  #include "esp_rom_sys.h"
@@ -15,6 +16,10 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 -#define SHIM_TASK_MAX  48   /* must match CNF_MAX_TSKID */
 +#define SHIM_TASK_MAX 4
 +#define SHIM_TASK_RESERVED ((ID)-1)
++#define SHIM_FLAG_CLEANUP_BUSY 0x01U
++#define SHIM_FLAG_OBSERVED 0x02U
++#define SHIM_FLAG_SELF_EXIT 0x04U
++#define SHIM_FLAG_NOTIFY_PENDING 0x08U
 
  static shim_task_t s_tasks[SHIM_TASK_MAX];
 
@@ -31,19 +36,15 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +    SHIM_TASK_STACK_RELEASED
 +} shim_task_state_t;
 +
-+static shim_task_state_t s_task_states[SHIM_TASK_MAX];
-+static uint8_t s_cleanup_busy[SHIM_TASK_MAX];
-+static uint8_t s_observed[SHIM_TASK_MAX];
-+static uint8_t s_self_exit[SHIM_TASK_MAX];
++static uint8_t s_task_states[SHIM_TASK_MAX];
++static uint8_t s_task_flags[SHIM_TASK_MAX];
 +static uintptr_t s_handles[SHIM_TASK_MAX];
 +static uint32_t s_generations[SHIM_TASK_MAX];
 +
 +int shim_task_reap_one(void);
 +
 +static uintptr_t make_handle(int index)
- {
--    UINT saved; DI(saved);
--    shim_task_t *t = NULL;
++{
 +    uint32_t generation = s_generations[index] + 1U;
 +
 +    if (generation > ((UINT32_MAX - SHIM_TASK_MAX) / SHIM_TASK_MAX)) {
@@ -55,13 +56,20 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +}
 +
 +static void clear_task_entry(int index)
-+{
+ {
+-    UINT saved; DI(saved);
+-    shim_task_t *t = NULL;
 +    memset(&s_tasks[index], 0, sizeof(s_tasks[index]));
 +    s_handles[index] = 0U;
-+    s_cleanup_busy[index] = 0U;
-+    s_observed[index] = 0U;
-+    s_self_exit[index] = 0U;
++    s_task_flags[index] = 0U;
 +    s_task_states[index] = SHIM_TASK_FREE;
++}
++
++static uint32_t cleanup_time_ms(void)
++{
++    SYSTIM time = {0};
++
++    return tk_get_otm(&time) == E_OK ? time.lo : 0U;
 +}
 +
 +static shim_task_t *alloc_task_entry(int *out_index, uintptr_t *out_handle)
@@ -70,8 +78,7 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +    shim_task_t *task = NULL;
 +
 +    DI(saved);
-     for (int i = 0; i < SHIM_TASK_MAX; i++) {
--        if (s_tasks[i].tsk_id == 0) { t = &s_tasks[i]; break; }
++    for (int i = 0; i < SHIM_TASK_MAX; i++) {
 +        if (s_task_states[i] == SHIM_TASK_FREE) {
 +            clear_task_entry(i);
 +            s_task_states[i] = SHIM_TASK_SLOT_RESERVED;
@@ -82,12 +89,11 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +            task = &s_tasks[i];
 +            break;
 +        }
-     }
-     EI(saved);
--    return t;
++    }
++    EI(saved);
 +    return task;
- }
-
++}
++
 +static int find_index_by_tk_id(ID id)
 +{
 +    UINT saved;
@@ -115,16 +121,18 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +    if (token == 0U) return -1;
 +
 +    DI(saved);
-+    for (int i = 0; i < SHIM_TASK_MAX; i++) {
+     for (int i = 0; i < SHIM_TASK_MAX; i++) {
+-        if (s_tasks[i].tsk_id == 0) { t = &s_tasks[i]; break; }
 +        if (s_handles[i] == token && s_task_states[i] != SHIM_TASK_FREE) {
 +            index = i;
 +            break;
 +        }
-+    }
-+    EI(saved);
+     }
+     EI(saved);
+-    return t;
 +    return index;
-+}
-+
+ }
+
  static shim_task_t *find_by_tk_id(ID id)
  {
 -    for (int i = 0; i < SHIM_TASK_MAX; i++)
@@ -151,8 +159,8 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +    }
 +    EI(saved);
 +    return task;
- }
-
++}
++
 +static void release_unstarted_entry(int index)
 +{
 +    UINT saved;
@@ -165,11 +173,14 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +static void defer_cleanup(int index, shim_task_state_t state)
 +{
 +    UINT saved;
++    uintptr_t handle;
 +
 +    DI(saved);
 +    s_task_states[index] = state;
-+    s_cleanup_busy[index] = 0U;
++    s_task_flags[index] &= (uint8_t)~SHIM_FLAG_CLEANUP_BUSY;
++    handle = s_handles[index];
 +    EI(saved);
++    c3task_cleanup_pending(handle, cleanup_time_ms());
 +}
 +
 +static void paint_stack(void *stack, uint32_t stack_size)
@@ -179,8 +190,8 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +    for (uint32_t i = 0U; i < stack_size / sizeof(uint32_t); i++) {
 +        words[i] = 0xA5A5A5A5U;
 +    }
-+}
-+
+ }
+
  /* -------------------------------------------------------------------------
   * xTaskCreatePinnedToCore / xTaskCreate
   *
@@ -191,7 +202,7 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
   * ------------------------------------------------------------------------- */
  BaseType_t __wrap_xTaskCreatePinnedToCore(TaskFunction_t fn, const char *name,
      uint32_t stack_words, void *param, UBaseType_t prio,
-@@ -47,87 +179,109 @@
+@@ -47,49 +189,45 @@ BaseType_t __wrap_xTaskCreatePinnedToCore(TaskFunction_t fn, const char *name,
  {
      (void)core; /* single-core */
 
@@ -207,9 +218,9 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
      if (!entry) {
          tm_printf((UB*)"[shim] xTaskCreate: no free task entry (%s)\n", name ? name : "?");
 +        if (observer_token) (void)c3task_observer_abort(observer_token);
-         return pdFALSE;
-     }
-
++        return pdFALSE;
++    }
++
 +    void *stack = NULL;
 +    uint32_t stack_size = 0U;
 +    if (c3task_stack_acquire(handle, stack_words, &stack, &stack_size) != 0) {
@@ -217,9 +228,9 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +                  name ? name : "?", (unsigned)stack_words);
 +        if (observer_token) (void)c3task_observer_abort(observer_token);
 +        release_unstarted_entry(index);
-+        return pdFALSE;
-+    }
-+
+         return pdFALSE;
+     }
+
 +    entry->stack = stack;
 +    entry->stack_sz = stack_size;
 +    paint_stack(stack, stack_size);
@@ -229,15 +240,9 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
      ID notify_sem = tk_cre_sem(&cs);
      if (notify_sem <= 0) {
          tm_printf((UB*)"[shim] xTaskCreate: tk_cre_sem failed (%s)\n", name ? name : "?");
-+        if (observer_token) (void)c3task_observer_abort(observer_token);
-+        if (c3task_stack_release(handle, stack, true) == 0) {
-+            release_unstarted_entry(index);
-+        } else {
-+            defer_cleanup(index, SHIM_TASK_SEM_DELETED);
-+        }
-         return pdFALSE;
-     }
-
+-        return pdFALSE;
+-    }
+-
 -    /* IMPORTANT unit fix: ESP-IDF's xTaskCreate[PinnedToCore] takes the stack
 -     * size in BYTES (see freertos task.h: "the stack size DEFINED IN BYTES.
 -     * Note that this differs from vanilla FreeRTOS").  IDF components call this
@@ -267,11 +272,16 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 -                       name ? name : "?", (unsigned)stack_sz,
 -                       (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
 -                       (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
--        return pdFALSE;
--    }
--
-     T_CTSK ctsk = {
-         .exinf   = NULL,
++        if (observer_token) (void)c3task_observer_abort(observer_token);
++        if (c3task_stack_release(handle, stack, true) == 0) {
++            release_unstarted_entry(index);
++        } else {
++            defer_cleanup(index, SHIM_TASK_SEM_DELETED);
++        }
+         return pdFALSE;
+     }
+
+@@ -98,36 +236,68 @@ BaseType_t __wrap_xTaskCreatePinnedToCore(TaskFunction_t fn, const char *name,
          .tskatr  = TA_HLNG | TA_RNG0 | TA_USERBUF,
          .task    = (FP)fn,
          .itskpri = shim_prio_to_tk((uint32_t)prio),
@@ -310,10 +320,16 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
      if (name) { strncpy(entry->name, name, sizeof(entry->name) - 1); entry->name[sizeof(entry->name) - 1] = '\0'; }
      else      { entry->name[0] = '\0'; }
 
++    if (c3task_stack_commit(handle, stack) != 0) {
++        if (observer_token) (void)c3task_observer_abort(observer_token);
++        defer_cleanup(index, SHIM_TASK_WAIT_DORMANT);
++        return pdFALSE;
++    }
++
 +    /* Commit before the new task can run and delete itself. */
 +    if (observer_token) {
 +        if (c3task_observer_commit(observer_token, (void *)handle) == 0) {
-+            s_observed[index] = 1U;
++            s_task_flags[index] |= SHIM_FLAG_OBSERVED;
 +        } else {
 +            (void)c3task_observer_abort(observer_token);
 +        }
@@ -329,9 +345,9 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 -        tk_del_tsk(tsk_id);
 -        tk_del_sem(notify_sem);
 -        entry->tsk_id = 0;
-+        if (s_observed[index]) {
++        if (s_task_flags[index] & SHIM_FLAG_OBSERVED) {
 +            if (c3task_observer_cancel((void *)handle) == 0) {
-+                s_observed[index] = 0U;
++                s_task_flags[index] &= (uint8_t)~SHIM_FLAG_OBSERVED;
 +            }
 +        }
 +        defer_cleanup(index, SHIM_TASK_WAIT_DORMANT);
@@ -343,7 +359,7 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
      return pdTRUE;
  }
 
-@@ -137,22 +291,167 @@
+@@ -137,22 +307,174 @@ BaseType_t __wrap_xTaskCreate(TaskFunction_t fn, const char *name,
      return __wrap_xTaskCreatePinnedToCore(fn, name, stack_words, param, prio, out, 0);
  }
 
@@ -361,7 +377,7 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +
 +        DI(saved);
 +        phase = s_task_states[i];
-+        if (s_cleanup_busy[i] ||
++        if ((s_task_flags[i] & SHIM_FLAG_CLEANUP_BUSY) ||
 +            (phase != SHIM_TASK_TERMINATE_PENDING &&
 +             phase != SHIM_TASK_WAIT_DORMANT &&
 +             phase != SHIM_TASK_DELETED &&
@@ -370,7 +386,7 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +            EI(saved);
 +            continue;
 +        }
-+        s_cleanup_busy[i] = 1U;
++        s_task_flags[i] |= SHIM_FLAG_CLEANUP_BUSY;
 +        id = s_tasks[i].tsk_id;
 +        handle = s_handles[i];
 +        EI(saved);
@@ -388,7 +404,7 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +            phase = SHIM_TASK_WAIT_DORMANT;
 +            defer_cleanup(i, phase);
 +            DI(saved);
-+            s_cleanup_busy[i] = 1U;
++            s_task_flags[i] |= SHIM_FLAG_CLEANUP_BUSY;
 +            EI(saved);
 +        }
 +
@@ -444,10 +460,12 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +        }
 +
 +        if (phase == SHIM_TASK_STACK_RELEASED) {
-+            if (s_observed[i] && c3task_observer_release((void *)handle) != 0) {
++            if ((s_task_flags[i] & SHIM_FLAG_OBSERVED) &&
++                c3task_observer_release((void *)handle) != 0) {
 +                defer_cleanup(i, SHIM_TASK_STACK_RELEASED);
 +                return -1;
 +            }
++            c3task_cleanup_complete(handle, cleanup_time_ms());
 +            DI(saved);
 +            clear_task_entry(i);
 +            EI(saved);
@@ -464,13 +482,16 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +        int index = find_index_by_tk_id(tk_get_tid());
 +        if (index >= 0) {
 +            UINT saved;
++            uintptr_t owner;
 +            DI(saved);
 +            if (s_task_states[index] == SHIM_TASK_RUNNING) {
 +                s_task_states[index] = SHIM_TASK_WAIT_DORMANT;
 +            } else if (s_task_states[index] == SHIM_TASK_STOPPING) {
-+                s_self_exit[index] = 1U;
++                s_task_flags[index] |= SHIM_FLAG_SELF_EXIT;
 +            }
++            owner = s_handles[index];
 +            EI(saved);
++            c3task_cleanup_pending(owner, cleanup_time_ms());
 +        }
          tk_ext_tsk();
          return;
@@ -494,12 +515,14 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +    if (s_task_states[index] == SHIM_TASK_RUNNING &&
 +        s_handles[index] == (uintptr_t)handle) {
 +        s_task_states[index] = SHIM_TASK_STOPPING;
-+        s_cleanup_busy[index] = 1U;
++        s_task_flags[index] |= SHIM_FLAG_CLEANUP_BUSY;
 +        id = s_tasks[index].tsk_id;
 +    }
 +    EI(saved);
 +
 +    if (id <= 0) return;
++
++    c3task_cleanup_pending((uintptr_t)handle, cleanup_time_ms());
 +
 +    T_RTSK state;
 +    ER result = tk_ref_tsk(id, &state);
@@ -509,20 +532,20 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
 +    DI(saved);
 +    if (s_handles[index] == (uintptr_t)handle &&
 +        s_task_states[index] == SHIM_TASK_STOPPING) {
-+        if (s_self_exit[index] ||
++        if ((s_task_flags[index] & SHIM_FLAG_SELF_EXIT) ||
 +            (result == E_OK && state.tskstat == TTS_DMT) ||
 +            result == E_OK) {
 +            s_task_states[index] = SHIM_TASK_WAIT_DORMANT;
 +        } else {
 +            s_task_states[index] = SHIM_TASK_TERMINATE_PENDING;
 +        }
-+        s_cleanup_busy[index] = 0U;
++        s_task_flags[index] &= (uint8_t)~SHIM_FLAG_CLEANUP_BUSY;
 +    }
 +    EI(saved);
  }
 
  /* -------------------------------------------------------------------------
-@@ -191,9 +490,18 @@
+@@ -191,9 +513,18 @@ TickType_t __wrap_xTaskGetTickCountFromISR(void)
   * ------------------------------------------------------------------------- */
  TaskHandle_t __wrap_xTaskGetCurrentTaskHandle(void)
  {
@@ -544,3 +567,370 @@ diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shi
  }
 
  TaskHandle_t __wrap_xTaskGetHandle(const char *name)
+@@ -251,157 +582,260 @@ void shim_dump_stack_watermarks(void)
+ }
+
+ /* -------------------------------------------------------------------------
+- * Task notifications — backed by per-task semaphore + notify_val bitmask.
++ * Task notifications — one FreeRTOS-compatible slot per shim task.
+  *
+- * eIncrement / eNoAction: just signal the semaphore (no bit accumulation).
+- * eSetBits: OR bits into notify_val, then signal.
+- * eSetValueWithOverwrite: replace notify_val, then signal.
+- * Receivers use ulTaskNotifyTake (ignores value, just wakes) or
+- * xTaskNotifyWait (reads and clears bits from notify_val).
+- *
+- * DI/EI guards the read-modify-write on notify_val; tk_sig_sem / tk_wai_sem
+- * are already kernel-safe.
++ * notify_val and SHIM_FLAG_NOTIFY_PENDING are authoritative. The semaphore is
++ * only a persistent wake hint, so repeated sends cannot lose value updates.
+  * ------------------------------------------------------------------------- */
+-static BaseType_t notify_signal(shim_task_t *e, uint32_t val, eNotifyAction act)
++static int notify_current_index(void)
++{
++    int index = find_index_by_tk_id(tk_get_tid());
++
++    return index;
++}
++
++static BaseType_t notify_update(TaskHandle_t handle, uint32_t value,
++    eNotifyAction action, uint32_t *previous)
++{
++    int index = find_index_by_handle(handle);
++    UINT saved;
++    ID semaphore = 0;
++    BaseType_t result = pdFALSE;
++
++    if (index < 0 || action > eSetValueWithoutOverwrite) return pdFALSE;
++
++    DI(saved);
++    if (s_task_states[index] == SHIM_TASK_RUNNING &&
++        s_handles[index] == (uintptr_t)handle &&
++        s_tasks[index].notify_sem > 0) {
++        shim_task_t *task = &s_tasks[index];
++        uint32_t old_value = task->notify_val;
++
++        if (previous) *previous = old_value;
++        if (action == eSetBits) {
++            task->notify_val = old_value | value;
++        } else if (action == eIncrement) {
++            task->notify_val = old_value + 1U;
++        } else if (action == eSetValueWithOverwrite) {
++            task->notify_val = value;
++        } else if (action == eSetValueWithoutOverwrite) {
++            if (s_task_flags[index] & SHIM_FLAG_NOTIFY_PENDING) {
++                EI(saved);
++                return pdFALSE;
++            }
++            task->notify_val = value;
++        }
++        s_task_flags[index] |= SHIM_FLAG_NOTIFY_PENDING;
++        semaphore = task->notify_sem;
++        result = pdTRUE;
++    }
++    EI(saved);
++
++    if (result == pdTRUE) (void)tk_sig_sem(semaphore, 1);
++    return result;
++}
++
++static TickType_t notify_remaining(TickType_t start, TickType_t total)
+ {
+-    if (!e || e->notify_sem == 0) return pdFALSE;
+-    if (act == eSetBits) {
+-        UINT saved; DI(saved);
+-        e->notify_val |= val;
+-        EI(saved);
+-    } else if (act == eSetValueWithOverwrite) {
+-        UINT saved; DI(saved);
+-        e->notify_val = val;
++    TickType_t elapsed = __wrap_xTaskGetTickCount() - start;
++
++    return elapsed < total ? total - elapsed : 0U;
++}
++
++static BaseType_t notify_wait(uint32_t clear_entry, uint32_t clear_exit,
++    uint32_t *value, TickType_t ticks)
++{
++    int index = notify_current_index();
++    TickType_t start = __wrap_xTaskGetTickCount();
++    TickType_t remaining = ticks;
++    bool entry_done = false;
++
++    if (index < 0) return pdFALSE;
++
++    for (;;) {
++        UINT saved;
++        ID semaphore;
++
++        DI(saved);
++        if (s_task_states[index] != SHIM_TASK_RUNNING ||
++            s_tasks[index].notify_sem <= 0) {
++            EI(saved);
++            return pdFALSE;
++        }
++        if (!entry_done &&
++            !(s_task_flags[index] & SHIM_FLAG_NOTIFY_PENDING)) {
++            s_tasks[index].notify_val &= ~clear_entry;
++            entry_done = true;
++        }
++        if (s_task_flags[index] & SHIM_FLAG_NOTIFY_PENDING) {
++            uint32_t current = s_tasks[index].notify_val;
++            if (value) *value = current;
++            s_tasks[index].notify_val = current & ~clear_exit;
++            s_task_flags[index] &= (uint8_t)~SHIM_FLAG_NOTIFY_PENDING;
++            EI(saved);
++            return pdTRUE;
++        }
++        if (value) *value = s_tasks[index].notify_val;
++        semaphore = s_tasks[index].notify_sem;
+         EI(saved);
++
++        if (remaining == 0U ||
++            tk_wai_sem(semaphore, 1, shim_tmo(remaining)) != E_OK) {
++            return pdFALSE;
++        }
++        if (ticks != portMAX_DELAY) {
++            remaining = notify_remaining(start, ticks);
++        }
+     }
+-    /* eIncrement, eNoAction: semaphore count is the value; notify_val stays 0 */
+-    return (tk_sig_sem(e->notify_sem, 1) == E_OK) ? pdTRUE : pdFALSE;
+ }
+
+-BaseType_t __wrap_xTaskNotifyGive(TaskHandle_t h)
++BaseType_t __wrap_xTaskNotifyGive(TaskHandle_t handle)
+ {
+-    shim_task_t *e = find_by_handle(h);
+-    if (!e || e->notify_sem == 0) return pdFALSE;
+-    return (tk_sig_sem(e->notify_sem, 1) == E_OK) ? pdTRUE : pdFALSE;
++    return notify_update(handle, 0U, eIncrement, NULL);
+ }
+
+-void __wrap_xTaskNotifyGiveFromISR(TaskHandle_t h, BaseType_t *pw)
++void __wrap_xTaskNotifyGiveFromISR(TaskHandle_t handle, BaseType_t *woken)
+ {
+-    shim_task_t *e = find_by_handle(h);
+-    if (!e || e->notify_sem == 0) return;
+-    tk_sig_sem(e->notify_sem, 1);
+-    if (pw) *pw = pdFALSE;
++    if (woken) *woken = pdFALSE;
++    (void)notify_update(handle, 0U, eIncrement, NULL);
+ }
+
+ uint32_t __wrap_ulTaskNotifyTake(BaseType_t clear_on_exit, TickType_t ticks)
+ {
+-    ID cur = tk_get_tid();
+-    shim_task_t *e = find_by_tk_id(cur);
+-    if (!e || e->notify_sem == 0) return 0;
+-    ER er = tk_wai_sem(e->notify_sem, 1, shim_tmo(ticks));
+-    if (er != E_OK) return 0;
+-    UINT saved; DI(saved);
+-    uint32_t v = e->notify_val;
+-    if (clear_on_exit) e->notify_val = 0;
+-    EI(saved);
+-    return v ? v : 1; /* return accumulated bits, or 1 for plain eIncrement */
++    int index = notify_current_index();
++    TickType_t start = __wrap_xTaskGetTickCount();
++    TickType_t remaining = ticks;
++
++    if (index < 0) return 0U;
++
++    for (;;) {
++        UINT saved;
++        ID semaphore;
++        uint32_t value;
++
++        DI(saved);
++        if (s_task_states[index] != SHIM_TASK_RUNNING ||
++            s_tasks[index].notify_sem <= 0) {
++            EI(saved);
++            return 0U;
++        }
++        value = s_tasks[index].notify_val;
++        if (value != 0U) {
++            s_tasks[index].notify_val = clear_on_exit ? 0U : value - 1U;
++            s_task_flags[index] &= (uint8_t)~SHIM_FLAG_NOTIFY_PENDING;
++            EI(saved);
++            return value;
++        }
++        semaphore = s_tasks[index].notify_sem;
++        EI(saved);
++
++        if (remaining == 0U ||
++            tk_wai_sem(semaphore, 1, shim_tmo(remaining)) != E_OK) {
++            return 0U;
++        }
++        if (ticks != portMAX_DELAY) {
++            remaining = notify_remaining(start, ticks);
++        }
++    }
+ }
+
+-BaseType_t __wrap_xTaskNotify(TaskHandle_t h, uint32_t val, eNotifyAction act)
++BaseType_t __wrap_xTaskNotify(TaskHandle_t handle, uint32_t value,
++    eNotifyAction action)
+ {
+-    return notify_signal(find_by_handle(h), val, act);
++    return notify_update(handle, value, action, NULL);
+ }
+
+-BaseType_t __wrap_xTaskNotifyFromISR(TaskHandle_t h, uint32_t val,
+-    eNotifyAction act, BaseType_t *pw)
++BaseType_t __wrap_xTaskNotifyFromISR(TaskHandle_t handle, uint32_t value,
++    eNotifyAction action, BaseType_t *woken)
+ {
+-    shim_task_t *e = find_by_handle(h);
+-    if (!e || e->notify_sem == 0) return pdFALSE;
+-    if (act == eSetBits) {
+-        UINT saved; DI(saved);
+-        e->notify_val |= val;
+-        EI(saved);
+-    } else if (act == eSetValueWithOverwrite) {
+-        UINT saved; DI(saved);
+-        e->notify_val = val;
+-        EI(saved);
+-    }
+-    tk_sig_sem(e->notify_sem, 1);
+-    if (pw) *pw = pdFALSE;
+-    return pdTRUE;
++    if (woken) *woken = pdFALSE;
++    return notify_update(handle, value, action, NULL);
+ }
+
+-BaseType_t __wrap_xTaskNotifyWait(uint32_t clr_entry, uint32_t clr_exit,
+-    uint32_t *pval, TickType_t ticks)
++BaseType_t __wrap_xTaskNotifyWait(uint32_t clear_entry, uint32_t clear_exit,
++    uint32_t *value, TickType_t ticks)
+ {
+-    ID cur = tk_get_tid();
+-    shim_task_t *e = find_by_tk_id(cur);
+-    if (!e || e->notify_sem == 0) return pdFALSE;
+-    if (clr_entry) {
+-        UINT saved; DI(saved);
+-        e->notify_val &= ~clr_entry;
+-        EI(saved);
+-    }
+-    ER er = tk_wai_sem(e->notify_sem, 1, shim_tmo(ticks));
+-    if (er != E_OK) return pdFALSE;
+-    UINT saved; DI(saved);
+-    uint32_t v = e->notify_val;
+-    e->notify_val &= ~clr_exit;
+-    EI(saved);
+-    if (pval) *pval = v;
+-    return pdTRUE;
++    return notify_wait(clear_entry, clear_exit, value, ticks);
+ }
+
+-/* -------------------------------------------------------------------------
+- * "Generic" notification variants — IDF's FreeRTOS exposes these as the
+- * actual linker symbols; the non-Generic names are inline macros.
+- * We route them all through the same notify-semaphore mechanism.
+- * uxIndexToWaitOn / uxIndexToNotify is always 0 (tskDEFAULT_INDEX_TO_NOTIFY)
+- * in practice so the index is ignored.
+- * ------------------------------------------------------------------------- */
+-uint32_t __wrap_ulTaskGenericNotifyTake(UBaseType_t idx, BaseType_t clr, TickType_t ticks)
++/* The selected IDF configuration has one notification array entry. */
++uint32_t __wrap_ulTaskGenericNotifyTake(UBaseType_t index,
++    BaseType_t clear_on_exit, TickType_t ticks)
+ {
+-    (void)idx;
+-    return __wrap_ulTaskNotifyTake(clr, ticks);
++    return index == 0U ? __wrap_ulTaskNotifyTake(clear_on_exit, ticks) : 0U;
+ }
+
+-BaseType_t __wrap_xTaskGenericNotify(TaskHandle_t h, UBaseType_t idx,
+-    uint32_t val, eNotifyAction act, uint32_t *prev)
++BaseType_t __wrap_xTaskGenericNotify(TaskHandle_t handle, UBaseType_t index,
++    uint32_t value, eNotifyAction action, uint32_t *previous)
+ {
+-    (void)idx; (void)prev;
+-    return notify_signal(find_by_handle(h), val, act);
++    return index == 0U
++               ? notify_update(handle, value, action, previous)
++               : pdFALSE;
+ }
+
+-BaseType_t __wrap_xTaskGenericNotifyFromISR(TaskHandle_t h, UBaseType_t idx,
+-    uint32_t val, eNotifyAction act, uint32_t *prev, BaseType_t *pw)
++BaseType_t __wrap_xTaskGenericNotifyFromISR(TaskHandle_t handle,
++    UBaseType_t index, uint32_t value, eNotifyAction action,
++    uint32_t *previous, BaseType_t *woken)
+ {
+-    (void)idx; (void)prev;
+-    return __wrap_xTaskNotifyFromISR(h, val, act, pw);
++    if (woken) *woken = pdFALSE;
++    return index == 0U
++               ? notify_update(handle, value, action, previous)
++               : pdFALSE;
+ }
+
+-void __wrap_vTaskGenericNotifyGiveFromISR(TaskHandle_t h, UBaseType_t idx, BaseType_t *pw)
++void __wrap_vTaskGenericNotifyGiveFromISR(TaskHandle_t handle,
++    UBaseType_t index, BaseType_t *woken)
+ {
+-    (void)idx;
+-    __wrap_xTaskNotifyGiveFromISR(h, pw);
++    if (woken) *woken = pdFALSE;
++    if (index == 0U) (void)notify_update(handle, 0U, eIncrement, NULL);
+ }
+
+-BaseType_t __wrap_xTaskGenericNotifyWait(UBaseType_t idx,
+-    uint32_t clr_entry, uint32_t clr_exit, uint32_t *pval, TickType_t ticks)
++BaseType_t __wrap_xTaskGenericNotifyWait(UBaseType_t index,
++    uint32_t clear_entry, uint32_t clear_exit, uint32_t *value,
++    TickType_t ticks)
+ {
+-    (void)idx; (void)clr_entry;
+-    return __wrap_xTaskNotifyWait(clr_entry, clr_exit, pval, ticks);
++    return index == 0U
++               ? notify_wait(clear_entry, clear_exit, value, ticks)
++               : pdFALSE;
+ }
+
+-BaseType_t __wrap_xTaskGenericNotifyStateClear(TaskHandle_t h, UBaseType_t idx)
++BaseType_t __wrap_xTaskGenericNotifyStateClear(TaskHandle_t handle,
++    UBaseType_t index)
+ {
+-    (void)h; (void)idx;
+-    return pdTRUE;
++    int task_index = handle ? find_index_by_handle(handle)
++                            : notify_current_index();
++    UINT saved;
++    BaseType_t result = pdFALSE;
++
++    if (index != 0U || task_index < 0) return pdFALSE;
++
++    DI(saved);
++    if (s_task_states[task_index] == SHIM_TASK_RUNNING &&
++        (s_task_flags[task_index] & SHIM_FLAG_NOTIFY_PENDING)) {
++        s_task_flags[task_index] &= (uint8_t)~SHIM_FLAG_NOTIFY_PENDING;
++        result = pdTRUE;
++    }
++    EI(saved);
++    return result;
+ }
+
+-uint32_t __wrap_ulTaskGenericNotifyValueClear(TaskHandle_t h, UBaseType_t idx, uint32_t bits)
++uint32_t __wrap_ulTaskGenericNotifyValueClear(TaskHandle_t handle,
++    UBaseType_t index, uint32_t bits)
+ {
+-    (void)h; (void)idx; (void)bits;
+-    return 0;
++    int task_index = handle ? find_index_by_handle(handle)
++                            : notify_current_index();
++    UINT saved;
++    uint32_t previous = 0U;
++
++    if (index != 0U || task_index < 0) return 0U;
++
++    DI(saved);
++    if (s_task_states[task_index] == SHIM_TASK_RUNNING) {
++        previous = s_tasks[task_index].notify_val;
++        s_tasks[task_index].notify_val = previous & ~bits;
++    }
++    EI(saved);
++    return previous;
+ }
+
+ /* -------------------------------------------------------------------------

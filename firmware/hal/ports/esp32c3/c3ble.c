@@ -12,6 +12,7 @@
 #include "esp_heap_caps.h"
 #include "c3bport.h"
 #include "c3gatt.h"
+#include "c3task.h"
 
 #if !CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY
 #error "This BLE diagnostic requires the SDK flash controller."
@@ -76,7 +77,7 @@ int c3ble_probe (c3ble_report_t * p_report, c3ble_log_t * p_log)
     if ((0 != operation(p_report, p_log, 2U, await_sync())) ||
         (0 != operation(p_report, p_log, 3U, advertise())) ||
         (0 != c3bport_delay(5000)) || (0 != checkpoint(p_report, 1U)) ||
-        (0 != c3bport_seal()))
+        (0 != c3task_seal()) || (0 != c3bport_seal()))
     {
         return -3;
     }
@@ -236,7 +237,8 @@ static int gatt_window (c3ble_report_t * p_report, c3ble_log_t * p_log)
 {
     if ((0 != operation(p_report, p_log, 2U, await_sync())) ||
         (0 != operation(p_report, p_log, 3U, advertise())) ||
-        (0 != checkpoint(p_report, 1U)) || (0 != c3bport_seal()))
+        (0 != checkpoint(p_report, 1U)) || (0 != c3task_seal()) ||
+        (0 != c3bport_seal()))
     {
         return -3;
     }

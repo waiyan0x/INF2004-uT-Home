@@ -11,6 +11,7 @@
 #include "esp_timer.h"
 #include "esp_wifi.h"
 #include "c3audit.h"
+#include "c3task.h"
 
 static int checkpoint (c3wifi_report_t * p_report, uint32_t index);
 static int operation (c3wifi_report_t * p_report,
@@ -55,7 +56,8 @@ int c3wifi_probe (c3wifi_report_t * p_report, c3wifi_log_t * p_log)
         (0 != operation(p_report, p_log, 6U, esp_wifi_start())) ||
         (0 !=
          operation(p_report, p_log, 7U, scan(&p_report->access_points[0]))) ||
-        (0 != checkpoint(p_report, 1U)) || (0 != c3audit_seal()))
+        (0 != checkpoint(p_report, 1U)) || (0 != c3task_seal()) ||
+        (0 != c3audit_seal()))
     {
         return -3;
     }
