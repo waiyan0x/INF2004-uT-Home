@@ -3,6 +3,7 @@ import ctypes as c
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -57,16 +58,18 @@ class GenericI2CTests(unittest.TestCase):
             raise AssertionError("GCC required")
         cls.temp = tempfile.TemporaryDirectory(prefix="uthome-generic-i2c-")
         cls.addClassCleanup(cls.temp.cleanup)
-        library = Path(cls.temp.name) / "geni2c.dll"
+        library = Path(cls.temp.name) / ("geni2c.dll" if sys.platform == "win32" else "geni2c.so")
         subprocess.run([gcc, "-std=c99", "-Wall", "-Wextra", "-Werror", "-pedantic", "-shared",
+                        *([] if sys.platform == "win32" else ["-fPIC"]),
                         "-I", str(ROOT / "firmware/hal/include"),
                         str(ROOT / "firmware/hal/i2cbus.c"),
                         str(ROOT / "firmware/drivers/generic_i2c/geni2c.c"),
                         str(ROOT / "firmware/drivers/generic_i2c/senlux.c"), "-o", str(library)],
                        check=True, capture_output=True)
         cls.lib = c.CDLL(str(library))
-        import _ctypes
-        cls.addClassCleanup(_ctypes.FreeLibrary, cls.lib._handle)
+        if sys.platform == "win32":
+            import _ctypes
+            cls.addClassCleanup(_ctypes.FreeLibrary, cls.lib._handle)
         cls.lib.geni2c_open.argtypes = [c.POINTER(Sensor), c.POINTER(Bus), c.POINTER(Recipe), c.c_uint32]
         cls.lib.geni2c_read.argtypes = [c.POINTER(Sensor), U8P, c.c_size_t]
         cls.lib.geni2c_close.argtypes = [c.POINTER(Sensor)]
