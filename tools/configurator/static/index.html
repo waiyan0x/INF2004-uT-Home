@@ -62,10 +62,10 @@
   <section class="section connection-section" aria-label="Board connection">
     <div class="card connection-card">
       <div class="connection-row">
-        <div class="field"><label class="field__label" for="port">Board connection <span class="label-note">optional for offline review</span></label><input class="input" id="port" placeholder="Serial port · /dev/cu.usbmodem… or COM8" maxlength="128"></div>
+        <div class="field"><label class="field__label" for="port">Board connection</label><input class="input" id="port" placeholder="Serial port · /dev/cu.usbmodem… or COM8" maxlength="128"></div>
         <div class="toolbar"><button class="btn" id="connect">Connect</button><button class="btn" id="disconnect" disabled>Disconnect</button></div>
       </div>
-      <p class="hint" id="capabilities">Choose a profile below. Connect a board when you are ready to apply it.</p>
+      <p class="hint" id="capabilities"></p>
     </div>
   </section>
 
@@ -86,20 +86,17 @@
               <div class="field"><label class="field__label" for="examples">Start with an example</label><select class="input" id="examples"><option value="">Select a profile</option></select></div>
               <label class="btn btn--file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-upload"/></svg>Import JSON<input id="file" aria-label="Import JSON profile" type="file" accept=".json,application/json"></label>
             </div>
-            <p class="hint" id="profileRuntime"></p>
             <details class="editor-details" id="editor-details">
-              <summary>Edit profile JSON <span class="summary-note">Custom settings</span></summary>
+              <summary>Edit profile JSON</summary>
               <div class="details-body">
-                <div class="field"><label class="field__label" for="profile">Profile JSON</label><textarea class="textarea" id="profile" spellcheck="false" aria-describedby="editor-help"></textarea></div>
+                <div class="field"><label class="field__label" for="profile">Profile JSON</label><textarea class="textarea" id="profile" spellcheck="false"></textarea></div>
                 <div class="toolbar"><button class="btn" id="format">Format JSON</button></div>
-                <p class="hint" id="editor-help">Edit devices, wiring, timing or rules. Changes must be reviewed before applying.</p>
               </div>
             </details>
             <div class="profile-actions toolbar">
               <button class="btn btn--primary" id="review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-shield"/></svg>Validate and review</button>
               <button class="btn" id="download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-download"/></svg>Download JSON</button>
             </div>
-            <p class="hint">Reviewing checks the draft. It does not change the board.</p>
           </div>
         </section>
         <section class="section" aria-labelledby="devices-heading">
@@ -116,7 +113,7 @@
               <div class="field"><label class="field__label" for="discovery-preset">Connection or device</label><select class="input" id="discovery-preset" aria-describedby="discovery-wiring"></select></div>
               <p class="hint" id="discovery-wiring">Loading connection details…</p>
               <label class="discovery-confirm"><input type="checkbox" id="wiring-confirmed">I checked the pins, supply and signal voltage against this connection.</label>
-              <p class="hint">Disconnect USB and external power before rewiring. Detection checks the selected I2C or radar connection; OLED and GPIO require manual confirmation.</p>
+              <p class="hint">Disconnect USB and external power before rewiring.</p>
               <button class="btn" id="detect" disabled>Detect devices</button>
               <p class="hint" id="discovery-status" role="status" aria-live="polite">Connect to check for devices.</p>
               <div class="tiles" id="discovery-results"></div>
@@ -129,7 +126,6 @@
           <div class="card resource-details">
             <details><summary>Interfaces <span class="summary-note" id="interfacesMeta"></span></summary><div class="tiles details-body" id="interfaces"></div></details>
             <details><summary>Queues <span class="summary-note" id="queuesMeta"></span></summary><div class="tiles details-body" id="queues"></div></details>
-            <details><summary>Device catalogue</summary><pre id="catalogue"></pre></details>
           </div>
         </section>
       </aside>
@@ -144,7 +140,7 @@
           <p class="hint" id="review-summary">Validate your profile to see the requested devices, resources and rules.</p>
           <div class="table-scroll" id="plan"></div><div class="table-scroll" id="rule-plan"></div>
           <div class="toolbar"><button class="btn btn--primary" id="apply" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Apply &amp; save</button><button class="btn" type="button" data-workspace-link="profile">Back to profile</button></div>
-          <p class="hint">Apply replaces the running configuration and attempts to save it for restart. Check the result and saved state separately.</p>
+          <p class="hint">Apply replaces the running configuration and tries to save it for restart.</p>
         </div>
       </section>
       <section class="section" aria-labelledby="state-heading">
@@ -173,11 +169,9 @@
         <div class="tiles health-tiles" id="healthTiles"></div>
         <details class="card observation-details"><summary>Per-source observations</summary><div class="table-scroll" id="readings" aria-live="polite"></div></details>
         <details class="card observation-details"><summary>Queue and runtime details</summary><pre id="diagnostics"></pre></details>
-        <p class="hint monitor-note">Profile devices are draft settings. Live readings come only from the connected board.</p>
       </section>
     </div>
   </section>
-  <p class="footnote">μT-Home · Configuration Desk · localhost only</p>
 </main>
 <script type="module" src="/app.js"></script>
 </body>
