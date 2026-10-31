@@ -1,0 +1,154 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_utc": "2026-10-26T07:00:39.183297+00:00",
+  "scope": "Sequential 120-second phone-app disconnected/connected radar observations",
+  "user_confirmation_connected": "app conencted",
+  "condition_limit": "Phone app state is user-reported; user was asked to keep live tracking open and hardware, settings and power unchanged. No independent BLE logging.",
+  "assistant_actions": "Read-only USB telemetry captures; no profile change, board reset or firmware write.",
+  "phases": [
+    {
+      "condition": "phone_app_disconnected",
+      "evidence_path": "build/hardware-acceptance-20261026/oled-radar-return-065233.jsonl",
+      "sha256": "69e25a8bf80eb5fe4dd5d65658d11002307db6bce22e47651fb8810d3a45150a",
+      "summary": {
+        "type": "summary",
+        "samples": 241,
+        "errors": [],
+        "quality": {
+          "environment_sensor": {
+            "fresh": 240,
+            "stale": 1
+          },
+          "presence_sensor": {
+            "fresh": 241
+          },
+          "health": {
+            "fresh": 241
+          }
+        },
+        "ages": {
+          "environment_sensor": {
+            "min": 198,
+            "max": 1204
+          },
+          "presence_sensor": {
+            "min": 0,
+            "max": 88
+          },
+          "health": {
+            "min": 247,
+            "max": 753
+          }
+        },
+        "radar_counts": {
+          "1": 241
+        },
+        "max_rtt_ms": 97.39989999798127,
+        "duration_seconds": 120.08215519998339,
+        "health_delta": [
+          0,
+          0,
+          0,
+          0,
+          1684,
+          1,
+          0,
+          0
+        ],
+        "runtime_end": {
+          "state": 1,
+          "generation": 1,
+          "failed_workers": 0,
+          "retained_instances": 3,
+          "service_error": 0,
+          "apply_error": 0,
+          "recovery_error": 0
+        },
+        "configuration": {
+          "active_revision": 30,
+          "saved_revision": 30,
+          "active_crc": 3623560383,
+          "saved_crc": 3623560383,
+          "flags": 80
+        }
+      },
+      "radar_sequence_delta": 1348,
+      "first_uptime_ms": 898260,
+      "last_uptime_ms": 1018267
+    },
+    {
+      "condition": "phone_app_connected",
+      "evidence_path": "build/hardware-acceptance-20261026/phone-app-connected-065718.jsonl",
+      "sha256": "b75786f13bec826c7d0db118c42b28f41310fc8a384b94d6c8f5861dbca93933",
+      "summary": {
+        "type": "summary",
+        "samples": 241,
+        "errors": [],
+        "quality": {
+          "environment_sensor": {
+            "fresh": 229,
+            "stale": 12
+          },
+          "presence_sensor": {
+            "fresh": 241
+          },
+          "health": {
+            "fresh": 241
+          }
+        },
+        "ages": {
+          "environment_sensor": {
+            "min": 326,
+            "max": 1333
+          },
+          "presence_sensor": {
+            "min": 1,
+            "max": 87
+          },
+          "health": {
+            "min": 374,
+            "max": 880
+          }
+        },
+        "radar_counts": {
+          "1": 241
+        },
+        "max_rtt_ms": 95.51260000444017,
+        "duration_seconds": 120.0830879000132,
+        "health_delta": [
+          0,
+          0,
+          0,
+          0,
+          1652,
+          12,
+          0,
+          0
+        ],
+        "runtime_end": {
+          "state": 1,
+          "generation": 1,
+          "failed_workers": 0,
+          "retained_instances": 3,
+          "service_error": 0,
+          "apply_error": 0,
+          "recovery_error": 0
+        },
+        "configuration": {
+          "active_revision": 30,
+          "saved_revision": 30,
+          "active_crc": 3623560383,
+          "saved_crc": 3623560383,
+          "flags": 80
+        }
+      },
+      "radar_sequence_delta": 1349,
+      "first_uptime_ms": 1183887,
+      "last_uptime_ms": 1303894
+    }
+  ],
+  "result": "Radar remained fresh in all 241 snapshots of each run, with zero timeout/frame/UART-overflow counter deltas. Reconnecting the phone app did not reproduce the radar failure.",
+  "combined_stability_limit": "Disconnected run: one BMP388 stale snapshot and one missed heartbeat. Connected run: 12 BMP388 stale snapshots and 12 missed heartbeats. Two runs do not identify their cause.",
+  "hardware_qualified": false,
+  "next_step": "Stationary empty-view observation while radar communication is currently working; original intermittent UART failure remains unresolved."
+}

@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_utc": "2026-10-31T12:14:12.092623+00:00",
+  "scope": "Isolated BMP388 register-zero read before SEN0390 startup; other application workers not running",
+  "diagnostic_binary_sha256": "38259bd680ed981e01a9d5b84cf3c6f31371babf71ffb0e4e79b1d781aa26aef",
+  "diagnostic_main_source_sha256": "6e249f6e447e1375cb66915a9fdebf777b7e47b3551e1a0364c28ef3f3a1eb86",
+  "backup_local_directory": "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\ESP\\Tribunal1\\sen0390-flash-backup-abbb1c1ab37742eb9449f3aabaf11281",
+  "backup_sha256": "a98aa25765153ca8b8acb555fd13322d3da253c045e572bba7b1a64abf958ada",
+  "two_full_reads_match": true,
+  "capture_local_path": "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\ESP\\Tribunal1\\sen0390-flash-backup-abbb1c1ab37742eb9449f3aabaf11281\\bmp-first-diagnostic\\senlux-capture.log",
+  "capture_sha256": "7bd0eb070cd3f834eebbcef4ac7da47e5567daf50b16bd36396e105e644bc51c",
+  "bmp_preflight": {
+    "address": "0x77",
+    "register": "0x00",
+    "status": 0,
+    "id": 80
+  },
+  "light_samples": 120,
+  "light_status_counts": {
+    "1": 2,
+    "-3": 1,
+    "0": 117
+  },
+  "light_nack_indices": [
+    2
+  ],
+  "restored_prefix_and_config_match_backup": true,
+  "restored_active_revision": 922,
+  "restored_saved_revision": 922,
+  "restored_active_crc": 3623560383,
+  "restored_saved_crc": 3623560383,
+  "before_source_qualities": {
+    "environment_sensor": "fresh",
+    "presence_sensor": "fault",
+    "health": "fresh"
+  },
+  "after_source_qualities": {
+    "environment_sensor": "fresh",
+    "presence_sensor": "fault",
+    "health": "fresh"
+  },
+  "before_telemetry_sha256": "01de3335118fe2bb747ddf2874091ca0badc4e8f40c91bc6a3e0ff1bd8e651d4",
+  "after_telemetry_sha256": "49ebdd84408f140d1fc587efff8eb9350f9c775e1fcec68bdb3a82ae8da01890",
+  "user_observation": "OLED readable and updating after restoration.",
+  "interpretation": "The BMP388 chip-ID transaction succeeded before the SEN0390 first-read NACK. This argues against a generic first bus transaction failure but does not establish the cause.",
+  "not_qualified": [
+    "SEN0390 NACK cause",
+    "four-device operation",
+    "shared-bus long-run reliability",
+    "memory and timing margins",
+    "whole-system acceptance"
+  ]
+}

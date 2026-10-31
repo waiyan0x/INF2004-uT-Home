@@ -12,6 +12,30 @@ standard HTTP server and local HTML/CSS/JavaScript; no Node build or new web
 framework is required. Offline review needs only the planner dependencies.
 The interface uses one fixed colour palette.
 
+**Datasheet assistant** under **Add a device** sends the selected PDF to Google Gemini
+after the user selects Analyse; it shows unreviewed facts, page references and
+uncertainties. Set the API key as described in the
+[AI guide](../../ai/README.md#datasheet-assisted-device-drafts). The PDF is
+limited to 2 MiB / 60 pages and the request may incur charges. Existing offline
+configuration continues without the optional PDF dependency or API.
+
+On Windows, create a key in [Google AI Studio](https://aistudio.google.com/apikey),
+then use **Edit environment variables for your account** to add the user variable
+`GEMINI_API_KEY` with the complete key as its value. Restart the terminal and Desk
+so they inherit it. Keep the key private and out of the repository. The optional
+`UTHOME_GEMINI_MODEL` user variable selects a Gemini model supporting PDF input
+and structured output. See the [Gemini documentation](https://ai.google.dev/gemini-api/docs/structured-output).
+
+Check a reviewed catalogue ID against the connected firmware, choose its address
+and GPIO pins, and confirm the actual module and electrical wiring. The periodic
+I2C draft builder uses reviewed catalogue defaults, rejects conflicting pins and
+missing drivers, and changes only the draft. Use the normal review and Apply
+controls afterwards. A name match does not verify identity. The SEN0390 remains
+unavailable in normal firmware: a diagnostic build exercised the reviewed Desk
+backend and light sensor, but full combined-system acceptance remains open.
+When supported light telemetry is available, the live monitor shows illuminance
+in lux with the source name and freshness.
+
 1. In **Profile**, choose an example or import JSON. Open **Edit profile JSON**
    for custom instances, wiring, timing and routes. Optional discovery is under
    **Add a device**; interfaces and queues are under
@@ -33,8 +57,9 @@ The interface uses one fixed colour palette.
 Switching views preserves the draft and current review; editing the draft still
 requires a new review. The view tabs support Left/Right arrows and Home/End.
 
-The D2 discovery command requires a newly built application image. Physical USB,
-peripheral and persistence acceptance belongs to checkpoint 8. Offline review
+Discovery requires compatible application firmware; check its reported feature
+bits before use. Combined peripheral, radio and persistence acceptance remains
+separate from the working USB workflow. Offline review
 uses the host reference catalogue; it is not permission to wire or deploy a
 profile. Connected review enforces the narrower compiled target limits.
 The original first-prototype profile still uses unsupported GPIO2 CS.
@@ -95,6 +120,12 @@ compact profiles are bounded to 8192 bytes.
 The server binds only `127.0.0.1`, checks Host/Origin and a per-server session
 token, bounds request bodies, and serves an explicit allowlist of UI assets. It is a local
 single-controller tool, not a network service or multi-user deployment system.
+POST framing requires one decimal Content-Length of 1–65,536 bytes and rejects
+transfer encoding. Within the existing three-second socket timeout, bounded
+request bodies are consumed before returning an access rejection; this prevents
+unread TCP bytes from hiding the 403 response behind a Windows connection reset.
+Unauthorized bodies are never parsed or dispatched. Malformed/oversized framing
+is rejected before reading payload data. This changes no UI or review/Apply rule.
 The browser polls one snapshot per second while visible, with one outstanding
 operation. A failed snapshot clears current readings. Health counters are
 historical; no actual PWM duty or physical feedback is inferred from them.

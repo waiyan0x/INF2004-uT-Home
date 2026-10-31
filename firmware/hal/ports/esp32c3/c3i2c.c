@@ -3,7 +3,9 @@
  * @brief Serialize finite FIFO transfers using the pinned SDK register layer.
  */
 #include "c3i2c.h"
+#include "c3cost.h"
 #include "c3pin.h"
+#include "i2cown.h"
 
 #include <string.h>
 #include <tk/tkernel.h>
@@ -15,147 +17,141 @@
 #include "hal/gpio_ll.h"
 #include "hal/i2c_ll.h"
 #include "soc/gpio_sig_map.h"
+#include "soc/i2c_reg.h"
 #include "soc/io_mux_reg.h"
 
+/* Per-session settings; closing resets only this structure. */
 typedef struct
 {
     i2cbus_config_t config;
-    ID              h_mutex;
     uint32_t        source_hz;
     uint32_t        pins;
-    bool            b_open;
 } c3i2c_state_t;
 
 static c3i2c_state_t g_state = {0};
-static i2cbus_t      g_bus   = {0};
+/* Permanent: written once by startup creation, never deleted. */
+static ID       gh_mutex = 0;
+static i2cown_t g_owner  = {0};
 
 static int transfer (void * p_context, const i2cbus_request_t * p_request);
 static int now_ms (void * p_context, uint64_t * p_now);
 static int
 delay_us (void * p_context, uint32_t duration_us, uint64_t deadline_ms);
 static bool valid_pin (uint8_t pin);
-static bool idle_owner (void);
+static int create_lock (void * p_context);
+static bool lifecycle_owner (void * p_context);
+static int lock_bus (void * p_context, uint32_t timeout_ms);
+static int unlock_bus (void * p_context);
+static int start_bus (void * p_context, const i2cbus_config_t * p_config);
+static int stop_bus (void * p_context);
 static void setup_pin (uint8_t pin, uint32_t output, uint32_t input);
 static void release_pin (uint8_t pin);
 static void reset_controller (void);
-static void load_commands (const i2cbus_request_t * p_request);
+static void load_commands (const i2cbus_request_t * p_request, bool b_pause);
 static void
 command (uint32_t slot, uint32_t operation, uint32_t count, bool b_last_read);
-static int wait_complete (uint64_t deadline_ms);
+static int wait_complete (uint64_t deadline_ms, uint32_t completion);
+static int resume_read (const i2cbus_request_t * p_request);
 static int exchange (const i2cbus_request_t * p_request);
 
 static const i2cbus_ops_t g_operations = {
     .p_transfer = transfer, .p_now = now_ms, .p_delay = delay_us};
+static const i2cown_ops_t g_lifecycle = {.p_create = create_lock,
+                                         .p_owner  = lifecycle_owner,
+                                         .p_lock   = lock_bus,
+                                         .p_unlock = unlock_bus,
+                                         .p_start  = start_bus,
+                                         .p_stop   = stop_bus};
+/* Callbacks stay set even when closed, so a preempted caller never reaches a
+ * null pointer; the session checks reject it instead. Claims are per session.
+ */
+static i2cbus_t g_bus = {.p_operations = &g_operations, .p_context = &g_state};
 
-/** @brief Create one inherited-priority mutex, then configure the bus pins. */
+/** @brief Create the permanent bus mutex during startup, exactly once. */
+int c3i2c_init (void)
+{
+    return i2cown_init(&g_owner, &g_lifecycle, &g_state);
+}
+
+/** @brief Validate settings, then start a session on the permanent mutex. */
 int c3i2c_open (const i2cbus_config_t * p_config, i2cbus_t ** pp_bus)
 {
-    if ((!idle_owner()) || (NULL == p_config) || (NULL == pp_bus) ||
-        (g_state.b_open) || (0U != p_config->port) ||
+    if ((NULL == p_config) || (NULL == pp_bus) || (0U != p_config->port) ||
         (!valid_pin(p_config->sda_gpio)) || (!valid_pin(p_config->scl_gpio)) ||
         (p_config->sda_gpio == p_config->scl_gpio) ||
         (p_config->clock_hz < 10000U) || (p_config->clock_hz > 400000U))
     {
         return I2CBUS_INVALID;
     }
-    const int source_hz = esp_clk_xtal_freq();
-    if (source_hz <= 0)
-    {
-        return I2CBUS_IO;
-    }
-    const uint32_t pins = (UINT32_C(1) << p_config->sda_gpio) |
-                          (UINT32_C(1) << p_config->scl_gpio);
-    if (0 != c3pin_reserve(pins, &g_bus))
+    /* A claim recorded while closed belongs to a misbehaving caller; refuse
+     * rather than silently discard another device's ownership. */
+    if (i2cbus_has_claims(&g_bus))
     {
         return I2CBUS_STATE;
     }
-    const T_CMTX mutex   = {.mtxatr = TA_INHERIT};
-    const ID     h_mutex = tk_cre_mtx(&mutex);
-    if (h_mutex <= 0)
+    const int result = i2cown_open(&g_owner, p_config);
+    if (0 == result)
     {
-        const int released = c3pin_release(pins, &g_bus);
-        return (0 == released) ? I2CBUS_IO : I2CBUS_STATE;
+        *pp_bus = &g_bus;
     }
-    g_state.config  = *p_config;
-    g_state.h_mutex = h_mutex;
-    g_state.pins    = pins;
-    /* Positive int source frequency fits the target's uint32_t. */
-    g_state.source_hz = (uint32_t)source_hz;
-    reset_controller();
-    setup_pin(p_config->sda_gpio, I2CEXT0_SDA_OUT_IDX, I2CEXT0_SDA_IN_IDX);
-    setup_pin(p_config->scl_gpio, I2CEXT0_SCL_OUT_IDX, I2CEXT0_SCL_IN_IDX);
-    g_state.b_open = true;
-    g_bus   = (i2cbus_t){.p_operations = &g_operations, .p_context = &g_state};
-    *pp_bus = &g_bus;
-    return 0;
+    return result;
 }
 
-/** @brief Release hardware only after workers and device claims are gone. */
+/** @brief Release hardware only after device claims and transfers are gone. */
 int c3i2c_close (i2cbus_t * p_bus)
 {
-    if ((!idle_owner()) || (&g_bus != p_bus) || (!g_state.b_open) ||
-        (i2cbus_has_claims(p_bus)))
+    if (&g_bus != p_bus)
     {
         return I2CBUS_STATE;
     }
-    if (E_OK != tk_del_mtx(g_state.h_mutex))
-    {
-        return I2CBUS_IO;
-    }
-    i2c_dev_t * p_hardware = I2C_LL_GET_HW(0);
-    i2c_ll_disable_intr_mask(p_hardware, UINT32_MAX);
-    i2c_ll_enable_controller_clock(p_hardware, false);
-    release_pin(g_state.config.sda_gpio);
-    release_pin(g_state.config.scl_gpio);
-    PERIPH_RCC_ATOMIC()
-    {
-        i2c_ll_enable_bus_clock(0, false);
-    }
-    if (0 != c3pin_release(g_state.pins, &g_bus))
-    {
-        return I2CBUS_STATE;
-    }
-    g_state = (c3i2c_state_t){0};
-    g_bus   = (i2cbus_t){0};
-    return 0;
+    return i2cown_close(&g_owner, p_bus);
 }
 
 /** @brief Budget mutex contention and the hardware transaction together. */
 static int transfer (void * p_context, const i2cbus_request_t * p_request)
 {
-    if ((&g_state != p_context) || (!g_state.b_open))
+    if (&g_state != p_context)
     {
         return I2CBUS_STATE;
     }
+    c3cost_t cost = {0};
+    c3cost_begin(&cost);
     uint64_t now = 0U;
     if (0 != rt_port_now_ms(&now))
     {
+        c3cost_end(&cost, 0U, false, true);
         return I2CBUS_STATE;
     }
     if ((now >= p_request->deadline_ms) ||
         ((p_request->deadline_ms - now) > UINT32_C(2147483647)))
     {
+        c3cost_end(&cost, 0U, true, true);
         return I2CBUS_TIMEOUT;
     }
-    /* Remaining time was checked to fit the positive kernel TMO range. */
-    const ER locked =
-        tk_loc_mtx(g_state.h_mutex, (TMO)(p_request->deadline_ms - now));
-    if (E_OK != locked)
+    /* Remaining time was checked to fit uint32_t and the kernel TMO range. */
+    const int locked =
+        i2cown_begin(&g_owner, (uint32_t)(p_request->deadline_ms - now));
+    if (0 != locked)
     {
-        return (E_TMOUT == locked) ? I2CBUS_TIMEOUT : I2CBUS_IO;
+        c3cost_end(&cost, 0U, I2CBUS_TIMEOUT == locked, true);
+        return locked;
     }
-    int result = exchange(p_request);
-    if (E_OK != tk_unl_mtx(g_state.h_mutex))
-    {
-        result = I2CBUS_IO;
-    }
-    return result;
+    c3cost_acquired(&cost);
+    const int result   = exchange(p_request);
+    const int unlocked = i2cown_end(&g_owner);
+    const int final    = (0 != unlocked) ? unlocked : result;
+    c3cost_end(&cost,
+               (0 == result) ? p_request->write_size + p_request->read_size
+                             : 0U,
+               I2CBUS_TIMEOUT == final,
+               0 != final);
+    return final;
 }
 
 /** @brief Use the same operating-time origin as sample timestamps. */
 static int now_ms (void * p_context, uint64_t * p_now)
 {
-    if ((&g_state != p_context) || (!g_state.b_open))
+    if ((&g_state != p_context) || (!i2cown_is_open(&g_owner)))
     {
         return I2CBUS_STATE;
     }
@@ -199,11 +195,96 @@ static bool valid_pin (uint8_t pin)
     return c3pin_valid(pin);
 }
 
-/** @brief Restrict controller lifecycle to quiescent application ownership. */
-static bool idle_owner (void)
+/** @brief Create the inherited-priority mutex that every session reuses. */
+static int create_lock (void * p_context)
 {
-    size_t count = 0U;
-    return (0 == rt_port_owned_count(&count)) && (0U == count);
+    (void)p_context; /* The permanent handle is module state, not session. */
+    const T_CMTX mutex   = {.mtxatr = TA_INHERIT};
+    const ID     h_mutex = tk_cre_mtx(&mutex);
+    if (h_mutex <= 0)
+    {
+        return I2CBUS_IO;
+    }
+    gh_mutex = h_mutex;
+    return 0;
+}
+
+/** @brief Restrict session changes to the serialized lifecycle owner. */
+static bool lifecycle_owner (void * p_context)
+{
+    (void)p_context; /* Ownership is a property of the calling task. */
+    return rt_port_is_owner();
+}
+
+/** @brief Lock within the remaining budget; zero is the kernel's TMO_POL. */
+static int lock_bus (void * p_context, uint32_t timeout_ms)
+{
+    (void)p_context; /* The permanent handle is module state, not session. */
+    if (timeout_ms > UINT32_C(2147483647))
+    {
+        return I2CBUS_INVALID;
+    }
+    /* The checked value fits the nonnegative kernel TMO range. */
+    const ER locked = tk_loc_mtx(gh_mutex, (TMO)timeout_ms);
+    if (E_OK == locked)
+    {
+        return 0;
+    }
+    return (E_TMOUT == locked) ? I2CBUS_TIMEOUT : I2CBUS_IO;
+}
+
+/** @brief Release the permanent mutex held by this task. */
+static int unlock_bus (void * p_context)
+{
+    (void)p_context; /* The permanent handle is module state, not session. */
+    return (E_OK == tk_unl_mtx(gh_mutex)) ? 0 : I2CBUS_IO;
+}
+
+/** @brief Reserve validated pins, then configure the controller and signals.
+ */
+static int start_bus (void * p_context, const i2cbus_config_t * p_config)
+{
+    (void)p_context; /* Session settings are the module's g_state. */
+    const int source_hz = esp_clk_xtal_freq();
+    if (source_hz <= 0)
+    {
+        return I2CBUS_IO;
+    }
+    const uint32_t pins = (UINT32_C(1) << p_config->sda_gpio) |
+                          (UINT32_C(1) << p_config->scl_gpio);
+    if (0 != c3pin_reserve(pins, &g_bus))
+    {
+        return I2CBUS_STATE;
+    }
+    /* Positive int source frequency fits the target's uint32_t. */
+    g_state = (c3i2c_state_t){
+        .config = *p_config, .source_hz = (uint32_t)source_hz, .pins = pins};
+    reset_controller();
+    setup_pin(p_config->sda_gpio, I2CEXT0_SDA_OUT_IDX, I2CEXT0_SDA_IN_IDX);
+    setup_pin(p_config->scl_gpio, I2CEXT0_SCL_OUT_IDX, I2CEXT0_SCL_IN_IDX);
+    return 0;
+}
+
+/** @brief Stop the controller; keep pin ownership if the ledger refuses it. */
+static int stop_bus (void * p_context)
+{
+    (void)p_context; /* Session settings are the module's g_state. */
+    /* Repeating these writes on a retried close is harmless. */
+    i2c_dev_t * p_hardware = I2C_LL_GET_HW(0);
+    i2c_ll_disable_intr_mask(p_hardware, UINT32_MAX);
+    i2c_ll_enable_controller_clock(p_hardware, false);
+    release_pin(g_state.config.sda_gpio);
+    release_pin(g_state.config.scl_gpio);
+    PERIPH_RCC_ATOMIC()
+    {
+        i2c_ll_enable_bus_clock(0, false);
+    }
+    if (0 != c3pin_release(g_state.pins, &g_bus))
+    {
+        return I2CBUS_STATE;
+    }
+    g_state = (c3i2c_state_t){0};
+    return 0;
 }
 
 /** @brief Route bidirectional open-drain signals without driving a high level.
@@ -259,7 +340,7 @@ static void reset_controller (void)
 
 /** @brief Load at most seven commands and 32 transmit bytes, with final NACK.
  */
-static void load_commands (const i2cbus_request_t * p_request)
+static void load_commands (const i2cbus_request_t * p_request, bool b_pause)
 {
     uint8_t  bytes[32] = {0};
     size_t   count     = 0U;
@@ -285,7 +366,7 @@ static void load_commands (const i2cbus_request_t * p_request)
         }
         bytes[count++] = (uint8_t)((p_request->address << 1U) | 1U);
         command(slot++, I2C_LL_CMD_WRITE, 1U, false);
-        if (p_request->read_size > 1U)
+        if ((!b_pause) && (p_request->read_size > 1U))
         {
             /* The common HAL limits read_size to 32. */
             command(slot++,
@@ -293,9 +374,12 @@ static void load_commands (const i2cbus_request_t * p_request)
                     (uint32_t)(p_request->read_size - 1U),
                     false);
         }
-        command(slot++, I2C_LL_CMD_READ, 1U, true);
+        if (!b_pause)
+        {
+            command(slot++, I2C_LL_CMD_READ, 1U, true);
+        }
     }
-    command(slot, I2C_LL_CMD_STOP, 0U, false);
+    command(slot, b_pause ? I2C_LL_CMD_END : I2C_LL_CMD_STOP, 0U, false);
     /* The two address bytes plus payload fit the hardware's 32-byte FIFO. */
     i2c_ll_write_txfifo(I2C_LL_GET_HW(0), bytes, (uint32_t)count);
 }
@@ -314,7 +398,7 @@ command (uint32_t slot, uint32_t operation, uint32_t count, bool b_last_read)
 
 /** @brief Poll with kernel yields and report distinct deadline/NACK failures.
  */
-static int wait_complete (uint64_t deadline_ms)
+static int wait_complete (uint64_t deadline_ms, uint32_t completion)
 {
     unsigned polls = 0U;
     for (;;)
@@ -333,7 +417,8 @@ static int wait_complete (uint64_t deadline_ms)
          * The pinned LL get_intr_mask helper reads masked int_status instead.
          */
         status = I2C_LL_GET_HW(0)->int_raw.val;
-        if (0U != (status & (I2C_LL_INTR_TIMEOUT | I2C_LL_INTR_ST_TO)))
+        if (0U != (status & (I2C_LL_INTR_TIMEOUT | I2C_LL_INTR_ST_TO |
+                             I2C_SCL_MAIN_ST_TO_INT_RAW)))
         {
             return I2CBUS_TIMEOUT;
         }
@@ -345,7 +430,7 @@ static int wait_complete (uint64_t deadline_ms)
         {
             return I2CBUS_NACK;
         }
-        if (0U != (status & I2C_LL_INTR_MST_COMPLETE))
+        if (0U != (status & completion))
         {
             return 0;
         }
@@ -360,6 +445,49 @@ static int wait_complete (uint64_t deadline_ms)
             }
         }
     }
+}
+
+/** @brief Continue the held read without a new START or releasing the lock. */
+static int resume_read (const i2cbus_request_t * p_request)
+{
+    i2c_dev_t * p_hardware = I2C_LL_GET_HW(0);
+    i2c_ll_clear_intr_mask(p_hardware, UINT32_MAX);
+    int result = delay_us(
+        &g_state, p_request->read_pause_ms * 1000U, p_request->deadline_ms);
+    const uint32_t status = p_hardware->int_raw.val;
+    if ((0 == result) &&
+        (0U != (status & (I2C_LL_INTR_TIMEOUT | I2C_LL_INTR_ST_TO |
+                          I2C_SCL_MAIN_ST_TO_INT_RAW))))
+    {
+        result = I2CBUS_TIMEOUT;
+    }
+    if ((0 == result) &&
+        (0U != (status & (I2C_LL_INTR_NACK | I2C_LL_INTR_ARBITRATION))))
+    {
+        result = I2CBUS_IO;
+    }
+    if (0 == result)
+    {
+        uint32_t slot = 0U;
+        for (uint32_t index = 0U; index < I2C_LL_CMD_REG_NUM; ++index)
+        {
+            command(index, I2C_LL_CMD_END, 0U, false);
+        }
+        if (p_request->read_size > 1U)
+        {
+            command(slot++,
+                    I2C_LL_CMD_READ,
+                    (uint32_t)(p_request->read_size - 1U),
+                    false);
+        }
+        command(slot++, I2C_LL_CMD_READ, 1U, true);
+        command(slot, I2C_LL_CMD_STOP, 0U, false);
+        i2c_ll_update(p_hardware);
+        i2c_ll_start_trans(p_hardware);
+        result =
+            wait_complete(p_request->deadline_ms, I2C_LL_INTR_MST_COMPLETE);
+    }
+    return result;
 }
 
 /** @brief Run and reset one transfer while retaining the bus mutex. */
@@ -382,10 +510,30 @@ static int exchange (const i2cbus_request_t * p_request)
     {
         command(index, I2C_LL_CMD_END, 0U, false);
     }
-    load_commands(p_request);
+    const bool b_pause          = (0U != p_request->read_pause_ms);
+    int        previous_timeout = 0;
+    uint32_t   previous_scl     = 0U;
+    uint32_t   previous_main    = 0U;
+    if (b_pause)
+    {
+        i2c_ll_get_tout(p_hardware, &previous_timeout);
+        previous_scl  = p_hardware->scl_st_time_out.scl_st_to;
+        previous_main = p_hardware->scl_main_st_time_out.scl_main_st_to;
+        /* At the C3 XTAL clock this bounds the held SCL period above 10 ms. */
+        i2c_ll_set_tout(p_hardware, 22);
+        p_hardware->scl_st_time_out.scl_st_to           = 22U;
+        p_hardware->scl_main_st_time_out.scl_main_st_to = 22U;
+    }
+    load_commands(p_request, b_pause);
     i2c_ll_update(p_hardware);
     i2c_ll_start_trans(p_hardware);
-    int result = wait_complete(p_request->deadline_ms);
+    int result = wait_complete(p_request->deadline_ms,
+                               b_pause ? I2C_LL_INTR_END_DETECT
+                                       : I2C_LL_INTR_MST_COMPLETE);
+    if ((0 == result) && b_pause)
+    {
+        result = resume_read(p_request);
+    }
     if ((0 == result) && (0U != p_request->read_size))
     {
         uint32_t count = 0U;
@@ -402,6 +550,17 @@ static int exchange (const i2cbus_request_t * p_request)
     if (0 != result)
     {
         reset_controller();
+    }
+    else if (b_pause)
+    {
+        i2c_ll_set_tout(p_hardware, previous_timeout);
+        p_hardware->scl_st_time_out.scl_st_to           = previous_scl;
+        p_hardware->scl_main_st_time_out.scl_main_st_to = previous_main;
+        i2c_ll_update(p_hardware);
+    }
+    else
+    {
+        /* Ordinary successful transfers leave the normal timeout unchanged. */
     }
     return result;
 }

@@ -6,6 +6,7 @@ import json
 import struct
 from threading import Thread
 import unittest
+from unittest.mock import patch
 import zlib
 from tools.configurator.workflow import Workflow
 from tools.configurator.web import make_server, ASSETS
@@ -48,6 +49,67 @@ class ConfiguratorTests(unittest.TestCase):
         self.text=json.dumps(load_document(ROOT/"configs/nodes/distance-only.json"))
     def connect(self):return self.flow.dispatch("connect",{"port":"fake"})
     def review(self):return self.flow.dispatch("review",{"profile":self.text})
+
+    def test_datasheet_draft_uses_reviewed_device_and_confirmed_pins(self):
+        self.connect()
+        request = dict(profile=self.text, descriptor_id="bmp388", descriptor_version="1.0.0",
+                       device_id="light_room", address="0x77", sda_gpio=0, scl_gpio=1,
+                       wiring_confirmed=True, identity_confirmed=True,
+                       generated_operations=["untrusted write"])
+        result = self.flow.dispatch("datasheet_prepare_i2c", request)
+        device = result["profile"]["devices"][-1]
+        self.assertEqual(device["driver"], "bmp388")
+        self.assertEqual(device["interface"]["address"], "0x77")
+        self.assertNotIn("generated_operations", device)
+        self.assertEqual(self.flow.client.calls, [])
+        self.assertFalse(result["identity_verified"])
+        self.flow.dispatch("review", {"profile": json.dumps(result["profile"])})
+
+    def test_datasheet_draft_refuses_missing_driver_or_unconfirmed_wiring(self):
+        self.connect()
+        request = dict(profile=self.text, descriptor_id="bmp388", descriptor_version="1.0.0",
+                       device_id="room", address="0x77", sda_gpio=0, scl_gpio=1,
+                       wiring_confirmed=True, identity_confirmed=True)
+        for updates in ({"wiring_confirmed": False}, {"descriptor_id": "sen0390"},
+                        {"address": "0x4a"}, {"sda_gpio": 18}, {"enable_gpio": 3}):
+            with self.subTest(updates=updates), self.assertRaises(ValueError):
+                self.flow.dispatch("datasheet_prepare_i2c", request | updates)
+        self.assertEqual(self.flow.client.calls, [])
+
+    def test_datasheet_draft_reports_a_device_already_in_the_profile(self):
+        self.connect()
+        request = dict(profile=self.text, descriptor_id="bmp388", descriptor_version="1.0.0",
+                       device_id="room", address="0x77", sda_gpio=0, scl_gpio=1,
+                       wiring_confirmed=True, identity_confirmed=True)
+        added = self.flow.dispatch("datasheet_prepare_i2c", request)
+        with self.assertRaisesRegex(ValueError, "device name is already in the profile"):
+            self.flow.dispatch("datasheet_prepare_i2c", request | {"profile": json.dumps(added["profile"])})
+        self.assertEqual(self.flow.client.calls, [])
+
+    def test_datasheet_enable_gpio_requires_reviewed_schema_and_no_pin_conflict(self):
+        self.connect()
+        descriptor = self.flow.catalogue.descriptors[("bmp388", "1.0.0")]
+        interface = descriptor["instance_schema"]["properties"]["interface"]
+        interface["properties"]["enable_gpio"] = {"type": "integer", "minimum": 0, "maximum": 21}
+        interface["required"].append("enable_gpio")
+        request = dict(profile=self.text, descriptor_id="bmp388", descriptor_version="1.0.0",
+                       device_id="room", address="0x77", sda_gpio=0, scl_gpio=1,
+                       wiring_confirmed=True, identity_confirmed=True)
+        for update in ({}, {"enable_gpio": 0}, {"enable_gpio": 4}, {"enable_gpio": 18}):
+            with self.subTest(update=update), self.assertRaises(ValueError):
+                self.flow.dispatch("datasheet_prepare_i2c", request | update)
+        result = self.flow.dispatch("datasheet_prepare_i2c", request | {"enable_gpio": 3})
+        self.assertEqual(result["profile"]["devices"][-1]["interface"]["enable_gpio"], 3)
+        self.assertEqual(self.flow.client.calls, [])
+
+    def test_datasheet_draft_refuses_changed_firmware_capabilities(self):
+        self.connect()
+        self.flow.client.caps = replace(self.flow.client.caps, drivers=("hc_sr04",))
+        with self.assertRaisesRegex(ValueError, "capabilities changed"):
+            self.flow.dispatch("datasheet_prepare_i2c", dict(profile=self.text, descriptor_id="bmp388",
+                descriptor_version="1.0.0", device_id="room", address="0x77", sda_gpio=0,
+                scl_gpio=1, wiring_confirmed=True, identity_confirmed=True))
+        self.assertEqual(self.flow.client.calls, [])
 
     def test_offline_review_never_opens_serial_and_cannot_deploy(self):
         review=self.review();self.assertFalse(review["connected"]);self.assertEqual(self.ports,[])
@@ -128,6 +190,54 @@ class ConfiguratorTests(unittest.TestCase):
         headers["Origin"]="https://attacker.test"
         self.assertEqual(request("POST","/api/review",body,headers)[0],403)
         self.assertEqual(self.ports,[])
+
+    def test_rejected_post_drains_bounded_body_without_parsing_or_board_io(self):
+        server = make_server(0, self.flow)
+        Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close); self.addCleanup(server.shutdown)
+        body = b'x' * 65536
+        with patch('tools.configurator.web.parse_document', side_effect=AssertionError('Unauthorized parse')):
+            for token, origin in [('', None), (server.token, 'https://attacker.test'), ('\u00e9', None)]:
+                connection = http.client.HTTPConnection('127.0.0.1', server.server_port, timeout=3)
+                self.addCleanup(connection.close)
+                connection.putrequest('POST', '/api/review')
+                connection.putheader('Content-Type', 'application/json')
+                connection.putheader('Content-Length', str(len(body)))
+                connection.putheader('X-Session', token)
+                if origin:
+                    connection.putheader('Origin', origin)
+                connection.endheaders()
+                # Separate writes reproduce a header-before-body rejection race.
+                for offset in range(0, len(body), 4096):
+                    connection.send(body[offset:offset + 4096])
+                response = connection.getresponse()
+                self.assertEqual(response.status, 403)
+                self.assertEqual(json.loads(response.read()), {'error': 'Local session required'})
+                connection.close()
+        self.assertEqual(self.ports, [])
+
+    def test_bad_body_lengths_are_rejected_without_waiting_for_payload(self):
+        server = make_server(0, self.flow)
+        Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close); self.addCleanup(server.shutdown)
+        for lengths, transfer in [([], None), (['0'], None), (['65537'], None),
+                                  (['+2'], None), (['2', '2'], None), (['2'], 'chunked')]:
+            with self.subTest(lengths=lengths, transfer=transfer):
+                connection = http.client.HTTPConnection('127.0.0.1', server.server_port, timeout=1)
+                self.addCleanup(connection.close)
+                connection.putrequest('POST', '/api/review')
+                connection.putheader('Content-Type', 'application/json')
+                connection.putheader('X-Session', server.token)
+                for value in lengths:
+                    connection.putheader('Content-Length', value)
+                if transfer:
+                    connection.putheader('Transfer-Encoding', transfer)
+                connection.endheaders()
+                response = connection.getresponse()
+                self.assertEqual(response.status, 400)
+                response.read()
+                connection.close()
+        self.assertEqual(self.ports, [])
 
     def test_rules_require_connected_support_and_produce_a_reviewable_plan(self):
         self.text=json.dumps(load_document(ROOT/"configs/nodes/distance-controlled-output.json"))

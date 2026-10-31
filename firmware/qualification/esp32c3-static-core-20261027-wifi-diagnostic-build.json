@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-10-26T15:51:16.809508+00:00",
+  "example": "examples/udp_pingpong_c3",
+  "diagnostic_only": true,
+  "configuration_application": false,
+  "board_kit": "iote_esp32c3_mini",
+  "target": "esp32c3",
+  "versions": {
+    "kernel_revision": "ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2",
+    "sdk_revision": "fff9895c82d744c7237be8847347bdd1b07c6643",
+    "compiler": "riscv32-esp-elf-gcc.EXE (crosstool-NG esp-15.2.0_20251204) 15.2.0",
+    "idf_version": "ESP-IDF v6.1",
+    "python": "3.14.2",
+    "cmake": "cmake version 4.0.3",
+    "ninja": "1.12.1"
+  },
+  "build_status": "passed",
+  "board_status": "not_tested",
+  "application_runtime_status": "not_tested",
+  "artifacts": {
+    "build/udp_pingpong_c3.bin": {
+      "sha256": "4528bc6eeda750c2c3fedfd844d897ab6d9bfd5b7571565020ed5d874a8b0a18",
+      "size_bytes": 753728
+    },
+    "build/udp_pingpong_c3.elf": {
+      "sha256": "c30a1ef4ea6210d2b62a4cf7b93a1f1a5f60161e2964152a2f5902b61e07b729",
+      "size_bytes": 9311652
+    },
+    "build/udp_pingpong_c3.map": {
+      "sha256": "c52e0c8eaebc74b46f2d7b001fb94637ef351a8046a634788b5597f6454ecc55",
+      "size_bytes": 6606305
+    },
+    "build/compile_commands.json": {
+      "sha256": "03f9dbabbb3cb835662aabc6a30f3bd83bb707fe2b82e22a885d4b9e08fddf0d",
+      "size_bytes": 7555922
+    },
+    "build/bootloader/bootloader.bin": {
+      "sha256": "5e74b3c3e3e9be01cc7a856038ac440435c7660ac3050d28b79fc5b62bc3ec2a",
+      "size_bytes": 21232
+    },
+    "build/partition_table/partition-table.bin": {
+      "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820",
+      "size_bytes": 3072
+    },
+    "build/flasher_args.json": {
+      "sha256": "63181a36ce07c1d24a9a98ce8fcb841a2cff16254b6aa39d9ca192188d2f088a",
+      "size_bytes": 945
+    },
+    "sdkconfig": {
+      "sha256": "295c3ba18a861ff673a16afd3a565c5a8cbab670449a87ef0a5d7a116f0d6252",
+      "size_bytes": 87062
+    },
+    "build.log": {
+      "sha256": "25243c313ad7050a69be663ff0e893ba2b1048bbf8716ca38d456989fdbcb205",
+      "size_bytes": 166052
+    }
+  },
+  "coding_standard": {
+    "status": "passed",
+    "command": [
+      "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+      "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code\\tools\\c_standard\\check.py",
+      "--root",
+      "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code"
+    ],
+    "output": "C standard gate: 229 files, 0 findings, 0 tool/policy errors."
+  },
+  "kernel_archive_sha256": "005fe17b935e5c1b597fdd4b6c6434cf3a97a21dc583cce12a588099149a9806",
+  "compatibility_patch": {
+    "name": "0002-esp-idf-6.1-build.patch",
+    "sha256": "ce835addd93fb2f36b5a004971580672702879924566d5271539a59268b4677c"
+  },
+  "resource_patch": null,
+  "command": [
+    "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+    "C:\\Users\\kkak4\\esp\\uthome-c3-sdk-v6.1\\tools\\idf.py",
+    "-C",
+    "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-completion-wifi-a1\\source\\examples\\udp_pingpong_c3",
+    "-B",
+    "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-completion-wifi-a1\\build",
+    "-DIDF_TARGET=esp32c3",
+    "-DMTK_BOARD=iote_esp32c3_mini",
+    "-DSDKCONFIG=C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-completion-wifi-a1\\sdkconfig",
+    "build"
+  ],
+  "environment_overrides": {
+    "IDF_PATH": "C:/Users/kkak4/esp/uthome-c3-sdk-v6.1",
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONUTF8": "1"
+  },
+  "build_exit_code": 0
+}

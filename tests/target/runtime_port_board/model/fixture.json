@@ -1,0 +1,22 @@
+{
+  "recorded_utc": "2026-10-26T23:09:01.559045+00:00",
+  "model_sha256": "6f7bc4e094b8bb35141228494ad85aef6034f47f366e8f44faf2ec1e4f03d7a1",
+  "vectors": 1165,
+  "deployment_allowed": false,
+  "statistical_gate_passed": false,
+  "purpose": "Target parity/resource/latency diagnostic only; no recommendation or Apply",
+  "expected_values": "Frozen Python predictions, including boundary and out-of-domain vectors; not ground-truth labels",
+  "generation": "build/system-completion-20261026-233938/prepare_model_fixture.py",
+  "source_model_path": "build/protocol-study-20261027-static-r2/analysis/trained/model.json",
+  "source_model_file_sha256": "82d4d18716f42a0f6602bb4d618cc7dea0df7a898df2b560e4cadbf04a8a763b",
+  "corpus_sha256": "bc0f96c6717f71fe98d1d04416d614f4fe6552125ab7bae4cfe607e8090ba83b",
+  "source_sha256": {
+    "aicases.c": "15663db6dda753143f64f01c7d81f657cbfcbbfc1f5f9e28afaaa029c9210c46",
+    "aicases.h": "f276939f91e0f7921e6ef42383904a876b2df963225a753d4b4a32643aa111e8",
+    "aifrozen.c": "246833cbd56854a9f7ae8249e9be1e999551e7881ba4428055ad0ab00cb30cdf",
+    "aifrozen.h": "8e59edabebc603a8d0c08c0444351c67b3b557237070b6734eee8879cc9212fd",
+    "aiprobe.c": "18984b79a50e3a7b2199b37c3249b952f1f52b4d857ffdc805115b19a9aebbae",
+    "aiprobe.h": "85f878870c8c9878636e4a2b627576f4a4f4912bd0c32f8cd44bd9affc27c767"
+  },
+  "export_symbol_rename": "protree/PROTREE to aifrozen/AIFROZEN in isolated fixture only; algorithm unchanged"
+}

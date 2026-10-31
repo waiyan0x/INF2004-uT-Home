@@ -1,0 +1,21 @@
+{
+  "proposal_only": true,
+  "description": "Device fragment for team review; not a deployable node profile. Choose PWM pin after checking the exact board and motor driver.",
+  "device_id": "demo_motor",
+  "driver": "pwm_motor",
+  "enabled": false,
+  "interface": {
+    "protocol": "gpio",
+    "pwm_gpio": null,
+    "frequency_hz": 20000,
+    "active_high": true,
+    "external_motor_driver_required": true
+  },
+  "behaviour": {
+    "profile": "pwm_actuator",
+    "duty_permille": 0,
+    "safe_duty_permille": 0,
+    "source": "distance.front",
+    "stale_timeout_ms": 1500
+  }
+}

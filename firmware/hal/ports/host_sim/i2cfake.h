@@ -13,6 +13,8 @@ typedef struct
     uint8_t  registers[2][256];
     uint8_t  position[2];
     bool     b_present[2];
+    uint8_t  light_data[4];
+    bool     b_light_present;
     uint64_t now_ms;
     uint32_t transfer_ms;
     uint32_t transfers;

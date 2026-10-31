@@ -42,6 +42,14 @@ class DiscoveryContractTests(unittest.TestCase):
                     allowed = interface["properties"]["address"]["enum"]
                     self.assertTrue(set(rule["addresses"]) <= {int(a, 16) for a in allowed})
 
+    def test_sen0390_requires_manual_identity_confirmation(self):
+        entry = next(entry for entry in self.document["entries"]
+                     if entry["descriptor"]["id"] == "sen0390")
+        self.assertEqual(entry["identification"]["method"], "manual")
+        self.assertEqual(entry["identification"]["identity_status"], "user_confirmed")
+        preset = load_document(ROOT / "catalogue/connections/bench-i2c.json")
+        self.assertNotIn(0x4A, [read["address"] for read in preset["reads"]])
+
     def test_local_evidence_paths_exist(self):
         for entry in self.document["entries"]:
             for source in entry["sources"]:

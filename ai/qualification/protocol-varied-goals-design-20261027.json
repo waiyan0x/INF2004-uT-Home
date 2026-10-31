@@ -1,0 +1,116 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-27T06:26:16.310721+00:00",
+  "scope": "Prospective Member 4 study design and host preflight; no new training measurements or deployed model",
+  "status": "design_preflight_passed_collection_gated",
+  "specification": "ai/examples/protocol-study-varied-goals.json",
+  "specification_sha256": "955b75bd6343dcfcb5e356299ae561ea16b070a88d1c877d52096751b587fb1a",
+  "specification_file_sha256": "ed27770a700d7921ad6fbad1672f670b4811bb392120fc668ffacc22214de9d4",
+  "preflight": {
+    "families_by_split": {
+      "train": 9,
+      "validation": 3,
+      "test": 3
+    },
+    "family_keys_unique": true,
+    "admitted_candidate_profiles": 60,
+    "runs": 120,
+    "maximum_candidates": 4,
+    "heldout_range_or_context_issues": [],
+    "exact_workload_overlap_with_prior_studies": {
+      "protocol-study-20261027-static-r2": 0,
+      "protocol-study-20261027-stress-r3": 0,
+      "protocol-study-20261026-r3": 0
+    },
+    "prior_manifest_used_for_offline_preflight_only": true,
+    "collection_authorized_by_this_report": false,
+    "specification_sha256": "955b75bd6343dcfcb5e356299ae561ea16b070a88d1c877d52096751b587fb1a",
+    "prepared_sha256": "053cac398e5d955680f4bbec430dca66cc2856ff607ce76ee47376aa491426c6"
+  },
+  "design": {
+    "goal_ms": [
+      500,
+      750,
+      1000
+    ],
+    "candidate_intervals_ms": [
+      200,
+      500,
+      1000,
+      2000
+    ],
+    "families": 15,
+    "split": {
+      "train": 9,
+      "validation": 3,
+      "test": 3
+    },
+    "repetitions": 2,
+    "warmup_ms": 5000,
+    "observation_ms": 60000,
+    "cadence_ms": 137,
+    "measure_costs": true,
+    "planned_runs": 120,
+    "minimum_trial_seconds": 7800,
+    "calibration_and_apply_time_additional": true,
+    "features": "Existing eighteen configuration inputs; no device identity or trial outcomes as inputs",
+    "grouping": "Whole workload families; goal/period/session variants of an identical workload cannot enter different splits",
+    "training_matrix": "Each goal has every selected I2C speed and every selected SPI speed; both UART-enabled and disabled loads occur",
+    "calibration": "Before labelled trials, collect one separate 60-second calibration per workload at the current 500 ms sensor interval. Retain complete journals, per-worker max elapsed/lateness and context hashes. Calibration is never a training/evaluation row.",
+    "sessions": "Collect training families in session A; validation and test families in a later session B with the same firmware/wiring and renewed connection checks. Keep all repetitions of a family together. Do not inspect held-out labels until fitting is frozen.",
+    "baselines": [
+      "Current admitted 500 ms setting",
+      "Descriptor default 2000 ms",
+      "Existing simple rule: choose longest candidate with interval + source_period <= goal",
+      "Calibrated timing rule: choose longest candidate with interval + ceil((target max_elapsed_us + target max_lateness_us)/1000) <= goal; maxima come only from the separate same-workload 500 ms calibration"
+    ],
+    "baseline_limits": "The calibrated rule is an empirical service-time estimate, not WCET, CPU utilization or a scheduling guarantee. Missing, reset, saturated or unhealthy calibration invalidates it; no zero-cost substitution.",
+    "training_settings": {
+      "library": "scikit-learn",
+      "version": "1.8.0",
+      "random_seed": 42,
+      "max_depth": 4,
+      "min_samples_leaf": 3,
+      "leaf_threshold_per_mille": 900
+    }
+  },
+  "before_collection": [
+    "Confirm current USB board, exact running ELF, reviewed physical wiring and unchanged restored profile bytes",
+    "Generate a fresh manifest, identity and execution context for the chosen image; the preflight used an older retained manifest only for offline admission",
+    "Require at least five minutes of fresh radar reports with the phone app disconnected and no new timeout, framing, I/O or UART-overflow events; preserve failures and do not claim root cause fixed",
+    "Keep phone app disconnected, hardware stationary and observer cadence fixed throughout calibration and trials",
+    "Freeze calibration artifacts, baseline calculation, source snapshots and study hashes before exposing trial labels; verify an independent calibration is available for every workload",
+    "Check source/build allocation qualification and original-profile restoration before opening the collection session"
+  ],
+  "run_policy": [
+    "A healthy zero-target radar report is valid; no absence test is required",
+    "A complete run with goal or peer faults remains a negative example",
+    "Interrupted, reset or identity-changing runs are retained separately and block training; no retry until pass",
+    "Persistent or unexplained transport silence pauses subsequent scheduled trials for diagnosis; preserve every attempted run"
+  ],
+  "release_criteria": [
+    "Keep the existing protocol_gate criteria unchanged: no held-out violation, unnecessary abstention or regression against a passing simple-rule choice, and at least one safe coverage/interval gain",
+    "Additionally require at least one safe coverage/interval gain over the separately calibrated timing rule with no regression where that rule passes; report all family decisions and baseline failures",
+    "If timing rules already solve the cases, report lack of ML benefit; do not adjust gates or repeatedly search the revealed test set",
+    "No unseen-device accuracy claim without a supported peripheral type excluded from training",
+    "No deployment from this USB-only study; combined static-compliant wireless execution, target parity/resources/loaded latency and reviewed Desk integration remain required"
+  ],
+  "software_checks": {
+    "ai_tests": 121,
+    "exit_code": 0,
+    "c_gate_files": 283,
+    "c_gate_findings": 0,
+    "log": "build/member4-today-20261027/ai-tests.log",
+    "log_sha256": "395123093570d78a17b366e795475522673189ec0b03fd646991c9f9a9039ff8",
+    "note": "Existing full suite completed during the interrupted turn. Subsequent edits change design JSON/documentation only; the final design passed fresh offline admission/context/range/overlap checks."
+  },
+  "source_sha256": {
+    "ai/protocol_study.py": "527032d2430e73b153ea881e6724bc8cb560e0fe12475dbd4fbc377d348b5c8b",
+    "ai/tests/test_protocol.py": "08f033a255197f1a011b0770c733179efb6ba4134430bdee08f6a0dd7db57384",
+    "ai/workload.py": "92db6abf43a9059d236ec2798f3cb43179bf22d04c77144ed2d1a78ec3121a59"
+  },
+  "deployment_allowed": false,
+  "automatic_apply": false,
+  "ui_changed": false,
+  "firmware_changed": false
+}

@@ -6,8 +6,10 @@
 #endif
 #include "servtest.h"
 #include "telemetry.h"
+#include "costview.h"
 #include "statusmon.h"
 #include "rulecalc.h"
+#include "cfgbytes.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -19,10 +21,17 @@ static uint8_t     g_frame[UTHOME_CFGWIRE_HEADER + UTHOME_TELEMETRY_MAX] = {0};
 static void verify_sources (uint64_t * p_clock);
 static void verify_values (uint64_t now_ms);
 static void verify_monitor (uint64_t * p_clock);
+static void verify_light (uint64_t now_ms);
 static void emit (void);
 static void verify_rule (void);
 static void verify_rule_metrics (void);
 static int check_contention (void * p_context);
+static int capture_audit (memaudit_t * p_state);
+static void verify_cost (void);
+static int cost_clock (uint64_t * p_now);
+static int cost_stack (uint32_t * p_unused);
+static int cost_cpu (costview_cpu_t * p_sample);
+static int missing_cpu (costview_cpu_t * p_sample);
 
 /** @brief Exercise production serialization and encode bytes for Python parity.
  */
@@ -30,12 +39,15 @@ void servtest_run (uint64_t * p_clock)
 {
     assert(NULL != p_clock);
     assert(0 == activate_clear());
+    verify_cost();
     verify_rule();
     verify_rule_metrics();
     verify_sources(p_clock);
     verify_values(*p_clock);
     emit();
+    g_telemetry.p_audit = capture_audit;
     verify_monitor(p_clock);
+    verify_light(*p_clock);
     assert(0 == shared_reset(NULL, 0U));
     assert(0 == shared_capture(&g_capture));
     assert(!g_capture.samples.entries[0].b_expected);
@@ -43,6 +55,143 @@ void servtest_run (uint64_t * p_clock)
     assert(0 == rt_port_shared_call(check_contention, NULL));
     puts("Services: independent sources, freshness, health, reset and wire "
          "parity passed.");
+}
+
+/** @brief Encode a valid zero light value and reject out-of-range data. */
+static void verify_light (uint64_t now_ms)
+{
+    const msgbus_queue_config_t queue = {UTHOME_SAMPLE_LIGHT,
+                                         sizeof(sample_light_t),
+                                         1U,
+                                         UTHOME_MSGBUS_DROP_OLDEST};
+    assert(0 == shared_reset(&queue, 1U));
+    const sampcache_source_t source = {.name         = "light",
+                                       .h_queue      = 0,
+                                       .type         = UTHOME_SAMPLE_LIGHT,
+                                       .source_index = 0U,
+                                       .stale_ms     = 1000U};
+    assert(0 == shared_expect(&source));
+    sample_light_t sample = {
+        .header   = {.timestamp_ms = now_ms, .status = UTHOME_SAMPLE_OK},
+        .millilux = 0U};
+    assert(0 ==
+           shared_publish(0, UTHOME_SAMPLE_LIGHT, &sample, sizeof(sample)));
+    size_t size = 0U;
+    assert(0 == telemetry_observe(
+                    &g_telemetry, &g_frame[24], UTHOME_TELEMETRY_MAX, &size));
+    assert(4U == cfgbytes_get(&g_frame[24]));
+    assert(5U == cfgbytes_get(&g_frame[24U + UTHOME_TELEMETRY_HEADER + 4U]));
+    assert(0U == cfgbytes_get(&g_frame[24U + UTHOME_TELEMETRY_HEADER +
+                                       UTHOME_TELEMETRY_QUEUE + 72U]));
+    sample.header.sequence = 1U;
+    sample.millilux        = 200000001U;
+    assert(0 ==
+           shared_publish(0, UTHOME_SAMPLE_LIGHT, &sample, sizeof(sample)));
+    assert(0 == shared_capture(&g_capture));
+    assert(UTHOME_SAMPLE_INVALID == g_capture.samples.entries[0].header.status);
+}
+
+/** @brief Provide an independently recognizable high-word clock. */
+static int cost_clock (uint64_t * p_now)
+{
+    *p_now = UINT64_C(0x100000005);
+    return 0;
+}
+
+/** @brief Provide a checked empirical controller margin for encoding. */
+static int cost_stack (uint32_t * p_unused)
+{
+    *p_unused = 4096U;
+    return 0;
+}
+
+/** @brief Encode an independent high-word native tick and wrapping idle count.
+ */
+static int cost_cpu (costview_cpu_t * p_sample)
+{
+    *p_sample = (costview_cpu_t){.elapsed_ms = UINT64_C(0x200000009),
+                                 .idle_ms    = UINT32_MAX - 2U,
+                                 .tick_ms    = 1U};
+    return 0;
+}
+
+/** @brief Partial provider output is never published after an error. */
+static int missing_cpu (costview_cpu_t * p_sample)
+{
+    (void)cost_cpu(p_sample);
+    return -1;
+}
+
+/** @brief Encode explicit missing clocks and unbound native slot history. */
+static void verify_cost (void)
+{
+    static costview_t       view    = {.p_control = &g_control};
+    size_t                  size    = 0U;
+    const cfgwire_request_t request = {.command    = CFGWIRE_WORKCOST,
+                                       .request_id = 27U};
+    assert(costview_observe(NULL, g_frame, sizeof(g_frame), &size) != 0);
+    assert(costview_observe(&view, g_frame, COSTVIEW_BYTES - 1U, &size) != 0);
+    assert(0 ==
+           costview_observe(&view, &g_frame[24], UTHOME_TELEMETRY_MAX, &size));
+    assert((COSTVIEW_HEADER == size) && (2U == cfgbytes_get(&g_frame[28])));
+    view.p_clock           = cost_clock;
+    view.p_controller      = cost_stack;
+    const uint32_t last_id = g_control.last_id;
+    assert(0 ==
+           costview_observe(&view, &g_frame[24], UTHOME_TELEMETRY_MAX, &size));
+    assert((COSTVIEW_BYTES == size) && (0U == cfgbytes_get(&g_frame[28])));
+    assert(last_id == g_control.last_id);
+    assert(0 == cfgwire_observation(&request, g_frame, sizeof(g_frame), size));
+    printf("WORKCOST:");
+    for (size_t index = 0U; index < (size + 24U); ++index)
+    {
+        /* A byte fits the unsigned printf argument. */
+        printf("%02x", (unsigned)g_frame[index]);
+    }
+    puts("");
+    view.p_cpu = missing_cpu;
+    assert(0 ==
+           costview_observe(&view, &g_frame[24], UTHOME_TELEMETRY_MAX, &size));
+    assert((2U == cfgbytes_get(&g_frame[24])) &&
+           (0U == cfgbytes_get(&g_frame[84])) &&
+           (0U == cfgbytes_get(&g_frame[88])));
+    view.p_cpu = cost_cpu;
+    assert(0 ==
+           costview_observe(&view, &g_frame[24], UTHOME_TELEMETRY_MAX, &size));
+    assert(last_id == g_control.last_id);
+    assert(0 == cfgwire_observation(&request, g_frame, sizeof(g_frame), size));
+    printf("SCHEDULER:");
+    for (size_t index = 0U; index < (size + 24U); ++index)
+    {
+        printf("%02x", (unsigned)g_frame[index]);
+    }
+    puts("");
+}
+
+/** @brief Supply distinct counters to check both phases on the wire. */
+static int capture_audit (memaudit_t * p_state)
+{
+    memset(p_state, 0, sizeof(*p_state));
+    p_state->b_sealed                    = true;
+    p_state->b_application               = true;
+    p_state->b_saturated                 = true;
+    p_state->startup.allocations         = 7U;
+    p_state->startup.bytes               = 1024U;
+    p_state->startup.frees               = 2U;
+    p_state->normal.allocations          = 1U;
+    p_state->normal.bytes                = 20U;
+    p_state->normal.frees                = 3U;
+    p_state->startup.kernel_calls[0]     = 8U;
+    p_state->application.allocations     = 2U;
+    p_state->application.bytes           = 16U;
+    p_state->application.kernel_calls[0] = 1U;
+    p_state->normal.kernel_calls[3]      = 4U;
+    for (uint32_t index = 0U; index < UTHOME_AUDIT_KINDS; ++index)
+    {
+        p_state->startup.creates[index] = index;
+        p_state->normal.creates[index]  = index + 11U;
+    }
+    return 0;
 }
 
 /** @brief Queue observation retains consumers, source identity and sequence

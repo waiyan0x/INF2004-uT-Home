@@ -1,0 +1,147 @@
+[wifi-probe] diagnostic only; scan without association, AP or NVS; USB core RAM retained, application inactive
+E (3355773046) esp_timer: Task is already initialized
+[wifi-probe] stage=1 status=0 internal_free=115196
+[wifi-probe] stage=2 status=0 internal_free=110300
+I (3355773047) pp: pp rom version: 9387209
+I (3355773047) net80211: net80211 rom version: 9387209
+I (-939194246) wifi:wifi driver task: 3fc989a8, prio:23, stack:3584, core=0
+I (-939194245) wifi:wifi firmware version: e12a754
+I (-939194244) wifi:wifi certification version: v7.0
+I (-939194244) wifi:config NVS flash: disabled
+I (-939194243) wifi:config nano formatting: disabled
+I (-939194243) wifi:Init data frame dynamic rx buffer num: 8
+I (-939194242) wifi:Init static rx mgmt buffer num: 5
+I (-939194242) wifi:Init management short buffer num: 32
+I (-939194241) wifi:Init dynamic tx buffer num: 8
+I (-939194241) wifi:Init static tx FG buffer num: 2
+I (-939194240) wifi:Init static rx buffer size: 1600
+I (-939194240) wifi:Init static rx buffer num: 6
+I (-939194240) wifi:Init dynamic rx buffer num: 8
+I (3355773058) wifi_init: rx ba win: 6
+I (3355773058) wifi_init: accept mbox: 6
+I (3355773059) wifi_init: tcpip mbox: 32
+I (3355773059) wifi_init: udp mbox: 6
+I (3355773059) wifi_init: tcp mbox: 6
+I (3355773059) wifi_init: tcp tx win: 5760
+I (3355773059) wifi_init: tcp rx win: 5760
+I (3355773060) wifi_init: tcp mss: 1440
+[wifi-probe] stage=3 status=0 internal_free=82976
+[wifi-probe] stage=4 status=0 internal_free=82976
+[wifi-probe] stage=5 status=0 internal_free=82976
+I (3355773061) phy_init: phy_version 1235,8bd8c6fc,Apr 13 2026,18:46:20
+I (-939194199) wifi:mode : sta (d4:05:92:e6:c3:bc)
+I (-939194198) wifi:enable tsf
+[wifi-probe] stage=6 status=0 internal_free=81236
+[wifi-probe] stage=7 status=0 internal_free=81236
+I (-939192779) wifi:flush txq
+I (-939192778) wifi:stop sw txq
+I (-939192778) wifi:lmac stop hw txq
+[wifi-probe] stage=8 status=0 internal_free=82976
+I (-939192775) wifi:mode : sta (d4:05:92:e6:c3:bc)
+I (-939192774) wifi:enable tsf
+[wifi-probe] stage=9 status=0 internal_free=81236
+[wifi-probe] stage=10 status=0 internal_free=81236
+I (-939191355) wifi:flush txq
+I (-939191354) wifi:stop sw txq
+I (-939191354) wifi:lmac stop hw txq
+[wifi-probe] stage=11 status=0 internal_free=82976
+[wifi-probe] queue_calls=25 failures=0 last_length=0 last_item_bytes=0 last_kind=0
+[wifi-probe] completed result=0 stage=11 status=0 scan_counts=14,18
+[radio-probe] observation=0 free=115196 largest=106496 startup_alloc=26 startup_bytes=7908 normal_alloc=0 normal_bytes=0 application_alloc=0 sealed=0
+[radio-probe] observation=0 kind=0 startup=7 normal=0
+[radio-probe] observation=0 kind=1 startup=32 normal=0
+[radio-probe] observation=0 kind=2 startup=50 normal=0
+[radio-probe] observation=0 kind=3 startup=1 normal=0
+[radio-probe] observation=0 kind=4 startup=0 normal=0
+[radio-probe] observation=0 kind=5 startup=0 normal=0
+[radio-probe] observation=0 kind=6 startup=0 normal=0
+[radio-probe] observation=0 kind=7 startup=0 normal=0
+[radio-probe] observation=0 kind=8 startup=0 normal=0
+[radio-probe] observation=0 kind=9 startup=0 normal=0
+[radio-probe] observation=0 kind=10 startup=0 normal=0
+[radio-probe] observation=1 free=81236 largest=69632 startup_alloc=132 startup_bytes=69656 normal_alloc=0 normal_bytes=0 application_alloc=106 sealed=0
+[radio-probe] observation=1 kind=0 startup=9 normal=0
+[radio-probe] observation=1 kind=1 startup=32 normal=0
+[radio-probe] observation=1 kind=2 startup=52 normal=0
+[radio-probe] observation=1 kind=3 startup=1 normal=0
+[radio-probe] observation=1 kind=4 startup=0 normal=0
+[radio-probe] observation=1 kind=5 startup=0 normal=0
+[radio-probe] observation=1 kind=6 startup=0 normal=0
+[radio-probe] observation=1 kind=7 startup=0 normal=0
+[radio-probe] observation=1 kind=8 startup=0 normal=0
+[radio-probe] observation=1 kind=9 startup=0 normal=0
+[radio-probe] observation=1 kind=10 startup=0 normal=0
+[radio-probe] observation=2 free=81236 largest=69632 startup_alloc=132 startup_bytes=69656 normal_alloc=62 normal_bytes=24448 application_alloc=106 sealed=1
+[radio-probe] observation=2 kind=0 startup=9 normal=0
+[radio-probe] observation=2 kind=1 startup=32 normal=0
+[radio-probe] observation=2 kind=2 startup=52 normal=0
+[radio-probe] observation=2 kind=3 startup=1 normal=0
+[radio-probe] observation=2 kind=4 startup=0 normal=0
+[radio-probe] observation=2 kind=5 startup=0 normal=0
+[radio-probe] observation=2 kind=6 startup=0 normal=0
+[radio-probe] observation=2 kind=7 startup=0 normal=0
+[radio-probe] observation=2 kind=8 startup=0 normal=0
+[radio-probe] observation=2 kind=9 startup=0 normal=0
+[radio-probe] observation=2 kind=10 startup=0 normal=0
+[radio-probe] observation=3 free=82976 largest=73728 startup_alloc=132 startup_bytes=69656 normal_alloc=66 normal_bytes=24552 application_alloc=106 sealed=1
+[radio-probe] observation=3 kind=0 startup=9 normal=0
+[radio-probe] observation=3 kind=1 startup=32 normal=0
+[radio-probe] observation=3 kind=2 startup=52 normal=0
+[radio-probe] observation=3 kind=3 startup=1 normal=0
+[radio-probe] observation=3 kind=4 startup=0 normal=0
+[radio-probe] observation=3 kind=5 startup=0 normal=0
+[radio-probe] observation=3 kind=6 startup=0 normal=0
+[radio-probe] observation=3 kind=7 startup=0 normal=0
+[radio-probe] observation=3 kind=8 startup=0 normal=0
+[radio-probe] observation=3 kind=9 startup=0 normal=0
+[radio-probe] observation=3 kind=10 startup=0 normal=0
+[probe] alive=0
+[probe] alive=1
+[probe] alive=2
+[probe] alive=3
+[probe] alive=4
+[probe] alive=5
+[probe] alive=6
+[probe] alive=7
+[probe] alive=8
+[probe] alive=9
+[probe] alive=10
+[probe] alive=11
+[probe] alive=12
+[probe] alive=13
+[probe] alive=14
+[probe] alive=15
+[probe] alive=16
+[probe] alive=17
+[probe] alive=18
+[probe] alive=19
+[probe] alive=20
+[probe] alive=21
+[probe] alive=22
+[probe] alive=23
+[probe] alive=24
+[probe] alive=25
+[probe] alive=26
+[probe] alive=27
+[probe] alive=28
+[probe] alive=29
+[probe] alive=30
+[probe] alive=31
+[probe] alive=32
+[probe] alive=33
+[probe] alive=34
+[probe] alive=35
+[probe] alive=36
+[probe] alive=37
+[probe] alive=38
+[probe] alive=39
+[probe] alive=40
+[probe] alive=41
+[probe] alive=42
+[probe] alive=43
+[probe] alive=44
+[probe] alive=45
+[probe] alive=46
+[probe] alive=47
+[probe] alive=48
+[probe] alive=49

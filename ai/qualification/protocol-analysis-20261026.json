@@ -1,0 +1,296 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-26T09:45:54.764915+00:00",
+  "study_record": "ai/qualification/protocol-study-20261026.json",
+  "study_record_sha256": "62351f986242b2f67bf48970c92670735799083c031695e94139e889e0e21e13",
+  "event_order": [
+    "configuration_invalid",
+    "pin_conflict",
+    "device_timeout",
+    "uart_frame_invalid",
+    "queue_overwrite",
+    "missed_heartbeat",
+    "device_io",
+    "uart_rx_overflow"
+  ],
+  "per_family": [
+    {
+      "partition": "test",
+      "family_id": "all-heldout-a",
+      "passing_intervals_ms": [
+        200,
+        500
+      ],
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        3959,
+        0,
+        0,
+        0
+      ],
+      "target_unhealthy_samples": 0,
+      "radar_unhealthy_samples": 0
+    },
+    {
+      "partition": "test",
+      "family_id": "all-heldout-b",
+      "passing_intervals_ms": [],
+      "event_deltas": [
+        0,
+        0,
+        561,
+        0,
+        3960,
+        0,
+        0,
+        0
+      ],
+      "target_unhealthy_samples": 0,
+      "radar_unhealthy_samples": 0
+    },
+    {
+      "partition": "train",
+      "family_id": "i2c-100",
+      "passing_intervals_ms": [
+        200,
+        500
+      ],
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        789,
+        0,
+        0,
+        0
+      ],
+      "target_unhealthy_samples": 0,
+      "radar_unhealthy_samples": 0
+    },
+    {
+      "partition": "train",
+      "family_id": "i2c-400",
+      "passing_intervals_ms": [
+        200,
+        500
+      ],
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        789,
+        0,
+        0,
+        0
+      ],
+      "target_unhealthy_samples": 0,
+      "radar_unhealthy_samples": 0
+    },
+    {
+      "partition": "train",
+      "family_id": "i2c-uart-100",
+      "passing_intervals_ms": [
+        200,
+        500
+      ],
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        3961,
+        0,
+        0,
+        0
+      ],
+      "target_unhealthy_samples": 0,
+      "radar_unhealthy_samples": 0
+    },
+    {
+      "partition": "train",
+      "family_id": "i2c-spi-slow",
+      "passing_intervals_ms": [],
+      "event_deltas": [
+        0,
+        0,
+        560,
+        0,
+        818,
+        0,
+        0,
+        0
+      ],
+      "target_unhealthy_samples": 0,
+      "radar_unhealthy_samples": 0
+    },
+    {
+      "partition": "train",
+      "family_id": "i2c-spi-fast",
+      "passing_intervals_ms": [
+        200,
+        500
+      ],
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        789,
+        0,
+        0,
+        0
+      ],
+      "target_unhealthy_samples": 0,
+      "radar_unhealthy_samples": 0
+    },
+    {
+      "partition": "train",
+      "family_id": "all-current",
+      "passing_intervals_ms": [
+        200
+      ],
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        3891,
+        11,
+        0,
+        0
+      ],
+      "target_unhealthy_samples": 40,
+      "radar_unhealthy_samples": 0
+    },
+    {
+      "partition": "train",
+      "family_id": "all-fast",
+      "passing_intervals_ms": [],
+      "event_deltas": [
+        0,
+        0,
+        1121,
+        12478,
+        14418,
+        0,
+        0,
+        0
+      ],
+      "target_unhealthy_samples": 0,
+      "radar_unhealthy_samples": 1760
+    },
+    {
+      "partition": "train",
+      "family_id": "all-slow",
+      "passing_intervals_ms": [],
+      "event_deltas": [
+        0,
+        0,
+        561,
+        0,
+        3958,
+        0,
+        0,
+        0
+      ],
+      "target_unhealthy_samples": 0,
+      "radar_unhealthy_samples": 0
+    },
+    {
+      "partition": "validation",
+      "family_id": "i2c-uart-400",
+      "passing_intervals_ms": [],
+      "event_deltas": [
+        0,
+        0,
+        737,
+        6340,
+        8970,
+        0,
+        0,
+        0
+      ],
+      "target_unhealthy_samples": 0,
+      "radar_unhealthy_samples": 1147
+    },
+    {
+      "partition": "validation",
+      "family_id": "i2c-spi-middle",
+      "passing_intervals_ms": [
+        200
+      ],
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        782,
+        0,
+        0,
+        0
+      ],
+      "target_unhealthy_samples": 0,
+      "radar_unhealthy_samples": 0
+    }
+  ],
+  "post_restore": {
+    "path": "build/hardware-acceptance-20261026/query-094151.json",
+    "sha256": "7ea81aec17f596a55104ccf331e3c27800fa71d49a0e3d249e2dac18bc7aa28a",
+    "captured_utc": "2026-10-26T09:41:51.088974+00:00",
+    "configuration": {
+      "active_revision": 87,
+      "saved_revision": 87,
+      "active_crc": 3623560383,
+      "saved_crc": 3623560383,
+      "flags": 80
+    },
+    "runtime": {
+      "state": 1,
+      "generation": 58,
+      "failed_workers": 0,
+      "retained_instances": 3,
+      "service_error": 0,
+      "apply_error": 0,
+      "recovery_error": 0
+    },
+    "samples": [
+      {
+        "name": "environment_sensor",
+        "quality": "fresh",
+        "age_ms": 277
+      },
+      {
+        "name": "presence_sensor",
+        "quality": "fault",
+        "age_ms": 31
+      },
+      {
+        "name": "health",
+        "quality": "fresh",
+        "age_ms": 826
+      }
+    ],
+    "event_counts": [
+      0,
+      0,
+      123,
+      0,
+      189,
+      0,
+      0,
+      0
+    ]
+  },
+  "conclusion": "The model abstained in both held-out groups, including one with passing candidates; validation still contained a failing recommendation. No demonstrated useful generalization or deployment approval.",
+  "limitations": [
+    "Some labels reflect transport/display faults as well as freshness, so they do not isolate scheduling contention.",
+    "Low SPI-clock cases had device timeouts; event counts alone do not attribute each timeout to an individual device.",
+    "UART faults returned during later groups and after original-profile restoration; causality remains unresolved.",
+    "Do not tune on these test outcomes. Any revised model needs new untouched evaluation evidence."
+  ]
+}

@@ -1,0 +1,629 @@
+{
+  "record_version": "1.0.0",
+  "date": "2026-10-26",
+  "scope": "BMP388 live timing recorder pilot, not model evaluation or full hardware acceptance",
+  "recorded_utc": "2026-10-26T07:50:48.435476+00:00",
+  "base_commit": "c46c2f7f0ca29d5b81e2ff7e22d793b224a72d91",
+  "working_tree_dirty": true,
+  "origin": "hardware",
+  "hardware_qualified": false,
+  "deployment_allowed": false,
+  "model_trained": false,
+  "started_utc": "2026-10-26T07:44:10.644282+00:00",
+  "finished_utc": "2026-10-26T07:49:10.437244+00:00",
+  "usb": {
+    "pid": 4097,
+    "serial_number": "D4:05:92:E6:C3:BC",
+    "vid": 12346
+  },
+  "firmware": {
+    "binary_sha256": "da36bc9da64667816c04dc91d5362f641b20d4b031f09873c1738e271dba9433",
+    "elf_sha256": "6aa04a732a2d04c0176e7440f3631fc489760de8ba230ca34a81e1cf596045cd",
+    "evidence_sha256": "d3236e90476e9ef7e5dc15922e498ec60d4de1d68e22129815d05cd63f825218"
+  },
+  "identity_sha256": "88eef7fd03b1fce95fcb06d89f3100b313504972dc2cc6a8da6f4ea2dc73ac41",
+  "experiment": {
+    "scenarios": 1,
+    "families": 1,
+    "goal_ms": 800,
+    "metric": "observed_sample_age_ms",
+    "intervals_ms": [
+      200,
+      500,
+      1000,
+      2000
+    ],
+    "trial_order_ms": [
+      500,
+      2000,
+      200,
+      1000
+    ],
+    "repetitions": 2,
+    "warmup_ms": 5000,
+    "duration_ms": 30000,
+    "sample_cadence_ms": 137,
+    "active_workers": 1,
+    "wiring": "Existing assembly unchanged; BMP388 at 0x77 on GPIO0/1, 100 kHz. OLED and radar wired but disabled in trial profiles."
+  },
+  "results": {
+    "runs": 8,
+    "samples": 2049,
+    "dataset_rows": 4,
+    "excluded": [],
+    "best_tested_interval_ms": 500,
+    "simple_rule_interval_ms": 500,
+    "positive_intervals_ms": [
+      200,
+      500
+    ],
+    "negative_intervals_ms": [
+      1000,
+      2000
+    ],
+    "stale_or_fault_samples": 0,
+    "new_fault_events": 0,
+    "normal_queue_overwrites": 789,
+    "runs_detail": [
+      {
+        "interval_ms": 1000,
+        "repetition": 0,
+        "samples": 257,
+        "elapsed_end_ms": 35161,
+        "max_gap_ms": 218,
+        "max_usb_rtt_ms": 91,
+        "assessment": {
+          "health_faults": 0,
+          "max_observed_ms": 997,
+          "passes": false,
+          "reason": null,
+          "unhealthy_samples": 0,
+          "usable": true
+        },
+        "event_deltas": [
+          0,
+          0,
+          0,
+          0,
+          47,
+          0,
+          0,
+          0
+        ],
+        "raw_file": "build/ai-pilot-20261026-074410/run-1000-0/raw.jsonl",
+        "raw_sha256": "d4ade4c72b0b05bc2d8a84e70a312e8d83cb9295c2efc95b9c65d2f34b39c07e",
+        "run_sha256": "48ae562c7f627f01d3e86e0c442639398b7be7969134c4e18b8a2c6c2f9dc7b2"
+      },
+      {
+        "interval_ms": 1000,
+        "repetition": 1,
+        "samples": 256,
+        "elapsed_end_ms": 35024,
+        "max_gap_ms": 217,
+        "max_usb_rtt_ms": 91,
+        "assessment": {
+          "health_faults": 0,
+          "max_observed_ms": 995,
+          "passes": false,
+          "reason": null,
+          "unhealthy_samples": 0,
+          "usable": true
+        },
+        "event_deltas": [
+          0,
+          0,
+          0,
+          0,
+          70,
+          0,
+          0,
+          0
+        ],
+        "raw_file": "build/ai-pilot-20261026-074410/run-1000-1/raw.jsonl",
+        "raw_sha256": "94783e989a6b149ec7ff022e2cde6dad9b1eab8f2c8ce9fe26f408495a2a0942",
+        "run_sha256": "2d3247948d26aa390ad293cc7d917ba7146447d4e9a99cc57b59b84980177eb8"
+      },
+      {
+        "interval_ms": 200,
+        "repetition": 0,
+        "samples": 256,
+        "elapsed_end_ms": 35023,
+        "max_gap_ms": 208,
+        "max_usb_rtt_ms": 90,
+        "assessment": {
+          "health_faults": 0,
+          "max_observed_ms": 198,
+          "passes": true,
+          "reason": null,
+          "unhealthy_samples": 0,
+          "usable": true
+        },
+        "event_deltas": [
+          0,
+          0,
+          0,
+          0,
+          196,
+          0,
+          0,
+          0
+        ],
+        "raw_file": "build/ai-pilot-20261026-074410/run-200-0/raw.jsonl",
+        "raw_sha256": "e6752cfe49f3badbe648e427b6705a7a36410b9529ca4086ff87c77c98a6bb38",
+        "run_sha256": "93a4fb2e60ca7dc4a414fc864f801bb412c4064820d3537bba4ea70d6369ba1c"
+      },
+      {
+        "interval_ms": 200,
+        "repetition": 1,
+        "samples": 256,
+        "elapsed_end_ms": 35023,
+        "max_gap_ms": 219,
+        "max_usb_rtt_ms": 89,
+        "assessment": {
+          "health_faults": 0,
+          "max_observed_ms": 198,
+          "passes": true,
+          "reason": null,
+          "unhealthy_samples": 0,
+          "usable": true
+        },
+        "event_deltas": [
+          0,
+          0,
+          0,
+          0,
+          210,
+          0,
+          0,
+          0
+        ],
+        "raw_file": "build/ai-pilot-20261026-074410/run-200-1/raw.jsonl",
+        "raw_sha256": "a50c1417e2f0fe70a2b9c38cfb675cb02811821d60cc6b0c84727999d83523ec",
+        "run_sha256": "92fa9d7e1932e6ad769da5cd4ce540b00d1884d9ce56d0b26ce068cea7f4aeb6"
+      },
+      {
+        "interval_ms": 2000,
+        "repetition": 0,
+        "samples": 256,
+        "elapsed_end_ms": 35023,
+        "max_gap_ms": 202,
+        "max_usb_rtt_ms": 91,
+        "assessment": {
+          "health_faults": 0,
+          "max_observed_ms": 1976,
+          "passes": false,
+          "reason": null,
+          "unhealthy_samples": 0,
+          "usable": true
+        },
+        "event_deltas": [
+          0,
+          0,
+          0,
+          0,
+          21,
+          0,
+          0,
+          0
+        ],
+        "raw_file": "build/ai-pilot-20261026-074410/run-2000-0/raw.jsonl",
+        "raw_sha256": "bad19b9ec10e7710305005c2ec5478b751bce127b60497772f082da02336b7c7",
+        "run_sha256": "48abe9f2818becd082d4e198f89ef40c5e98b1b151e731deba1678f84e16c55c"
+      },
+      {
+        "interval_ms": 2000,
+        "repetition": 1,
+        "samples": 256,
+        "elapsed_end_ms": 35024,
+        "max_gap_ms": 213,
+        "max_usb_rtt_ms": 91,
+        "assessment": {
+          "health_faults": 0,
+          "max_observed_ms": 1988,
+          "passes": false,
+          "reason": null,
+          "unhealthy_samples": 0,
+          "usable": true
+        },
+        "event_deltas": [
+          0,
+          0,
+          0,
+          0,
+          52,
+          0,
+          0,
+          0
+        ],
+        "raw_file": "build/ai-pilot-20261026-074410/run-2000-1/raw.jsonl",
+        "raw_sha256": "52ce8bea1fb2ae3c657ce73d2a3444d8f8f1af4b8ca9489626472edc922052a8",
+        "run_sha256": "41865acd4763bc26ebe70192a5ee3304a74478a2cedde907bb26f7856b87f9e6"
+      },
+      {
+        "interval_ms": 500,
+        "repetition": 0,
+        "samples": 256,
+        "elapsed_end_ms": 35022,
+        "max_gap_ms": 216,
+        "max_usb_rtt_ms": 89,
+        "assessment": {
+          "health_faults": 0,
+          "max_observed_ms": 499,
+          "passes": true,
+          "reason": null,
+          "unhealthy_samples": 0,
+          "usable": true
+        },
+        "event_deltas": [
+          0,
+          0,
+          0,
+          0,
+          87,
+          0,
+          0,
+          0
+        ],
+        "raw_file": "build/ai-pilot-20261026-074410/run-500-0/raw.jsonl",
+        "raw_sha256": "aa12ac82483f115d986d68c0149a75924ecf1217e7c0114648973d79a5dc01a1",
+        "run_sha256": "5a4df1fb7ca5658e9306bd64e58cbe1c8e517ed8d1ea0d6320d28cf2b1d3618e"
+      },
+      {
+        "interval_ms": 500,
+        "repetition": 1,
+        "samples": 256,
+        "elapsed_end_ms": 35023,
+        "max_gap_ms": 217,
+        "max_usb_rtt_ms": 92,
+        "assessment": {
+          "health_faults": 0,
+          "max_observed_ms": 497,
+          "passes": true,
+          "reason": null,
+          "unhealthy_samples": 0,
+          "usable": true
+        },
+        "event_deltas": [
+          0,
+          0,
+          0,
+          0,
+          106,
+          0,
+          0,
+          0
+        ],
+        "raw_file": "build/ai-pilot-20261026-074410/run-500-1/raw.jsonl",
+        "raw_sha256": "5889bf7ffcb873e02ab7fa15c10c8f9bd5ad49e3da7ed92ccef41c84cae707b6",
+        "run_sha256": "71bac43416afc3d7a4d24651bae4a29c48e591b5df501e407ab513035ec0924b"
+      }
+    ]
+  },
+  "restoration": {
+    "confirmed": true,
+    "reply": {
+      "active_crc": 3623560383,
+      "active_revision": 36,
+      "command": 1,
+      "flags": 95,
+      "message": "Active and saved",
+      "request_id": 44,
+      "revision": 36,
+      "saved_crc": 3623560383,
+      "saved_revision": 36,
+      "status": 1
+    },
+    "runtime": {
+      "apply_error": 0,
+      "failed_workers": 0,
+      "generation": 7,
+      "recovery_error": 0,
+      "retained_instances": 3,
+      "service_error": 0,
+      "state": 1
+    },
+    "environment_quality": "fresh",
+    "radar_quality": "fresh"
+  },
+  "software_checks": {
+    "python": "3.14.2",
+    "tests": 65,
+    "result": "passed",
+    "new_recorder_tests": 15,
+    "command": "BARR_CLANG_FORMAT=<pinned 20.1.8 executable> build/ai-venv/Scripts/python.exe -B -m unittest discover -s ai/tests -v",
+    "log": "build/ai-recorder-final-tests-20261026.log",
+    "log_evidence": {
+      "bytes": 20740,
+      "sha256": "25614b2615844ca5f6f14eb9103eae350f21bc3435a5a1bc8764a0c59185ed25"
+    },
+    "c_gate": {
+      "owned_files": 194,
+      "findings": 0,
+      "tool_policy_errors": 0,
+      "performed_by": "test_learning.setUpModule"
+    },
+    "generated_c_parity": "Passed existing test_learning checks; no deployed C was changed for this recorder"
+  },
+  "source_files": {
+    "ai/provenance.py": {
+      "bytes": 9881,
+      "sha256": "455f3385b81be8c0d46e0ca558481c650c5ec33e493da85af19e2c9fc3e10684"
+    },
+    "ai/recorder.py": {
+      "bytes": 6831,
+      "sha256": "f13e09f7ef9a3247998693a4f2868ece267f4d1fdf40a8caa2774ef0bf3d0103"
+    },
+    "ai/recording.py": {
+      "bytes": 11974,
+      "sha256": "4d42852b8b2c94eeed2af7a34d8b7666e6ad0690b63b2e447dcafaf34d2102b6"
+    },
+    "ai/records.py": {
+      "bytes": 9704,
+      "sha256": "8608c4c2e8812403626a5a4c1ffe19f18b36bb6053b54270991fe52909b5ae80"
+    },
+    "ai/timing.py": {
+      "bytes": 10466,
+      "sha256": "93ac1c7a5edb7e4e64cf6f16bf5a69b990a17846672e6aa323f8ddbdd378959d"
+    },
+    "ai/tests/test_recording.py": {
+      "bytes": 15627,
+      "sha256": "9a3c1a5944dd32bd6e03a9eabb53492131477ed382527d89e24297c0924c06a8"
+    },
+    "ai/contracts/timing-run-v0.2.schema.json": {
+      "bytes": 4835,
+      "sha256": "7309900e25b3559390cdb9b38658578b2f07f5f5377d1b2d2f7971d6430c7948"
+    },
+    "tools/configurator/workflow.py": {
+      "bytes": 16083,
+      "sha256": "e938b1459e9167b4f0f9080e9efbe24d6b2ec02ab953eae92a625bbbce96985b"
+    },
+    "tools/config_transfer/client.py": {
+      "bytes": 6569,
+      "sha256": "ae6d82ab67f9764512e96d850d294068c34e6ff83a90fd3b32c1175e3e87497f"
+    },
+    "tools/config_transfer/telemetry.py": {
+      "bytes": 6096,
+      "sha256": "33424dfdc852dd4eb2458bb686700f608eb9a1120ceb69a05b95204f50c0d014"
+    },
+    "tools/config_validator/planner.py": {
+      "bytes": 15694,
+      "sha256": "ffe671319b79cf2a70773b79ba517e57354aff4825f622afa48f7eb252fb89fb"
+    }
+  },
+  "local_artifacts": {
+    "build/ai-pilot-20261026-074410/apply-1000/receipt.json": {
+      "bytes": 3125,
+      "sha256": "c0541b8986f7cc9c7444729773f749f7fbc8b95f54cf1f644f76dc5dbd5289fa"
+    },
+    "build/ai-pilot-20261026-074410/apply-1000/reply.json": {
+      "bytes": 181,
+      "sha256": "61631756c2c2d7c92676603611e054ffdd07c278bd03ceef5a679eb089abfebd"
+    },
+    "build/ai-pilot-20261026-074410/apply-1000/request.json": {
+      "bytes": 5758,
+      "sha256": "bbf9d153baf3882b12404fe3131c64698e8246daa6db291d32468db69f825865"
+    },
+    "build/ai-pilot-20261026-074410/apply-200/receipt.json": {
+      "bytes": 3125,
+      "sha256": "ccfd97aab5aef6d479cdef2d372d341f78f83edc53d22d636ed80f176b73cd27"
+    },
+    "build/ai-pilot-20261026-074410/apply-200/reply.json": {
+      "bytes": 183,
+      "sha256": "e7051a5aa9caaeb18022bd3f6b28097c84d9b47394b943429d0fbac8799608dc"
+    },
+    "build/ai-pilot-20261026-074410/apply-200/request.json": {
+      "bytes": 5750,
+      "sha256": "6f78d8ed2b50a02842d6417871a2f050d33735f9fd49875c4ad8af85b3526273"
+    },
+    "build/ai-pilot-20261026-074410/apply-2000/receipt.json": {
+      "bytes": 3123,
+      "sha256": "fd8b670e84c963a5f94f5c5b8b92cdc3841b06a3f7aa0d2907d9d2922c100455"
+    },
+    "build/ai-pilot-20261026-074410/apply-2000/reply.json": {
+      "bytes": 179,
+      "sha256": "1e39660405da29a64eb5d8fd53c1414ead2e6900d1fd8c3dfdd99834c7b3dd45"
+    },
+    "build/ai-pilot-20261026-074410/apply-2000/request.json": {
+      "bytes": 5756,
+      "sha256": "cd2de0a05d1539ea6a029a8dc7c3428c8db30fe22ef6bef285150c4bfe078630"
+    },
+    "build/ai-pilot-20261026-074410/apply-500/receipt.json": {
+      "bytes": 3123,
+      "sha256": "e298e8158438ef875a39695e47d95d95133d0b741a6ba4aa4f7b6b6c3414b7f6"
+    },
+    "build/ai-pilot-20261026-074410/apply-500/reply.json": {
+      "bytes": 181,
+      "sha256": "238ca4098e85236b041e5f14b0fa8c5371c7cd85b64d9ffe86a4b70371dbbc76"
+    },
+    "build/ai-pilot-20261026-074410/apply-500/request.json": {
+      "bytes": 5754,
+      "sha256": "002cd2e0074fa55f8de40e25dccac0670bd6668441bb1ba56439e1e4e5bbe43f"
+    },
+    "build/ai-pilot-20261026-074410/dataset.json": {
+      "bytes": 7988,
+      "sha256": "391a26983f8e79484bd34377c3f96c17cf449f272a256f9bcd4a0c119fbaf0fb"
+    },
+    "build/ai-pilot-20261026-074410/empty-review.json": {
+      "bytes": 1083,
+      "sha256": "ef1d46a816b6bca65aa31ba7f952134507300665c9757f32698f91a12a0cb0f0"
+    },
+    "build/ai-pilot-20261026-074410/experiment.json": {
+      "bytes": 5642,
+      "sha256": "32e3785df6f680232859df6073fe0eb9b25f197f78c830e4a1446f69e1ff343c"
+    },
+    "build/ai-pilot-20261026-074410/identity.json": {
+      "bytes": 1484,
+      "sha256": "d6f1129e4471efc8db3d073ccd213bc3cf57b3578e7d529cc759993cd0cd0a75"
+    },
+    "build/ai-pilot-20261026-074410/manifest.json": {
+      "bytes": 356,
+      "sha256": "817abd1c5ebe84937eb547bd2ac40ecb5396caa16ca83d17c44c892086e1ba3d"
+    },
+    "build/ai-pilot-20261026-074410/profile.json": {
+      "bytes": 2208,
+      "sha256": "a09f4c090bff98b4e9befe2ae968b9a030a68f6b63a88f34ac9a514e3304665d"
+    },
+    "build/ai-pilot-20261026-074410/restore-profile.json": {
+      "bytes": 2205,
+      "sha256": "f5131bd28a8a4f6e070957ddd2c646e1123590e37a00713c8093161bc0a11472"
+    },
+    "build/ai-pilot-20261026-074410/restore-review.json": {
+      "bytes": 5546,
+      "sha256": "22fa5b0943097221f3c6d0753960d7a316fd309402d0e18e342ffb787ac1dd46"
+    },
+    "build/ai-pilot-20261026-074410/run-1000-0/assessment.json": {
+      "bytes": 107,
+      "sha256": "2159c4649fb4ac5074c8531a5fd6158758ea59f6c2ef8a3d7a2e8d22f4c253f0"
+    },
+    "build/ai-pilot-20261026-074410/run-1000-0/experiment.json": {
+      "bytes": 5642,
+      "sha256": "32e3785df6f680232859df6073fe0eb9b25f197f78c830e4a1446f69e1ff343c"
+    },
+    "build/ai-pilot-20261026-074410/run-1000-0/raw.jsonl": {
+      "bytes": 322328,
+      "sha256": "d4ade4c72b0b05bc2d8a84e70a312e8d83cb9295c2efc95b9c65d2f34b39c07e"
+    },
+    "build/ai-pilot-20261026-074410/run-1000-0/run.json": {
+      "bytes": 63633,
+      "sha256": "af27a39435922998d30bae12823d3670f244ee80a7da09d9f69c2fd6b97dabc4"
+    },
+    "build/ai-pilot-20261026-074410/run-1000-1/assessment.json": {
+      "bytes": 107,
+      "sha256": "21d64bfd27766037c8465b87371483a753941fa5a0cbc1cc3cd99ef121aac572"
+    },
+    "build/ai-pilot-20261026-074410/run-1000-1/experiment.json": {
+      "bytes": 5642,
+      "sha256": "32e3785df6f680232859df6073fe0eb9b25f197f78c830e4a1446f69e1ff343c"
+    },
+    "build/ai-pilot-20261026-074410/run-1000-1/raw.jsonl": {
+      "bytes": 324221,
+      "sha256": "94783e989a6b149ec7ff022e2cde6dad9b1eab8f2c8ce9fe26f408495a2a0942"
+    },
+    "build/ai-pilot-20261026-074410/run-1000-1/run.json": {
+      "bytes": 63409,
+      "sha256": "2a2be15fe49ab158e2ebe48602b563f3a5ab479ac0b310ed0e16f6f9d2f24c35"
+    },
+    "build/ai-pilot-20261026-074410/run-200-0/assessment.json": {
+      "bytes": 106,
+      "sha256": "bbc799007a0c7e3b60046755b3604b97e21e3dc1f31de51a6199d2ccd4803249"
+    },
+    "build/ai-pilot-20261026-074410/run-200-0/experiment.json": {
+      "bytes": 5642,
+      "sha256": "32e3785df6f680232859df6073fe0eb9b25f197f78c830e4a1446f69e1ff343c"
+    },
+    "build/ai-pilot-20261026-074410/run-200-0/raw.jsonl": {
+      "bytes": 324337,
+      "sha256": "e6752cfe49f3badbe648e427b6705a7a36410b9529ca4086ff87c77c98a6bb38"
+    },
+    "build/ai-pilot-20261026-074410/run-200-0/run.json": {
+      "bytes": 63298,
+      "sha256": "c9fa6db916b82617917c2a6014e2c4f5738e163e842091681a31eb49c508de1d"
+    },
+    "build/ai-pilot-20261026-074410/run-200-1/assessment.json": {
+      "bytes": 106,
+      "sha256": "bbc799007a0c7e3b60046755b3604b97e21e3dc1f31de51a6199d2ccd4803249"
+    },
+    "build/ai-pilot-20261026-074410/run-200-1/experiment.json": {
+      "bytes": 5642,
+      "sha256": "32e3785df6f680232859df6073fe0eb9b25f197f78c830e4a1446f69e1ff343c"
+    },
+    "build/ai-pilot-20261026-074410/run-200-1/raw.jsonl": {
+      "bytes": 326259,
+      "sha256": "a50c1417e2f0fe70a2b9c38cfb675cb02811821d60cc6b0c84727999d83523ec"
+    },
+    "build/ai-pilot-20261026-074410/run-200-1/run.json": {
+      "bytes": 63295,
+      "sha256": "b2fc3bb1de267edb95a59ce46c35627825f2c111827961077cf1a4d57ee3eb6a"
+    },
+    "build/ai-pilot-20261026-074410/run-2000-0/assessment.json": {
+      "bytes": 108,
+      "sha256": "3a6b42b2d3c7ceb62b2eca1b1de7076bc9a204610818eb571ba4f89e3ebfc2b3"
+    },
+    "build/ai-pilot-20261026-074410/run-2000-0/experiment.json": {
+      "bytes": 5642,
+      "sha256": "32e3785df6f680232859df6073fe0eb9b25f197f78c830e4a1446f69e1ff343c"
+    },
+    "build/ai-pilot-20261026-074410/run-2000-0/raw.jsonl": {
+      "bytes": 318402,
+      "sha256": "bad19b9ec10e7710305005c2ec5478b751bce127b60497772f082da02336b7c7"
+    },
+    "build/ai-pilot-20261026-074410/run-2000-0/run.json": {
+      "bytes": 63544,
+      "sha256": "40a1732c84eae7541ed8bcacace2a0e3b87507d85600990abc973ad9222015c1"
+    },
+    "build/ai-pilot-20261026-074410/run-2000-1/assessment.json": {
+      "bytes": 108,
+      "sha256": "27184940b5e1979372f13551e3a153f5d19a743142987cda58c99151db626405"
+    },
+    "build/ai-pilot-20261026-074410/run-2000-1/experiment.json": {
+      "bytes": 5642,
+      "sha256": "32e3785df6f680232859df6073fe0eb9b25f197f78c830e4a1446f69e1ff343c"
+    },
+    "build/ai-pilot-20261026-074410/run-2000-1/raw.jsonl": {
+      "bytes": 323701,
+      "sha256": "52ce8bea1fb2ae3c657ce73d2a3444d8f8f1af4b8ca9489626472edc922052a8"
+    },
+    "build/ai-pilot-20261026-074410/run-2000-1/run.json": {
+      "bytes": 63550,
+      "sha256": "89430afce5e7af05cc09eb46f6ad62c40c372c7b5b9bb0de441a2416bd54b184"
+    },
+    "build/ai-pilot-20261026-074410/run-500-0/assessment.json": {
+      "bytes": 106,
+      "sha256": "ce8352347547e319380ca01755e6a98bc75acde869105f4327d8376bf41a4a62"
+    },
+    "build/ai-pilot-20261026-074410/run-500-0/experiment.json": {
+      "bytes": 5642,
+      "sha256": "32e3785df6f680232859df6073fe0eb9b25f197f78c830e4a1446f69e1ff343c"
+    },
+    "build/ai-pilot-20261026-074410/run-500-0/raw.jsonl": {
+      "bytes": 322293,
+      "sha256": "aa12ac82483f115d986d68c0149a75924ecf1217e7c0114648973d79a5dc01a1"
+    },
+    "build/ai-pilot-20261026-074410/run-500-0/run.json": {
+      "bytes": 63377,
+      "sha256": "65fff0c79ff43c58745492dd5574850f8e46aa367545d1fb9d3bd58b0b9d46f2"
+    },
+    "build/ai-pilot-20261026-074410/run-500-1/assessment.json": {
+      "bytes": 106,
+      "sha256": "41bbf0f7a491761d476bf0079d4e64e53d868179848e5ea02cc57be923006c37"
+    },
+    "build/ai-pilot-20261026-074410/run-500-1/experiment.json": {
+      "bytes": 5642,
+      "sha256": "32e3785df6f680232859df6073fe0eb9b25f197f78c830e4a1446f69e1ff343c"
+    },
+    "build/ai-pilot-20261026-074410/run-500-1/raw.jsonl": {
+      "bytes": 325381,
+      "sha256": "5889bf7ffcb873e02ab7fa15c10c8f9bd5ad49e3da7ed92ccef41c84cae707b6"
+    },
+    "build/ai-pilot-20261026-074410/run-500-1/run.json": {
+      "bytes": 63376,
+      "sha256": "90743aea0e72b5ba6c0bd7913b91665c2f10fcb62b57e4426d7f272131d2db82"
+    },
+    "build/ai-pilot-20261026-074410/runs.json": {
+      "bytes": 513210,
+      "sha256": "794ea5dacbfb66cb88868387804ed224ff3083d0f322878ca556f7a3831c8d0a"
+    },
+    "build/ai-pilot-20261026-074410/scenario.json": {
+      "bytes": 592,
+      "sha256": "7ab0cee177de22e5a7673120920044bb6f6d63beaef2292efb3c7d8232aeed56"
+    },
+    "build/ai-pilot-20261026-074410/summary.json": {
+      "bytes": 3995,
+      "sha256": "698f2367b13bba5803fb9f721079116e70904537f84d2fee492763acdba24f81"
+    }
+  },
+  "pilot_driver": {
+    "path": "build/ai-pilot-20261026.py",
+    "bytes": 6296,
+    "sha256": "a0ac8d97f40c570a31697a36e3a3792bea5bc1ae6902e8c4a174a05ddcc1d1ad"
+  },
+  "limitations": [
+    "One board and one workload family cannot support training or independent evaluation.",
+    "800 ms is an illustrative engineering goal, not a requirement established by the project brief.",
+    "Finite telemetry polling observes sample age, not worst-case latency, display latency or energy use.",
+    "Normal queue overwrites are retained and excluded from the fault-only count.",
+    "No empirical advantage over the existing simple rule is demonstrated.",
+    "Unobserved physical changes/resets are not cryptographically attested.",
+    "Radar intermittency and full hardware acceptance remain unresolved; restoration is a snapshot, not a reliability test."
+  ]
+}

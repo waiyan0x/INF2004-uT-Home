@@ -7,3 +7,8 @@
 }
 
 .card > * + * { margin-top: var(--space-3); }
+
+.datasheet-card { margin-top: var(--space-3); }
+.datasheet-icon { display: inline-block; width: 18px; height: 18px; object-fit: contain; vertical-align: middle; }
+.datasheet-card .details-body > * + * { margin-top: var(--space-3); }
+.datasheet-card #datasheet-analyse, .datasheet-card #datasheet-generate { width: 100%; }

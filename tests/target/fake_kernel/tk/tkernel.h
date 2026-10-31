@@ -42,16 +42,18 @@ typedef struct
     FP       task;
     int      itskpri;
     SZ       stksz;
+    void *   bufptr;
 } T_CTSK;
 
-#define E_OK    0
-#define E_TMOUT (-50)
-#define E_OBJ   (-41)
-#define E_QOVR  (-43)
-#define TSS_TSK 0U
-#define TTS_DMT 16U
-#define TA_HLNG 1U
-#define TA_RNG0 0U
+#define E_OK       0
+#define E_TMOUT    (-50)
+#define E_OBJ      (-41)
+#define E_QOVR     (-43)
+#define TSS_TSK    0U
+#define TTS_DMT    16U
+#define TA_HLNG    1U
+#define TA_RNG0    0U
+#define TA_USERBUF 0x20U
 ER tk_ref_sys (T_RSYS * p_state);
 ER tk_get_otm (SYSTIM * p_time);
 ER tk_slp_tsk (TMO timeout);

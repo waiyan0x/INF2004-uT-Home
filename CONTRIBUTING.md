@@ -5,13 +5,17 @@ firmware in this guide target that board.
 Start with one module, then test a supported combination using the same firmware.
 This is the physical acceptance procedure. Offline AI work can proceed
 separately, but it does not qualify the hardware.
-The latest application has passed software/build checks. Record physical results for each session. Earlier partial results are in the
-[evidence index](firmware/qualification/README.md#peripheral-bench-observations);
-this procedure does not certify the hardware.
+Record physical results against the exact image and setup. Scoped USB-core
+results are in the [evidence index](firmware/qualification/README.md); this guide
+does not certify the hardware or establish the board's current state. Full
+hardware acceptance, combined-system memory/object measurements, cleanup-failure
+and power-loss tests remain open. The user-deferred radar absence check stays
+deferred.
 
 For the bench: check the inventory and power first, use the wiring tables in
 sections 3–4, then follow the profile-change procedure and test table in
-sections 6–7. Use the [installation procedure](tools/target/README.md#install-the-configuration-application)
+sections 6–7. Current pass/fail/open status is in the
+[acceptance matrix](#acceptance-matrix). Use the [installation procedure](tools/target/README.md#install-the-configuration-application)
 if needed and [generate bench profiles](configs/README.md#bench-profiles).
 
 ## 1. Bring these items and identify the modules
@@ -35,13 +39,14 @@ or `3V3` must be interpreted using that breakout's documentation.
 The usual seven-pin SPI OLED exposes clock, data, CS, DC and reset. The supplied
 six-pin panel exposes GND, VCC, SCL, SDA, RES and DC; see its bench wiring note
 below. Its exact controller marking is unconfirmed, but it rendered live
-128x64 output with the existing SSD1306 driver during this session.
+128x64 output with the existing SSD1306 driver in retained bench observations.
 A four-pin I2C-only display, SH1106 display or 128×32 panel needs different
 firmware support. Do not connect it using the SPI table. BMP280/BMP390 and
 LD2410 are also not substitutes for the configured drivers.
 
-Use an external LED for today's first output test; it was not in the supplied
-inventory, so bring one or use a scope to check PWM. The optional L298N/TT motor test
+Use an external LED for the first output test; red LEDs, resistors and a
+multimeter were confirmed available on 26 October. A scope/analyser has not been
+confirmed, so waveform timing remains unmeasured. The optional L298N/TT motor test
 needs its supply ratings and module jumper arrangement confirmed first.
 GPIO is a control signal, not motor power.
 
@@ -56,7 +61,7 @@ GPIO is a control signal, not motor power.
 | L298N + yellow TT motor | Optional fixed-direction enable/PWM test after LED/scope and power checks; no software direction or speed-feedback control |
 | B-LUX, possibly B-LUX-V30B | No compiled driver; verify model and leave unwired for this acceptance session |
 | W25QXX external flash | No compiled driver or MISO binding; leave unwired. Configuration persistence currently uses a partition of the ESP's onboard flash |
-| IR optical encoder/speed sensor | No configured pulse-count/speed component; leave unwired for this session |
+| IR optical encoder/speed sensor | No configured pulse-count/speed component; leave unwired until supported |
 | MH Sensor Series module | Exact sensing function, output type and voltage are unknown; leave unwired until identified |
 
 General-purpose operation means selecting supported drivers and profiles within
@@ -277,19 +282,21 @@ exposes eight. The original all-sensor prototype therefore cannot be wired as
 one simultaneous setup under the current bindings. Use A and B separately.
 Do not bypass pin validation, tie OLED control pins to rails or repurpose USB.
 
-There is also a parser allocation limit: the attempted A+LED profile passed the
-Python resource planner but exceeded the C parser's **32 KiB allocation budget**.
-The supplied lab profiles therefore separate the radar/LED test from combined A.
-All eight generated profiles passed the actual C admission harness as well as the
-Python planner during guide preparation; that is not a hardware result.
+The fixed target parser has capacity limits independent of the Python resource
+planner. An earlier A+LED attempt exhausted its then-current parser budget; do
+not treat host admission alone as target acceptance. Keep the separate reviewed
+radar/LED layout and validate any larger profile against the current target.
 
-Combined A uses 10,240 bytes of peripheral task stacks, within the 16 KiB/four-worker
-limit. This calculation does not measure remaining RAM. Disabled devices still
+Combined A requests 10,240 bytes of stack budget within the 16 KiB admission
+limit. The permanent worker pool still reserves 32 KiB; neither figure is free RAM. Disabled devices still
 reserve pins: remove unused device and bus entries rather than merely disabling them.
 
 ## 6. Prepare software and change wiring safely
 
-**Start with the board alone.** Verify the installed **configuration application**
+For an already assembled, reviewed sensor layout, keep its wiring intact while
+checking USB and updating firmware; see the installation procedure's power and
+pin conditions. Use board-alone isolation when troubleshooting requires it.
+Verify the installed **configuration application**
 against its build evidence; the acceptance fixture cannot run these profiles.
 Use the [installation procedure](tools/target/README.md#install-the-configuration-application) if needed.
 
@@ -324,16 +331,45 @@ plan is not proof of persistence. The hardware-qualified flag remains false
 until a later qualification review; it does not become true simply by running
 these tests. Details: [configurator](tools/configurator/README.md).
 
-## 7. Run today's acceptance tests in this order
+## 7. Run acceptance tests in this order
 
 Use a fresh record for each test: profile, wiring photo, voltages, active/saved
 revisions, observations, evidence path and **PASS / FAIL / NOT TESTED**.
 The durations/tolerances below are proposed bench criteria, not sensor accuracy
 certification. Change them explicitly in the record if the team agrees otherwise.
 
+Start every session the same way, so its results bind to one board and image:
+
+1. Close other serial clients, then [identify the board](tools/target/README.md#identify-or-recover-the-board):
+   port, USB serial number, ESP32-C3 and 4 MB flash.
+2. Take and hash a full [flash backup](tools/target/README.md#install-the-configuration-application)
+   before any install. Keep it outside the repository.
+3. Record the running image against its build record. The latest core image
+   with board evidence is ELF `597ae600…` ([build record](firmware/qualification/esp32c3-scheduler-20261027-app-build.json)).
+4. With the Desk disconnected, read the board's state with the
+   [USB client](tools/config_transfer/README.md), replacing `COMX`:
+
+   ```powershell
+   python -B -m tools.config_transfer capabilities --port COMX
+   python -B -m tools.config_transfer query --port COMX
+   python -B -m tools.config_transfer telemetry --port COMX
+   python -B -m tools.config_transfer workcost --port COMX
+   ```
+
+   Repeat `telemetry` and `workcost` at the end of the session and compare the
+   allocation/object counters within the same image and profile.
+5. Generate the [bench profiles](configs/README.md#bench-profiles) and keep the
+   exact files used with the session record.
+
+Store each session's results as a new record,
+`firmware/qualification/esp32c3-<scope>-<YYYYMMDD>.json`, and its raw serial or
+client output under `firmware/qualification/logs/` using the same name plus a
+suffix (for example `-boot1.log`). Keep flash backups and large captures
+outside the repository, and record their SHA-256 in the session record.
+
 | Test | Procedure | Pass evidence |
 |---|---|---|
-| USB/application | Board alone; connect, read capabilities, apply/save empty profile | Correct C3 board and compiled drivers; stable connection and matching revisions |
+| USB/application | Connect the identified board, read capabilities, apply/save empty profile; reviewed sensor wiring may remain attached | Correct C3 board and compiled drivers; stable connection and matching revisions |
 | BMP388 | Layout A's BMP only; `01-bmp.json`; run 2 minutes | Fresh readings identified as `environment_sensor`; temperature/pressure plausible against a local reference; no recurring I/O faults |
 | OLED | Add OLED; `02-bmp-oled.json`; run 2 minutes | Legible, changing environmental/health display, correct orientation and no corrupted rows; inspect the panel physically |
 | Radar | Wire radar alone using A's UART pins; `03-radar.json`; walk into/across/out of the field | Fresh valid target reports and changing positions/counts; observations agree with movement; record any blind areas |
@@ -345,6 +381,8 @@ certification. Change them explicitly in the record if the team agrees otherwise
 | Profile changes | On unchanged A wiring, apply ten valid changes to sample/display periods within allowed limits; finish by saving the original A profile | Correct periods/source identities and active/saved revisions after each change; no unexplained retained workers or faults |
 | Reboot restore | Leave wiring unchanged and reboot three times after a confirmed save; reconnect each time | Saved configuration returns; outputs start inactive until fresh data/rules allow activation; record revision and readings |
 | Rejected profile | Edit a copy to use reserved GPIO2 or duplicate an occupied pin, then validate | Rejected; live profile/revisions and readings unchanged. UI rejection alone does not demonstrate firmware-side rejection |
+| Layout conflicts | Combine `02-bmp-oled.json` with the HC-SR04 device (TRIG GPIO4), and `01-bmp.json` with the PWM output on GPIO1; validate, then APPLY each with the USB client to the **board alone** (save EMPTY and disconnect all modules first, per section 6). If firmware wrongly accepted the GPIO1 profile, PWM would drive the BMP388's SCL line | Host and firmware both reject them (GPIO4 OLED CS vs TRIG; GPIO1 I2C SCL vs PWM); live profile unchanged. Never wire these combinations |
+| Integrated lifecycle | On unchanged A wiring: twenty profile/discovery cycles, capacity rejections, one failed activation with rollback, save and reboot restore, and a 30-second host disconnect; take telemetry/workcost before and after | All cycles succeed or reject as expected; the previous profile returns after rollback/reboot; no application allocations or native object creation after startup in the counters |
 | Activation rollback | With one known-working BMP at `0x76`, request absent `0x77` without changing wires (reverse if appropriate) | If admission succeeds but activation fails, previous working profile is restored; capture error, revisions and recovered readings |
 
 Check the empty-save sequence before each added/removed module. Normal profile
@@ -360,7 +398,7 @@ Verify separate source IDs and the configured 500/5000 ms periods. Review bus
 pullups when two breakout boards share a bus. No LED may remain connected to
 GPIO1 in that setup. Missing a second sensor means this test is **NOT TESTED**.
 
-### Recovery/resource checks before signing off all of checkpoint 8
+### Recovery and resource acceptance
 
 - Disconnect/reconnect the **UI** while the board stays powered; sensor/output
   work should continue. Pulling the only USB power cable is a power-loss test,
@@ -378,9 +416,50 @@ GPIO1 in that setup. Missing a second sensor means this test is **NOT TESTED**.
   stack high-water usage. The current UI does **not** expose all these metrics;
   static build sizes and worker counts cannot replace runtime measurements.
   Agree instrumentation before claiming memory/timing acceptance or AI headroom.
+- Combined radio load (simultaneous Wi-Fi/BLE traffic, broker/AP loss and
+  configuration saves) is **blocked** until the onboard wireless services are
+  part of the configuration application. The separate Wi-Fi/BLE diagnostic
+  images do not qualify combined operation; do not install them on the
+  assembled board for this purpose. Record these rows as BLOCKED, not NOT TESTED.
 
-Passing the wiring tests is useful progress; full checkpoint 8 sign-off also
+Passing the wiring tests is useful progress; full system sign-off also
 needs those recovery/resource results and any real actuator acceptance.
+
+### Reproduce the existing three-protocol demonstration
+
+Use [c3-protocol-demo.json](configs/nodes/c3-protocol-demo.json) for the current
+BMP388 + six-pin OLED + LD2450 assembly. It preserves the original saved values
+(compact profile CRC 3623560383): BMP388 at I2C address `0x77`, the SPI OLED with
+GPIO4 reserved but unwired, and UART1 radar on RX20/TX21 at 256000 baud. Check
+the actual wiring and running image against the retained build record and queried board identity;
+this recipe does not install firmware or authorize another wiring layout.
+
+1. Close collectors and other serial clients, enumerate the board, then open the
+   [Configuration Desk](tools/configurator/README.md). Connect to that board and
+   read its capabilities. Do not substitute a remembered COM port.
+2. Choose **c3-protocol-demo** or import the linked JSON. Use **Validate and
+   review**, inspect the three protocols and reserved resources, then **Apply &
+   save**. Confirm active and saved revisions/CRCs agree before proceeding.
+3. In **Live monitor**, observe fresh BMP388/radar samples and physically confirm
+   the OLED is readable and updating. Move across the radar view for a positive
+   movement demonstration; the deferred zero-target check is not implied here.
+4. Disconnect the Desk, leaving the board powered. Read one telemetry and one
+   work-cost snapshot with the [USB command-line client](tools/config_transfer/README.md).
+   These snapshots expose allocation/object counters, worker costs and empirical
+   stack margins. A single snapshot does not measure CPU utilization or prove
+   panel operation. The version-2 scheduler observation supports a separate
+   same-context interval calculation, with the tick/interrupt limitations
+   documented in the client guide. Worker margins are measured after quiescence;
+   a live uninterrupted binding can correctly report them unavailable.
+5. Reconnect the Desk and verify the saved profile remains active. A subsequent
+   controlled reboot/restore check requires the current backup and board procedure;
+   a successful save reply alone is not that check.
+
+This demonstrates the qualified USB/core scope. Display the linked AI study and
+target parity/timing evidence separately: an experimental or gate-failed model
+is not enabled in normal firmware. Onboard wireless services, reviewed advice
+controls and combined-radio acceptance remain separate work. Preserve the local
+study journals, immutable build archives and full flash backup for the handoff.
 
 ## 8. Troubleshooting at the bench
 
@@ -409,10 +488,45 @@ as passing. Suggested record:
 | Layout/photo; measured 3.3 V/5 V rails and echo peak | |
 | Profile file; active/saved revisions | |
 | Tests performed; readings, timings and evidence paths | |
+| Physically observed (panel visible, LED state, movement seen, meter/scope readings) | |
+| Software-reported only (telemetry, replies, counters); not confirmed physically | |
 | Failures, omitted tests and corrective action | |
 | Wiring/peripheral acceptance: PASS / FAIL / INCOMPLETE | |
-| Full checkpoint 8 readiness: PASS / FAIL / INCOMPLETE | |
+| Full system readiness: PASS / FAIL / INCOMPLETE | |
 | Team reviewer and date | |
+
+### Acceptance matrix
+
+Status as of 27 October 2026. Statuses are **PASS**, **PARTIAL**, **FAIL**,
+**NOT TESTED**, **BLOCKED** (depends on unfinished work) or **DEFERRED** (by
+the user). A PASS applies only to the image named; repeat it on the release
+image. Update a row only with a new dated record, never by editing old ones.
+Board identification and backup are per-session steps (start of section 7),
+not matrix rows; record them in each session record.
+
+`597ae600…` is the USB core image with radios inactive. It includes the static
+I2C/SPI start-up code (`i2cown`, `spiown`, `c3i2c`, `c3spi`), but it is not the
+combined radio image the final acceptance requires.
+
+| Test (section 7 unless noted) | Status | Image / evidence | Still open |
+|---|---|---|---|
+| Three-protocol demonstration | PARTIAL | `597ae600…`; [handoff](firmware/qualification/system-overnight-handoff-20261027.json): fresh BMP388 and radar samples | Physical OLED check on this image |
+| Integrated lifecycle, counters | PARTIAL | PASS on core image `597ae600…`, radios off; [core record](firmware/qualification/esp32c3-scheduler-20261027.json): 20 cycles, 6 capacity rejections, rollback, reboot, 30 s disconnect, zero post-startup allocations/creates | Repeat on the combined image |
+| Combined load (layout A) | PARTIAL | `597ae600…`; 45 min of telemetry in the handoff record | OLED visual; live worker stack margins |
+| BMP388, OLED, radar alone | PARTIAL | Earlier images only ([bench notes](firmware/qualification/README.md#peripheral-bench-observations)) | Repeat on release image |
+| Profile changes (ten period changes) | NOT TESTED | — | — |
+| Rejected profile (GPIO2/duplicate pin) | NOT TESTED | — | Firmware-side rejection |
+| Layout conflicts | PARTIAL | Host planner rejects both combinations | Firmware-side rejection |
+| Activation rollback | PARTIAL | Core record reports a passed failed-activation rollback on `597ae600…` but not how it was triggered; the [26 Oct record](firmware/qualification/esp32c3-integration-bench-20261026.json) used working `0x77` and requested absent `0x76` on an earlier image | Repeat on the combined image and record the method |
+| Distance, Distance → LED, Fault → zero (layout B) | NOT TESTED | — | Rewire to layout B |
+| Radar → LED | NOT TESTED | — | — |
+| Two BMP388s on one bus (optional) | NOT TESTED | — | Needs a second sensor |
+| Stale-data loss (signal isolation) | NOT TESTED | — | Reviewed isolation setup |
+| Cleanup-failure injection on the board | NOT TESTED | — | Reviewed injection method |
+| Controlled interrupted save / power loss | NOT TESTED | — | Operator and power-cut setup |
+| Combined Wi-Fi/BLE load, broker/AP loss | BLOCKED | Diagnostic images only | Unblocked by README delivery phases 1–3 (static radio resources and on-device MQTT/HTTP/BLE services in the configuration application); owner to be agreed |
+| Radar zero-target | DEFERRED | — | Only on request |
+| Final demonstration script | NOT TESTED | — | Release build and profile CRC to be chosen |
 
 Any C changes made while fixing hardware issues must still follow
 [BARR-C:2018 project requirements](C_CODING_STANDARD.md) and [AGENTS.md](AGENTS.md):

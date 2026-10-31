@@ -12,6 +12,7 @@
 #include <string.h>
 #include "activate.h"
 #include "bmpinst.h"
+#include "seninst.h"
 #include "i2cfake.h"
 #include "shared.h"
 #include "uthome/sample.h"
@@ -27,6 +28,9 @@ static void make_plan (void);
 static sample_environment_t consume (void);
 static void verify_samples (void);
 static void verify_recovery (void);
+static void verify_light_worker (void);
+static int enable_line (void * p_context, bool b_high);
+static bool gb_enable_error = false;
 
 /** @brief Run isolated bus, driver and real activation-manager tests. */
 void periph_run (void)
@@ -48,8 +52,75 @@ void periph_run (void)
     assert(!i2cbus_has_claims(&g_fake.bus));
     assert(0U == g_fake.registers[0][0x1BU]);
     assert(0U == g_fake.registers[1][0x1BU]);
+    verify_light_worker();
     puts("I2C bounds, BMP388 compensation, typed faults and plan recovery "
          "passed.");
+}
+
+/** @brief Exercise enable, waiting, samples, faults and retained cleanup. */
+static void verify_light_worker (void)
+{
+    i2cfake_init(&g_fake);
+    g_fake.b_light_present            = true;
+    g_fake.light_data[0]              = 0xE8U;
+    g_fake.light_data[1]              = 0x03U;
+    const msgbus_queue_config_t queue = {UTHOME_SAMPLE_LIGHT,
+                                         sizeof(sample_light_t),
+                                         2U,
+                                         UTHOME_MSGBUS_DROP_OLDEST};
+    assert(0 == shared_reset(&queue, 1U));
+    bool      b_enabled = true;
+    digiout_t output    = {.p_set = enable_line, .p_context = &b_enabled};
+    seninst_t instance  = {.p_bus = &g_fake.bus, .p_enable = &output};
+    const seninst_config_t settings = {
+        .source_index = 0U, .timeout_ms = 100U, .h_destination = 0};
+    drvreg_registry_t registry  = {0};
+    component_t       component = {0};
+    assert(0 == drvreg_init(&registry, seninst_descriptor(), 1U));
+    assert(0 == drvreg_bind(&registry,
+                            "sen0390",
+                            "light",
+                            &instance,
+                            sizeof(instance),
+                            &component));
+    assert(0 == component_configure(&component, &settings, sizeof(settings)));
+    assert(!b_enabled);
+    assert(0 == seninst_step(&instance));
+    g_fake.now_ms = 1000U;
+    assert(0 == seninst_step(&instance));
+    assert(b_enabled);
+    g_fake.now_ms = 2000U;
+    assert(0 == seninst_step(&instance));
+    sample_light_t sample = {0};
+    assert(0 ==
+           shared_consume(0, UTHOME_SAMPLE_LIGHT, &sample, sizeof(sample)));
+    assert((UTHOME_SAMPLE_OK == sample.header.status) &&
+           (1400U == sample.millilux));
+    g_fake.b_light_present = false;
+    assert(0 == seninst_step(&instance));
+    assert(0 ==
+           shared_consume(0, UTHOME_SAMPLE_LIGHT, &sample, sizeof(sample)));
+    assert((UTHOME_SAMPLE_IO == sample.header.status) &&
+           (0U == sample.millilux));
+    gb_enable_error = true;
+    assert(I2CBUS_IO == seninst_cleanup(&instance));
+    assert(i2cbus_has_claims(&g_fake.bus));
+    gb_enable_error = false;
+    assert(0 == seninst_cleanup(&instance));
+    assert((!b_enabled) && (!i2cbus_has_claims(&g_fake.bus)));
+    assert(0 == shared_reset(NULL, 0U));
+}
+
+/** @brief Model a separately owned enable line and a retryable fault. */
+static int enable_line (void * p_context, bool b_high)
+{
+    bool * pb_state = p_context;
+    if ((NULL == pb_state) || gb_enable_error)
+    {
+        return -1;
+    }
+    *pb_state = b_high;
+    return 0;
 }
 
 /** @brief Reject malformed transfers before reaching the backend. */
@@ -70,6 +141,19 @@ static void verify_bus (void)
     request.deadline_ms = 0U;
     assert(I2CBUS_TIMEOUT == i2cbus_transfer(&g_fake.bus, &request));
     assert(0U == g_fake.transfers);
+    i2cfake_sensor(&g_fake, 0U, 12500U);
+    uint8_t received      = 0xEEU;
+    request.p_read        = &received;
+    request.read_size     = 1U;
+    request.read_pause_ms = 10U;
+    request.deadline_ms   = 11U;
+    assert(0 == i2cbus_transfer(&g_fake.bus, &request));
+    assert((10U == g_fake.now_ms) && (0x50U == received));
+    g_fake.now_ms       = 0U;
+    request.deadline_ms = 10U;
+    received            = 0xEEU;
+    assert(I2CBUS_TIMEOUT == i2cbus_transfer(&g_fake.bus, &request));
+    assert((10U == g_fake.now_ms) && (0xEEU == received));
     assert(0 == i2cbus_claim(&g_fake.bus, 0x40U));
     assert(I2CBUS_STATE == i2cbus_claim(&g_fake.bus, 0x40U));
     assert(i2cbus_has_claims(&g_fake.bus));

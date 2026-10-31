@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:uthome:timing-run:0.2.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "version",
+    "experiment_sha256",
+    "interval_ms",
+    "repetition",
+    "origin",
+    "method",
+    "firmware_sha256",
+    "identity_evidence_sha256",
+    "session_id",
+    "sample_interval_ms",
+    "samples",
+    "capture",
+    "evidence"
+  ],
+  "properties": {
+    "contract": {
+      "const": "uthome.timing-run"
+    },
+    "version": {
+      "const": "0.2.0"
+    },
+    "experiment_sha256": {
+      "$ref": "#/$defs/hash"
+    },
+    "interval_ms": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 60000
+    },
+    "repetition": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9
+    },
+    "origin": {
+      "const": "hardware"
+    },
+    "method": {
+      "const": "telemetry_sample_age"
+    },
+    "firmware_sha256": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/hash"
+        }
+      ]
+    },
+    "identity_evidence_sha256": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/hash"
+        }
+      ]
+    },
+    "session_id": {
+      "$ref": "#/$defs/name"
+    },
+    "sample_interval_ms": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 1000
+    },
+    "samples": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 7000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "elapsed_ms",
+          "uptime_ms",
+          "session_id",
+          "profile_sha256",
+          "metric_ms",
+          "quality",
+          "health_faults"
+        ],
+        "properties": {
+          "elapsed_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 662000
+          },
+          "uptime_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "session_id": {
+            "$ref": "#/$defs/name"
+          },
+          "profile_sha256": {
+            "$ref": "#/$defs/hash"
+          },
+          "metric_ms": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              }
+            ]
+          },
+          "quality": {
+            "enum": [
+              "fresh",
+              "stale",
+              "missing",
+              "fault"
+            ]
+          },
+          "health_faults": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30064771065
+          }
+        }
+      }
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reason",
+        "clock",
+        "terminal_tolerance_ms",
+        "fault_event_codes",
+        "runtime_healthy",
+        "raw_sha256"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "complete",
+            "interrupted"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 250
+        },
+        "clock": {
+          "const": "host_receive_monotonic_ms"
+        },
+        "terminal_tolerance_ms": {
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 2000
+        },
+        "fault_event_codes": {
+          "const": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            6,
+            7
+          ]
+        },
+        "runtime_healthy": {
+          "type": "boolean"
+        },
+        "raw_sha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "receipt",
+        "firmware_before",
+        "firmware_after"
+      ],
+      "properties": {
+        "identity": {
+          "type": "object"
+        },
+        "receipt": {
+          "type": "object"
+        },
+        "firmware_before": {
+          "type": "object"
+        },
+        "firmware_after": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$"
+    }
+  }
+}

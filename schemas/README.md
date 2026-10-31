@@ -11,8 +11,8 @@ compatibility and local evidence paths. Run
 `python -B -m unittest discover -s tests/discovery -v`.
 The D2 I2C request/reply uses a separate bounded
 [binary contract](../firmware/src/discovery/README.md#usb-contract). No discovery
-result can substitute for an admitted node profile. The full host review record
-and setting recommendations remain D3 work.
+result can substitute for an admitted node profile. Host review and sourced deterministic settings are implemented in Configuration
+Desk. Qualified model recommendations remain separate unfinished work.
 
 A valid node must pass the common schema, the selected descriptor's instance and
 bus schemas, build availability checks, and board/resource/routing validation.

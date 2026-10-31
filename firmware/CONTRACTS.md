@@ -31,6 +31,7 @@ device models. Existing component callbacks and the message bus are unchanged.
 | `target_report` | `UTHOME_SAMPLE_TARGETS` (2) | `sample_target_report_t` | Three slots: signed x/y in mm, signed speed in cm/s, resolution in mm, presence Boolean |
 | `distance_sample` | `UTHOME_SAMPLE_DISTANCE` (3) | `sample_distance_t` | Distance in mm, echo duration in microseconds |
 | `health_event` | `UTHOME_SAMPLE_HEALTH` (4) | `sample_health_t` | Existing `health_event_t` code and cumulative occurrence count |
+| `light_sample` | `UTHOME_SAMPLE_LIGHT` (5) | `sample_light_t` | Illuminance in integer millilux, 0..200,000,000; not yet bound to a device |
 
 Every record has the same header:
 
@@ -153,16 +154,17 @@ when no valid profile can activate; RECOVER does not erase the saved profile.
 ## Resource ledger and release gate
 
 Keep the current bounds: eight configured instances, four peripheral workers,
-four queues, depth eight, 64-byte items, and 16 KiB total peripheral stacks.
-Disabled instances reserve wiring and metadata but no active worker stack.
+four queues, depth eight and 64-byte items. Active stack requests are admitted
+against a 16 KiB aggregate limit, but the permanent four-by-8-KiB worker pool
+reserves 32 KiB even when idle. Disabled instances still reserve wiring/metadata.
 
 | Memory category | Accounting rule / current evidence |
 |---|---|
-| Peripheral stacks | Sum admitted active stack requests, at most 16,384 bytes; dormant prepared workers also consume the actual port budget |
+| Peripheral stacks | Charge all four permanent 8 KiB stacks (32 KiB); the separate admitted-request cap is 16 KiB |
 | Queue payload pool | Current `msgbus.c` statically allocates 4 x 8 x 64 = 2,048 bytes regardless of configured depth/count |
 | Queue metadata | Account separately from the payload pool unless included in the reported object size |
 | Driver and HAL contexts | Account actual bounded pools and buffers once per instance/bus, including any vendor-owned buffers |
-| Parser and candidate plans | Bounded cJSON allocation, binder candidate and retained activation plans; use the current ELF and allocation limits |
+| Parser and candidate plans | Fixed typed cJSON pools, binder candidate and retained activation plans; use the actual linked reservations |
 | Fixed services and kernel | Account control/USB/health/idle stacks, kernel objects and platform buffers separately from peripheral stacks |
 | Telemetry caches | Account each retained copied sample and metadata; USB/frame buffers must not be counted twice |
 | AI reserve | Select a reserve after the full application link map and high-water measurements; unmeasured RAM is not an AI allocation guarantee |

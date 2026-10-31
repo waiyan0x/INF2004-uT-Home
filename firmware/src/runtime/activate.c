@@ -345,8 +345,11 @@ static int prepare_device (size_t index)
     {
         return result;
     }
-    const rt_port_worker_t worker = {
-        .p_step = run_step, .p_cleanup = clean_step, .p_context = p_slot};
+    /* Plan admission bounds index to the eight configured device slots. */
+    const rt_port_worker_t worker = {.p_step       = run_step,
+                                     .p_cleanup    = clean_step,
+                                     .p_context    = p_slot,
+                                     .source_index = (uint32_t)index};
     result =
         rt_port_task_prepare_worker(&p_device->task, &worker, &p_slot->h_task);
     if (0 == result)

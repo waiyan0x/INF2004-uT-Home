@@ -1,0 +1,307 @@
+{
+  "record_version": "1.0.0",
+  "date": "2026-10-26",
+  "study_record": {
+    "path": "ai/qualification/protocol-study-shared-20261026.json",
+    "sha256": "9097790f22dec0994a46819202fa048d126480b272c5b18b61763ecc1852d1a7"
+  },
+  "event_order": [
+    "configuration_invalid",
+    "pin_conflict",
+    "device_timeout",
+    "uart_frame_invalid",
+    "queue_overwrite",
+    "missed_heartbeat",
+    "device_io",
+    "uart_rx_overflow"
+  ],
+  "families": {
+    "all-slow": {
+      "event_deltas": [
+        0,
+        0,
+        561,
+        0,
+        6181,
+        0,
+        0,
+        0
+      ],
+      "runs": 8,
+      "partition": "train",
+      "passing_intervals_ms": [],
+      "target_unhealthy_after_warmup": 0,
+      "stream_unhealthy_after_warmup": 0
+    },
+    "all-current": {
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        6182,
+        0,
+        0,
+        0
+      ],
+      "runs": 8,
+      "partition": "train",
+      "passing_intervals_ms": [
+        200,
+        500
+      ],
+      "target_unhealthy_after_warmup": 0,
+      "stream_unhealthy_after_warmup": 0
+    },
+    "i2c-uart-100": {
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        6177,
+        0,
+        0,
+        0
+      ],
+      "runs": 8,
+      "partition": "train",
+      "passing_intervals_ms": [
+        200,
+        500
+      ],
+      "target_unhealthy_after_warmup": 0,
+      "stream_unhealthy_after_warmup": 0
+    },
+    "new-1-i400-s1-r350": {
+      "event_deltas": [
+        0,
+        0,
+        800,
+        0,
+        6178,
+        0,
+        0,
+        0
+      ],
+      "runs": 8,
+      "partition": "validation",
+      "passing_intervals_ms": [],
+      "target_unhealthy_after_warmup": 0,
+      "stream_unhealthy_after_warmup": 0
+    },
+    "new-2-i100-s4-r350": {
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        6180,
+        0,
+        0,
+        0
+      ],
+      "runs": 8,
+      "partition": "validation",
+      "passing_intervals_ms": [
+        200,
+        500
+      ],
+      "target_unhealthy_after_warmup": 0,
+      "stream_unhealthy_after_warmup": 0
+    },
+    "all-fast": {
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        6179,
+        0,
+        0,
+        0
+      ],
+      "runs": 8,
+      "partition": "train",
+      "passing_intervals_ms": [
+        200,
+        500
+      ],
+      "target_unhealthy_after_warmup": 0,
+      "stream_unhealthy_after_warmup": 0
+    },
+    "new-4-i400-s2-r350": {
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        6179,
+        0,
+        0,
+        0
+      ],
+      "runs": 8,
+      "partition": "test",
+      "passing_intervals_ms": [
+        200,
+        500
+      ],
+      "target_unhealthy_after_warmup": 0,
+      "stream_unhealthy_after_warmup": 0
+    },
+    "i2c-spi-slow": {
+      "event_deltas": [
+        0,
+        0,
+        562,
+        0,
+        818,
+        0,
+        0,
+        0
+      ],
+      "runs": 8,
+      "partition": "train",
+      "passing_intervals_ms": [],
+      "target_unhealthy_after_warmup": 0,
+      "stream_unhealthy_after_warmup": 0
+    },
+    "i2c-spi-fast": {
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        789,
+        0,
+        0,
+        0
+      ],
+      "runs": 8,
+      "partition": "train",
+      "passing_intervals_ms": [
+        200,
+        500
+      ],
+      "target_unhealthy_after_warmup": 0,
+      "stream_unhealthy_after_warmup": 0
+    },
+    "i2c-100": {
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        788,
+        0,
+        0,
+        0
+      ],
+      "runs": 8,
+      "partition": "train",
+      "passing_intervals_ms": [
+        200,
+        500
+      ],
+      "target_unhealthy_after_warmup": 0,
+      "stream_unhealthy_after_warmup": 0
+    },
+    "i2c-400": {
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        789,
+        0,
+        0,
+        0
+      ],
+      "runs": 8,
+      "partition": "train",
+      "passing_intervals_ms": [
+        200,
+        500
+      ],
+      "target_unhealthy_after_warmup": 0,
+      "stream_unhealthy_after_warmup": 0
+    },
+    "new-3-i400-s8-r200": {
+      "event_deltas": [
+        0,
+        0,
+        0,
+        0,
+        6177,
+        0,
+        0,
+        0
+      ],
+      "runs": 8,
+      "partition": "test",
+      "passing_intervals_ms": [
+        200,
+        500
+      ],
+      "target_unhealthy_after_warmup": 0,
+      "stream_unhealthy_after_warmup": 0
+    }
+  },
+  "unnecessary_abstention": {
+    "family": "new-4-i400-s2-r350",
+    "candidate_ms": 500,
+    "context_supported": true,
+    "features_in_training_ranges": true,
+    "decision_path": [
+      {
+        "node": 0,
+        "feature": "i2c_requests_millihz",
+        "value": 2000,
+        "threshold": 1500,
+        "branch": "right"
+      },
+      {
+        "node": 2,
+        "feature": "spi_refresh_millihz",
+        "value": 2858,
+        "threshold": 1000,
+        "branch": "right"
+      },
+      {
+        "node": 4,
+        "feature": "spi_min_clock_hz",
+        "value": 2000000,
+        "threshold": 2500000,
+        "branch": "left"
+      },
+      {
+        "node": 5,
+        "leaf_pass_fraction_per_mille": 0,
+        "prediction": 0
+      }
+    ],
+    "observation": "Both 200 ms and 500 ms candidates passed both repetitions. The classifier rejects them at its learned 2.5 MHz SPI threshold. No threshold was edited or model retrained after this result."
+  },
+  "source_observation": {
+    "files": [
+      {
+        "path": "firmware/hal/ports/esp32c3/c3spi.c",
+        "sha256": "bf946b3c69769254d34a435916441d847de212948849eda45ed53d11482d0480"
+      },
+      {
+        "path": "firmware/drivers/ssd1306_spi/ssd1306.c",
+        "sha256": "8d482bcf3e8e11059082064a590c30b29064f2b92f0a96b6c66d2a00933bfe08"
+      }
+    ],
+    "facts": "SPI uses 64-byte chunks and polls with 10 us waits; after 25 unsuccessful polls it requests a one-ms task delay. Display flush shares a single configured deadline (20 ms in this study).",
+    "inference": "Scheduling delays during slower chunk transfers may contribute to the observed 1 MHz timeout groups. No per-device timing or transfer-completion instrumentation was collected, so this is not a measured root-cause conclusion."
+  },
+  "next_step": "Add or characterize transferable execution/transfer cost information and predefine a new evaluation set. Preserve this model and its learned threshold; current held-out outcomes cannot be reused as an untouched test.",
+  "post_study_query": {
+    "path": "build/hardware-acceptance-20261026/query-130048.json",
+    "sha256": "7e00d1e1731f719214e39ffe634e732e2ddeade02a99e97f149e4890ae464a0b"
+  },
+  "hardware_qualified": false,
+  "deployment_allowed": false
+}

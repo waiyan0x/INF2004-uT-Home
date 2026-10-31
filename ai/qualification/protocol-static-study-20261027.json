@@ -1,0 +1,187 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-26T22:40:57.610160+00:00",
+  "scope": "USB static core; current supported BMP388, OLED and LD2450 instances",
+  "deployment_allowed": false,
+  "whole_system_qualified": false,
+  "recordings": 192,
+  "usable": 192,
+  "observations": 70272,
+  "capture_error": null,
+  "restored": true,
+  "restored_configuration": {
+    "active_crc": 3623560383,
+    "active_revision": 522,
+    "flags": 80,
+    "saved_crc": 3623560383,
+    "saved_revision": 522
+  },
+  "study_sha256": "b968786c674299991900511811bccb8f81d45f5ba157e3e1caf73714900e7d7f",
+  "model_sha256": "6f7bc4e094b8bb35141228494ad85aef6034f47f366e8f44faf2ec1e4f03d7a1",
+  "dataset_sha256": "6bc0314e593c57ac8c5db58b5ff5c40ed1228e432dbd7df90e6ebde7bb1a5064",
+  "nodes": 7,
+  "split": {
+    "test": 4,
+    "train": 16,
+    "validation": 4
+  },
+  "statistical_criteria_passed": false,
+  "gate_reasons": [
+    "no_measured_benefit_over_simple_rule"
+  ],
+  "benefit_definition": "At least one held-out safe coverage or interval gain, with no regression against a passing rule choice",
+  "heldout": {
+    "families": 8,
+    "tree_violations": 0,
+    "tree_correct_abstentions": 3,
+    "tree_unnecessary_abstentions": 0,
+    "simple_rule_violations": 3,
+    "safe_interval_gains": 0,
+    "safe_coverage_gains": 0
+  },
+  "c_verification": {
+    "export": {
+      "automatic_apply": false,
+      "constant_data_bytes": 284,
+      "context_check": "required_by_caller",
+      "context_hashes": [
+        "51609ee4d014412b172e4942647e25b4252bb9427215c3fa8c20b424d46f13da",
+        "962a11fe81e9d8a83a0fc9b69b68a677d1408d3a3f5d23e2828817ee79059440",
+        "bc2340532d8f39b3d9d25eb55bd177477c0278c418624777687ff91421ef5fb2",
+        "fa4133b8e9eb9d76de7aa702cb1b148d866c731659ec8a2f9029962e1b56647f"
+      ],
+      "contract": "uthome.protocol-c-export",
+      "deployment_allowed": false,
+      "feature_bytes": 72,
+      "generated_c_findings": 0,
+      "generated_format_errors": 0,
+      "input_contract": {
+        "features": [
+          "execution_kind",
+          "interval_ms",
+          "goal_ms",
+          "active_tasks",
+          "source_period_ms",
+          "timeout_us",
+          "target_priority",
+          "higher_priority_workers",
+          "i2c_workers",
+          "i2c_min_clock_hz",
+          "i2c_requests_millihz",
+          "spi_workers",
+          "spi_min_clock_hz",
+          "spi_refresh_millihz",
+          "uart_workers",
+          "uart_min_baud",
+          "uart_declared_bytes_per_second",
+          "uart_min_rx_buffer_bytes"
+        ],
+        "name": "uthome.protocol-tree",
+        "storage": "uint32_t[18]",
+        "version": "0.2.0"
+      },
+      "max_candidates": 4,
+      "max_node_visits": 5,
+      "model_sha256": "6f7bc4e094b8bb35141228494ad85aef6034f47f366e8f44faf2ec1e4f03d7a1",
+      "origin": "hardware",
+      "qualification": "experimental_only",
+      "threshold_per_mille": 900,
+      "version": "0.1.0",
+      "writable_global_bytes": 0
+    },
+    "parity": {
+      "compiler": "C:\\Users\\kkak4\\mingw64\\bin\\gcc.EXE",
+      "hardware_tested": false,
+      "mismatches": 0,
+      "standard": "c99",
+      "vectors": 1165
+    },
+    "target_object": {
+      "command": [
+        "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\tools\\riscv32-esp-elf\\esp-15.2.0_20251204\\riscv32-esp-elf\\bin\\riscv32-esp-elf-gcc.exe",
+        "-std=c99",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pedantic",
+        "-Os",
+        "-march=rv32imc",
+        "-mabi=ilp32",
+        "-fstack-usage",
+        "-c",
+        "protree.c",
+        "-o",
+        "protree.o"
+      ],
+      "compiler_version": "riscv32-esp-elf-gcc.exe (crosstool-NG esp-15.2.0_20251204) 15.2.0",
+      "firmware_linked": false,
+      "hardware_tested": false,
+      "object_sha256": "dd65c4553f63cb1851c52ddc899200c3cde1cbb4bf60999ce71f254e9b0f7735",
+      "size_output": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n    400\t      0\t      0\t    400\t    190\tprotree.o\n",
+      "source_sha256": "fe5ad737ec59ee23bd60280dd5a484747cba789f8e3dc968f59765572954b58c",
+      "stack_usage": "protree.c:48:5:protree_predict\t0\tstatic\n"
+    }
+  },
+  "interpretation": "Safety abstention improved against the rule, but the prospectively fixed interval/coverage improvement criterion did not pass. Do not change that gate after inspecting labels.",
+  "limitations": [
+    "No wireless traffic or unseen-device validation.",
+    "Target C object and host parity do not establish linked target inference latency.",
+    "Low-SPI-clock peer failures are driver timeouts, not a demonstrated fundamental scheduling limit.",
+    "Nominal UART feature is 300 bytes/second; auxiliary API byte rate is higher and requires independent reconciliation before transferable load claims.",
+    "Work costs include waiting/preemption and are not CPU utilization or electrical wire time."
+  ],
+  "retained_study": "build/protocol-study-20261027-static-r2",
+  "artifacts": {
+    "build/protocol-study-20261027-static-r2/capture/summary.json": "fe6add103c1f975f01f4df296c1def2c0ba193e795490c7066315fdba8a0335d",
+    "build/protocol-study-20261027-static-r2/study.json": "6f66fc2f93a2fa4804330f147155ad69ad2c2810fa5878221d08f3cb5648ade4",
+    "build/protocol-study-20261027-static-r2/predeclared-evaluation.json": "8dcd0a0eb877d598c1880ac8e4dd45b3f36b8de527db8cbed4c588f3e8581327",
+    "build/protocol-study-20261027-static-r2/frozen-source-sha256.json": "2a872e0c64007634c44ed0b3af5301d69aaf1674ab5cc57d7352eecdc9853fe3",
+    "build/protocol-study-20261027-static-r2/analysis/trained/model.json": "82d4d18716f42a0f6602bb4d618cc7dea0df7a898df2b560e4cadbf04a8a763b",
+    "build/protocol-study-20261027-static-r2/analysis/trained/dataset.json": "8eb59045a7f0260801636a573ebce623cdbda3d61a718487fff5e7d912041f82",
+    "build/protocol-study-20261027-static-r2/analysis/trained/evaluation.json": "025adeb30fb02f5c07fe6f21b561b65c8ee8f4dabd302c42851a1f15568d25bd",
+    "build/protocol-study-20261027-static-r2/analysis/trained/gate.json": "0be8969f646e0d6086e807f8fc1e0d23a44525f9f933a39fb01907cfb61e3c5c",
+    "build/protocol-study-20261027-static-r2/analysis/trained/c-verification.json": "e12d3b1d337eb48c72a8c7a7e4f917d2d06bb22754d9e5b74c7d6bda9ccef5ff",
+    "build/protocol-study-20261027-static-r2/analysis/trained/cost-characterization.json": "82a73700a969ebaf14715ef788395d284fdd346206895cc520a14604dd52cbe4"
+  },
+  "cost_summary": {
+    "i2c": {
+      "worker_windows": 192,
+      "errors": 0,
+      "timeouts": 0,
+      "mean_step_us_range": [
+        836.7777777777778,
+        4329.466666666666
+      ],
+      "api_bytes_per_second_range": [
+        4.405701271158297,
+        45.080112368580345
+      ]
+    },
+    "spi": {
+      "worker_windows": 152,
+      "errors": 9652,
+      "timeouts": 9652,
+      "mean_step_us_range": [
+        2010.9933184855233,
+        21078.555555555555
+      ],
+      "api_bytes_per_second_range": [
+        11.883053661734056,
+        10317.425903074161
+      ]
+    },
+    "uart": {
+      "worker_windows": 120,
+      "errors": 0,
+      "timeouts": 0,
+      "mean_step_us_range": [
+        278.0494101936345,
+        311.6760124610592
+      ],
+      "api_bytes_per_second_range": [
+        573.4580259990337,
+        574.6117188667563
+      ]
+    }
+  }
+}

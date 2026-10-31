@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.0.0",
+  "date": "2026-10-26",
+  "scope": "Requested retest with fan switched off after reported zero-ohm signal continuity",
+  "conditions": {
+    "fan_off": "User confirmed",
+    "support": "Previously confirmed nonconductive support; requested unchanged",
+    "signal_continuity": "User reported reading is 0; separate readings not individually stated"
+  },
+  "summary": {
+    "type": "summary",
+    "samples": 241,
+    "errors": [],
+    "quality": {
+      "environment_sensor": {
+        "fresh": 241
+      },
+      "presence_sensor": {
+        "fault": 241
+      },
+      "health": {
+        "fresh": 241
+      }
+    },
+    "ages": {
+      "environment_sensor": {
+        "min": 82,
+        "max": 588
+      },
+      "presence_sensor": {
+        "min": 86,
+        "max": 94
+      },
+      "health": {
+        "min": 131,
+        "max": 639
+      }
+    },
+    "radar_counts": {},
+    "max_rtt_ms": 95.62889998778701,
+    "duration_seconds": 120.07801800000016,
+    "health_delta": [
+      0,
+      0,
+      480,
+      0,
+      830,
+      0,
+      0,
+      0
+    ],
+    "runtime_end": {
+      "state": 1,
+      "generation": 1,
+      "failed_workers": 0,
+      "retained_instances": 3,
+      "service_error": 0,
+      "apply_error": 0,
+      "recovery_error": 0
+    },
+    "configuration": {
+      "active_revision": 26,
+      "saved_revision": 26,
+      "active_crc": 3623560383,
+      "saved_crc": 3623560383,
+      "flags": 80
+    }
+  },
+  "result": "FAIL: all radar snapshots were fault/timeout; BMP388 stayed fresh. Fan off did not restore communication. This does not establish the underlying electrical, module or UART-adapter cause.",
+  "evidence": {
+    "path": "build/hardware-acceptance-20261026/fan-off-retest-055425.jsonl",
+    "sha256": "910e43cc3b5a5f0910631fb62da3f8b69a37c4c31df6bcb1f7f470e24af23402"
+  },
+  "next_step": "Power off and move only radar TX breadboard termination from b35 to free a35 on the same GPIO20 strip to test a different socket contact. Original profile retained locally for restoration."
+}

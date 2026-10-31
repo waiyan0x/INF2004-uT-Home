@@ -1,0 +1,283 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-27T01:50:39.674935+00:00",
+  "scope": "Isolated one-connection read-only uptime GATT on ESP under uT-Kernel; PC read/reconnect client",
+  "passed": false,
+  "board_passed": false,
+  "client": {
+    "started_utc": "2026-10-27T01:49:04.439321+00:00",
+    "passed": false,
+    "target_address_sha256": "4a9087f4f5c48f546e29e695425ee41987362a6571c26f31a390b3566e3b4f0e",
+    "connections": [],
+    "pairing_requested": false,
+    "configuration_mutation": false,
+    "error": "BleakDeviceNotFoundError('Device with address D4:05:92:E6:C3:BE was not found.')",
+    "elapsed_seconds": 2.699549000011757,
+    "finished_utc": "2026-10-27T01:49:07.138901+00:00"
+  },
+  "observations": [
+    {
+      "index": 0,
+      "free_bytes": 125016,
+      "largest_bytes": 114688,
+      "startup_allocations": 24,
+      "startup_allocated_bytes": 7939,
+      "normal_allocations": 0,
+      "normal_allocated_bytes": 0,
+      "application_startup_allocations": 0,
+      "sealed": 0,
+      "native_creates": {
+        "0": {
+          "startup": 7,
+          "normal": 0
+        },
+        "1": {
+          "startup": 32,
+          "normal": 0
+        },
+        "2": {
+          "startup": 50,
+          "normal": 0
+        },
+        "3": {
+          "startup": 1,
+          "normal": 0
+        },
+        "4": {
+          "startup": 0,
+          "normal": 0
+        },
+        "5": {
+          "startup": 0,
+          "normal": 0
+        },
+        "6": {
+          "startup": 0,
+          "normal": 0
+        },
+        "7": {
+          "startup": 0,
+          "normal": 0
+        },
+        "8": {
+          "startup": 0,
+          "normal": 0
+        },
+        "9": {
+          "startup": 0,
+          "normal": 0
+        },
+        "10": {
+          "startup": 0,
+          "normal": 0
+        }
+      },
+      "available": true
+    },
+    {
+      "index": 1,
+      "free_bytes": 66384,
+      "largest_bytes": 57344,
+      "startup_allocations": 92,
+      "startup_allocated_bytes": 67291,
+      "normal_allocations": 0,
+      "normal_allocated_bytes": 0,
+      "application_startup_allocations": 68,
+      "sealed": 0,
+      "native_creates": {
+        "0": {
+          "startup": 9,
+          "normal": 0
+        },
+        "1": {
+          "startup": 32,
+          "normal": 0
+        },
+        "2": {
+          "startup": 52,
+          "normal": 0
+        },
+        "3": {
+          "startup": 1,
+          "normal": 0
+        },
+        "4": {
+          "startup": 0,
+          "normal": 0
+        },
+        "5": {
+          "startup": 0,
+          "normal": 0
+        },
+        "6": {
+          "startup": 0,
+          "normal": 0
+        },
+        "7": {
+          "startup": 0,
+          "normal": 0
+        },
+        "8": {
+          "startup": 0,
+          "normal": 0
+        },
+        "9": {
+          "startup": 0,
+          "normal": 0
+        },
+        "10": {
+          "startup": 0,
+          "normal": 0
+        }
+      },
+      "available": true
+    },
+    {
+      "index": 2,
+      "free_bytes": 66384,
+      "largest_bytes": 57344,
+      "startup_allocations": 92,
+      "startup_allocated_bytes": 67291,
+      "normal_allocations": 27,
+      "normal_allocated_bytes": 444,
+      "application_startup_allocations": 68,
+      "sealed": 1,
+      "native_creates": {
+        "0": {
+          "startup": 9,
+          "normal": 0
+        },
+        "1": {
+          "startup": 32,
+          "normal": 0
+        },
+        "2": {
+          "startup": 52,
+          "normal": 0
+        },
+        "3": {
+          "startup": 1,
+          "normal": 0
+        },
+        "4": {
+          "startup": 0,
+          "normal": 0
+        },
+        "5": {
+          "startup": 0,
+          "normal": 0
+        },
+        "6": {
+          "startup": 0,
+          "normal": 0
+        },
+        "7": {
+          "startup": 0,
+          "normal": 0
+        },
+        "8": {
+          "startup": 0,
+          "normal": 0
+        },
+        "9": {
+          "startup": 0,
+          "normal": 0
+        },
+        "10": {
+          "startup": 0,
+          "normal": 0
+        }
+      },
+      "available": true
+    },
+    {
+      "index": 3,
+      "free_bytes": 0,
+      "largest_bytes": 0,
+      "startup_allocations": 0,
+      "startup_allocated_bytes": 0,
+      "normal_allocations": 0,
+      "normal_allocated_bytes": 0,
+      "application_startup_allocations": 0,
+      "sealed": 0,
+      "native_creates": {
+        "0": {
+          "startup": 0,
+          "normal": 0
+        },
+        "1": {
+          "startup": 0,
+          "normal": 0
+        },
+        "2": {
+          "startup": 0,
+          "normal": 0
+        },
+        "3": {
+          "startup": 0,
+          "normal": 0
+        },
+        "4": {
+          "startup": 0,
+          "normal": 0
+        },
+        "5": {
+          "startup": 0,
+          "normal": 0
+        },
+        "6": {
+          "startup": 0,
+          "normal": 0
+        },
+        "7": {
+          "startup": 0,
+          "normal": 0
+        },
+        "8": {
+          "startup": 0,
+          "normal": 0
+        },
+        "9": {
+          "startup": 0,
+          "normal": 0
+        },
+        "10": {
+          "startup": 0,
+          "normal": 0
+        }
+      },
+      "available": false
+    }
+  ],
+  "firmware_elf_sha256": "7fde96ace9c283b676a70ca1f720671fb7c4adddc7e1c5bf749dcc52fbad7b44",
+  "software_record": "esp32c3-static-host-build-20261027.json",
+  "original_application_restored": true,
+  "configuration_unchanged": true,
+  "current_configuration": {
+    "active_revision": 737,
+    "saved_revision": 737,
+    "active_crc": 3623560383,
+    "saved_crc": 3623560383,
+    "flags": 80
+  },
+  "sequence_record": "build\\system-completion-20261026-233938\\gatt-static-sequence-20261027-014849.json",
+  "sequence_sha256": "6cee097ea9bbe3cba40d677cf7d91f76fdb77e10d3036e2383418b75f0d67d03",
+  "source_sha256": {
+    "build\\system-completion-20261026-233938\\gatt_client_static.py": "e1b40c07d515f155dc04f0092aa03860379f7fc99e7d070a7df2b3b4925d2455",
+    "build\\system-completion-20261026-233938\\gatt_sequence_static.py": "f9be88dba9cd47cf3a1a40e921825bb2c0d66e38d07f2a71cd6c46defd9f8b82"
+  },
+  "whole_system_static_qualified": false,
+  "coexistence_tested": false,
+  "phone_tested": false,
+  "authenticated_service": false,
+  "mqtt_http_tested": false,
+  "model_deployed": false,
+  "limitations": [
+    "Uptime is diagnostic data, not integrated sensor/configuration BLE functionality.",
+    "SDK allocations remain counted and violate the unrestricted no-malloc goal.",
+    "PC connects only to the previously observed board address hash; no pairing or nearby-device inventory.",
+    "No simultaneous peripheral, Wi-Fi, flash-save, AP/broker or actuator qualification."
+  ],
+  "log": "logs/esp32c3-gatt-static-20261027.log",
+  "log_sha256": "149532410d595ffa3950299a75fb63698cce1f3ef9e67285ed20b3f84a229c60"
+}

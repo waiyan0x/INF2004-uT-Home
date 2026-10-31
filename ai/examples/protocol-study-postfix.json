@@ -1,0 +1,129 @@
+{
+  "cadence_ms": 137,
+  "duration_ms": 30000,
+  "families": [
+    {
+      "i2c_clock_hz": 100000,
+      "id": "i2c-100",
+      "spi_clock_hz": 4000000,
+      "spi_enabled": false,
+      "spi_refresh_ms": 250,
+      "split": "train",
+      "uart_enabled": false
+    },
+    {
+      "i2c_clock_hz": 400000,
+      "id": "i2c-400",
+      "spi_clock_hz": 4000000,
+      "spi_enabled": false,
+      "spi_refresh_ms": 250,
+      "split": "train",
+      "uart_enabled": false
+    },
+    {
+      "i2c_clock_hz": 100000,
+      "id": "i2c-uart-100",
+      "spi_clock_hz": 4000000,
+      "spi_enabled": false,
+      "spi_refresh_ms": 250,
+      "split": "train",
+      "uart_enabled": true
+    },
+    {
+      "i2c_clock_hz": 100000,
+      "id": "i2c-spi-slow",
+      "spi_clock_hz": 1000000,
+      "spi_enabled": true,
+      "spi_refresh_ms": 500,
+      "split": "train",
+      "uart_enabled": false
+    },
+    {
+      "i2c_clock_hz": 400000,
+      "id": "i2c-spi-fast",
+      "spi_clock_hz": 8000000,
+      "spi_enabled": true,
+      "spi_refresh_ms": 100,
+      "split": "train",
+      "uart_enabled": false
+    },
+    {
+      "i2c_clock_hz": 100000,
+      "id": "all-current",
+      "spi_clock_hz": 4000000,
+      "spi_enabled": true,
+      "spi_refresh_ms": 250,
+      "split": "train",
+      "uart_enabled": true
+    },
+    {
+      "i2c_clock_hz": 400000,
+      "id": "all-fast",
+      "spi_clock_hz": 8000000,
+      "spi_enabled": true,
+      "spi_refresh_ms": 100,
+      "split": "train",
+      "uart_enabled": true
+    },
+    {
+      "i2c_clock_hz": 100000,
+      "id": "all-slow",
+      "spi_clock_hz": 1000000,
+      "spi_enabled": true,
+      "spi_refresh_ms": 500,
+      "split": "train",
+      "uart_enabled": true
+    },
+    {
+      "i2c_clock_hz": 400000,
+      "id": "new-1-i400-s1-r350",
+      "spi_clock_hz": 1000000,
+      "spi_enabled": true,
+      "spi_refresh_ms": 350,
+      "split": "validation",
+      "uart_enabled": true
+    },
+    {
+      "i2c_clock_hz": 100000,
+      "id": "new-2-i100-s4-r350",
+      "spi_clock_hz": 4000000,
+      "spi_enabled": true,
+      "spi_refresh_ms": 350,
+      "split": "validation",
+      "uart_enabled": true
+    },
+    {
+      "i2c_clock_hz": 400000,
+      "id": "new-3-i400-s8-r200",
+      "spi_clock_hz": 8000000,
+      "spi_enabled": true,
+      "spi_refresh_ms": 200,
+      "split": "test",
+      "uart_enabled": true
+    },
+    {
+      "i2c_clock_hz": 400000,
+      "id": "new-4-i400-s2-r350",
+      "spi_clock_hz": 2000000,
+      "spi_enabled": true,
+      "spi_refresh_ms": 350,
+      "split": "test",
+      "uart_enabled": true
+    }
+  ],
+  "goal_ms": 800,
+  "intervals_ms": [
+    200,
+    500,
+    1000
+  ],
+  "repetitions": 2,
+  "roles": {
+    "display": "oled_status",
+    "sensor": "environment_sensor",
+    "stream": "presence_sensor"
+  },
+  "study_id": "protocol-workloads-post-handoff-v2",
+  "version": "0.2.0",
+  "warmup_ms": 5000
+}

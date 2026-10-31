@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0.0",
+  "date": "2026-10-26",
+  "scope": "Retest following requested radar TX contact move from A:b35 to A:a35 (GPIO20 unchanged)",
+  "user_confirmation": "User replied ready following power-off move instructions; physical destination not independently inspected",
+  "conditions": {
+    "fan": "Requested remain off",
+    "support": "Requested stationary nonconductive support",
+    "configuration": {
+      "command": 1,
+      "request_id": 4,
+      "revision": 28,
+      "status": 1,
+      "active_revision": 28,
+      "saved_revision": 28,
+      "active_crc": 3623560383,
+      "saved_crc": 3623560383,
+      "flags": 95,
+      "message": "Active and saved"
+    }
+  },
+  "summary": {
+    "type": "summary",
+    "samples": 241,
+    "errors": [],
+    "quality": {
+      "environment_sensor": {
+        "fresh": 241
+      },
+      "presence_sensor": {
+        "fault": 241
+      },
+      "health": {
+        "fresh": 241
+      }
+    },
+    "ages": {
+      "environment_sensor": {
+        "min": 87,
+        "max": 592
+      },
+      "presence_sensor": {
+        "min": 91,
+        "max": 98
+      },
+      "health": {
+        "min": 136,
+        "max": 643
+      }
+    },
+    "radar_counts": {},
+    "max_rtt_ms": 98.12009998131543,
+    "duration_seconds": 120.0813860000053,
+    "health_delta": [
+      0,
+      0,
+      480,
+      0,
+      832,
+      0,
+      0,
+      0
+    ],
+    "runtime_end": {
+      "state": 1,
+      "generation": 2,
+      "failed_workers": 0,
+      "retained_instances": 3,
+      "service_error": 0,
+      "apply_error": 0,
+      "recovery_error": 0
+    },
+    "configuration": {
+      "active_revision": 28,
+      "saved_revision": 28,
+      "active_crc": 3623560383,
+      "saved_crc": 3623560383,
+      "flags": 80
+    }
+  },
+  "result": "FAIL: all 241 radar snapshots were fault/timeout, while all 241 BMP388 snapshots were fresh. Contact change did not restore communication.",
+  "next_step": "Read-only HLKRadarTool Bluetooth observation and current baud/firmware identification, independently of ESP UART path; no firmware update or configuration change requested.",
+  "evidence": [
+    {
+      "path": "build/hardware-acceptance-20261026/tx-a35-retest-060535.jsonl",
+      "sha256": "704b2a257beea2f0f9b10cbb82c8bf95fc5e85b46cb28946791d52f4776d4b4a"
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/restore-060531.json",
+      "sha256": "9d7a0f8f6da278dafe5dd2c687c5cdbdf9955442fe63d4bc531e9dd185ed2253"
+    }
+  ]
+}

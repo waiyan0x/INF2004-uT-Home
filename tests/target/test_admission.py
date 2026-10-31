@@ -33,9 +33,23 @@ class AdmissionTests(unittest.TestCase):
                    "-I", str(ROOT / "firmware/third_party/cjson"),
                    "-I", str(ROOT / "firmware/src/automation"), "-I", str(ROOT / "firmware/src/services"),
                    "-I", str(ROOT / "firmware/include")]
-        command += [str(ROOT / p) for p in PARSER_SOURCES]
-        command += [str(ROOT / "firmware/third_party/cjson/cJSON.c"),
-                    str(ROOT / "tests/target/admit_main.c"), "-lm", "-o", str(cls.binary)]
+        objcopy = shutil.which("objcopy")
+        if objcopy is None:
+            raise AssertionError("GNU objcopy is required for allocator interception")
+        aliases = []
+        for original, replacement in (("malloc", "allocate"), ("calloc", "zero"),
+                                      ("realloc", "resize"), ("free", "release")):
+            aliases += ["--redefine-sym", f"{original}=heaptrap_{replacement}"]
+        objects = []
+        # Intercept the owned parser and vendor objects, not the host CRT's
+        # startup/file-I/O allocator. No allocator call in these objects escapes.
+        for index, source in enumerate(PARSER_SOURCES + ["firmware/third_party/cjson/cJSON.c"]):
+            target = cls.folder / f"parser-{index}.o"
+            subprocess.run(command + ["-c", str(ROOT / source), "-o", str(target)], check=True)
+            subprocess.run([objcopy, *aliases, str(target)], check=True)
+            objects.append(str(target))
+        command += objects + [str(ROOT / "tests/target/admit_main.c"),
+                              str(ROOT / "tests/target/heaptrap.c"), "-lm", "-o", str(cls.binary)]
         result = subprocess.run(command, capture_output=True, text=True)
         if result.returncode:
             raise AssertionError(result.stdout + result.stderr)
@@ -43,23 +57,95 @@ class AdmissionTests(unittest.TestCase):
         cls.catalogue = Catalogue(ROOT)
         cls.manifest = json.loads((ROOT / "configs/builds/host-reference.json").read_bytes())
 
-    def run_documents(self, documents, catalogue=False):
+    def test_allocator_interception_control(self):
+        result = subprocess.run([str(self.binary), "heap-probe"], capture_output=True, text=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.strip(), "heap probe intercepted: 1")
+        self.assertEqual(result.stderr, "")
+
+    def test_heap_violation_fails_without_aborting(self):
+        path = self.folder / "heap-violation.json"
+        path.write_text(json.dumps(self.base), encoding="utf-8")
+        result = subprocess.run([str(self.binary), "heap-violation", str(path)],
+                                capture_output=True, text=True, timeout=5)
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(result.stderr.strip(), "Unexpected heap use: 1 calls")
+
+    def run_documents(self, documents, catalogue=False, parser=False, light_probe=False):
         paths = []
         for index, document in enumerate(documents):
             raw = document if isinstance(document, bytes) else json.dumps(document, separators=(",",":")).encode()
             path = self.folder / f"input-{index}.json"
             path.write_bytes(raw)
             paths.append(str(path))
-        result = subprocess.run([str(self.binary), "catalogue" if catalogue else "binding", *paths],
+        mode = ("parser" if parser else "light-probe" if light_probe else
+                "catalogue" if catalogue else "binding")
+        result = subprocess.run([str(self.binary), mode, *paths],
                                 capture_output=True, text=True, timeout=20)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         rows = [tuple(map(int, line.split())) for line in result.stdout.splitlines()]
         self.assertEqual(len(rows), len(documents))
         return rows
 
+    def test_unadvertised_light_admission_matches_host_limits(self):
+        document = json.loads((ROOT / "configs/nodes/c3-protocol-demo.json").read_bytes())
+        descriptor = self.catalogue.descriptors[("sen0390", "1.0.0")]
+        document["queues"].append(dict(id="readings.light", item_type="light_sample",
+                                      depth=8, overflow_policy="drop_oldest"))
+        document["devices"].append(dict(
+            device_id="light", driver="sen0390", enabled=True,
+            descriptor=dict(id="sen0390", version="1.0.0"),
+            interface=dict(ref="i2c0", address="0x4a", enable_gpio=5),
+            behaviour=dict(descriptor["defaults"]["behaviour"], destination="readings.light"),
+            task=dict(name="light_reader", priority=12, stack_size_bytes=3072)))
+        manifest = deepcopy(self.manifest)
+        manifest["drivers"].append("sen0390")
+        invalid = []
+        for field, value in (("enable_gpio", 0), ("enable_gpio", 18), ("address", "0x4b")):
+            candidate = deepcopy(document)
+            candidate["devices"][-1]["interface"][field] = value
+            invalid.append(candidate)
+        for field, value in (("interval_ms", 999), ("timeout_ms", 29)):
+            candidate = deepcopy(document)
+            candidate["devices"][-1]["behaviour"][field] = value
+            invalid.append(candidate)
+        candidate = deepcopy(document)
+        del candidate["devices"][-1]["interface"]["enable_gpio"]
+        invalid.append(candidate)
+        self.assertNotEqual(self.run_documents([document])[0][0], 0)
+        results = self.run_documents([document, *invalid], light_probe=True)
+        self.assertEqual([row[0] == 0 for row in results], [True] + [False] * len(invalid))
+        build_plan(document, manifest, self.catalogue)
+        for candidate in invalid:
+            with self.assertRaises(ConfigurationError):
+                build_plan(candidate, manifest, self.catalogue)
+
+    def test_pool_exhaustion_and_recovery_with_heap_traps(self):
+        # Root + array + 510 Boolean nodes use all 512 typed slots.
+        at_limit = {"items": [True] * 510}
+        over_limit = {"items": [True] * 511}
+        requests = {f"k{i}": 1 for i in range(342)}
+        valid = {"value": 4294967295, "signed": -2147483648}
+        malformed = b'{"items": [true,]}'
+        documents = [at_limit, over_limit, valid, requests, valid, malformed, valid] * 20
+        rows = self.run_documents(documents, parser=True)
+        expected = [True, False, True, False, True, False, True] * 20
+        self.assertEqual([row[0] == 0 for row in rows], expected)
+
+    def test_exact_input_limit_and_node_sized_text_with_heap_traps(self):
+        boundary = b'{"text":"' + b'x' * 8181 + b'"}'
+        self.assertEqual(len(boundary), 8192)
+        # Text allocation equal to cJSON size may use a typed node's bytes.
+        strings = {"values": ["x" * size for size in (30, 31, 32, 62, 63, 64)]}
+        rows = self.run_documents([boundary, boundary + b' ', strings, {}], parser=True)
+        self.assertEqual([row[0] == 0 for row in rows], [True, False, True, True])
+
     def test_example_profiles_and_actual_binding_availability(self):
         two = json.loads((ROOT / "configs/nodes/two-environment-sensors.json").read_bytes())
-        for document, result in zip([self.base, two], self.run_documents([self.base,two])):
+        demo = json.loads((ROOT / "configs/nodes/c3-protocol-demo.json").read_bytes())
+        examples = [self.base, two, demo]
+        for document, result in zip(examples, self.run_documents(examples)):
             host = build_plan(document, self.manifest, self.catalogue)
             self.assertEqual(result[:4], (0,len(document["devices"]),host["resources"]["active_tasks"],
                                         host["resources"]["device_stack_bytes"]))
@@ -171,7 +257,7 @@ class AdmissionTests(unittest.TestCase):
         self.assertEqual(board["resources"]["device_stack_budget_bytes"],16384)
         self.assertEqual(board["resources"]["max_queues"],4)
         self.assertEqual(set(self.catalogue.descriptors),
-                         {(name,"1.0.0") for name in ("bmp388","ssd1306_spi","hlk_ld2450","hc_sr04","pwm_output")})
+                         {(name,"1.0.0") for name in ("bmp388","ssd1306_spi","hlk_ld2450","hc_sr04","pwm_output","sen0390")})
 
     def test_rule_profile_and_alternate_signed_environment_metric(self):
         rule = json.loads((ROOT / "configs/nodes/distance-controlled-output.json").read_bytes())

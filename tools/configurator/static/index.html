@@ -120,6 +120,33 @@
               <details><summary>Preparing an idle board</summary><p class="hint">I2C and radar detection need an empty hardware configuration; manual selections only prepare draft settings. Keep a copy of the profile you will restore. In a separate draft, empty the devices, interfaces, queues and rules lists, then Validate and review → Apply &amp; save. This also replaces the saved startup profile. Restore your original draft to add discoveries. Detection never performs this step for you.</p></details>
             </div>
           </details>
+          <details class="card datasheet-card" id="datasheet-details" open>
+            <summary><img class="datasheet-icon" src="/assets/datasheet/document.png" alt=""> Datasheet assistant</summary>
+            <div class="details-body">
+              <p class="hint">Analysis sends the PDF to Google Gemini and may incur API charges. Review all facts and page references.</p>
+              <div class="field"><label class="field__label" for="datasheet-file">PDF datasheet</label><input class="input" id="datasheet-file" type="file" accept=".pdf,application/pdf"></div>
+              <button class="btn btn--primary" id="datasheet-analyse" type="button"><img class="datasheet-icon" src="/assets/datasheet/sparkles.png" alt=""> Analyse</button>
+              <p class="hint" id="datasheet-status" role="status" aria-live="polite">Choose a PDF to prepare an unreviewed device description.</p>
+              <button class="btn" id="datasheet-download" type="button" disabled>Download device draft JSON</button>
+              <details><summary>Key facts and source pages</summary><div class="details-body" id="datasheet-facts"></div></details>
+              <details><summary>Uncertainties</summary><div class="details-body" id="datasheet-uncertainties"></div></details>
+              <details><summary>Driver availability and configuration</summary><div class="details-body">
+                <div class="field"><label class="field__label" for="datasheet-name">Reviewed catalogue device ID</label><input class="input" id="datasheet-name" placeholder="e.g. bmp388"></div>
+                <button class="btn" id="datasheet-match" type="button">Check catalogue</button>
+                <p class="hint" id="datasheet-driver">A name match is only a candidate; confirm the actual module.</p>
+                <div class="field-row">
+                  <div class="field"><label class="field__label" for="datasheet-device-id">Device name</label><input class="input" id="datasheet-device-id" value="i2c_sensor" maxlength="22"></div>
+                  <div class="field"><label class="field__label" for="datasheet-address">Device address</label><select class="input" id="datasheet-address"></select></div>
+                  <div class="field"><label class="field__label" for="datasheet-sda">SDA GPIO</label><input class="input" id="datasheet-sda" type="number" min="0" max="21"></div>
+                  <div class="field"><label class="field__label" for="datasheet-scl">SCL GPIO</label><input class="input" id="datasheet-scl" type="number" min="0" max="21"></div>
+                  <div id="datasheet-enable-wrap" hidden><div class="field"><label class="field__label" for="datasheet-enable">Enable GPIO</label><input class="input" id="datasheet-enable" type="number" min="0" max="21"><p class="hint">The reviewed profile enables the sensor when you apply it.</p></div></div>
+                </div>
+                <label class="discovery-confirm"><input type="checkbox" id="datasheet-confirm">I checked the device identity, selected pins, supply and signal levels.</label>
+              </div></details>
+              <button class="btn" id="datasheet-generate" type="button" disabled>Generate draft</button>
+              <p class="hint" id="datasheet-generate-status" role="status" aria-live="polite">A draft cannot install a driver or change the board. Review and apply separately.</p>
+            </div>
+          </details>
         </section>
         <section class="section" aria-labelledby="resources-heading">
           <div class="section__head" data-accent="amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-layers"/></svg><h2 id="resources-heading">Wiring &amp; resources</h2></div>

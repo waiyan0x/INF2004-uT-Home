@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>uT-Home · Wiring guide</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="./" aria-label="uT-Home wiring guide"><span class="brand-mark">μT</span><span>uT-Home <small>WORKBENCH</small></span></a>
+    <div class="header-state"><span class="status-dot"></span> Local guide <span class="divider">/</span> No board connected by this app</div>
+    <button id="help-toggle" class="quiet-button" aria-expanded="false" aria-controls="help">How to read this</button>
+  </header>
+  <main>
+    <section class="intro">
+      <div><div class="eyebrow">TWO BOARDS. ONE WIRE AT A TIME.</div><h1>Your wiring, made visible.</h1><p>Choose a setup. Follow the highlighted endpoints. Check each connection before moving on.</p></div>
+      <span class="plan-badge">Fresh rebuild · ESP32-C3 SuperMini</span>
+    </section>
+    <section id="help" class="help-panel" hidden>
+      <h2>Match the physical boards to the drawing first</h2>
+      <p>Match your photo: Board A is on the left, with a–j across the top. Board B is on the right, with J–A across the top and A–J along the bottom. On Board B, always use the <strong>bottom letters and right-hand row numbers</strong>. Its two topmost rows sit above the printed 0 and remain unused. The ESP's USB socket points up on Board A.</p>
+      <p><strong>A · j30</strong> means Board A, column j, row 30. <strong>B · a14</strong> means Board B's bottom A column and right-hand row 14 (the left edge shows 46 at that height). <strong>A · R−23</strong> means Board A, right blue rail, the 23rd hole counted from the top. Rail numbers are guide labels, not printed row numbers. Each board has 63 main rows and 50 holes per rail.</p>
+      <p>Five holes a–e in one numbered row connect together; f–j connect separately. Power rails run lengthwise and may split in the middle. The plan bridges holes 25 and 26 on each used rail. Verify actual continuity with USB unplugged.</p>
+      <p>Wire colours in this guide indicate purpose, not the colours of your existing cables. Module pin labels are schematic and do not establish connector order. Follow the module's printed labels. Crossing wires do not connect unless they share an endpoint.</p>
+      <p>The saved empty profile was last verified on 20 October 2026, revision 8. This app cannot inspect the ESP, save profiles, identify devices, or certify a connection. Check the current board state before your next bench session. FC-51 and HC-020K still need verified wiring and driver support.</p>
+    </section>
+    <div class="workspace">
+      <aside class="guide-panel">
+        <label class="field-label" for="setup">BUILD A SETUP</label>
+        <select id="setup"></select>
+        <p id="setup-description" class="setup-description"></p>
+        <div class="guide-progress"><span id="step-count"></span><span id="review-count"></span></div>
+        <div class="progress-track"><div id="progress-fill"></div></div>
+        <nav id="step-list" aria-label="Wiring steps"></nav>
+      </aside>
+      <section class="bench-panel" aria-label="Interactive breadboard diagram">
+        <div class="bench-toolbar">
+          <div><h2>The bench</h2><span id="view-caption">Placement overview</span></div>
+          <div class="view-actions"><button id="overview" class="small-button active" aria-pressed="true">Overview</button><button id="focus" class="small-button" aria-pressed="false">Focus on step</button><label class="toggle-label"><input id="all-wires" type="checkbox"> All wires</label></div>
+        </div>
+        <div class="power-banner"><span class="power-symbol">⏻</span><strong id="power-state">USB unplugged</strong><span id="power-note">Wiring steps are performed with all power off.</span></div>
+        <div id="diagram-wrap"><svg id="bench" role="img" aria-labelledby="diagram-title diagram-desc"><title id="diagram-title">Two breadboards and the current wiring step</title><desc id="diagram-desc">Select a step for exact endpoints. A text connection list is also available below.</desc></svg></div>
+        <div class="wire-legend"><span><i class="dot ground"></i>Ground</span><span><i class="dot v33"></i>3.3 V</span><span><i class="dot v5"></i>5 V</span><span><i class="dot signal"></i>Signal</span><span class="legend-hint">Bright wire = selected step</span></div>
+        <div id="hole-detail" class="hole-detail" aria-live="polite">Select a hole to see its address and electrical connection.</div>
+      </section>
+      <aside class="detail-panel" aria-live="polite">
+        <div class="step-kicker" id="step-kicker"></div>
+        <h2 id="step-title"></h2>
+        <p id="step-instruction"></p>
+        <div id="endpoints" class="endpoints"></div>
+        <div id="detail-note" class="detail-note"></div>
+        <div id="check-box" class="check-box"><span class="field-label">CHECK BEFORE CONTINUING</span><p id="check-text"></p></div>
+        <label class="confirm-label"><input id="step-done" type="checkbox"><span id="done-label">I completed this step</span></label>
+        <div class="step-actions"><button id="previous" class="small-button">← Back</button><button id="next" class="primary-button">Next step →</button></div>
+        <p class="completion-note">Checkmarks are your notes, not automatic verification.</p>
+      </aside>
+    </div>
+    <section class="connections-panel">
+      <div class="section-heading"><div><div class="eyebrow">KEEP THE ENDPOINTS IN VIEW</div><h2>Connection list</h2></div><button id="print" class="quiet-button">Print this plan</button></div>
+      <div class="table-wrap"><table><thead><tr><th>Wire</th><th>From</th><th>To</th><th>Purpose</th></tr></thead><tbody id="wire-table"></tbody></table></div>
+    </section>
+    <section class="equipment-panel"><div><div class="eyebrow">ON YOUR BENCH</div><h2>Equipment & readiness</h2></div><div id="equipment-list"></div></section>
+    <footer>uT-Home · Member 4 bench guide <span>Planning aid · Power off before changing wires · No automatic device identification</span></footer>
+  </main>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>

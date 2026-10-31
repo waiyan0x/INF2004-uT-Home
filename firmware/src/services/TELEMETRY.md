@@ -6,7 +6,9 @@ Configuration changes remain owned by the controller.
 ## Data ownership and freshness
 
 `shared_publish` copies successful publications into `sampcache` under the same
-nonblocking guard as the queue write. It does not remove items. Display/rule
+short guard as the queue write. The kernel wrapper can yield before acquisition
+to let another task release it; see [shared operations](../runtime/README.md#shared-operations).
+It does not remove items. Display/rule
 consumers retain the existing single-consumer routing contract. Generic queue
 payloads and unregistered sources are ignored by the cache, preserving msgbus's
 general contract. Direct raw msgbus writes intentionally bypass observation;
@@ -60,7 +62,8 @@ Every actual queue drop is counted inside `shared_publish`, including reject-new
 drops. Do not run the legacy raw `hlthbus` observer on these same queues or the
 same drops would be counted twice. Undrained queues, including health queues,
 can therefore produce real overflow events during software-only operation.
-BUSY/errors retry on a later owner iteration; there is no spinning under the
+After bounded guard acquisition attempts, BUSY/errors retry on a later owner
+iteration; there is no spinning under the
 guard. A busy publication can leave one health destination ahead of another;
 reports describe individual publication attempts, not an atomic broadcast.
 
@@ -74,7 +77,7 @@ performs no flash access. Command 5 PROBE remains unchanged.
 
 Observation replies have variable-length payloads. Controller/probe replies remain
 48 bytes. The pump accepts a <=2048-byte observation payload; this format uses
-160..1824 bytes (184..1848 including framing), written in <=48-byte nonblocking
+352..2016 bytes (376..2040 including framing), written in <=48-byte nonblocking
 attempts. The existing 2000 ms whole-reply deadline starts at the first transmit
 step. Partial replies can be discarded after disconnect/expiry without changing
 configuration. The client uses a bounded buffer and overall deadline, validates
@@ -82,11 +85,17 @@ correlation/size/CRC, and never automatically retries a mutation.
 
 All fields below are explicitly little-endian. Error words use signed int32
 two's-complement interpretation. Native structure padding never crosses USB.
-The 160-byte payload header contains 40 uint32 words:
+Payload versions 3 and 4 have a 352-byte header. Version 4 is selected only when
+a light-sample queue is configured; other captures remain version 3. Its first
+160 bytes retain the version-1 layout apart from the version number. The host decoder also
+accepts version 1 (160-byte header) and version 2 (320-byte header); absent audit data is `null`,
+never evidence of zero allocations. The framing version remains 1.
+
+The first 160 header bytes contain 40 uint32 words:
 
 | Byte offset | Field |
 |---|---|
-| 0, 4 | Payload version 1; result 0 success, 1 busy, 2 capture error |
+| 0, 4 | Payload version 3 or 4 (legacy 1/2 accepted); result 0 success, 1 busy, 2 capture error |
 | 8, 12 | Snapshot monotonic time, low/high halves |
 | 16, 20 | Active/saved revision |
 | 24, 28 | Active/saved profile CRC |
@@ -101,6 +110,45 @@ The 160-byte payload header contains 40 uint32 words:
 | 88..119 | Eight event counts |
 | 120..151 | Eight suppressed counts |
 | 152, 156 | Runtime apply/recovery errors |
+
+Versions 2/3/4 append a fixed allocation-audit header:
+
+| Byte offset | Field |
+|---|---|
+| 160 | Flags: available 1, startup sealed 2, saturated 4; all other bits zero |
+| 164 | Reserved zero |
+| 168, 172, 176 | Startup successful SDK allocations, cumulative requested bytes, frees |
+| 180, 184, 188 | Same counters after startup is sealed |
+| 192..235 | Eleven startup kernel create-attempt counters |
+| 236..279 | Eleven normal-operation kernel create-attempt counters |
+| 280..287 | Reserved zero |
+| 288..303 | Four startup kernel allocator entry-attempt counts |
+| 304..319 | Four normal-operation kernel allocator entry-attempt counts |
+
+Versions 3 and 4 additionally distinguish application startup from earlier SDK/kernel
+boot without clearing the original counters:
+
+| Byte offset | Field |
+|---|---|
+| 320 | Application entry observed (0/1); must be 1 when sealed |
+| 324, 328, 332 | Successful SDK allocations, hook byte total, frees during application startup |
+| 336..351 | Four kernel allocator entry-attempt counts during application startup |
+
+Application-startup counters are a subset of total startup. The marker is set
+at the start of `usermain`, before the idle task or controller initialization.
+It ends at seal, before restore. Older captures expose this subset as `null`;
+they cannot prove that application startup was allocation-free.
+
+Create-kind order is task, mutex, semaphore, event flag, mailbox, message buffer,
+fixed pool, variable pool, rendezvous port, cyclic handler, alarm handler.
+Missing/failed providers leave the entire audit extension zero. An unsealed snapshot cannot
+contain normal-operation counts. Counts saturate with a sticky flag instead of
+wrapping. They persist through profile changes; reset starts a new boot.
+Requested bytes are cumulative allocation traffic, not live usage or a peak.
+The SDK callbacks observe successful heap events, not failed attempts. Create
+counters observe attempts regardless of native success. These measurements do
+not independently prove stack safety or cover other allocators. See the
+[counter boundary and review](../runtime/README.md#allocation-and-object-counters).
 
 An unsuccessful capture sends only the header with version/result and all other
 bytes zero. Do not interpret that zero-filled failure as an empty healthy node.
@@ -123,6 +171,8 @@ Missing rows have zero sample time/sequence/status/values and age UINT32_MAX
 (shown as null by Python). Types retain `sample.h` IDs: environment 1 has two
 binary32 values (pressure Pa, temperature Celsius); distance 3 has two uint32
 values (distance mm, echo microseconds); health 4 has uint32 event/count.
+In version 4, light type 5 stores uint32 illuminance in millilux at offset 72,
+bounded to 200,000,000, followed by zero padding. Zero is a valid reading.
 Target type 2 uses three 12-byte slots: word 0 is present bit 0 and resolution mm
 in bits 16..31; word 1 contains signed-int16 x/y mm in low/high halves; word 2
 contains signed-int16 speed cm/s in the low half. Unused bits and absent slots
@@ -144,7 +194,7 @@ The current single-consumer admission reservation remains conservative; renderin
 
 Each page shows the device index (or health queue), a shortened uppercase label,
 and MISSING/FRESH/STALE/FAULT. Values include pressure/temperature, distance/echo,
-all three radar slots with signed coordinates/velocity, or historical health
+all three radar slots with signed coordinates/velocity, integer lux, or historical health
 event/count. Health reports do not certify current node health. Missing/faulted
 values clear old numbers; an unavailable snapshot shows WAITING FOR DATA.
 The built-in 5x7 alphabet has 41 glyphs; unsupported label characters are blank.
@@ -163,10 +213,90 @@ avoids a separate frame allocator. Historical ELF sizes are recorded in qualific
 
 ## Read a snapshot
 
+Workload observation is a separate read-only command, **9** (`WORKCOST`), with
+zero request revision/payload. It neither consumes mutation IDs nor evicts the
+last mutation reply. `Client.workcost()` decodes it; existing telemetry and the
+Configuration Desk retain their current wire contract and appearance.
+
+Both version-1 and version-2 payloads are 384 bytes: a 96-byte header and four 72-byte permanent
+worker records. All words are explicitly little-endian uint32, except the
+timestamp stored as consecutive low/high words. Failure is a 96-byte header
+with its selected version, result 1 (busy) or 2 (unavailable), and every other byte zero.
+Version 2 is selected only when a scheduler-counter provider is installed.
+
+| Header byte | Meaning |
+|---|---|
+| 0 / 4 | Version / result (0 = complete) |
+| 8 / 12 / 16 | Runtime generation / active revision / active profile CRC |
+| 20 | Four permanent slots |
+| 24 / 28 | SDK monotonic microsecond timestamp, low/high; distinct from kernel uptime |
+| 32 / 36 / 40 | Controller reservation 8448 / untouched prefix / measured flag |
+| 44 / 48 / 52 | Idle reservation 1024 / untouched prefix / measured flag |
+| 56 | Observer wall duration in microseconds, including stack scans and encoding |
+| 60 | Version 2: scheduler observation available, 0 or 1; version 1: zero |
+| 64 / 68 | Version 2: native monotonic milliseconds, low/high |
+| 72 / 76 | Version 2: cumulative idle-attributed milliseconds modulo 2^32 / tick period in ms |
+| 80..95 | Reserved zero |
+
+| Record byte | Meaning |
+|---|---|
+| 0 / 4 / 8 | Physical slot / configured source index / nonreused binding handle |
+| 12 | Flags: bound = 1, costs available = 2, stack measured = 4 |
+| 16 / 20 | Permanent 8192-byte reservation / minimum untouched prefix since boot |
+| 24..64 | Eleven `workcost_stats_t` counters, in declaration order |
+| 68 | Reserved zero |
+
+Unbound records have zero source, handle and cost fields. Unavailable costs have
+zero wire counters but decode to `None`, never measured zeros. Source indices
+retain disabled entries in the admitted profile. Binding handles/generation
+prevent differencing across replacements. Cumulative costs reset on a dormant
+slot's next binding; stack minima persist across bindings. Saturated counters
+are explicit and cannot label calibration windows. The host separately binds
+the complete verified ELF and profile SHA-256; wire CRC alone is not provenance.
+
+Worker elapsed time includes waits/preemption. Bus wait covers acquisition;
+active covers the synchronous transfer and release call, not electrical wire
+time. Successful payload excludes I2C address/framing bits and discarded UART
+bytes. UART `AGAIN` is an expected nonblocking result. Controller-side setup and
+discovery transfers are excluded. Completion lateness uses the kernel clock at
+1 ms resolution, converted to microseconds; SDK and kernel epochs are never
+compared. No metric claims CPU busy time. Each cost snapshot is coherent; the
+nearby owner metadata/stack reads are not a simultaneous hardware trace.
+
+Version 2 reads `tk_get_otm` and the permanent idle task's `td_inf_tsk` under one
+saved/restored interrupt guard, without clearing either counter. The native
+timer attributes each 1 ms tick to the current task. Interrupt work can therefore
+be attributed to idle or another interrupted task; this is sampled scheduler
+activity, not cycle-accurate CPU or isolated ISR utilization. A provider failure
+sets availability zero and leaves bytes 64..79 zero; worker costs remain useful.
+
+`WorkcostReply.scheduler_window(previous)` accepts two available observations
+with matching revision, CRC and binding generation, increasing SDK timestamps,
+and a native window of 100 ticks or 100 ms (whichever is longer) through 60 s.
+It handles one 32-bit idle wrap, rejects resets/inconsistent deltas and reports
+`sampled_non_idle_percent = 100 * (elapsed - idle) / elapsed`. The caller must
+still verify the same connection and ELF identity. A single snapshot cannot
+yield utilization. The original workload measurement/export contract and frozen
+AI study features remain unchanged. The Desk displays no new metric without
+its separate UI review.
+
+Manual C review of this extension: fixed caller-owned callback storage, checked
+native task/clock results, nonnegative high-word conversion, bounded unsigned
+shifts and modulo idle arithmetic. The permanent idle ID is published before
+normal observation and never rebound. No allocation, object creation, counter
+reset, blocking wait or I/O occurs inside the observation guard. Target fixture
+checks increasing native time and idle attribution; C/Python parity covers both
+versions, missing providers and a high-word clock. Host window checks cover wrap,
+short/long windows, changed profile/generation, reset and malformed availability.
+
+The measurement helpers and wire path are implemented in source; see current
+qualification records before treating an installed image or dataset as qualified.
+
 With application firmware installed and no other USB client connected:
 
 ```powershell
 python -m tools.config_transfer telemetry --port COMX
+python -m tools.config_transfer workcost --port COMX
 ```
 
 Replace COMX with the actual board port. Exit 0 means a decoded successful

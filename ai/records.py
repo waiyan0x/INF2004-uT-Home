@@ -42,7 +42,10 @@ def features(experiment, interval, catalogue):
 def assess_run(experiment, run, schema=None):
     """Interrupted runs are unusable; complete bad runs are valid negative examples."""
     integer_numbers(run)
-    check(run, schema or load_document(ROOT / "ai/contracts/timing-run.schema.json"), "timing run")
+    live = run.get("version") == "0.2.0"
+    selected_schema = (load_document(ROOT / "ai/contracts/timing-run-v0.2.schema.json") if live
+                       else schema or load_document(ROOT / "ai/contracts/timing-run.schema.json"))
+    check(run, selected_schema, "timing run")
     require(run["experiment_sha256"] == digest(experiment), "Run refers to a different experiment")
     trials = {row["interval_ms"]: row for row in experiment["trials"]}
     require(run["interval_ms"] in trials, "Run interval was not planned")
@@ -57,11 +60,23 @@ def assess_run(experiment, run, schema=None):
         require(run["method"] == method and run["firmware_sha256"] is not None
                 and run["identity_evidence_sha256"] is not None
                 and experiment["build_manifest"]["backend"] == "target", "Hardware provenance is incomplete")
+    if live:
+        from ai.provenance import check_run_evidence
+        check_run_evidence(experiment, run)
+        require(run["capture"]["terminal_tolerance_ms"] == 2 * run["sample_interval_ms"], "Invalid terminal tolerance")
+        if run["capture"]["status"] == "interrupted":
+            require(bool(run["capture"]["reason"]), "Interrupted capture requires a reason")
+            return dict(usable=False, reason=run["capture"]["reason"], passes=None)
+        require(run["capture"]["reason"] is None, "Complete capture cannot have an interruption reason")
     expected_hash = trials[run["interval_ms"]]["profile_sha256"]
     samples = run["samples"]
     end = scenario["warmup_ms"] + scenario["duration_ms"]
     reason = None
-    if samples[0]["elapsed_ms"] != 0 or samples[-1]["elapsed_ms"] != end:
+    if len(samples) < 2:
+        return dict(usable=False, reason="insufficient_observations", passes=None)
+    terminal_ok = (end <= samples[-1]["elapsed_ms"] <= end + run["capture"]["terminal_tolerance_ms"]
+                   if live else samples[-1]["elapsed_ms"] == end)
+    if samples[0]["elapsed_ms"] != 0 or not terminal_ok:
         reason = "incomplete_window"
     for previous, current in zip(samples, samples[1:]):
         gap = current["elapsed_ms"] - previous["elapsed_ms"]
@@ -81,7 +96,7 @@ def assess_run(experiment, run, schema=None):
     if reason:
         return dict(usable=False, reason=reason, passes=None)
     maximum = max((row["metric_ms"] for row in observed if row["metric_ms"] is not None), default=None)
-    healthy = all(row["quality"] == "fresh" for row in observed)
+    healthy = all(row["quality"] == "fresh" for row in observed) and (not live or run["capture"]["runtime_healthy"])
     faults = samples[-1]["health_faults"] - samples[0]["health_faults"]
     return dict(usable=True, reason=None, passes=bool(healthy and faults == 0 and maximum is not None
                 and maximum <= scenario["goal"]["limit_ms"]), max_observed_ms=maximum,

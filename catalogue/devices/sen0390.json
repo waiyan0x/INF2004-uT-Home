@@ -1,0 +1,175 @@
+{
+  "schema_version": "1.0.0",
+  "descriptor_id": "sen0390",
+  "descriptor_version": "1.0.0",
+  "driver_id": "sen0390",
+  "protocol": "i2c",
+  "description": "Reviewed SEN0390 identification and bounded settings; hardware acceptance and compiled adapter remain pending.",
+  "instance_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "device_id": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+      },
+      "driver": {
+        "const": "sen0390"
+      },
+      "descriptor": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "const": "sen0390"
+          },
+          "version": {
+            "const": "1.0.0"
+          }
+        },
+        "required": [
+          "id",
+          "version"
+        ]
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "interface": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "address": {
+            "enum": [
+              "0x4a"
+            ]
+          },
+          "enable_gpio": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 21
+          }
+        },
+        "required": [
+          "ref",
+          "address",
+          "enable_gpio"
+        ]
+      },
+      "behaviour": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "periodic_sensor"
+          },
+          "operation": {
+            "const": "read"
+          },
+          "interval_ms": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 60000
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 100
+          },
+          "destination": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          }
+        },
+        "required": [
+          "profile",
+          "operation",
+          "interval_ms",
+          "timeout_ms",
+          "destination"
+        ]
+      },
+      "task": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 31
+          },
+          "stack_size_bytes": {
+            "type": "integer",
+            "minimum": 1024,
+            "maximum": 8192
+          }
+        },
+        "required": [
+          "name",
+          "priority",
+          "stack_size_bytes"
+        ]
+      }
+    },
+    "required": [
+      "device_id",
+      "driver",
+      "descriptor",
+      "enabled",
+      "interface",
+      "behaviour",
+      "task"
+    ]
+  },
+  "bus_schema": {
+    "type": "object",
+    "properties": {
+      "protocol": {
+        "const": "i2c"
+      },
+      "clock_hz": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 400000
+      }
+    }
+  },
+  "execution": {
+    "kind": "periodic",
+    "period_field": "interval_ms",
+    "timeout_field": "timeout_ms",
+    "timeout_unit": "ms"
+  },
+  "routing": {
+    "output_type": "light_sample",
+    "input_types": []
+  },
+  "resources": {
+    "min_stack_bytes": 3072,
+    "max_instances": 1
+  },
+  "defaults": {
+    "behaviour": {
+      "profile": "periodic_sensor",
+      "operation": "read",
+      "interval_ms": 1000,
+      "timeout_ms": 100,
+      "destination": "telemetry.light"
+    },
+    "priority": 12,
+    "stack_size_bytes": 3072
+  },
+  "provenance": [
+    "https://github.com/DFRobot/DFRobot_B_LUX_V30B/blob/master/DFRobot_B_LUX_V30B.cpp",
+    "https://github.com/DFRobot/DFRobot_B_LUX_V30B/blob/master/DFRobot_B_LUX_V30B.h",
+    "https://documentation.espressif.com/esp32-c3_technical_reference_manual_en.pdf"
+  ]
+}

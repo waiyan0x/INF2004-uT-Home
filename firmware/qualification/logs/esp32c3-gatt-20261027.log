@@ -1,0 +1,79 @@
+[ble-probe] diagnostic only; UTHOME-GATT read-only uptime; no pairing, NVS or configuration access
+I (3355773044) BLE_INIT: BT controller compile version [51d9dfd]
+I (3355773045) BLE_INIT: Put all controller code in flash
+I (3355773045) BLE_INIT: Using main XTAL as clock source
+I (3355773046) BLE_INIT: Bluetooth MAC: d4:05:92:e6:c3:be
+I (3355773048) phy_init: phy_version 1235,8bd8c6fc,Apr 13 2026,18:46:20
+[ble-probe] stage=1 status=0 internal_free=71936
+[ble-probe] stage=7 status=0 internal_free=71888
+I (3355773099) NimBLE: GAP procedure initiated: stop advertising.
+
+[ble-probe] stage=2 status=0 internal_free=64460
+I (3355773105) NimBLE: GAP procedure initiated: advertise; 
+I (3355773105) NimBLE: disc_mode=2
+I (3355773106) NimBLE:  adv_channel_map=0 own_addr_type=0 adv_filter_policy=0 adv_itvl_min=0 adv_itvl_max=0
+I (3355773106) NimBLE: 
+
+[ble-probe] stage=3 status=0 internal_free=64440
+I (3355818111) NimBLE: GAP procedure initiated: stop advertising.
+
+[ble-probe] stage=8 status=0 internal_free=64440
+[ble-probe] stage=9 status=0 internal_free=64440
+[ble-probe] completed result=-6 stage=9 status=0 advertised=1 resets=0 host_exited=0
+[ble-probe] connections=0 disconnections=0 reads=0
+[radio-probe] observation=0 free=128856 largest=114688 startup_alloc=24 startup_bytes=7939 normal_alloc=0 normal_bytes=0 application_alloc=0 sealed=0
+[radio-probe] observation=0 kind=0 startup=7 normal=0
+[radio-probe] observation=0 kind=1 startup=32 normal=0
+[radio-probe] observation=0 kind=2 startup=50 normal=0
+[radio-probe] observation=0 kind=3 startup=1 normal=0
+[radio-probe] observation=0 kind=4 startup=0 normal=0
+[radio-probe] observation=0 kind=5 startup=0 normal=0
+[radio-probe] observation=0 kind=6 startup=0 normal=0
+[radio-probe] observation=0 kind=7 startup=0 normal=0
+[radio-probe] observation=0 kind=8 startup=0 normal=0
+[radio-probe] observation=0 kind=9 startup=0 normal=0
+[radio-probe] observation=0 kind=10 startup=0 normal=0
+[radio-probe] observation=1 free=64440 largest=55296 startup_alloc=126 startup_bytes=72718 normal_alloc=0 normal_bytes=0 application_alloc=102 sealed=0
+[radio-probe] observation=1 kind=0 startup=9 normal=0
+[radio-probe] observation=1 kind=1 startup=32 normal=0
+[radio-probe] observation=1 kind=2 startup=52 normal=0
+[radio-probe] observation=1 kind=3 startup=1 normal=0
+[radio-probe] observation=1 kind=4 startup=0 normal=0
+[radio-probe] observation=1 kind=5 startup=0 normal=0
+[radio-probe] observation=1 kind=6 startup=0 normal=0
+[radio-probe] observation=1 kind=7 startup=0 normal=0
+[radio-probe] observation=1 kind=8 startup=0 normal=0
+[radio-probe] observation=1 kind=9 startup=0 normal=0
+[radio-probe] observation=1 kind=10 startup=0 normal=0
+[radio-probe] observation=2 free=64440 largest=55296 startup_alloc=126 startup_bytes=72718 normal_alloc=0 normal_bytes=0 application_alloc=102 sealed=1
+[radio-probe] observation=2 kind=0 startup=9 normal=0
+[radio-probe] observation=2 kind=1 startup=32 normal=0
+[radio-probe] observation=2 kind=2 startup=52 normal=0
+[radio-probe] observation=2 kind=3 startup=1 normal=0
+[radio-probe] observation=2 kind=4 startup=0 normal=0
+[radio-probe] observation=2 kind=5 startup=0 normal=0
+[radio-probe] observation=2 kind=6 startup=0 normal=0
+[radio-probe] observation=2 kind=7 startup=0 normal=0
+[radio-probe] observation=2 kind=8 startup=0 normal=0
+[radio-probe] observation=2 kind=9 startup=0 normal=0
+[radio-probe] observation=2 kind=10 startup=0 normal=0
+[radio-probe] observation=3 free=0 largest=0 startup_alloc=0 startup_bytes=0 normal_alloc=0 normal_bytes=0 application_alloc=0 sealed=0
+[radio-probe] observation=3 kind=0 startup=0 normal=0
+[radio-probe] observation=3 kind=1 startup=0 normal=0
+[radio-probe] observation=3 kind=2 startup=0 normal=0
+[radio-probe] observation=3 kind=3 startup=0 normal=0
+[radio-probe] observation=3 kind=4 startup=0 normal=0
+[radio-probe] observation=3 kind=5 startup=0 normal=0
+[radio-probe] observation=3 kind=6 startup=0 normal=0
+[radio-probe] observation=3 kind=7 startup=0 normal=0
+[radio-probe] observation=3 kind=8 startup=0 normal=0
+[radio-probe] observation=3 kind=9 startup=0 normal=0
+[radio-probe] observation=3 kind=10 startup=0 normal=0
+[probe] alive=0
+[probe] alive=1
+[probe] alive=2
+[probe] alive=3
+[probe] alive=4
+[probe] alive=5
+[probe] alive=6
+[probe] alive=7

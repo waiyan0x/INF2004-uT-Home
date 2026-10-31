@@ -20,9 +20,10 @@ static bool sources (const cfgjson_value_t * p_value,
                      const cfgplan_t *       p_plan,
                      cfgplan_device_t *      p_device);
 static const char * const gp_names[] = {
-    "bmp388", "ssd1306_spi", "hlk_ld2450", "hc_sr04", "pwm_output"};
-static const uint32_t g_min_stacks[]    = {3072U, 3072U, 4096U, 3072U, 3072U};
-static const uint32_t g_max_instances[] = {2U, 4U, 1U, 2U, 4U};
+    "bmp388", "ssd1306_spi", "hlk_ld2450", "hc_sr04", "pwm_output", "sen0390"};
+static const uint32_t g_min_stacks[] = {
+    3072U, 3072U, 4096U, 3072U, 3072U, 3072U};
+static const uint32_t g_max_instances[] = {2U, 4U, 1U, 2U, 4U, 1U};
 
 /** @brief Return the compiled descriptor name, separate from runtime code. */
 const char * cfgdev_name (cfgplan_driver_t driver)
@@ -155,7 +156,9 @@ bool cfgdev_limits (const cfgplan_t * p_plan)
                 (p_old->driver == p_device->driver) &&
                 (((CFGPLAN_ENV == p_device->driver) &&
                   (p_old->address == p_device->address)) ||
-                 (CFGPLAN_RADAR == p_device->driver)))
+                 (CFGPLAN_RADAR == p_device->driver) ||
+                 ((CFGPLAN_LIGHT == p_device->driver) &&
+                  (p_old->address == p_device->address))))
             {
                 return false;
             }
@@ -170,7 +173,9 @@ static bool connection (const cfgjson_value_t * p_value,
                         const cfgplan_t *       p_plan,
                         cfgplan_device_t *      p_device)
 {
-    static const char * const p_env_keys[]  = {"ref", "address"};
+    static const char * const p_env_keys[]   = {"ref", "address"};
+    static const char * const p_light_keys[] = {
+        "ref", "address", "enable_gpio"};
     static const char * const p_oled_keys[] = {
         "ref", "cs_gpio", "dc_gpio", "reset_gpio", "cs_pullup_ohms"};
     static const char * const p_radar_keys[] = {"ref"};
@@ -230,6 +235,17 @@ static bool connection (const cfgjson_value_t * p_value,
                ((cfgjson_is(cfgjson_get(p_value, "address"), "0x76")) ||
                 (cfgjson_is(cfgjson_get(p_value, "address"), "0x77")));
     }
+    if (CFGPLAN_LIGHT == p_device->driver)
+    {
+        p_device->address = 0x4AU;
+        return (CFGPLAN_I2C == p_bus->kind) &&
+               (cfgjson_object(p_value, p_light_keys, 3U, 7U)) &&
+               (cfgjson_is(cfgjson_get(p_value, "address"), "0x4a")) &&
+               (cfgjson_uint(cfgjson_get(p_value, "enable_gpio"),
+                             0U,
+                             21U,
+                             &p_device->pin_a));
+    }
     if (CFGPLAN_RADAR == p_device->driver)
     {
         return (CFGPLAN_UART == p_bus->kind) &&
@@ -274,7 +290,7 @@ static bool destination (const cfgjson_value_t * p_value,
                          const cfgplan_t *       p_plan,
                          cfgplan_device_t *      p_device)
 {
-    const uint32_t types[] = {1U, 0U, 2U, 3U};
+    const uint32_t types[] = {1U, 0U, 2U, 3U, 0U, 5U};
     for (size_t index = 0U; index < p_plan->queue_count; ++index)
     {
         if ((cfgjson_is(p_value, p_plan->queues[index].name)))
@@ -335,17 +351,18 @@ static bool behaviour (const cfgjson_value_t * p_value,
     const cfgjson_value_t * p_profile   = cfgjson_get(p_value, "profile");
     const cfgjson_value_t * p_operation = cfgjson_get(p_value, "operation");
     bool                    b_ok        = false;
-    if (CFGPLAN_ENV == p_device->driver)
+    if ((CFGPLAN_ENV == p_device->driver) ||
+        (CFGPLAN_LIGHT == p_device->driver))
     {
         b_ok = (cfgjson_object(p_value, p_env_keys, 5U, 31U)) &&
                (cfgjson_is(p_profile, "periodic_sensor")) &&
                (cfgjson_is(p_operation, "read")) &&
                (cfgjson_uint(cfgjson_get(p_value, "interval_ms"),
-                             200U,
+                             (CFGPLAN_LIGHT == p_device->driver) ? 1000U : 200U,
                              60000U,
                              &p_device->period_ms)) &&
                (cfgjson_uint(cfgjson_get(p_value, "timeout_ms"),
-                             10U,
+                             (CFGPLAN_LIGHT == p_device->driver) ? 30U : 10U,
                              100U,
                              &p_device->timeout_us));
         p_device->timeout_us *= 1000U;

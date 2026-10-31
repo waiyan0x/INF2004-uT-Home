@@ -1,0 +1,108 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-27T00:10:20.465303+00:00",
+  "scope": "Source review of remaining pinned wireless task/timer compatibility; no new runtime fault injection",
+  "kernel_commit": "ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2",
+  "sdk_commit": "fff9895c82d744c7237be8847347bdd1b07c6643",
+  "sources_sha256": {
+    "kernel/components/freertos_shim/shim_task.c": "9b1a042149f3b45256c246385cd75d98febe758e09199a58d12fcba4e8f40e63",
+    "kernel/components/freertos_shim/shim_timer.c": "0f5424614475a1fa6017b6a26d9db881ad79a0910731f9b1160de877f02f031d",
+    "kernel/components/freertos_shim/include/freertos/FreeRTOS.h": "263b3564d8e635863b2231c6ede052452096b25b38d4812d662083e0c62d0ed5",
+    "kernel/components/freertos_shim/CMakeLists.txt": "de5798bad6c08e5667e9536289207d4092c81e737b5c2cb011758fe28b9802cd",
+    "kernel/config/config.h": "3940556a0fc67a0c8305f4ae5641ada69822cf71d94b1bd29e94d6b185c930de",
+    "sdk/components/freertos/FreeRTOS-Kernel/include/freertos/task.h": "ad42d5f93ba4019315b1192b53e7375922a789562cffeea06f6ec88da92d8b9c",
+    "sdk/components/freertos/FreeRTOS-Kernel/include/freertos/timers.h": "c0faec0d3148f1213d22dd15979e39109e68b7201e6c3b01f6277ed7063c59de",
+    "build\\system-completion-20261026-233938\\probe-partition-a1-archive\\sdkconfig": "2355bf6599621f998f9a9af474170a70c5a202804d557592e119a9522f9b9700"
+  },
+  "findings": [
+    {
+      "id": "task-storage",
+      "source": "kernel/components/freertos_shim/shim_task.c",
+      "lines": [
+        56,
+        78,
+        105,
+        120,
+        148
+      ],
+      "observation": "Task creation allocates the requested byte stack plus 2048 bytes from heap and creates a native semaphore/task; start failure does not free the allocated stack. Task-entry selection is not reserved before leaving its critical section.",
+      "consequence": "Not a static application task lifecycle; concurrent creation and failure cleanup need review.",
+      "remedy": "Precreate named, bounded service tasks and notification objects with owned aligned stacks; use checked binding/lifecycle transitions, fixed capacity and no runtime allocation fallback."
+    },
+    {
+      "id": "notifications",
+      "source": "kernel/components/freertos_shim/shim_task.c",
+      "lines": [
+        265,
+        281,
+        296,
+        334,
+        368,
+        395,
+        401
+      ],
+      "observation": "Increment/give coalesce into a binary semaphore; without-overwrite has no value/state branch, previous-value outputs are ignored, state/value-clear APIs are stubs, and entry bits clear even with pending notification.",
+      "consequence": "Some valid SDK notification sequences do not have FreeRTOS semantics. One successful radio operation does not validate other callers.",
+      "remedy": "Owned fixed per-task notification value and pending/waiting state, atomic transitions, one configured index, independent model/interleaving tests and real ISR/task handoff."
+    },
+    {
+      "id": "task-metadata",
+      "source": "kernel/components/freertos_shim/shim_task.c",
+      "lines": [
+        202,
+        208,
+        211,
+        218,
+        419,
+        434,
+        447
+      ],
+      "observation": "Priority-get returns constant 5; priority-set ignores a null current-task handle and casts T_CTSK storage to T_RTSK; native tasks share fallback TLS and deletion callbacks are ignored.",
+      "consequence": "Priority and per-task SDK state are not generally preserved. The cast requires a correct native object type, independent of whether current layouts happen to fit.",
+      "remedy": "Use validated handles and exact native result types, actual priorities and per-task TLS; define retained service shutdown semantics."
+    },
+    {
+      "id": "timer-storage-context",
+      "source": "kernel/components/freertos_shim/shim_timer.c",
+      "lines": [
+        27,
+        36,
+        48,
+        68,
+        77,
+        86,
+        138,
+        154
+      ],
+      "observation": "Both dynamic and static timer APIs allocate a descriptor and native alarm/cyclic; the static control pointer is ignored. Callbacks execute from native task-independent context. Period changes update metadata without recreating the cyclic period. Expiry accessor is a stub.",
+      "consequence": "Static-storage, daemon-task callback and period/expiry contracts are incomplete. SDK timer macros and linked symbol reachability also require an ABI audit.",
+      "remedy": "A permanent timer-service task with bounded command records and precreated wake resources; fixed descriptors, serialized period/deletion transitions and task-context callbacks."
+    },
+    {
+      "id": "tick-configuration",
+      "source": "kernel/components/freertos_shim/include/freertos/FreeRTOS.h",
+      "lines": [
+        17
+      ],
+      "observation": "The inspected probe sdkconfig is 1000 Hz, shim header is 1000 Hz and native CNF_TIMER_PERIOD is 1 ms. No current 100-versus-1000 tick mismatch was established.",
+      "consequence": "Do not diagnose a conversion bug from stale comments or unrelated default configurations.",
+      "remedy": "Pin/check actual compiled settings; reject unsupported tick configurations before future integration."
+    },
+    {
+      "id": "remaining-sdk-heaps",
+      "source": "SDK/NimBLE/lwIP and radio diagnostic evidence",
+      "lines": [],
+      "observation": "Queue/event replacement does not cover SDK radio buffers, NimBLE host/controller, lwIP messages/pbufs, HTTP/MQTT/TLS state or FreeRTOS task/timer paths.",
+      "consequence": "No whole-system no-malloc or late-object claim follows from the USB core or isolated advertising.",
+      "remedy": "Inventory actual request counts/bytes and call sites, assign fixed reservations, qualify reconnect/exhaustion/flash-save behavior; justify only any expressly permitted Wi-Fi-driver exception, never blanket BLE/application exemptions."
+    }
+  ],
+  "whole_system_static_qualified": false,
+  "vendor_files_modified": false,
+  "exception_added": false,
+  "limits": [
+    "Line numbers locate inspected implementations; findings are not proof each path is reached in the current diagnostic.",
+    "Successful scan/advertising does not close these gaps or qualify association/GATT/coexistence.",
+    "No credentials, network association or phone actions were used for this review."
+  ]
+}

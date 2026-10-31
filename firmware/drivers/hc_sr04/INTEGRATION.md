@@ -109,21 +109,19 @@ unimplemented; distance edge measurement is handled by RMT.
 Classic HC-SR04 uses a 5 V supply/Echo signal. Confirm the actual module and use
 appropriate Echo level shifting/division before connecting it to the C3 input.
 Actuators require a suitable driver and supply; a GPIO PWM signal is not motor
-power. No wiring has been assumed and no physical output was enabled this pass.
+power. Confirm wiring and record actual physical output acceptance separately.
 
 ## Verification and manual BARR-C review
 
-The mandatory unchanged gate covers 132 owned C/H files. Required host suites
-include `gpiotest.c`, which tests distance bounds, cadence including delayed measurement, zeroed failures,
+Run the mandatory C gate. Required host suites include `gpiotest.c`, which tests distance bounds, cadence including delayed measurement, zeroed failures,
 duplicate ownership, shared pin conflicts, partial setup, PWM command bounds,
 zero-duty cleanup, independent registry instances, typed samples/health and
 activation recovery. Host fixtures manually invoke steps; they do not emulate
 RMT/LEDC registers, native scheduling or electrical behavior.
 
 See [software/build evidence](../../qualification/esp32c3-gpio-20260928.json).
-The board fixture only inspects factories, descriptors and invalid arguments:
-13 additions yield **543 expected checks**, not an executed board result.
-These fixture additions were not a physical HC-SR04/PWM test.
+The ordinary board fixture inspects factories, descriptors and invalid arguments;
+it does not establish physical HC-SR04/PWM acceptance.
 
 Manual review checked module boundaries, initialized state, borrowed lifetimes,
 owner identity, retained failures, bounds, fixed-width unsigned operations,
@@ -157,5 +155,4 @@ actuator supply/driver. Follow the [hardware guide](../../../CONTRIBUTING.md).
 
 
 Current [acceptance status](../../qualification/README.md) and
-[wiring procedure](../../../CONTRIBUTING.md). Historical test counts above
-refer to their dated evidence, not a new qualification.
+[wiring procedure](../../../CONTRIBUTING.md). Keep dated results in the qualification records, separate from current usage.

@@ -11,6 +11,7 @@ Runtime, framing and storage do not dispatch on prototype device names.
 |---|---|
 | `cfgbytes`, `cfgwire` | Explicit little-endian fields, CRC and bounded framing |
 | `cfgstore`, `cfgctrl` | Durable records, request identity, activation/save ordering |
+| `cfgpart` | Exact reviewed partition-table bytes and overflow-safe write window |
 | `jsonscan`, `cfgjson` | Bounded JSON parsing and exclusive cJSON allocation |
 | `cfgplan`, `cfgdev`, `cfgrule` | Board/resources, driver/settings and typed-rule admission |
 | `cfgbind`, `c3bind`, `cfgdisc` | Copied instance settings, actual transports and discovery/controller coordination |
@@ -38,10 +39,16 @@ the [firmware guide](../../README.md) and [target tooling](../../../tools/target
 - Integer tokens are canonical decimal uint32, or int32 for signed thresholds:
   no fractions, exponents, negative zero or extra leading zeros. Host schema
   validation alone does not enforce all target lexical restrictions.
-- Managed cJSON `1.7.19~2` has a 32 KiB allocation-request ceiling including
-  aligned wrapper headers, and at most 1024 allocations per parse. Exhaustion
-  rejects the candidate and frees partial trees. Allocator bookkeeping and
-  stack use are additional. One owner exclusively uses cJSON/global hooks/locale.
+- Managed cJSON `1.7.19~2` uses fixed storage: 512 typed nodes, 8192 text bytes
+  and at most 1024 allocation-hook calls per parse. No heap fallback exists.
+  Requests exactly the size of a node consume a typed slot, including text of
+  that size; other text and temporary number strings consume byte storage.
+  Individual frees defer reuse until close or failed open resets both pools.
+  Exhaustion rejects the candidate without retaining a partial tree. The pool
+  reservation is `512 * sizeof(cJSON) + 8192` bytes, with counters/stack additional.
+  One owner exclusively uses cJSON/global hooks/locale. Host allocator traps
+  cover owned parser/vendor objects; target libc and whole-system allocations
+  still require independent review.
 - Check identities, driver/bus/settings/routes, queue types, single enabled
   consumers, shared producers, pin/address collisions and exclusive UART use.
   Disabled entries still reserve identity and wiring.
@@ -59,6 +66,8 @@ the [firmware guide](../../README.md) and [target tooling](../../../tools/target
 | Typed queues | Environment, targets, distance, health |
 
 Production bindings cover BMP388, LD2450, HC-SR04, SSD1306 and PWM output.
+An explicit SEN0390 application probe enables the provisional light binding for
+diagnostics only; ordinary builds retain the existing driver capability mask.
 Radar polls every 10 ms. OLED renders registered samples without consuming them.
 Each enabled PWM output needs exactly one admitted [rule](../automation/README.md).
 Compiled support is separate from hardware acceptance; the target-pending
@@ -232,6 +241,30 @@ complete tree release; bounded recursion/loops; callback serialization/lifetime;
 explicit status mapping; stopped-worker resource release and retained failures.
 Vendor spelling stays inside existing exceptions.
 
+The light diagnostic uses the same bounded plan, copied settings and static
+instance slots; its compile-time flag adds one capability bit only in the
+explicit application probe. GPIO output slots are reserved independently for
+the display and sensor, and failed release retains the handle for recovery.
+The ordinary build excludes that capability. The qualifier checks the effective
+binder compiler flag; target timing and stack evidence remain scoped to each run.
+
+The fixed-pool change additionally reviews C99 effective type and alignment:
+nodes are declared `cJSON` objects, never objects cast into an untyped byte arena;
+character access may use their representation. Text bounds are checked before
+addition, counts are bounded, and no node is reused while a tree is borrowed.
+Failed parsing and repeated close reset ownership only after vendor traversal.
+Peak accounting includes unreclaimed temporary strings and survives close.
+The exclusive controller contract remains necessary; the reentry flag is not a
+cross-task lock. No vendor edits, formatter changes or new deviations are needed.
+
+The admission harness instruments parser/vendor objects with GNU `objcopy`,
+leaving host CRT startup and file I/O outside the no-heap test. `heaptrap` refuses
+allocation and records every attempt; the harness reports unexpected calls with
+a nonzero exit status, even when the parser itself rejects the input. Its control
+probe verifies interception without deliberately aborting. This corrects the
+earlier abort-based control test that opened Windows application-error dialogs.
+Existing semantic assertions and warning-as-error compilation remain enabled.
+
 ### USB C review
 
 Paired modules/typed callbacks, explicit widths and 64/48-byte conversion bounds;
@@ -240,3 +273,50 @@ static lifetime contexts; SDK LL MMIO only; bounded loops and checked cleanup.
 Intentional ignored pump/restore errors are documented because control must
 remain available. Existing C99/C11/GNU99 boundaries, formatter, deviations and
 approval remain unchanged. No new ISR/task entry ABI or exception was added.
+
+## Static partition access
+
+`cfgpart` recognizes exactly the four entries in the maintained
+`tests/target/runtime_port_board/configuration.csv`, their MD5 record and the
+entire erased tail. A different valid layout is also rejected. Changing the
+layout requires updating and reviewing both the constant representation and the
+build digest, then rerunning the mutation/boundary tests. This is a deliberate
+fixed-layout contract, not a general partition parser.
+
+`c3store_open` verifies a 4 MiB internal flash chip and all 3,072 plaintext table
+bytes through one 256-byte internal-DRAM scratch buffer. A raw encrypted table
+cannot match; the exact custom partition entry also requires encryption and
+read-only flags clear. It enables
+its owned descriptor only after every chunk matches. It does not erase on a
+missing, altered or unreadable table. Ordinary reads also use that scratch buffer
+to avoid the SDK's conditional heap-backed read buffer. The existing partition
+APIs retain their bounds and the two 12 KiB slot isolation checks.
+
+The pinned SDK otherwise allocates during both flash-write protection queries:
+`esp_partition_is_flash_region_writable` iterates partitions, and
+`esp_partition_main_flash_region_safe` resolves the running application through
+an allocating lookup. Scoped compile definitions in **only**
+`spi_flash_os_func_app.c` redirect both queries to `c3store_region_allowed`.
+Before successful verification it denies every write; afterwards it permits only
+`0x110000..0x115fff`. Bootloader, table, application, NVS and PHY writes remain
+denied. This is stricter than the SDK's default window. Dependency source bytes
+are unchanged, and qualification checks both substitutions and their scope.
+This current application does not support OTA or network persistence.
+
+Manual BARR-C review: `cfgpart` is C99 with an immutable byte table, no native
+layout casts, no writable globals and subtraction-first bounds. The descriptor's
+custom enum values use documented 8-bit SDK IDs. `c3store` owns its descriptor,
+ready flag and scratch for the whole boot; the controller serializes open/read/
+write/erase. Private scratch cannot alias caller-owned output. Checked slot
+arithmetic bounds every translated offset below 24 KiB. The flash protection
+callback performs no kernel calls or logging and is called before cache-disabled
+programming. Startup publishes readiness only after verification; no later code
+clears or modifies the layout. Failures leave storage unavailable or propagate an
+I/O error without selecting another partition. No new coding exception is used.
+The SDK call-chain and allocation instrumentation remain part of whole-system
+qualification; successful source/build checks alone do not certify zero heap use.
+
+Host tests compile the actual C99 validator with warnings as errors, compare it
+with independently encoded SDK-format bytes, flip every table byte, recompute
+checksums for unreviewed layouts, and exercise size/address wrap boundaries.
+The generated real-target table is checked against the same reviewed digest.

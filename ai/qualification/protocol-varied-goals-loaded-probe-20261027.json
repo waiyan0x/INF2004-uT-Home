@@ -1,0 +1,1017 @@
+{
+  "accepted_attempt": {
+    "active_worker_stacks_after_stop": [
+      {
+        "available": false,
+        "bound": false,
+        "slot": 0,
+        "source_index": null,
+        "stack": {
+          "bytes": 8192,
+          "empirical": true,
+          "measured": true,
+          "unused_min": 7376
+        },
+        "stats": null,
+        "task_handle": null
+      },
+      {
+        "available": false,
+        "bound": false,
+        "slot": 1,
+        "source_index": null,
+        "stack": {
+          "bytes": 8192,
+          "empirical": true,
+          "measured": true,
+          "unused_min": 7360
+        },
+        "stats": null,
+        "task_handle": null
+      },
+      {
+        "available": false,
+        "bound": false,
+        "slot": 2,
+        "source_index": null,
+        "stack": {
+          "bytes": 8192,
+          "empirical": true,
+          "measured": true,
+          "unused_min": 7296
+        },
+        "stats": null,
+        "task_handle": null
+      },
+      {
+        "available": false,
+        "bound": false,
+        "slot": 3,
+        "source_index": null,
+        "stack": {
+          "bytes": 8192,
+          "empirical": true,
+          "measured": false,
+          "unused_min": null
+        },
+        "stats": null,
+        "task_handle": null
+      }
+    ],
+    "analysis": {
+      "application_heap_and_runtime_object_checks_passed": true,
+      "comparisons": {
+        "0": {
+          "off_steps_per_second": 1.9977682188008417,
+          "on_off_ratio": 0.9999999902634074,
+          "on_steps_per_second": 1.9977681993493863
+        },
+        "1": {
+          "off_steps_per_second": 3.9955364376016833,
+          "on_off_ratio": 1.0020954648417035,
+          "on_steps_per_second": 4.003908943730423
+        },
+        "2": {
+          "off_steps_per_second": 99.99750367082851,
+          "on_off_ratio": 0.9999999463665948,
+          "on_steps_per_second": 99.99749830762188
+        }
+      },
+      "controller_stack_unused_min": 7280,
+      "deployment_allowed": false,
+      "failures": [],
+      "idle_stack_unused_min": 896,
+      "limitations": [
+        "One board and profile; small OFF/ON comparison, not WCET or equivalence proof.",
+        "CPU is scheduler tick attribution, not measured cycles. Empirical stack minima include earlier activity.",
+        "Timing includes clock, fixed-vector access and preemption; no overhead subtraction.",
+        "Worker sentinels are scanned only after cooperative stop; absent observations stay unavailable.",
+        "No feature reconstruction, full adviser/Desk latency, wireless or benefit qualification."
+      ],
+      "maximum_batch_us": 85,
+      "mismatches": 0,
+      "passed": true,
+      "phases": [
+        {
+          "duration_s": 59.915013,
+          "maximum_batch_us": 0,
+          "mean_poll_gap_ms": 200.38455050169213,
+          "mode": "off",
+          "phase": 0,
+          "sampled_non_idle_percent": 1.9327380455645498,
+          "samples": 300,
+          "step_rates_per_second": {
+            "0": 2.002836918353001,
+            "1": 4.005673836706002,
+            "2": 99.99163314877357
+          }
+        },
+        {
+          "duration_s": 59.718998,
+          "maximum_batch_us": 84,
+          "mean_poll_gap_ms": 200.38232348989007,
+          "mode": "on",
+          "phase": 1,
+          "sampled_non_idle_percent": 1.9876421239471525,
+          "samples": 299,
+          "step_rates_per_second": {
+            "0": 1.9926657175326352,
+            "1": 4.00207652512857,
+            "2": 100.00167785802435
+          }
+        },
+        {
+          "duration_s": 59.717985,
+          "maximum_batch_us": 0,
+          "mean_poll_gap_ms": 200.3665758389042,
+          "mode": "off",
+          "phase": 2,
+          "sampled_non_idle_percent": 1.8838541143373857,
+          "samples": 299,
+          "step_rates_per_second": {
+            "0": 1.992699519248682,
+            "1": 3.985399038497364,
+            "2": 100.00337419288344
+          }
+        },
+        {
+          "duration_s": 59.914003,
+          "maximum_batch_us": 85,
+          "mean_poll_gap_ms": 200.40975117052977,
+          "mode": "on",
+          "phase": 3,
+          "sampled_non_idle_percent": 2.0863237306806424,
+          "samples": 300,
+          "step_rates_per_second": {
+            "0": 2.0028706811661374,
+            "1": 4.005741362332275,
+            "2": 99.99331875721941
+          }
+        }
+      ],
+      "predictions": 2996,
+      "restored": true,
+      "sampled_cpu_delta_percentage_points": 0.12868684736292968,
+      "scope": "Classifier four-call batches in the real controller with fixed parity vectors, not feature construction or full adviser/UI latency. Same diagnostic image/observers for OFF and ON.",
+      "worker_stack_unused_min": 7296
+    },
+    "criteria": {
+      "application_heap_and_runtime_object_events": 0,
+      "build_elf_sha256": "c56bc42f68f86f6a536da449af955e0d7235cf1451f9cf6d60f246b2cd3ad958",
+      "cadence_ms": 200,
+      "deployment_allowed": false,
+      "discard_initial_seconds_per_phase": 15,
+      "forbidden_health_event_indices": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        6,
+        7
+      ],
+      "fresh_sensor_names": [
+        "environment_sensor",
+        "presence_sensor"
+      ],
+      "maximum_four_prediction_wall_us": 10000,
+      "maximum_on_non_idle_percentage_point_increase": 2,
+      "maximum_on_throughput_drop_fraction": 0.02,
+      "measurement_scope": "Classifier four-call batches in the real controller with fixed parity vectors, not feature construction or full adviser/UI latency. Same diagnostic image/observers for OFF and ON.",
+      "minimum_observation_seconds": 58,
+      "minimum_prediction_count": 1132,
+      "minimum_samples_per_phase": 290,
+      "minimum_stack_headroom": {
+        "controller": 512,
+        "idle": 128,
+        "worker": 512
+      },
+      "observation_seconds_per_phase": 60,
+      "phase_seconds": 75,
+      "phases": [
+        "off",
+        "on",
+        "off",
+        "on"
+      ],
+      "predictions_per_on_request": 4,
+      "recorded_utc": "2026-10-27T15:35:42.126125+00:00",
+      "stop_policy": "Preserve failures, close serial, restore original firmware and confirm profile; no retry seeking a pass.",
+      "target_mismatches": 0,
+      "worker_stack_method": "After timing windows, cooperatively stop workers with the known empty profile, read dormant sentinels, then reapply exact original profile."
+    },
+    "finished_utc": "2026-10-27T15:40:56.790480+00:00",
+    "folder": "build/ai-loaded-20261027-cadence200",
+    "procedure_correction": {
+      "no_model_or_training_gate_change": true,
+      "previous_analysis_sha256": "fa8ee23941eb69f5c38dbe59da04c1ad021658a8fb3febf9c9e8c3e399397244",
+      "previous_failed_acceptance_retained": true,
+      "previous_run": "build\\ai-loaded-20261027",
+      "reason": [
+        "137 ms combined observer cadence was not achieved; use 200 ms and at least 290 observations per 60-second window.",
+        "Worker sentinel observation requires cooperative stop; collect it after timed windows, then restore exact original profile."
+      ],
+      "recorded_utc": "2026-10-27T15:35:41.872116+00:00",
+      "unchanged": [
+        "firmware image",
+        "model",
+        "four OFF/ON 75-second phases",
+        "60-second measurement windows",
+        "10 ms latency limit",
+        "zero mismatch/heap/runtime-object/health-fault limits",
+        "2% throughput and 2 percentage-point CPU limits",
+        "stack headroom limits"
+      ]
+    },
+    "started_utc": "2026-10-27T15:35:42.126125+00:00"
+  },
+  "allocation_scope": {
+    "application_startup_and_runtime_checks_passed": true,
+    "diagnostic_end_audit": {
+      "application_startup": {
+        "allocations": 0,
+        "bytes": 0,
+        "frees": 0,
+        "kernel_calls": {
+          "calloc": 0,
+          "free": 0,
+          "malloc": 0,
+          "realloc": 0
+        }
+      },
+      "normal": {
+        "allocations": 0,
+        "bytes": 0,
+        "creates": {
+          "alarm": 0,
+          "cyclic": 0,
+          "fixed_pool": 0,
+          "flag": 0,
+          "mailbox": 0,
+          "message_buffer": 0,
+          "mutex": 0,
+          "rendezvous": 0,
+          "semaphore": 0,
+          "task": 0,
+          "variable_pool": 0
+        },
+        "frees": 0,
+        "kernel_calls": {
+          "calloc": 0,
+          "free": 0,
+          "malloc": 0,
+          "realloc": 0
+        }
+      },
+      "saturated": false,
+      "sealed": true,
+      "startup": {
+        "allocations": 19,
+        "bytes": 1687,
+        "creates": {
+          "alarm": 0,
+          "cyclic": 0,
+          "fixed_pool": 0,
+          "flag": 1,
+          "mailbox": 0,
+          "message_buffer": 0,
+          "mutex": 41,
+          "rendezvous": 0,
+          "semaphore": 50,
+          "task": 6,
+          "variable_pool": 0
+        },
+        "frees": 0,
+        "kernel_calls": {
+          "calloc": 0,
+          "free": 0,
+          "malloc": 1,
+          "realloc": 0
+        }
+      }
+    },
+    "note": "Application audit counters remained zero; startup platform/SDK allocation counters remain nonzero. This does not qualify the entire system or wireless services against the mandatory memory requirement.",
+    "whole_system_no_malloc_qualified": false
+  },
+  "artifacts": {
+    "C:/Users/kkak4/AppData/Local/Temp/uthome-ai-load-backup-bdaf201011f246cab94c4aee69071b24/board-before.bin": {
+      "sha256": "ab7a01159afa0b949df0fb0c69c3ba1ae63d2357bb6acbf6794ec3cbbfc2641b",
+      "size_bytes": 4194304
+    },
+    "ai/qualification/protocol-varied-goals-compact-export-20261027.json": {
+      "sha256": "c607b346714b03ef204bc4134f1bda682897eb820c22f4676bcce2d0ac17f5bb",
+      "size_bytes": 6648
+    },
+    "ai/qualification/protocol-varied-goals-evaluation-20261027.json": {
+      "sha256": "a5a4ee46e448811592dc508144a6f766f91a6067e7c26b4fc9bd804b1fc77a2c",
+      "size_bytes": 6784
+    },
+    "ai/tests/test_loaded_model.py": {
+      "sha256": "b774d6d1aef045dfd2bb6c5606ef053a5b4cb2038a7eb843f9451105d28559ab",
+      "size_bytes": 4847
+    },
+    "build/ai-loaded-20261027-cadence200/analysis.json": {
+      "sha256": "9bc949bc1bfb6b855b4651d4b819632771f9ac7d89949ebd400d9a53ce6c9742",
+      "size_bytes": 2438
+    },
+    "build/ai-loaded-20261027-cadence200/backup.json": {
+      "sha256": "e3c8e6216da2d5a9979d650ff1fda7e932c47de27c8f2283c38ba01b0cf24bf9",
+      "size_bytes": 1522
+    },
+    "build/ai-loaded-20261027-cadence200/bench-plan.json": {
+      "sha256": "8547647f4d0653173e0f1dfb66fa87879e6c8210cfa45fa82636844c4ea9ff16",
+      "size_bytes": 1304
+    },
+    "build/ai-loaded-20261027-cadence200/bench-summary.json": {
+      "sha256": "ba9d34dc7d410bfd93278dfed6a7c1c0811e2e48bea6dcaa0268952c5a74934c",
+      "size_bytes": 13699
+    },
+    "build/ai-loaded-20261027-cadence200/capture.jsonl": {
+      "sha256": "4053265df901fb7d8aef37c1da9618a2fa4fb156b312acd02b7aad47d7c67178",
+      "size_bytes": 7383354
+    },
+    "build/ai-loaded-20261027-cadence200/install-diagnostic.log": {
+      "sha256": "dbd645f9d6ac90ca495ca04a09a879421d2c9bf2cb845a314f21faf86743b170",
+      "size_bytes": 2579
+    },
+    "build/ai-loaded-20261027-cadence200/memory.json": {
+      "sha256": "f4ef148dd8d39c6d9932832c1e5b78911a4c2011c4624c5ab5e0042ad999c87e",
+      "size_bytes": 686877
+    },
+    "build/ai-loaded-20261027-cadence200/oled-confirmation.json": {
+      "sha256": "05a911f938b846ea434d738f98b7a769f78fa3396250e73828d142c22a39540f",
+      "size_bytes": 192
+    },
+    "build/ai-loaded-20261027-cadence200/procedure-correction.json": {
+      "sha256": "ec5664f87c7e7fb58cc07d527e886fa6c9895577a80ef7bd14030172d52e8139",
+      "size_bytes": 885
+    },
+    "build/ai-loaded-20261027-cadence200/restore-original.log": {
+      "sha256": "29e61a20c08117a608a71a5685f100fc01ea2c05b207864c11b6611fec3d74f0",
+      "size_bytes": 2494
+    },
+    "build/ai-loaded-20261027-cadence200/restore-profile.json": {
+      "sha256": "f5131bd28a8a4f6e070957ddd2c646e1123590e37a00713c8093161bc0a11472",
+      "size_bytes": 2205
+    },
+    "build/ai-loaded-20261027-cadence200/run_bench.py": {
+      "sha256": "c81b4c82773047b4cf0fe834b963b80ea628cf84b80998a925d7e7a4d12d119c",
+      "size_bytes": 11199
+    },
+    "build/ai-loaded-20261027/analysis.json": {
+      "sha256": "fa8ee23941eb69f5c38dbe59da04c1ad021658a8fb3febf9c9e8c3e399397244",
+      "size_bytes": 2610
+    },
+    "build/ai-loaded-20261027/analyze_capture.py": {
+      "sha256": "c11f5dbd2db5bd4d34b46c39df99c62fa2158f532ab51c9f4d368b027d9ef85c",
+      "size_bytes": 6228
+    },
+    "build/ai-loaded-20261027/app-normal-a1.log": {
+      "sha256": "cc8767650043ed3c10f706ccda8c6555ad9e9b8ded68b132e4c4c8452f2a3828",
+      "size_bytes": 133603
+    },
+    "build/ai-loaded-20261027/backup.json": {
+      "sha256": "e3c8e6216da2d5a9979d650ff1fda7e932c47de27c8f2283c38ba01b0cf24bf9",
+      "size_bytes": 1522
+    },
+    "build/ai-loaded-20261027/bench-plan.json": {
+      "sha256": "45fcca901bb41fedc20fcdc195c9fdea79d4c9c8815624d186c7b0049a0b3501",
+      "size_bytes": 1140
+    },
+    "build/ai-loaded-20261027/bench-summary.json": {
+      "sha256": "e98020b2577a3a07e579de8e2d86c43dbef16dcdf7dc07514d70a64bce217b82",
+      "size_bytes": 9045
+    },
+    "build/ai-loaded-20261027/capture.jsonl": {
+      "sha256": "f194b115857e80fcc081cf634e7c56a18a92f3eb1670de7398a251e35aa8bb18",
+      "size_bytes": 8442463
+    },
+    "build/ai-loaded-20261027/diagnostic-budget.json": {
+      "sha256": "7c1111475e8c7fed1011ad90c563b2461b7993a6b540dfd74d23a3776ee6ea0c",
+      "size_bytes": 1078
+    },
+    "build/ai-loaded-20261027/diagnostic-build/ailite.c.obj": {
+      "sha256": "61fe3b3151cfb765bcbc19341983b715f203fbd997d38f4d0a1347f70dede49b",
+      "size_bytes": 11592
+    },
+    "build/ai-loaded-20261027/diagnostic-build/ailite.c.su": {
+      "sha256": "d4279aced3eeb643d237ecbc2b0865757bd245ee4cd817c6cfc2b4f7c72c3a67",
+      "size_bytes": 119
+    },
+    "build/ai-loaded-20261027/diagnostic-build/aiload.c.obj": {
+      "sha256": "c20a8d72f48331b5db71a7e6ded928d98041a2daf8ee5bd31909c52c185af160",
+      "size_bytes": 22232
+    },
+    "build/ai-loaded-20261027/diagnostic-build/aiload.c.su": {
+      "sha256": "8c214a968b2d18cb3fd80b75d90576e4953d60aaf9fb603e2b1bc1312f8869ea",
+      "size_bytes": 240
+    },
+    "build/ai-loaded-20261027/diagnostic-build/aivects.c.obj": {
+      "sha256": "1c1e2042f1ced34bf9a6dcf2d28e2ce192db5c81b9070af806fb498d606fceaf",
+      "size_bytes": 93432
+    },
+    "build/ai-loaded-20261027/diagnostic-build/aivects.c.su": {
+      "sha256": "0d55e6251506bc68aadffd2ee806bbee3b4eba3d91782944583075debea7ed35",
+      "size_bytes": 245
+    },
+    "build/ai-loaded-20261027/diagnostic-build/build/bootloader/bootloader.bin": {
+      "sha256": "951fec65af4e1e49a346235ef060657a1b1c318d88019d950061bbe9eb255d06",
+      "size_bytes": 21232
+    },
+    "build/ai-loaded-20261027/diagnostic-build/build/compile_commands.json": {
+      "sha256": "c934672cff5247d47cc3b56248b51acc47016ce1698663568a36d2569ca103cf",
+      "size_bytes": 8512068
+    },
+    "build/ai-loaded-20261027/diagnostic-build/build/flash_args": {
+      "sha256": "440c6e44cd4a8fa4299d7408fe21329cca9e3db6bf1d246ccd63ff4164d3ad85",
+      "size_bytes": 160
+    },
+    "build/ai-loaded-20261027/diagnostic-build/build/flasher_args.json": {
+      "sha256": "3d8fa411379da7c602c6163efb550377de6db43de2b55aa679833eaf385dc80f",
+      "size_bytes": 953
+    },
+    "build/ai-loaded-20261027/diagnostic-build/build/partition_table/partition-table.bin": {
+      "sha256": "7f7b089b96a3f7c3d7c431bd974909909e60a2bb8bdf4bb6802e9edbb6d9167e",
+      "size_bytes": 3072
+    },
+    "build/ai-loaded-20261027/diagnostic-build/build/uthome_runtime_port.bin": {
+      "sha256": "b6628dea0dea374f4879c7390aa9f2dd49680c844e3b9db6659633cc9021acab",
+      "size_bytes": 320240
+    },
+    "build/ai-loaded-20261027/diagnostic-build/build/uthome_runtime_port.elf": {
+      "sha256": "c56bc42f68f86f6a536da449af955e0d7235cf1451f9cf6d60f246b2cd3ad958",
+      "size_bytes": 4948056
+    },
+    "build/ai-loaded-20261027/diagnostic-build/build/uthome_runtime_port.map": {
+      "sha256": "bb72b61a61dd918de5c86cc48d1658208c493278a71d9ed2946b8b552f04bf54",
+      "size_bytes": 3491052
+    },
+    "build/ai-loaded-20261027/diagnostic-build/evidence.json": {
+      "sha256": "753463901e523cd30470c0b70329f816ee4071acf1f12e2015ec35aa101a6c58",
+      "size_bytes": 60899
+    },
+    "build/ai-loaded-20261027/diagnostic-build/project/source-manifest.json": {
+      "sha256": "86c548e3eddbfe12ed91b5463f2e428660d14f2adab86d51832de93738916cda",
+      "size_bytes": 36501
+    },
+    "build/ai-loaded-20261027/diagnostic-build/sdkconfig": {
+      "sha256": "2a27fc31c7e6eb3d285d89ae46eba6e08727a5fb025fb1de1dddfe516a3a51b3",
+      "size_bytes": 87287
+    },
+    "build/ai-loaded-20261027/flash-id.log": {
+      "sha256": "d29c19aaa738eed309a810c3313b7988e875c815168ebed98012b776e14d99df",
+      "size_bytes": 549
+    },
+    "build/ai-loaded-20261027/install-diagnostic.log": {
+      "sha256": "ce2a6daa723bf011b45eac8f35369c28e396299fce15271c5081888b43ea64db",
+      "size_bytes": 2579
+    },
+    "build/ai-loaded-20261027/linked-objects.json": {
+      "sha256": "d676e0f8dc814a860c57bac58b5d6f58f5d223c66211b53cd4c589427c3fc4d1",
+      "size_bytes": 1046
+    },
+    "build/ai-loaded-20261027/loaded-a1.log": {
+      "sha256": "57c60989845644d3658a8c1d55ecb679bfddd5306411fc9a8d75455dfe8dc42f",
+      "size_bytes": 1526
+    },
+    "build/ai-loaded-20261027/loaded-a2.log": {
+      "sha256": "1fdbc5ae196a78c0aa5e0655271f4fa1b512c0f1023fb16d457cac6da60c5352",
+      "size_bytes": 139157
+    },
+    "build/ai-loaded-20261027/loaded-model-tests-final.log": {
+      "sha256": "e48e7efb4126e503d81faa4e38ab6940f35203074b62d9e08185a84a19b848fd",
+      "size_bytes": 709
+    },
+    "build/ai-loaded-20261027/manual-c-review.json": {
+      "sha256": "504be7bac4f1463f7e82c10411631d75d953bdb0f2b7e72bd8a48fe2cd4f9b46",
+      "size_bytes": 1408
+    },
+    "build/ai-loaded-20261027/memory.json": {
+      "sha256": "f4ef148dd8d39c6d9932832c1e5b78911a4c2011c4624c5ab5e0042ad999c87e",
+      "size_bytes": 686877
+    },
+    "build/ai-loaded-20261027/memory.log": {
+      "sha256": "ffacc9c1a4f9ec565991fb557e0738e48714d4ccfed89b9fc57d30bb04922c26",
+      "size_bytes": 381
+    },
+    "build/ai-loaded-20261027/normal-build/build/bootloader/bootloader.bin": {
+      "sha256": "fd128974e061a6f5deb4b77f242c8aa09d9a4294208dc5b89ba1d87e014cab7f",
+      "size_bytes": 21232
+    },
+    "build/ai-loaded-20261027/normal-build/build/compile_commands.json": {
+      "sha256": "b8ae0ad4a565e824e0dbb1527711ad4e8f540b2f84fd0494aa377ec5e7c0950f",
+      "size_bytes": 8539890
+    },
+    "build/ai-loaded-20261027/normal-build/build/flash_args": {
+      "sha256": "440c6e44cd4a8fa4299d7408fe21329cca9e3db6bf1d246ccd63ff4164d3ad85",
+      "size_bytes": 160
+    },
+    "build/ai-loaded-20261027/normal-build/build/flasher_args.json": {
+      "sha256": "3d8fa411379da7c602c6163efb550377de6db43de2b55aa679833eaf385dc80f",
+      "size_bytes": 953
+    },
+    "build/ai-loaded-20261027/normal-build/build/partition_table/partition-table.bin": {
+      "sha256": "7f7b089b96a3f7c3d7c431bd974909909e60a2bb8bdf4bb6802e9edbb6d9167e",
+      "size_bytes": 3072
+    },
+    "build/ai-loaded-20261027/normal-build/build/uthome_runtime_port.bin": {
+      "sha256": "9c55758921675d5b2b8d5f2742bf1d5fa98a1b5a433e16bc2724abe54872f95b",
+      "size_bytes": 233120
+    },
+    "build/ai-loaded-20261027/normal-build/build/uthome_runtime_port.elf": {
+      "sha256": "49da3fdc83dafea40b4a85b0d4989da796c673127520b61957b1c18c52fce6eb",
+      "size_bytes": 4854976
+    },
+    "build/ai-loaded-20261027/normal-build/build/uthome_runtime_port.map": {
+      "sha256": "189876f47f496454262d873da82dd92af0b4046cc1be9ecd1c20eea63eff3fcf",
+      "size_bytes": 3484518
+    },
+    "build/ai-loaded-20261027/normal-build/evidence.json": {
+      "sha256": "d96e2c34e44edc8e1cb2ad21cc2bdf94d30ae09119cb904f81156213f8601491",
+      "size_bytes": 60865
+    },
+    "build/ai-loaded-20261027/normal-build/project/source-manifest.json": {
+      "sha256": "86c548e3eddbfe12ed91b5463f2e428660d14f2adab86d51832de93738916cda",
+      "size_bytes": 36501
+    },
+    "build/ai-loaded-20261027/normal-build/sdkconfig": {
+      "sha256": "2a27fc31c7e6eb3d285d89ae46eba6e08727a5fb025fb1de1dddfe516a3a51b3",
+      "size_bytes": 87287
+    },
+    "build/ai-loaded-20261027/oled-confirmation.json": {
+      "sha256": "b8e9858e53f702a4253ca4920713df2ae52ce7bfc2700c0e8a6882d34310c604",
+      "size_bytes": 211
+    },
+    "build/ai-loaded-20261027/preflight.json": {
+      "sha256": "4885068db435fe373ac53f64b4a44bbe0ae94dab0fa014264fc22aa95979f1b0",
+      "size_bytes": 4941
+    },
+    "build/ai-loaded-20261027/read-flash.log": {
+      "sha256": "cb79913558517cb4573b94218ca6b7eb1cb0fd71d7a9498645ca2ee0b02554e1",
+      "size_bytes": 86569
+    },
+    "build/ai-loaded-20261027/restore-original.log": {
+      "sha256": "a5d2c38fa79d479c79c952f90b6da577bcf580fe2dc9731dfaf9eb2af6539d82",
+      "size_bytes": 2495
+    },
+    "build/ai-loaded-20261027/restore-profile.json": {
+      "sha256": "f5131bd28a8a4f6e070957ddd2c646e1123590e37a00713c8093161bc0a11472",
+      "size_bytes": 2205
+    },
+    "build/ai-loaded-20261027/run_bench.py": {
+      "sha256": "c1b8f31695d114dfdb0da6c13766ac0e49152a47bcb1cac52528d8963028d076",
+      "size_bytes": 9999
+    },
+    "build/ai-loaded-20261027/run_build.py": {
+      "sha256": "6023fe7fc4d2e6071af5d2090b5c504a7da362844060a6b7c607f1087df1dd39",
+      "size_bytes": 2988
+    },
+    "build/ai-loaded-20261027/target-count-recheck-r2.log": {
+      "sha256": "12bc916494aace2834a2084f35165d00382957fcef51eefa7d852e785a0f1c1d",
+      "size_bytes": 347
+    },
+    "build/ai-loaded-20261027/target-count-recheck.log": {
+      "sha256": "f29d985acc17e427dc7060a7b08fdb445d36805ea68b1af3c4d451bf0c348ac9",
+      "size_bytes": 1361
+    },
+    "build/ai-loaded-20261027/target-tests-final.log": {
+      "sha256": "341fa9e90dde8a91d2ea4653876e652d98bb4a4b272eeb1773095d514e19bdfb",
+      "size_bytes": 28426
+    },
+    "build/ai-loaded-20261027/target-tests.log": {
+      "sha256": "8c60395e4e186c43487ebfa83f139de15204c46bffeb9ddf31f19d17695db221",
+      "size_bytes": 59614
+    },
+    "build/ai-loaded-20261027/write_qualification.py": {
+      "sha256": "2709d4af81fe243f2810ae3283496d05476c36208b4a78a7b36e63269a1e04cc",
+      "size_bytes": 11212
+    },
+    "tests/ai/loadfake.c": {
+      "sha256": "e99b5c2e185d12d1c3e8b5bbcad4155a787892da9c733007bdd28d4eab7daf9b",
+      "size_bytes": 1095
+    },
+    "tests/ai/loadfake.h": {
+      "sha256": "cb645838d04d9eacee241a4c1840816484866c98930c4f0904b6b44ed146086d",
+      "size_bytes": 459
+    },
+    "tests/target/runtime_port_board/CMakeLists.txt": {
+      "sha256": "27c29817ddd0c1eebd711fe4185b60916b3cb4d3ee74972019055ced96217439",
+      "size_bytes": 2067
+    },
+    "tests/target/runtime_port_board/loadmodel/ailite.c": {
+      "sha256": "d366880b89badb09df96c6ff928302a972527b5df085e43fb6b747dff133ee29",
+      "size_bytes": 2104
+    },
+    "tests/target/runtime_port_board/loadmodel/ailite.h": {
+      "sha256": "4e1c6287a14278352f478cfbfe22c39f4dd185862d724770c5eb924ad0608ab9",
+      "size_bytes": 901
+    },
+    "tests/target/runtime_port_board/loadmodel/aiload.c": {
+      "sha256": "13b9bc7ba4516e87d20ae196e669ef7ccf86089ee2bfd51cd6599e9b8663f0bd",
+      "size_bytes": 3154
+    },
+    "tests/target/runtime_port_board/loadmodel/aiload.h": {
+      "sha256": "4c133e2080d8cf342e9144645c05afa22dbe8da4a60bdb28e0478ca47ae4678c",
+      "size_bytes": 816
+    },
+    "tests/target/runtime_port_board/loadmodel/aivects.c": {
+      "sha256": "b005fc4f8be4db34151aaa987c496b7f5cd2963d794a0cb90ace0bf5847e40a2",
+      "size_bytes": 255136
+    },
+    "tests/target/runtime_port_board/loadmodel/aivects.h": {
+      "sha256": "72a4c4113b0d757f1fe179962f529a40b253486cad18119facfac8167d012d8f",
+      "size_bytes": 531
+    },
+    "tests/target/runtime_port_board/loadmodel/fixture.json": {
+      "sha256": "faea517d26bd671860b5de4d5f1daa78d61467aa06d1009fb59632d45b83b4ba",
+      "size_bytes": 1029
+    },
+    "tests/target/runtime_port_board/loadmodel/model.json": {
+      "sha256": "c997482544d5ffad691a66ac3c774d63de9b290c115aa657cc8a843c9aa139fe",
+      "size_bytes": 1510
+    },
+    "tests/target/runtime_port_board/main/CMakeLists.txt": {
+      "sha256": "ad805595f7ee8ce1fdbc057dae21184098ad8dcd18c7c00fba7e39a604872352",
+      "size_bytes": 15164
+    },
+    "tests/target/test_qualification.py": {
+      "sha256": "dafc0982340211073bfa273b381c9fe980b3500129ad4338364a995c309ebac1",
+      "size_bytes": 32900
+    },
+    "tools/target/qualify_kernel.py": {
+      "sha256": "47276b5b6c65752da41d9e9f1bb507bac86c0d5ba38bb2ea5ebb198944bdf24f",
+      "size_bytes": 63054
+    }
+  },
+  "automatic_apply": false,
+  "benefit_gate": "Unchanged: the model matched the simple rule and failed the required added-benefit criterion. Resource/parity evidence does not make it eligible.",
+  "board": {
+    "actuators_connected": false,
+    "backup": {
+      "app_and_partition_match_known_image": true,
+      "backup_folder": "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-ai-load-backup-bdaf201011f246cab94c4aee69071b24",
+      "backup_sha256": "ab7a01159afa0b949df0fb0c69c3ba1ae63d2357bb6acbf6794ec3cbbfc2641b",
+      "bytes": 4194304,
+      "commands": [
+        {
+          "command": [
+            "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+            "-m",
+            "esptool",
+            "--chip",
+            "esp32c3",
+            "--port",
+            "COM8",
+            "flash-id"
+          ],
+          "exit_code": 0,
+          "log": "build\\ai-loaded-20261027\\flash-id.log"
+        },
+        {
+          "command": [
+            "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+            "-m",
+            "esptool",
+            "--chip",
+            "esp32c3",
+            "--port",
+            "COM8",
+            "read-flash",
+            "0x0",
+            "0x400000",
+            "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-ai-load-backup-bdaf201011f246cab94c4aee69071b24\\board-before.bin"
+          ],
+          "exit_code": 0,
+          "log": "build\\ai-loaded-20261027\\read-flash.log"
+        }
+      ],
+      "configuration_partition_sha256": "fb582440fe30c677409dfd0b7038df2dd82aae020a0cab71e576d472d7104974",
+      "finished_utc": "2026-10-27T15:21:56.060862+00:00",
+      "old_build": "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-completion-app-cpu-a1",
+      "passed": true,
+      "port": "COM8",
+      "started_utc": "2026-10-27T15:21:33.936901+00:00"
+    },
+    "diagnostic_binary_sha256": "b6628dea0dea374f4879c7390aa9f2dd49680c844e3b9db6659633cc9021acab",
+    "diagnostic_elf_sha256": "c56bc42f68f86f6a536da449af955e0d7235cf1451f9cf6d60f246b2cd3ad958",
+    "observed_port": "COM8",
+    "original_elf_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+    "original_profile_crc": 3623560383,
+    "peripherals": [
+      "BMP388 / I2C",
+      "six-pin OLED / SPI",
+      "LD2450 / UART"
+    ],
+    "usb": {
+      "pid": 4097,
+      "serial_number": "D4:05:92:E6:C3:BC",
+      "vid": 12346
+    },
+    "wiring_confirmation": "User confirmed the same three-peripheral assembly; serial clients and phone radar app disconnected."
+  },
+  "builds": {
+    "archive_note": "Retained local archives contain core images, maps, compile commands, source manifests and evidence. Original temporary build folders hold the complete staging/build trees.",
+    "diagnostic": {
+      "isolation": {
+        "deployment_allowed": false,
+        "enabled": true,
+        "fixture_sha256": "faea517d26bd671860b5de4d5f1daa78d61467aa06d1009fb59632d45b83b4ba",
+        "linked_symbols": [
+          "ailite_predict",
+          "aiload_observe",
+          "aivects_count",
+          "aivects_get"
+        ],
+        "model_sha256": "96f73ceff2e7943c4f1b23f3d333252d13bffef9c6eccb16ee7281c07d13bd58",
+        "vectors": 1132
+      },
+      "status": "passed"
+    },
+    "first_build_attempt": "Sandboxed compiler launch was denied. The failed log is retained; an authorized isolated build then passed without source or toolchain changes.",
+    "ordinary": {
+      "elf_sha256": "49da3fdc83dafea40b4a85b0d4989da796c673127520b61957b1c18c52fce6eb",
+      "installed_on_board": false,
+      "isolation": {
+        "deployment_allowed": false,
+        "enabled": false,
+        "fixture_sha256": "faea517d26bd671860b5de4d5f1daa78d61467aa06d1009fb59632d45b83b4ba",
+        "linked_symbols": [],
+        "model_sha256": "96f73ceff2e7943c4f1b23f3d333252d13bffef9c6eccb16ee7281c07d13bd58",
+        "vectors": 1132
+      },
+      "status": "passed"
+    }
+  },
+  "deployment_allowed": false,
+  "design": {
+    "execution": "Four predictions per diagnostic request inside the existing serialized controller; no new task, heap allocation or lock.",
+    "fixture": "1132 immutable vectors with frozen Python predictions; parity expectations are not ground-truth accuracy labels.",
+    "isolation": "Build flag and source-specific substitution affect the diagnostic c3app observer only. Ordinary build has no linked diagnostic symbols. No advice endpoint or UI implementation.",
+    "model": "Frozen seven-node integer decision tree, trained offline; eighteen input words.",
+    "transport": "Test-only command-9 marker 0x41494C31; normal workcost decoder rejects it. Retained raw frames and bench reader preserve/verify CRC before adapting a copy for strict parsing."
+  },
+  "first_attempt": {
+    "analysis": {
+      "application_heap_and_runtime_object_checks_passed": true,
+      "comparisons": {
+        "0": {
+          "off_steps_per_second": 1.9929855962000578,
+          "on_off_ratio": 1.0018332969559491,
+          "on_steps_per_second": 1.996639330626822
+        },
+        "1": {
+          "off_steps_per_second": 3.994334489335544,
+          "on_off_ratio": 1.0018277447950796,
+          "on_steps_per_second": 4.001635113408234
+        },
+        "2": {
+          "off_steps_per_second": 100.0091981577049,
+          "on_off_ratio": 0.9999831390352374,
+          "on_steps_per_second": 100.00751190613883
+        }
+      },
+      "controller_stack_unused_min": 7280,
+      "deployment_allowed": false,
+      "failures": [
+        "phase_0_insufficient_samples",
+        "phase_1_insufficient_samples",
+        "phase_2_insufficient_samples",
+        "phase_3_insufficient_samples",
+        "post_stop_worker_stack_margin_unverified"
+      ],
+      "idle_stack_unused_min": 896,
+      "limitations": [
+        "One board and profile; small OFF/ON comparison, not WCET or equivalence proof.",
+        "CPU is scheduler tick attribution, not measured cycles. Empirical stack minima include earlier activity.",
+        "Timing includes clock, fixed-vector access and preemption; no overhead subtraction.",
+        "Worker sentinels are scanned only after cooperative stop; absent observations stay unavailable.",
+        "No feature reconstruction, full adviser/Desk latency, wireless or benefit qualification."
+      ],
+      "maximum_batch_us": 498,
+      "mismatches": 0,
+      "passed": false,
+      "phases": [
+        {
+          "duration_s": 59.785035,
+          "maximum_batch_us": 0,
+          "mean_poll_gap_ms": 174.29006443143098,
+          "mode": "off",
+          "phase": 0,
+          "sampled_non_idle_percent": 1.9570126285857656,
+          "samples": 344,
+          "step_rates_per_second": {
+            "0": 1.9904646706320404,
+            "1": 3.997655935134938,
+            "2": 100.00830475385688
+          }
+        },
+        {
+          "duration_s": 59.834005,
+          "maximum_batch_us": 498,
+          "mean_poll_gap_ms": 175.46014340175861,
+          "mode": "on",
+          "phase": 1,
+          "sampled_non_idle_percent": 2.1392519303406092,
+          "samples": 342,
+          "step_rates_per_second": {
+            "0": 1.9888356127924247,
+            "1": 3.9943841298940295,
+            "2": 100.01001938613335
+          }
+        },
+        {
+          "duration_s": 59.633982,
+          "maximum_batch_us": 0,
+          "mean_poll_gap_ms": 174.82830410552842,
+          "mode": "off",
+          "phase": 2,
+          "sampled_non_idle_percent": 1.9720293792132004,
+          "samples": 342,
+          "step_rates_per_second": {
+            "0": 1.995506521768075,
+            "1": 3.99101304353615,
+            "2": 100.01009156155294
+          }
+        },
+        {
+          "duration_s": 59.867004,
+          "maximum_batch_us": 479,
+          "mean_poll_gap_ms": 175.5581674487958,
+          "mode": "on",
+          "phase": 3,
+          "sampled_non_idle_percent": 2.12638014264954,
+          "samples": 342,
+          "step_rates_per_second": {
+            "0": 2.0044430484612192,
+            "1": 4.0088860969224385,
+            "2": 100.00500442614432
+          }
+        }
+      ],
+      "predictions": 3416,
+      "restored": true,
+      "sampled_cpu_delta_percentage_points": 0.16829503259559164,
+      "scope": "Classifier four-call batches in the real controller with fixed parity vectors, not feature construction or full adviser/UI latency. Same diagnostic image/observers for OFF and ON.",
+      "worker_stack_unused_min": null
+    },
+    "folder": "build/ai-loaded-20261027",
+    "interpretation": "Acceptance failed: host observation cadence yielded too few samples and worker stack margins had not been measured after cooperative stop. This result is preserved; it is not a performance pass."
+  },
+  "full_adviser_latency_qualified": false,
+  "limitations": [
+    "One board and profile; small OFF/ON comparison, not WCET or equivalence proof.",
+    "CPU is scheduler tick attribution, not measured cycles. Empirical stack minima include earlier activity.",
+    "Timing includes clock, fixed-vector access and preemption; no overhead subtraction.",
+    "Worker sentinels are scanned only after cooperative stop; absent observations stay unavailable.",
+    "No feature reconstruction, full adviser/Desk latency, wireless or benefit qualification.",
+    "498 us was observed in the earlier failed-procedure capture; the accepted capture maximum was 85 us. Neither is a worst-case guarantee.",
+    "Worker loop completion rates are not sensor report frequencies; queue overwrite event 4 is expected cache/FIFO behavior, not a UART overrun.",
+    "Normal firmware is restored and does not run this model. No new training or holdout evaluation occurred."
+  ],
+  "model_sha256": "96f73ceff2e7943c4f1b23f3d333252d13bffef9c6eccb16ee7281c07d13bd58",
+  "normal_advice_qualified": false,
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-27T15:48:08.416679+00:00",
+  "remaining": [
+    "A model must demonstrate the predeclared benefit before release advice; further model development requires fresh held-out data.",
+    "Full feature/adviser/transport integration and end-to-end request latency remain unqualified.",
+    "Desk presentation requires user review before implementation.",
+    "Integrated static-compliant Wi-Fi/BLE and combined-system acceptance remain open."
+  ],
+  "resources": {
+    "budget": {
+      "budgets": {
+        "application_fixed_limit": 155648,
+        "kernel_sdk_fixed_limit": 65536,
+        "ram_code_limit": 57344,
+        "rtc_limit": 128,
+        "total_dram_limit": 278528
+      },
+      "failures": [],
+      "groups": {
+        "application_fixed": 148830,
+        "kernel_sdk_fixed": 35562,
+        "ram_code": 45784,
+        "rtc": 60,
+        "total_dram": 230176
+      },
+      "passed": true
+    },
+    "budget_change": "Only a named 32-byte diagnostic observer module allowance was added locally; aggregate limits were unchanged.",
+    "caller_input_bytes_per_candidate": 72,
+    "classifier_writable_globals_bytes": 0,
+    "distinction": "442 bytes uses the real firmware compiler settings; 400 bytes is the earlier standalone -Os object. The 86104-byte corpus and 650-byte observer are diagnostic code/data, not the model. Observer writable state is 21 bytes.",
+    "linked_build_classifier_code_rodata_bytes": 442,
+    "linked_build_object_measurements": {
+      "ailite": {
+        "bss_bytes": 0,
+        "code_rodata_bytes": 442,
+        "compiler_stack": [
+          "C:/Users/kkak4/AppData/Local/Temp/uthome-completion-loaded-a2/project/loadmodel/ailite.c:48:5:ailite_predict\t0\tstatic"
+        ],
+        "data_bytes": 0
+      },
+      "aiload": {
+        "bss_bytes": 21,
+        "code_rodata_bytes": 650,
+        "compiler_stack": [
+          "C:/Users/kkak4/AppData/Local/Temp/uthome-completion-loaded-a2/project/loadmodel/aiload.c:69:12:predict_batch\t64\tstatic",
+          "C:/Users/kkak4/AppData/Local/Temp/uthome-completion-loaded-a2/project/loadmodel/aiload.c:24:5:aiload_observe\t48\tstatic"
+        ],
+        "data_bytes": 0
+      },
+      "aivects": {
+        "bss_bytes": 0,
+        "code_rodata_bytes": 86104,
+        "compiler_stack": [
+          "C:/Users/kkak4/AppData/Local/Temp/uthome-completion-loaded-a2/project/loadmodel/aivects.c:21509:10:aivects_count\t0\tstatic",
+          "C:/Users/kkak4/AppData/Local/Temp/uthome-completion-loaded-a2/project/loadmodel/aivects.c:21515:18:aivects_get\t16\tstatic"
+        ],
+        "data_bytes": 0
+      }
+    },
+    "stack_distinction": "Compiler frames do not establish whole-request stack usage. Empirical controller/idle margins and stopped-worker sentinels are separate observations.",
+    "standalone_export_code_rodata_bytes": 400
+  },
+  "restoration": {
+    "configuration": {
+      "active_crc": 3623560383,
+      "active_revision": 922,
+      "flags": 80,
+      "saved_crc": 3623560383,
+      "saved_revision": 922
+    },
+    "exact_original_profile_crc_restored": true,
+    "fresh_samples": {
+      "environment_sensor": "fresh",
+      "health": "fresh",
+      "presence_sensor": "fresh"
+    },
+    "oled_after_restoration": {
+      "confirmation": "User confirmed OLED readable and updating after final firmware/profile restoration",
+      "recorded_utc": "2026-10-27T15:43:02.852504+00:00",
+      "restored_image": true
+    },
+    "oled_during_diagnostic": {
+      "confirmation": "User confirmed OLED readable and updating during comparison",
+      "diagnostic_image": true,
+      "normal_restore_confirmation": null,
+      "recorded_utc": "2026-10-27T15:29:26.773555+00:00"
+    },
+    "original_firmware_restored": true,
+    "revision_note": "The controlled empty-profile stop and original-profile reapply incremented active/saved revision from 920 to 922; configuration contents are unchanged.",
+    "running_identity": {
+      "active_revision": 922,
+      "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+      "elapsed_ms": 0,
+      "preset_code": 1,
+      "records": [],
+      "request_id": 3724734623,
+      "result": "busy",
+      "revision": 922,
+      "session_id": 14558700802448702910,
+      "started_ms": 0
+    },
+    "serial_closed": true
+  },
+  "scope": "Classifier four-call batches in the real controller with fixed parity vectors, not feature construction or full adviser/UI latency. Same diagnostic image/observers for OFF and ON.",
+  "status": "experimental_classifier_loaded_diagnostic_passed",
+  "verification": {
+    "c_standard": {
+      "files_checked": 291,
+      "findings": 0,
+      "formatter_version": "20.1.8",
+      "skip_format": false,
+      "tool_policy_errors": 0
+    },
+    "earlier_test_attempts": "Initial target run failed one stale source-count expectation (195 versus 203). Its correction first had an indentation error; both logs are retained. Corrected targeted and full runs passed without weakening checks.",
+    "loaded_fixture_tests": {
+      "c99_warnings_as_errors": true,
+      "failed": 0,
+      "parity_vectors": 1132,
+      "passed": 4
+    },
+    "manual_c_review": {
+      "c_standard": "BARR-C:2018",
+      "compatibility_exceptions_added": false,
+      "hardware_and_concurrency": "Single existing controller owns observer state; peripheral workers remain scheduled. Worker stacks are scanned only after cooperative stop; missing live observations remain null. Read-only test corpus excluded from classifier size.",
+      "limits": "Classifier benchmark, not advice transport, feature reconstruction, wireless or functional-benefit qualification.",
+      "recorded_utc": "2026-10-27T15:43:02.852999+00:00",
+      "rule_8": "Four-call loop and four timed phases; clock reversal/counter overflow rejected. Counts cannot wrap within accepted batches. No automatic Apply or unsolicited serial output in diagnostic code.",
+      "rules_1_4": "C99 paired modules; immutable validated model and corpus; bounded test-only call-site substitution. Normal build verifies absence of diagnostic symbols. Vendor sources and pinned revisions unchanged.",
+      "rules_5_7": "Fixed-width model words and clocks; checked elapsed narrowing; validated count/depth/indices. Explicit bool initialization and pointer checks. No aliasing casts, dynamic allocation, task or lock creation.",
+      "scope": [
+        "tests/target/runtime_port_board/loadmodel/ailite.c",
+        "tests/target/runtime_port_board/loadmodel/aivects.c",
+        "tests/target/runtime_port_board/loadmodel/aiload.c",
+        "tests/ai/loadfake.c"
+      ]
+    },
+    "target_tests": {
+      "failed": 0,
+      "passed": 185,
+      "warnings_as_errors": true
+    }
+  },
+  "wireless_qualified": false
+}

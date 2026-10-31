@@ -1,0 +1,2 @@
+# Diagnostic host-state experiment; controller/task/NPL heap paths still exist.
+CONFIG_BT_NIMBLE_STATIC_TO_DYNAMIC=n

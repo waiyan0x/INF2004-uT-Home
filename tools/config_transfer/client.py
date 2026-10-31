@@ -6,6 +6,7 @@ from .protocol import Command, HEADER, decode_reply, encode_request
 from .telemetry import decode_telemetry
 from .capabilities import decode_capabilities
 from .discovery import decode_discovery, discovery_request
+from .workcost import decode_workcost
 
 
 class TransferError(RuntimeError):
@@ -58,9 +59,11 @@ class Client:
                 telemetry = command == Command.TELEMETRY
                 capabilities = command == Command.CAPABILITIES
                 discovery = command == Command.DISCOVER
-                valid_size = ((160 <= size <= 1824 and size % 32 == 0) if telemetry else
+                workcost = command == Command.WORKCOST
+                valid_size = ((160 <= size <= 2016 and size % 32 == 0) if telemetry else
                               (96 <= size <= 352 and size % 32 == 0) if capabilities else
-                              (80 <= size <= 208 and size % 16 == 0) if discovery else size == 24)
+                              (80 <= size <= 208 and size % 16 == 0) if discovery else
+                              size in (96, 384) if workcost else size == 24)
                 if ((magic, version, received, reserved, rid, rev) !=
                     (b"UTH1", 1, int(command) | 0x80, 0, request_id, revision) or not valid_size):
                     del pending[0]
@@ -76,6 +79,8 @@ class Client:
                     elif discovery:
                         reply = decode_discovery(bytes(pending[:length]), request_id=request_id,
                                                  revision=revision, payload=profile)
+                    elif workcost:
+                        reply = decode_workcost(bytes(pending[:length]), request_id=request_id)
                     else:
                         reply = decode_reply(bytes(pending[:length]), command=command,
                                              request_id=request_id, revision=revision)
@@ -88,6 +93,10 @@ class Client:
     def telemetry(self):
         """Read observations without consuming IDs or evicting a mutation retry."""
         return self.exchange(Command.TELEMETRY, secrets.randbelow(0xFFFFFFFF) + 1)
+
+    def workcost(self):
+        """Read bounded costs and stack observations without changing a profile."""
+        return self.exchange(Command.WORKCOST, secrets.randbelow(0xFFFFFFFF) + 1)
 
     def capabilities(self):
         """Discover compiled bindings without changing the mutation sequence."""

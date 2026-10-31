@@ -73,7 +73,11 @@ class Workflow:
             if action == "review":
                 self.discovery = None
                 return self.review(body.get("profile"))
+            if action == "datasheet_match":
+                return self.datasheet_match(body)
             require(self.client is not None, "Connect to the board first")
+            if action == "datasheet_prepare_i2c":
+                return self.datasheet_prepare_i2c(body)
             if action == "discover":
                 return self.discover(body)
             if action == "add_discovered":
@@ -123,6 +127,86 @@ class Workflow:
             raise
         finally:
             self.lock.release()
+
+    def datasheet_match(self, body):
+        """Suggest exact catalogue identities; AI names are not device proof."""
+        name = body.get("device_name")
+        require(isinstance(name, str) and 0 < len(name) <= 160,
+                "Enter a device name from the draft")
+        observed = self.client.capabilities() if self.client is not None else None
+        matches = []
+        for (identifier, version), descriptor in self.catalogue.descriptors.items():
+            if identifier.casefold() == name.strip().casefold():
+                driver = descriptor["driver_id"]
+                matches.append({"descriptor_id": identifier, "descriptor_version": version,
+                                "driver_id": driver,
+                                "driver_available": None if observed is None else driver in observed.drivers})
+        return {"matches": matches, "connected": observed is not None,
+                "identity_verified": False,
+                "notice": "A name match is a candidate only. Confirm the actual module and wiring."}
+
+    def datasheet_prepare_i2c(self, body):
+        """Build a draft only from a reviewed periodic-I2C catalogue entry."""
+        self.pending = self.discovery = None
+        require(body.get("wiring_confirmed") is True and body.get("identity_confirmed") is True,
+                "Confirm the module and physical wiring")
+        descriptor_id = body.get("descriptor_id")
+        version = body.get("descriptor_version")
+        require(isinstance(descriptor_id, str) and isinstance(version, str), "Choose a reviewed device")
+        descriptor = self.catalogue.descriptors.get((descriptor_id, version))
+        require(descriptor is not None and descriptor["protocol"] == "i2c" and
+                descriptor["execution"]["kind"] == "periodic" and
+                descriptor["defaults"]["behaviour"].get("profile") == "periodic_sensor",
+                "No reviewed periodic I2C driver for this device")
+        current_caps = self.client.capabilities()
+        require(asdict(current_caps) | {"request_id": 0} == asdict(self.caps) | {"request_id": 0},
+                "Firmware capabilities changed; reconnect")
+        require(descriptor["driver_id"] in current_caps.drivers, "Connected firmware has no compatible driver")
+        before = self.client.query()
+        document, _, _ = self.validate(body.get("profile"))
+        name = body.get("device_id")
+        address = body.get("address")
+        sda, scl = body.get("sda_gpio"), body.get("scl_gpio")
+        require(isinstance(name, str) and 1 <= len(name) <= 22 and
+                isinstance(address, str) and type(sda) is int and type(scl) is int and
+                0 <= sda <= 21 and 0 <= scl <= 21 and sda != scl,
+                "Choose a device name, address and distinct GPIO pins")
+        require(all(device["device_id"] != name for device in document["devices"]),
+                "This device name is already in the profile")
+        interface_schema = descriptor["instance_schema"]["properties"]["interface"]
+        needs_enable = "enable_gpio" in interface_schema.get("required", [])
+        enable = body.get("enable_gpio")
+        if needs_enable:
+            require(type(enable) is int and 0 <= enable <= 21 and enable not in (sda, scl),
+                    "Choose a distinct enable GPIO")
+        else:
+            require(enable is None, "This reviewed device does not use an enable GPIO")
+        buses = [bus for bus in document["interfaces"] if bus["protocol"] == "i2c" and bus["port"] == 0]
+        if buses:
+            bus = buses[0]
+            require((bus["sda_gpio"], bus["scl_gpio"]) == (sda, scl),
+                    "The existing I2C controller uses different pins")
+        else:
+            bus = dict(id="i2c0", protocol="i2c", port=0, sda_gpio=sda, scl_gpio=scl, clock_hz=100000)
+            document["interfaces"].append(bus)
+        defaults = descriptor["defaults"]
+        behaviour = deepcopy(defaults["behaviour"])
+        behaviour["destination"] = "readings." + name
+        connection = dict(ref=bus["id"], address=address)
+        if needs_enable:
+            connection["enable_gpio"] = enable
+        document["devices"].append(dict(device_id=name, driver=descriptor["driver_id"],
+            descriptor=dict(id=descriptor_id, version=version), enabled=True,
+            interface=connection, behaviour=behaviour,
+            task=dict(name="read_" + name, priority=defaults["priority"],
+                      stack_size_bytes=defaults["stack_size_bytes"])))
+        document["queues"].append(dict(id=behaviour["destination"],
+            item_type=descriptor["routing"]["output_type"], depth=document["runtime"]["queue_depth"],
+            overflow_policy="drop_oldest"))
+        self.validate(json.dumps(document))
+        require(identity(self.client.query()) == identity(before), "Board state changed; prepare again")
+        return {"profile": document, "identity_verified": False,
+                "notice": "Draft only. Validate and review before applying."}
 
     def validate(self, text):
         require(isinstance(text, str), "Profile must be JSON text")

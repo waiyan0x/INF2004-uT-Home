@@ -1,0 +1,80 @@
+{
+  "recorded_utc": "2026-10-26T06:55:40.271603+00:00",
+  "user_observation": "presence_sensor on OLED randomly displaying results",
+  "user_reported_change": "i disconnected the phone app",
+  "phase": "Baseline with phone app disconnected, before requested reconnection comparison",
+  "configuration_changed_by_assistant": false,
+  "evidence": {
+    "path": "build/hardware-acceptance-20261026/oled-radar-return-065233.jsonl",
+    "sha256": "69e25a8bf80eb5fe4dd5d65658d11002307db6bce22e47651fb8810d3a45150a"
+  },
+  "summary": {
+    "type": "summary",
+    "samples": 241,
+    "errors": [],
+    "quality": {
+      "environment_sensor": {
+        "fresh": 240,
+        "stale": 1
+      },
+      "presence_sensor": {
+        "fresh": 241
+      },
+      "health": {
+        "fresh": 241
+      }
+    },
+    "ages": {
+      "environment_sensor": {
+        "min": 198,
+        "max": 1204
+      },
+      "presence_sensor": {
+        "min": 0,
+        "max": 88
+      },
+      "health": {
+        "min": 247,
+        "max": 753
+      }
+    },
+    "radar_counts": {
+      "1": 241
+    },
+    "max_rtt_ms": 97.39989999798127,
+    "duration_seconds": 120.08215519998339,
+    "health_delta": [
+      0,
+      0,
+      0,
+      0,
+      1684,
+      1,
+      0,
+      0
+    ],
+    "runtime_end": {
+      "state": 1,
+      "generation": 1,
+      "failed_workers": 0,
+      "retained_instances": 3,
+      "service_error": 0,
+      "apply_error": 0,
+      "recovery_error": 0
+    },
+    "configuration": {
+      "active_revision": 30,
+      "saved_revision": 30,
+      "active_crc": 3623560383,
+      "saved_crc": 3623560383,
+      "flags": 80
+    }
+  },
+  "radar_sequence_delta": 1348,
+  "first_uptime_ms": 898260,
+  "last_uptime_ms": 1018267,
+  "conclusion": "Live radar reception observed throughout this 120-second interval. Bluetooth disconnection preceded recovery by user report; causality requires controlled comparison. One BMP stale snapshot and one missed heartbeat prevent an all-clear combined stability claim.",
+  "schema_version": "1.0.0",
+  "hardware_qualified": false,
+  "scope": "Unchanged-profile live radar recovery observation; app-connect comparison remains pending"
+}

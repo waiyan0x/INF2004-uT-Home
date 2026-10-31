@@ -32,8 +32,10 @@ check the resulting register values.
 
 ## Binding to the platform
 
-1. From the lifecycle owner, open the admitted I2C bus before creating workers.
-   Multiple devices borrow this bus; do not open a controller per sensor.
+1. Startup calls `c3i2c_init()` once, before profile restore or requests; it
+   creates the bus's only kernel object. From the lifecycle owner, open the
+   admitted I2C bus before creating workers. Multiple devices borrow this
+   bus; do not open a controller per sensor.
 2. Zero each distinct `bmpinst_t` and assign its borrowed `p_bus`.
 3. Add `*bmpinst_descriptor()` to the compiled registry and call `drvreg_bind`
    with the instance name, context and actual size. Binding performs no I/O.
@@ -44,7 +46,8 @@ check the resulting register values.
    source index, environment queue type and full scheduling/wiring limits.
    This typed adapter is not a firmware JSON loader.
 6. Close the bus only after empty-plan shutdown/recovery releases all workers
-   and sensor claims.
+   and sensor claims. Close rejects remaining claims or an in-flight transfer,
+   and never deletes the permanent mutex.
 
 `tests/target/periph.c` is the executable two-instance example. Manually invoked
 steps exercise the registry/driver/queue path; its fake kernel does not schedule
@@ -112,5 +115,4 @@ was introduced.
 
 
 Current [acceptance status](../../qualification/README.md) and
-[wiring procedure](../../../CONTRIBUTING.md). Historical test counts above
-refer to their dated evidence, not a new qualification.
+[wiring procedure](../../../CONTRIBUTING.md). Keep dated results in the qualification records, separate from current usage.

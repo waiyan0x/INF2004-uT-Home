@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-10-31T06:28:21.518064+00:00",
+  "scope": "Live Gemini PDF input and local Desk endpoint; no hardware access or profile mutation",
+  "provider": "gemini",
+  "model": "gemini-3.6-flash",
+  "pdf_sha256": "e25c86fe30ce4511ff275d2f2051a395a66ef5c13455957e5406b21b5e7a5247",
+  "pdf_pages": 16,
+  "runs": [
+    {
+      "path": "build/datasheet-work/sen0390-gemini-live.json",
+      "sha256": "f3a15c9bfc5041d1812969f82bd8ffcf1fda630c146ef8eca527f1b3d502e476",
+      "fact_count": 11,
+      "address_7bit": 74,
+      "address_conflict": false
+    },
+    {
+      "path": "build/datasheet-work/sen0390-gemini-desk-live.json",
+      "sha256": "948ed0f75f3f7a5df8c57ce0efb8dfbff089c2a02354104448cf20d692930ef1",
+      "fact_count": 16,
+      "address_7bit": 74,
+      "address_conflict": false
+    }
+  ],
+  "observations": [
+    "Both unreviewed drafts returned address 0x4A and noted conflicting configuration register references.",
+    "The Desk endpoint returned HTTP 200; schema and page checks passed.",
+    "The results are not a controlled model comparison and all source references require human review."
+  ],
+  "hardware_status": "not tested",
+  "acceptance_status": "not qualified"
+}

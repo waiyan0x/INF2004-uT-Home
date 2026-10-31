@@ -13,6 +13,8 @@ Basic display output passed; SPI success cannot prove panel presence.
   changing ownership; reject wrong-owner release.
 - `hal/include/digiout.h`: exclusive, bounded output callback.
 - `hal/ports/esp32c3/c3pin.c`: common C3 pin ledger and push-pull outputs.
+- `hal/include/spiown.h`, `hal/spiown.c`: permanent bus lock created at
+  startup, plus open/close session rules.
 - `hal/ports/esp32c3/c3spi.c`: SPI2 controller/mutex and FIFO transport.
 - `ssd1306.c/.h`: caller-owned pixels, reset and controller commands.
 - `oledinst.c/.h`: registry configuration, frame copies, flush, health, cleanup.
@@ -31,8 +33,10 @@ VCOMH uses documented `0x20` instead of the cached `0x40` value.
 ## Binding and lifecycle
 
 1. Admit the complete profile against board, descriptor and compiled limits.
-   Open one `c3spi` bus, then attach zeroed `spibus_device_t` contexts with
-   distinct CS pins and explicit clocks/modes.
+   Startup calls `c3spi_init()` once, before profile restore or requests; it
+   creates the bus's only kernel object. Open one `c3spi` bus, then attach
+   zeroed `spibus_device_t` contexts with distinct CS pins and explicit
+   clocks/modes.
 2. Open separate zeroed `c3pin_output_t` contexts for D/C and reset, initially
    low/high respectively. Expose `c3pin_set` through `digiout_t`. These pins
    cannot overlap I2C, SPI signals, another CS or another output.
@@ -47,7 +51,9 @@ VCOMH uses documented `0x20` instead of the cached `0x40` value.
    [display service](../../src/services/TELEMETRY.md#oled-rendering) renders directly into the
    same buffer and uses copied cache entries without draining queues.
 6. After stopped-worker cleanup succeeds, detach devices, close outputs, then
-   close the bus. Bus open/close requires zero owned workers. Claim changes are
+   close the bus. Close rejects attached devices or an in-flight transfer and
+   never deletes the permanent mutex. Detach needs an open bus but not the
+   lifecycle-owner check, since it runs inside worker cleanup. Claim changes are
    serialized lifecycle operations with affected users stopped, never ISR work.
 
 Borrowed resources outlive cleanup/recovery. Failed initialization retains the
@@ -83,8 +89,8 @@ No DMA, interrupt handler or heap allocation was added.
 C3 pins currently remain 0, 1, 3..7 and 10. UART20/21 belong to upstream startup;
 flash, USB and straps are excluded. The board catalogue's conditional GPIO2 CS
 policy is **not implemented by this backend**. Binding must reject it until the
-pull-up/boot policy is qualified and explicitly added. Target capabilities remain
-empty; no existing profile is silently advertised as deployable.
+pull-up/boot policy is qualified and explicitly added. The offline hardware-qualified target manifest remains empty. Connected
+firmware reports compiled capabilities separately from hardware qualification.
 
 One driver operation shares a deadline across commands, data and reset delays.
 Failed refreshes retain dirty pixels and resend the complete window/frame next
@@ -122,5 +128,4 @@ requires visual/electrical observation, not an invented acknowledgement test.
 
 
 Current [acceptance status](../../qualification/README.md) and
-[wiring procedure](../../../CONTRIBUTING.md). Historical test counts above
-refer to their dated evidence, not a new qualification.
+[wiring procedure](../../../CONTRIBUTING.md). Keep dated results in the qualification records, separate from current usage.

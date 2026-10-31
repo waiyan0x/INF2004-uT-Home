@@ -1,0 +1,581 @@
+{
+  "schema_version": "1.0.0",
+  "date": "2026-10-26",
+  "created_utc": "2026-10-26T11:15:40.464400+00:00",
+  "scope": "Shared-operation handoff under preemption: host regression, two real fixture boots and combined-load before/after observations",
+  "hardware_qualified": false,
+  "board": {
+    "chip": "ESP32-C3",
+    "usb_serial": "D4:05:92:E6:C3:BC",
+    "port_at_test": "COM8",
+    "peripherals": "BMP388 on I2C, six-pin OLED on SPI, LD2450 on UART; existing wiring preserved"
+  },
+  "change": {
+    "problem": "Immediate BUSY on a shared guard held by a preempted task can discard a completed BMP publication and skip a heartbeat. bmpinst_step advances its sequence even when shared publication returns BUSY.",
+    "resolution": "Three acquisition attempts and at most two one-ms tk_dly_tsk requests allow the holder to finish. Same-task recursion returns BUSY immediately. No blocking or I/O is added inside the guard.",
+    "limits": "Retry count is bounded; scheduler latency can extend wall time. Exhausted contention still returns BUSY. This is not a hard real-time guarantee.",
+    "manual_review": {
+      "path": "firmware/src/runtime/README.md",
+      "sha256": "794dfe83a4daa0db9e0fdc8ae65b24c41ee0ebfa3cb737a68fb1fbeff29d8efc",
+      "bytes": 15649
+    },
+    "deviations_changed": false,
+    "dependency_or_formatter_changes": false,
+    "sources": [
+      {
+        "path": "firmware/src/runtime/tkport.c",
+        "sha256": "a2e84681c17bdedd88abb83712823a6f9c2a07363a102e1f3c6aaa784b1b3c0a",
+        "bytes": 20449
+      },
+      {
+        "path": "firmware/src/runtime/workport.h",
+        "sha256": "7375f9d28b2a945169de246eb1f183aa27cb329734b12a7c57a4809ef1b2b821",
+        "bytes": 4413
+      },
+      {
+        "path": "tests/target/tkfake_main.c",
+        "sha256": "3ea51278e54f240b3e271cd41d44c35295044ff2bc53c1d6db4980f5d89c1726",
+        "bytes": 18228
+      },
+      {
+        "path": "tests/target/runtime_port_board/main/main.c",
+        "sha256": "161510c4ef8853af0937a0b21fa85466f74fb52e4b11313192e94f950e462f68",
+        "bytes": 28094
+      }
+    ]
+  },
+  "checkout": {
+    "head": "c46c2f7f0ca29d5b81e2ff7e22d793b224a72d91",
+    "dirty": true,
+    "note": "Includes earlier uncommitted cleanup changes. No commit/push; source/build digests identify this run."
+  },
+  "software": {
+    "full_c_gate": {
+      "files": 194,
+      "findings": 0,
+      "tool_policy_errors": 0,
+      "formatter": "20.1.8",
+      "skip_format": false
+    },
+    "host_tests": [
+      {
+        "suite": "target",
+        "tests": 76,
+        "passed": true,
+        "warnings_as_errors": true,
+        "log": {
+          "path": "build/shared-handoff-target-tests-20261026.log",
+          "sha256": "324673580d95ea8aa0dcfaf8e6ca9ac2669ee4898b50a7664ff44e316ef3119e",
+          "bytes": 25466
+        }
+      },
+      {
+        "suite": "runtime",
+        "tests": 18,
+        "passed": true,
+        "warnings_as_errors": true,
+        "log": {
+          "path": "build/shared-handoff-runtime-model-tests-20261026.log",
+          "sha256": "16118ec8c0d93a7412d63627733b3af08ba090dd758af6ac9ab4b991293f9eaf",
+          "bytes": 3934
+        }
+      }
+    ],
+    "builds": {
+      "fixture": {
+        "record": {
+          "path": "firmware/qualification/esp32c3-shared-handoff-20261026-fixture-build.json",
+          "sha256": "d87bc3ce3d3eca07f9c581fc56335d0ecee0a75279202479cd25050cc61df4b9",
+          "bytes": 31442
+        },
+        "retained_snapshot": "build/shared-handoff-20261026/fixture-build",
+        "source_snapshot_verified": true,
+        "application_binary": {
+          "sha256": "38cdb2149c888bce55495db650669d025b4cf6fbb234305c4e56fa58cb06f2db",
+          "size_bytes": 238864
+        },
+        "elf": {
+          "sha256": "bdef18f26f2fb9ce572dc5efbae80a4c95a01faebc16ad4396587d0df3f4203a",
+          "size_bytes": 4860172
+        }
+      },
+      "app": {
+        "record": {
+          "path": "firmware/qualification/esp32c3-shared-handoff-20261026-app-build.json",
+          "sha256": "16a894fbe891e8fd7cea6daf40724f79b40f6b820cbfceafcd5ef3413bd14b99",
+          "bytes": 31429
+        },
+        "retained_snapshot": "build/shared-handoff-20261026/app-build",
+        "source_snapshot_verified": true,
+        "application_binary": {
+          "sha256": "8fd0985b7f1e06e6f741e0eddd3252c0aa0b991577bdb8c2fd1cc1f5d807370d",
+          "size_bytes": 218832
+        },
+        "elf": {
+          "sha256": "34eb94aefe9d3422a380fa37d490e00982d33f29d0c1092b071634b2e884fe3a",
+          "size_bytes": 4776260
+        }
+      }
+    }
+  },
+  "backup": {
+    "path": "C:\\Users\\kkak4\\esp\\hardware-backup-20261026-shared-3423ecff\\board-before.bin",
+    "sha256": "ba661c00a9120f9c75d3a5a5d880ca3c76be9ca4418df55bab11b44364716a7f",
+    "bytes": 4194304,
+    "configuration_sha256": "9ff611074e0fb8d416faca8b67739c3c95478b52670fcaf8453f601ba2544597",
+    "temporary_source_path": "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-shared-backup-20261026-3423ecff\\board-before.bin"
+  },
+  "fixture": {
+    "boots": [
+      {
+        "checks": 895,
+        "shared_handoff_pass": true,
+        "activation_pass": true,
+        "receipt": {
+          "path": "build/shared-handoff-20261026/fixture-110052.json",
+          "sha256": "8409ed3b58c7f77a032b50c5ea5bba3fbf63000d9a893dc98bfe9670575fc618",
+          "bytes": 1867
+        },
+        "raw_log": {
+          "path": "build/shared-handoff-20261026/fixture-110052-serial.log",
+          "sha256": "bde472f1a13693a7188d481c679aa4874dc5a25166b68410cea26e2269d493f9",
+          "bytes": 869
+        },
+        "normalized_log": {
+          "path": "firmware/qualification/logs/esp32c3-shared-handoff-20261026-boot1.log",
+          "sha256": "7aa65f4480badd18d0a4e9084c75a099d8d66537257e394e92eacf9b95ecd02b",
+          "bytes": 843
+        },
+        "normalization": "UTF-8 with LF line endings; no lines removed"
+      },
+      {
+        "checks": 895,
+        "shared_handoff_pass": true,
+        "activation_pass": true,
+        "receipt": {
+          "path": "build/shared-handoff-20261026/fixture-reset-110145.json",
+          "sha256": "b245c0115210570b366e94b477ef1f8dba185be0944b520a2fb81cadc8fd4108",
+          "bytes": 1330
+        },
+        "raw_log": {
+          "path": "build/shared-handoff-20261026/fixture-reset-110145-serial.log",
+          "sha256": "bde472f1a13693a7188d481c679aa4874dc5a25166b68410cea26e2269d493f9",
+          "bytes": 869
+        },
+        "normalized_log": {
+          "path": "firmware/qualification/logs/esp32c3-shared-handoff-20261026-boot2.log",
+          "sha256": "7aa65f4480badd18d0a4e9084c75a099d8d66537257e394e92eacf9b95ecd02b",
+          "bytes": 843
+        },
+        "normalization": "UTF-8 with LF line endings; no lines removed"
+      }
+    ]
+  },
+  "installation": {
+    "receipt": {
+      "path": "build/shared-handoff-20261026/app-110237.json",
+      "sha256": "a9c4f1f30b2dfdb7b1ec04a1d044137da5c2c75324c39ffb4149bb4a9ae02adf",
+      "bytes": 1544
+    },
+    "configuration_readback_receipt": {
+      "path": "build/shared-handoff-20261026/verify-config-110239.json",
+      "sha256": "c5c9d3be95d8bcdf95510f322c1db9e0a954ce4fdd65f9c66787b3fcc15c939a",
+      "bytes": 952
+    },
+    "configuration_readback": {
+      "path": "build/shared-handoff-20261026/configuration-after-110239.bin",
+      "sha256": "9ff611074e0fb8d416faca8b67739c3c95478b52670fcaf8453f601ba2544597",
+      "bytes": 24576
+    },
+    "configuration_byte_identical_to_backup": true,
+    "flash_offsets": [
+      "0x0",
+      "0x8000",
+      "0x10000"
+    ],
+    "configuration_partition": {
+      "offset": "0x110000",
+      "length": "0x6000",
+      "written": false
+    },
+    "fixture_boot_components": "The verified application bootloader and partition table were used with the fixture application. That table equals the backed-up table and retains uthome_cfg. The generated fixture-only table was not installed.",
+    "pre_capture_query": {
+      "path": "build/hardware-acceptance-20261026/query-110300.json",
+      "sha256": "169a7404c6307079a34da5b01c3398c622461d0e3d7bf40dc7f3f76c04c35bc3",
+      "bytes": 7236
+    }
+  },
+  "bench": {
+    "before": {
+      "path": "build/hardware-acceptance-20261026/shared-before-104416.jsonl",
+      "sha256": "db03794bf61092c994b8cd6c0803a3488c88637956170fc8975ea3d14b5a3a50",
+      "header": {
+        "type": "header",
+        "started_utc": "2026-10-26T10:44:17.024471+00:00",
+        "requested_seconds": 120,
+        "requested_cadence_ms": 137,
+        "connection": {
+          "connected": true,
+          "capabilities": {
+            "request_id": 3861577266,
+            "hardware_qualified": false,
+            "max_profile_bytes": 8192,
+            "allowed_gpio_mask": 1275,
+            "max_devices": 8,
+            "max_workers": 4,
+            "features": 7,
+            "board": "esp32-c3-supermini",
+            "node_schema": "2.1.0",
+            "drivers": [
+              "bmp388",
+              "ssd1306_spi",
+              "hlk_ld2450",
+              "hc_sr04",
+              "pwm_output"
+            ]
+          },
+          "state": {
+            "command": 2,
+            "request_id": 452,
+            "revision": 0,
+            "status": 0,
+            "active_revision": 87,
+            "saved_revision": 87,
+            "active_crc": 3623560383,
+            "saved_crc": 3623560383,
+            "flags": 81,
+            "message": "Active"
+          }
+        },
+        "purpose": "Unlabelled bench observation"
+      },
+      "sample_count": 877,
+      "first_elapsed_ms": 67.62280000839382,
+      "last_elapsed_ms": 120099.34970000177,
+      "observed_duration_ms": 120031.72689999337,
+      "max_observation_gap_ms": 166.85020001023076,
+      "max_rtt_ms": 98.63819999736734,
+      "quality": {
+        "environment_sensor": {
+          "fresh": 856,
+          "stale": 21
+        },
+        "presence_sensor": {
+          "fresh": 877
+        },
+        "health": {
+          "fresh": 877
+        }
+      },
+      "age_ms": {
+        "environment_sensor": {
+          "min": 0,
+          "max": 1975
+        },
+        "presence_sensor": {
+          "min": 0,
+          "max": 59
+        },
+        "health": {
+          "min": 0,
+          "max": 998
+        }
+      },
+      "bmp_attempt_sequence_delta": 238,
+      "bmp_publication_delta": 188,
+      "bmp_unpublished_attempts_between_endpoints": 50,
+      "health_delta": [
+        0,
+        0,
+        0,
+        0,
+        2605,
+        8,
+        0,
+        0
+      ],
+      "configuration": {
+        "active_revision": 87,
+        "saved_revision": 87,
+        "active_crc": 3623560383,
+        "saved_crc": 3623560383,
+        "flags": 80
+      },
+      "runtime": {
+        "state": 1,
+        "generation": 58,
+        "failed_workers": 0,
+        "retained_instances": 3,
+        "service_error": 0,
+        "apply_error": 0,
+        "recovery_error": 0
+      },
+      "configuration_runtime_and_monotonic_counters_checked": true
+    },
+    "after": {
+      "path": "build/hardware-acceptance-20261026/shared-after-110302.jsonl",
+      "sha256": "adcbc672df6acf12fd3f56eee2e1b151ad0b9097d16b05503d83095a611c5d20",
+      "header": {
+        "type": "header",
+        "started_utc": "2026-10-26T11:03:02.338234+00:00",
+        "requested_seconds": 600,
+        "requested_cadence_ms": 137,
+        "connection": {
+          "connected": true,
+          "capabilities": {
+            "request_id": 3584681072,
+            "hardware_qualified": false,
+            "max_profile_bytes": 8192,
+            "allowed_gpio_mask": 1275,
+            "max_devices": 8,
+            "max_workers": 4,
+            "features": 7,
+            "board": "esp32-c3-supermini",
+            "node_schema": "2.1.0",
+            "drivers": [
+              "bmp388",
+              "ssd1306_spi",
+              "hlk_ld2450",
+              "hc_sr04",
+              "pwm_output"
+            ]
+          },
+          "state": {
+            "command": 2,
+            "request_id": 2,
+            "revision": 0,
+            "status": 0,
+            "active_revision": 87,
+            "saved_revision": 87,
+            "active_crc": 3623560383,
+            "saved_crc": 3623560383,
+            "flags": 81,
+            "message": "Active"
+          }
+        },
+        "purpose": "Unlabelled bench observation"
+      },
+      "sample_count": 4380,
+      "first_elapsed_ms": 83.32370000425726,
+      "last_elapsed_ms": 600003.5364999785,
+      "observed_duration_ms": 599920.2127999743,
+      "max_observation_gap_ms": 179.07509999349713,
+      "max_rtt_ms": 108.73360000550747,
+      "quality": {
+        "environment_sensor": {
+          "fresh": 4380
+        },
+        "presence_sensor": {
+          "fresh": 4380
+        },
+        "health": {
+          "fresh": 4380
+        }
+      },
+      "age_ms": {
+        "environment_sensor": {
+          "min": 0,
+          "max": 500
+        },
+        "presence_sensor": {
+          "min": 0,
+          "max": 59
+        },
+        "health": {
+          "min": 0,
+          "max": 998
+        }
+      },
+      "bmp_attempt_sequence_delta": 1200,
+      "bmp_publication_delta": 1200,
+      "bmp_unpublished_attempts_between_endpoints": 0,
+      "health_delta": [
+        0,
+        0,
+        0,
+        0,
+        13281,
+        0,
+        0,
+        0
+      ],
+      "configuration": {
+        "active_revision": 87,
+        "saved_revision": 87,
+        "active_crc": 3623560383,
+        "saved_crc": 3623560383,
+        "flags": 80
+      },
+      "runtime": {
+        "state": 1,
+        "generation": 1,
+        "failed_workers": 0,
+        "retained_instances": 3,
+        "service_error": 0,
+        "apply_error": 0,
+        "recovery_error": 0
+      },
+      "configuration_runtime_and_monotonic_counters_checked": true
+    },
+    "after_first_120_seconds": {
+      "path": "build/hardware-acceptance-20261026/shared-after-110302.jsonl",
+      "sha256": "adcbc672df6acf12fd3f56eee2e1b151ad0b9097d16b05503d83095a611c5d20",
+      "header": {
+        "type": "header",
+        "started_utc": "2026-10-26T11:03:02.338234+00:00",
+        "requested_seconds": 600,
+        "requested_cadence_ms": 137,
+        "connection": {
+          "connected": true,
+          "capabilities": {
+            "request_id": 3584681072,
+            "hardware_qualified": false,
+            "max_profile_bytes": 8192,
+            "allowed_gpio_mask": 1275,
+            "max_devices": 8,
+            "max_workers": 4,
+            "features": 7,
+            "board": "esp32-c3-supermini",
+            "node_schema": "2.1.0",
+            "drivers": [
+              "bmp388",
+              "ssd1306_spi",
+              "hlk_ld2450",
+              "hc_sr04",
+              "pwm_output"
+            ]
+          },
+          "state": {
+            "command": 2,
+            "request_id": 2,
+            "revision": 0,
+            "status": 0,
+            "active_revision": 87,
+            "saved_revision": 87,
+            "active_crc": 3623560383,
+            "saved_crc": 3623560383,
+            "flags": 81,
+            "message": "Active"
+          }
+        },
+        "purpose": "Unlabelled bench observation"
+      },
+      "sample_count": 876,
+      "first_elapsed_ms": 83.32370000425726,
+      "last_elapsed_ms": 119963.57219998026,
+      "observed_duration_ms": 119880.248499976,
+      "max_observation_gap_ms": 168.18269999930635,
+      "max_rtt_ms": 99.47190000093542,
+      "quality": {
+        "environment_sensor": {
+          "fresh": 876
+        },
+        "presence_sensor": {
+          "fresh": 876
+        },
+        "health": {
+          "fresh": 876
+        }
+      },
+      "age_ms": {
+        "environment_sensor": {
+          "min": 0,
+          "max": 500
+        },
+        "presence_sensor": {
+          "min": 0,
+          "max": 59
+        },
+        "health": {
+          "min": 0,
+          "max": 998
+        }
+      },
+      "bmp_attempt_sequence_delta": 240,
+      "bmp_publication_delta": 240,
+      "bmp_unpublished_attempts_between_endpoints": 0,
+      "health_delta": [
+        0,
+        0,
+        0,
+        0,
+        2654,
+        0,
+        0,
+        0
+      ],
+      "configuration": {
+        "active_revision": 87,
+        "saved_revision": 87,
+        "active_crc": 3623560383,
+        "saved_crc": 3623560383,
+        "flags": 80
+      },
+      "runtime": {
+        "state": 1,
+        "generation": 1,
+        "failed_workers": 0,
+        "retained_instances": 3,
+        "service_error": 0,
+        "apply_error": 0,
+        "recovery_error": 0
+      },
+      "configuration_runtime_and_monotonic_counters_checked": true
+    }
+  },
+  "interpretation": {
+    "publication_method": "For the single BMP producer, subtract queue publication delta from latest-sample attempt sequence delta between successful endpoint publications. This counts unpublished attempts inside those endpoints, not attempts outside the boundaries. Runtime, profile, timestamps and counters were checked for resets/changes.",
+    "before": "120 seconds: 50 unpublished BMP attempts, 21 stale snapshots, 8 new global missed-heartbeat events.",
+    "after": "600 seconds: 1200 BMP attempt-sequence increments and 1200 publications; all 4380 BMP and radar snapshots fresh; zero new timeout, framing, I/O, UART-overrun or missed-heartbeat events.",
+    "causal_scope": "Code and forced-preemption fixture establish the contention mechanism. Before/after observation supports this fix for the BMP publication gaps. Global counters do not identify which worker missed a heartbeat. No claim that the original intermittent UART failure is solved.",
+    "queue_overwrites": "Event 4 rose by 13281 after the fix. These are bounded application FIFO drop_oldest overwrites, not UART receive overruns. OLED reads latest-sample cache and does not consume FIFO entries.",
+    "sampling_limits": "Requested 137 ms read-only snapshots are observations, not execution traces or independent sensor samples. Events/stale periods between observations can be missed. Counters may undercount if contention exhausts retries.",
+    "oled": "User confirmed readable and updating after final application installation; visible latency not instrumented.",
+    "radar_absence": "User explicitly deferred further zero-target checks. Uncontrolled target counts are not absence acceptance or training labels.",
+    "ai": "No training or deployment. Preserve original study/model/frozen sources. New build identity, frozen study/evaluation groups and fresh repetitions are required for further training."
+  },
+  "remaining": [
+    "Original intermittent UART failure unresolved; characterize if reproduced",
+    "Worker execution/transfer duration, SPI completion/visible latency and stack/heap measurements",
+    "New protocol-workload study and independently reserved evaluation groups",
+    "Radar absence acceptance deferred at user request; wider hardware acceptance remains open"
+  ],
+  "diagnostic_artifacts": [
+    {
+      "path": "build/shared-handoff-20261026/before-analysis.json",
+      "sha256": "673ff63651ae01267bea4154f1514ab70c7f2002f4bc6fc5ac04a4320cad6691",
+      "bytes": 9308
+    },
+    {
+      "path": "build/shared-handoff-20261026/comparison.json",
+      "sha256": "d114e55c11eea19cdee5927029a23f74e73f87e6cb2c75d8b830bd4c2ba38904",
+      "bytes": 8168
+    },
+    {
+      "path": "build/shared-handoff-20261026/analyze.py",
+      "sha256": "f20fedcfa85e6b3c493eaa1aba679412f45e48767d9ce870f6d4477a2344919b",
+      "bytes": 3542
+    },
+    {
+      "path": "build/shared-handoff-20261026/bench.py",
+      "sha256": "5bc811801c4af2ed63c6590d471259a4b042f1bc3b27b5a9dbc01625acc09800",
+      "bytes": 7645
+    },
+    {
+      "path": "build/shared-handoff-20261026/fixture-104936.json",
+      "sha256": "d9d2ba042e1e38618fca3cfc9369ec5668537a6ef7d913cd0ff61eabdfada7cb",
+      "bytes": 155
+    },
+    {
+      "path": "build/shared-handoff-20261026/fixture-105055.json",
+      "sha256": "41ca1f763fc186f7f690bdb266886d8070f83de298d881f1a9bcb9594c1c0991",
+      "bytes": 1880
+    },
+    {
+      "path": "build/shared-handoff-20261026/fixture-capture-105400.json",
+      "sha256": "1dd94744dbbeeaa49214f0a685b71440c38204a0c97583cc9d3d0debbc24dd02",
+      "bytes": 338
+    }
+  ],
+  "diagnostic_artifact_note": "Earlier partition-table safety abort made no writes. First fixture boot passed 895 checks but the early handoff marker was missed during USB enumeration; final fixture repeats it in its summary. Separate serial-across-reset capture failed when Windows invalidated its handle. These workflow failures are retained, not counted as final qualification boots."
+}

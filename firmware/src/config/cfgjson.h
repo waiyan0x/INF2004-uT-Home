@@ -8,14 +8,19 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "cJSON.h"
-#define UTHOME_JSON_HEAP 32768U
+#define UTHOME_JSON_NODES 512U
+#define UTHOME_JSON_TEXT  8192U
+#define UTHOME_JSON_CALLS 1024U
 typedef cJSON cfgjson_value_t;
+#define UTHOME_JSON_BYTES                                                      \
+    ((UTHOME_JSON_NODES * sizeof(cfgjson_value_t)) + UTHOME_JSON_TEXT)
 /* One serialized owner exclusively uses cJSON through this module. init runs
  * once before other tasks; hooks remain installed. No other module may change
  * hooks or locale. open borrows input only during the call; tree pointers
- * expire at close. Heap is bounded to 32 KiB including our aligned allocation
- * headers, with 1024 allocations per parse; failure frees the entire partial
- * tree.
+ * expire at close. Fixed typed nodes and byte storage serve at most 1024
+ * requests per parse. A request the size of a node uses a typed node even when
+ * it holds text. Other requests use the text array. Freed temporary storage is
+ * not reused until close or failed open resets both pools. No heap fallback.
  */
 int cfgjson_init (void);
 const cfgjson_value_t * cfgjson_open (const uint8_t * p_data, size_t size);

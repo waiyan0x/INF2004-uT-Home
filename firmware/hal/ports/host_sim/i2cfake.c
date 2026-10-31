@@ -56,9 +56,30 @@ static int transfer (void * p_context, const i2cbus_request_t * p_request)
         return I2CBUS_TIMEOUT;
     }
     p_fake->now_ms += p_fake->transfer_ms;
+    if (p_request->read_pause_ms >= (p_request->deadline_ms - p_fake->now_ms))
+    {
+        p_fake->now_ms = p_request->deadline_ms;
+        return I2CBUS_TIMEOUT;
+    }
+    p_fake->now_ms += p_request->read_pause_ms;
     if (p_fake->transfers == p_fake->fail_at)
     {
         return p_fake->error;
+    }
+    if (0x4AU == p_request->address)
+    {
+        if (!p_fake->b_light_present)
+        {
+            return I2CBUS_NACK;
+        }
+        if ((1U != p_request->write_size) || (0U != p_request->p_write[0]) ||
+            (4U != p_request->read_size) || (10U != p_request->read_pause_ms))
+        {
+            return I2CBUS_INVALID;
+        }
+        memcpy(
+            p_request->p_read, p_fake->light_data, sizeof(p_fake->light_data));
+        return 0;
     }
     if ((p_request->address < 0x76U) || (p_request->address > 0x77U))
     {
