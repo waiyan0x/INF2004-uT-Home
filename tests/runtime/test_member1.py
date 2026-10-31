@@ -48,6 +48,13 @@ class RuntimeIntegrationTests(unittest.TestCase):
 
 def add_test(source):
     def run(self):
+        standalone = {"outputs_main": "tools/test_outputs.py",
+                      "ugtest_main": "tools/test_uart_gpio.py"}
+        if Path(source).stem in standalone:
+            result = subprocess.run([sys.executable, str(ROOT / standalone[Path(source).stem])],
+                                    cwd=ROOT, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            return
         modules = MODULES
         if Path(source).stem == "guard_main":
             modules = ["firmware/src/runtime/runtime.c", "firmware/src/runtime/tkport.c"]

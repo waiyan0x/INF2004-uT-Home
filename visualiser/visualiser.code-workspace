@@ -1,0 +1,40 @@
+{
+  "folders": [{ "path": "." }],
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [{
+      "label": "Serve wiring guide",
+      "type": "process",
+      "command": "node",
+      "args": ["${workspaceFolder}/serve.mjs"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "visualiser",
+        "pattern": {
+          "regexp": "^(.*):(\\d+): (.*)$",
+          "file": 1,
+          "line": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^Starting",
+          "endsPattern": "^Visualiser ready:"
+        }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    }]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [{
+      "name": "Open wiring guide in Edge",
+      "type": "msedge",
+      "request": "launch",
+      "url": "http://127.0.0.1:4173",
+      "webRoot": "${workspaceFolder}/dist",
+      "preLaunchTask": "Serve wiring guide"
+    }]
+  }
+}

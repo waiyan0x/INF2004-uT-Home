@@ -3,7 +3,11 @@
 `include/i2cbus.h` defines the implemented I2C transport and timing contract.
 One absolute deadline covers each complete operation, including bus-lock waiting.
 The backend owns the controller while drivers claim their device addresses.
-`include/spibus.h` adds bounded SPI device transactions; `pinpool` tracks pin
+`include/i2cown.h` separates the permanent bus lock, created once at startup,
+from repeatable open/close sessions; see the
+[C3 port](ports/esp32c3/README.md) for its limits.
+`include/spibus.h` adds bounded SPI device transactions, and `include/spiown.h`
+applies the same permanent-lock/session split to SPI; `pinpool` tracks pin
 ownership and `digiout.h` defines borrowed output callbacks. C3 I2C, SPI and simple
 outputs share one pin ledger. UART, digital input, pulse capture and PWM now
 have software implementations. Storage and USB configuration transfer live in
@@ -17,8 +21,9 @@ independent of board pin assignments and SDK APIs.
 `spifake.c` captures SPI transactions and injects output/transport failures.
 Adding a board means adding another port without changing drivers or services.
 
-Network APIs are deferred because the first prototype uses USB serial for
-configuration and monitoring.
+USB provides configuration and monitoring. On-device wireless work is in the
+[experimental network layer](../src/network/README.md); combined radio/service
+integration and qualification remain open.
 
 ## UART
 

@@ -3,9 +3,11 @@
  * @brief Use the existing native rings without installing another UART driver.
  */
 #include "c3uart.h"
+#include "c3cost.h"
 #include <tk/tkernel.h>
+#include "c3umem.h"
 #include "dev_ser.h"
-#include "ser_cnf.h"
+#include "ser.h"
 #include "workport.h"
 
 typedef struct
@@ -13,6 +15,10 @@ typedef struct
     ID   h_device;
     ID   h_mutex;
     bool b_poisoned;
+    bool b_attempted;
+    bool b_ready;
+    bool b_owned;
+    bool b_active;
 } c3uart_state_t;
 
 static int open_port (void * p_context, const uartio_config_t * p_config);
@@ -28,7 +34,8 @@ static int write_bytes (void *          p_context,
 static int flush_bytes (void * p_context);
 static int now_ms (void * p_context, uint64_t * p_now);
 static int set_attributes (const uartio_config_t * p_config);
-static int close_device (void);
+static int reset_buffers (void);
+static int discard_receive (void);
 static int lock_port (void * p_context);
 static int unlock_port (int result);
 static int read_fault (void);
@@ -50,69 +57,106 @@ uartio_t * c3uart_port (void)
     return &g_port;
 }
 
-/** @brief Apply cached native attributes through one checked close/reopen. */
+/** @brief Provision once before configuration restore or worker activation. */
+int c3uart_init (void)
+{
+    if (!rt_port_is_owner())
+    {
+        return UARTIO_STATE;
+    }
+    if (g_state.b_attempted)
+    {
+        return g_state.b_ready ? 0 : UARTIO_STATE;
+    }
+    g_state.b_attempted = true;
+    if (0 != c3umem_seal())
+    {
+        return UARTIO_IO;
+    }
+    const T_CMTX mutex = {.mtxatr = TA_INHERIT};
+    g_state.h_mutex    = tk_cre_mtx(&mutex);
+    if (g_state.h_mutex <= 0)
+    {
+        return UARTIO_IO;
+    }
+    g_state.h_device = tk_opn_dev(g_name, TD_UPDATE | TD_EXCL);
+    if (g_state.h_device <= 0)
+    {
+        return UARTIO_IO;
+    }
+    /* Native open initializes rings and starts UART. Leave it stopped. */
+    if (0 != reset_buffers())
+    {
+        return UARTIO_IO;
+    }
+    g_state.b_ready = true;
+    return 0;
+}
+
+/** @brief Apply cached attributes with START, retaining the native descriptor.
+ */
 static int open_port (void * p_context, const uartio_config_t * p_config)
 {
     if ((&g_state != p_context) || (!rt_port_is_owner()) ||
-        (g_state.b_poisoned) || (0 != g_state.h_mutex) ||
-        (1U != p_config->port) || (DEVCNF_SER_TX_PIN != p_config->tx_gpio) ||
+        (!g_state.b_ready) || (g_state.b_poisoned) || (g_state.b_owned))
+    {
+        return UARTIO_STATE;
+    }
+    if ((1U != p_config->port) || (DEVCNF_SER_TX_PIN != p_config->tx_gpio) ||
         (DEVCNF_SER_RX_PIN != p_config->rx_gpio) || (p_config->baud < 9600U) ||
         (p_config->baud > 460800U) ||
         (p_config->rx_buffer_bytes > (DEVCONF_SER_BUFFSIZE - 1U)))
     {
         return UARTIO_INVALID;
     }
-    const T_CMTX mutex   = {.mtxatr = TA_INHERIT};
-    const ID     h_mutex = tk_cre_mtx(&mutex);
-    if (h_mutex <= 0)
+    const ER locked = tk_loc_mtx(g_state.h_mutex, TMO_POL);
+    if (E_OK != locked)
     {
-        return UARTIO_IO;
+        return (E_TMOUT == locked) ? UARTIO_AGAIN : UARTIO_IO;
     }
-    g_state.h_mutex   = h_mutex;
-    const ID h_device = tk_opn_dev(g_name, TD_UPDATE | TD_EXCL);
-    if (h_device <= 0)
-    {
-        return UARTIO_IO;
-    }
-    g_state.h_device = h_device;
-    int result       = set_attributes(p_config);
+    g_state.b_owned = true;
+    int result      = reset_buffers();
     if (0 == result)
     {
-        result = close_device();
+        result = set_attributes(p_config);
     }
     if (0 == result)
     {
-        const ID h_reopened = tk_opn_dev(g_name, TD_UPDATE | TD_EXCL);
-        if (h_reopened <= 0)
+        result = (E_OK == dev_ser_llctl(0U, LLD_SER_START, 0U)) ? 0 : UARTIO_IO;
+    }
+    if (0 != result)
+    {
+        /* Retain the claim and make one bounded stop attempt after failure. */
+        if (E_OK != dev_ser_llctl(0U, LLD_SER_STOP, 0U))
         {
-            return UARTIO_IO;
+            g_state.b_poisoned = true;
         }
-        g_state.h_device = h_reopened;
     }
-    return result;
+    g_state.b_active = (0 == result);
+    return unlock_port(result);
 }
 
-/** @brief Workers are dormant before lifecycle cleanup; retain failed state. */
+/** @brief Release logical ownership only after bounded discard succeeds. */
 static int close_port (void * p_context)
 {
-    if ((&g_state != p_context) || (!rt_port_is_owner()) ||
-        (g_state.b_poisoned))
+    if ((&g_state != p_context) ||
+        ((!rt_port_is_owner()) && (!rt_port_is_cleanup_owner())) ||
+        (!g_state.b_ready) || (g_state.b_poisoned))
     {
         return UARTIO_STATE;
     }
-    if ((0 < g_state.h_device) && (0 != close_device()))
+    const ER locked = tk_loc_mtx(g_state.h_mutex, TMO_POL);
+    if (E_OK != locked)
     {
-        return UARTIO_IO;
+        return (E_TMOUT == locked) ? UARTIO_AGAIN : UARTIO_IO;
     }
-    if (0 < g_state.h_mutex)
+    g_state.b_active = false;
+    const int result = unlock_port(reset_buffers());
+    if (0 == result)
     {
-        if (E_OK != tk_del_mtx(g_state.h_mutex))
-        {
-            return UARTIO_IO;
-        }
-        g_state.h_mutex = 0;
+        g_state.b_owned = false;
     }
-    return 0;
+    return result;
 }
 
 /** @brief Reject a whole batch if errors are observed before or after RX. */
@@ -121,11 +165,15 @@ static int read_bytes (void *    p_context,
                        size_t    capacity,
                        size_t *  p_count)
 {
+    c3cost_t cost = {0};
+    c3cost_begin(&cost);
     const int locked = lock_port(p_context);
     if (0 != locked)
     {
+        c3cost_end(&cost, 0U, UARTIO_TIMEOUT == locked, locked < 0);
         return locked;
     }
+    c3cost_acquired(&cost);
     int result = read_fault();
     if (0 == result)
     {
@@ -136,7 +184,12 @@ static int read_bytes (void *    p_context,
             result = fault;
         }
     }
-    return unlock_port(result);
+    const int final = unlock_port(result);
+    c3cost_end(&cost,
+               (0 == result) ? *p_count : 0U,
+               UARTIO_TIMEOUT == final,
+               final < 0);
+    return final;
 }
 
 /** @brief Reserve the native ring's empty slot and enqueue only free space. */
@@ -145,11 +198,15 @@ static int write_bytes (void *          p_context,
                         size_t          size,
                         size_t *        p_count)
 {
+    c3cost_t cost = {0};
+    c3cost_begin(&cost);
     const int locked = lock_port(p_context);
     if (0 != locked)
     {
+        c3cost_end(&cost, 0U, UARTIO_TIMEOUT == locked, locked < 0);
         return locked;
     }
+    c3cost_acquired(&cost);
     size_t space  = 0U;
     int    result = available(true, &space);
     if ((0 == result) && (0U != space))
@@ -169,17 +226,35 @@ static int write_bytes (void *          p_context,
             result   = (E_OK == written) ? 0 : UARTIO_IO;
         }
     }
-    return unlock_port(result);
+    const int final = unlock_port(result);
+    c3cost_end(&cost,
+               (0 == result) ? *p_count : 0U,
+               UARTIO_TIMEOUT == final,
+               final < 0);
+    return final;
 }
 
 /** @brief Drain only the entry snapshot, even while more input arrives. */
 static int flush_bytes (void * p_context)
 {
+    c3cost_t cost = {0};
+    c3cost_begin(&cost);
     const int locked = lock_port(p_context);
     if (0 != locked)
     {
+        c3cost_end(&cost, 0U, UARTIO_TIMEOUT == locked, locked < 0);
         return locked;
     }
+    c3cost_acquired(&cost);
+    const int result = unlock_port(discard_receive());
+    /* Discarded bytes are not successfully delivered payload. */
+    c3cost_end(&cost, 0U, UARTIO_TIMEOUT == result, result < 0);
+    return result;
+}
+
+/** @brief Discard at most the fixed native receive capacity. */
+static int discard_receive (void)
+{
     size_t pending = 0U;
     int    result  = available(false, &pending);
     while ((0 == result) && (0U != pending))
@@ -200,13 +275,13 @@ static int flush_bytes (void * p_context)
     {
         result = fault;
     }
-    return unlock_port(result);
+    return result;
 }
 
 /** @brief Kernel operating time matches every other typed sample. */
 static int now_ms (void * p_context, uint64_t * p_now)
 {
-    if ((&g_state != p_context) || (g_state.h_device <= 0) ||
+    if ((&g_state != p_context) || (!g_state.b_active) || (!g_state.b_owned) ||
         (g_state.b_poisoned))
     {
         return UARTIO_STATE;
@@ -264,23 +339,41 @@ static int set_attributes (const uartio_config_t * p_config)
     return 0;
 }
 
-/** @brief Never retry a descriptor that native close may have already freed. */
-static int close_device (void)
+/** @brief Reset hardware, mask interrupts, then discard both software rings. */
+static int reset_buffers (void)
 {
-    const ER closed  = tk_cls_dev(g_state.h_device, 0U);
-    g_state.h_device = 0;
-    if (E_OK != closed)
+    /* STOP masks/clears all sources. START resets both hardware FIFOs and
+     * enables RX/error only, never TX-empty. STOP again before ring access.
+     * An RX ISR in that short interval is included in the later snapshot.
+     * A byte already on the wire cannot be recalled. This is abort, not drain.
+     */
+    if (E_OK != dev_ser_llctl(0U, LLD_SER_STOP, 0U))
     {
-        g_state.b_poisoned = true;
         return UARTIO_IO;
     }
-    return 0;
+    const ER started = dev_ser_llctl(0U, LLD_SER_START, 0U);
+    const ER stopped = dev_ser_llctl(0U, LLD_SER_STOP, 0U);
+    if ((E_OK != started) || (E_OK != stopped))
+    {
+        return UARTIO_IO;
+    }
+    /* Native reads toggle the CPU interrupt, but all peripheral interrupt
+     * sources stay masked. Only this wrapper may access the native device. */
+    UW byte = 0U;
+    for (size_t index = 0U; index < DEVCONF_SER_BUFFSIZE; ++index)
+    {
+        if (!dev_ser_get_snddat(0U, &byte))
+        {
+            return discard_receive();
+        }
+    }
+    return UARTIO_IO;
 }
 
 /** @brief Contention returns immediately; no driver call runs recursively. */
 static int lock_port (void * p_context)
 {
-    if ((&g_state != p_context) || (g_state.h_device <= 0) ||
+    if ((&g_state != p_context) || (!g_state.b_active) || (!g_state.b_owned) ||
         (g_state.b_poisoned))
     {
         return UARTIO_STATE;
@@ -293,7 +386,16 @@ static int lock_port (void * p_context)
 /** @brief Preserve an unlock failure as a transport error. */
 static int unlock_port (int result)
 {
-    return (E_OK == tk_unl_mtx(g_state.h_mutex)) ? result : UARTIO_IO;
+    if (E_OK != tk_unl_mtx(g_state.h_mutex))
+    {
+        g_state.b_poisoned = true;
+        g_state.b_active   = false;
+        /* The mutex state is uncertain: stop IRQ-driven communication too.
+         * Failure remains terminal; never release the caller's claim. */
+        (void)dev_ser_llctl(0U, LLD_SER_STOP, 0U);
+        return UARTIO_IO;
+    }
+    return result;
 }
 
 /** @brief Native COMERR reads clear the reported flags; count observed epochs.

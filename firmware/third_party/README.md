@@ -13,11 +13,10 @@
 | Licence | Mixed; upstream `LICENSE`, `LICENSES/`, and individual file headers govern |
 
 This is the project-selected independent ESP32-C3 port of TRON Forum's
-μT-Kernel. Selection does not imply a separate lecturer endorsement. On
-2026-09-28 the task example compiled with the tracked SDK compatibility patch
-and passed startup and repeated USB-reset checks on our ESP32-C3 SuperMini.
-Application runtime and peripheral integration remain separate work. See
-[the setup guide](../SETUP_ESP32C3.md) and [qualification evidence](../qualification/README.md).
+μT-Kernel; selection does not imply separate lecturer endorsement. Use
+[the build guide](../README.md) and
+[qualification evidence](../qualification/README.md) for current integration
+scope and retained kernel/application results.
 
 The upstream kernel directories use T-License 2.2, with some historical
 T-License 2.1 headers retained; port components and examples use Apache-2.0.
@@ -38,7 +37,7 @@ not `git submodule update --remote`, for reproducible team checkouts.
 Review a specific upstream commit on a project branch. Fetch it in the
 submodule, check it out detached, build and run the baseline on the board,
 and record the ESP-IDF/compiler revisions and result. Update the Git submodule
-pointer and the revision in this file and `../SETUP_ESP32C3.md` together.
+pointer and the revision in this file and `../README.md` together.
 Commit those changes in the same reviewed project change. Keep local kernel
 fixes in a documented fork/commit rather than an unrecorded submodule worktree.
 
@@ -51,11 +50,11 @@ Owned adaptations belong in `../drivers/bmp388/`; do not edit vendor source.
 
 Use [espressif/cjson 1.7.19~2](https://components.espressif.com/components/espressif/cjson/versions/1.7.19~2),
 an MIT-licensed managed component. ESP-IDF 6 removed the built-in `json`
-component. Pin the exact version in the future configuration component's
-`idf_component.yml` and preserve its resolved dependency lock with the build
-evidence. Enforce project size, nesting and allocation limits around parsing.
-Do not add a second JSON library. Additional components need provenance.
-MQTT is outside the first prototype.
+component. The configuration component pins this version as described below;
+preserve its resolved dependency lock with build evidence. Enforce fixed parsing
+storage, input and nesting limits around it. Do not add a second JSON library.
+Additional components need provenance. MQTT service integration remains open in
+the [overall plan](../../README.md#overall-delivery-plan).
 
 The SDK build-compatibility and application resource patches are recorded in
 [patches/](patches/README.md). They are checked against the pin and applied only
@@ -68,4 +67,4 @@ The managed version is now pinned in
 The [host mirror provenance](cjson/SOURCE.json) records exact hashes and intact
 MIT licensing. Qualification verifies managed/host source equality and retains
 the dependency lock. Owned bounds are in
-[admission notes](../src/config/ADMISSION.md); no vendor changes apply.
+[admission notes](../src/config/README.md); no vendor changes apply.

@@ -45,6 +45,8 @@ class RuntimePortFailureTests(unittest.TestCase):
                        str(ROOT / "tests/target/tkfake_main.c"),
                        str(ROOT / "tests/target/periph.c"),
                        str(ROOT / "tests/target/oledtest.c"),
+                       str(ROOT / "tests/target/owntest.c"),
+                       str(ROOT / "tests/target/spowntest.c"),
                        str(ROOT / "tests/target/uarttest.c"),
                        str(ROOT / "tests/target/gpiotest.c"),
                        str(ROOT / "tests/target/bindtest.c"),
@@ -69,16 +71,22 @@ class RuntimePortFailureTests(unittest.TestCase):
 
                        str(ROOT / "firmware/hal/pinpool.c"),
                        str(ROOT / "firmware/hal/spibus.c"),
+                       str(ROOT / "firmware/hal/spiown.c"),
                        str(ROOT / "firmware/hal/ports/host_sim/spifake.c"),
                        str(ROOT / "firmware/drivers/ssd1306_spi/ssd1306.c"),
                        str(ROOT / "firmware/drivers/ssd1306_spi/oledinst.c"),
                        str(ROOT / "firmware/hal/i2cbus.c"),
+                       str(ROOT / "firmware/hal/i2cown.c"),
                        str(ROOT / "firmware/hal/ports/host_sim/i2cfake.c"),
                        str(ROOT / "firmware/drivers/bmp388/bmp388.c"),
                        str(ROOT / "firmware/drivers/bmp388/bmpinst.c"),
                        str(ROOT / "firmware/third_party/bmp3/bmp3.c"),
                        str(ROOT / "firmware/src/config/drvreg.c"),
                        str(ROOT / "firmware/src/runtime/tkport.c"),
+                       str(ROOT / "firmware/src/runtime/stackmon.c"),
+                       str(ROOT / "firmware/src/runtime/workcost.c"),
+                       str(ROOT / "firmware/src/runtime/workmeter.c"),
+                       str(ROOT / "firmware/src/services/costview.c"),
                        str(ROOT / "firmware/src/runtime/activate.c"),
                        str(ROOT / "firmware/src/runtime/shared.c"),
                        str(ROOT / "firmware/src/services/sampcache.c"),
@@ -106,6 +114,11 @@ class RuntimePortFailureTests(unittest.TestCase):
             result = subprocess.run(command, capture_output=True, text=True, timeout=30)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             profile = json.loads((ROOT / "configs/nodes/distance-only.json").read_bytes())
+            for failed_creation in range(1, 5):
+                startup = subprocess.run([str(binary), str(failed_creation)],
+                                         capture_output=True, text=True, timeout=5)
+                self.assertEqual(startup.returncode, 0, startup.stdout + startup.stderr)
+                self.assertIn("startup failure remained latched", startup.stdout)
             prototype = json.loads((ROOT / "configs/nodes/first-prototype.json").read_bytes())
             profile["interfaces"] = [prototype["interfaces"][1]]
             display = prototype["devices"][1]
@@ -131,6 +144,24 @@ class RuntimePortFailureTests(unittest.TestCase):
                 env=dict(os.environ, UTHOME_DISPLAY_PROFILE=str(profile_path),
                          UTHOME_RULE_PROFILE=str(rule_path), UTHOME_ALT_RULE_PROFILE=str(alt_path)))
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("I2C permanent-lock ownership checks passed.", result.stdout)
+            self.assertIn("SPI permanent-lock ownership checks passed.", result.stdout)
+
+            from tools.config_transfer.workcost import decode_workcost
+            costs = next(bytes.fromhex(line.split(':', 1)[1]) for line in result.stdout.splitlines()
+                         if line.startswith('WORKCOST:'))
+            cost = decode_workcost(costs, request_id=27)
+            self.assertEqual(cost.timestamp_us, 0x100000005)
+            self.assertEqual(cost.controller_stack['unused_min'], 4096)
+            self.assertIsNone(cost.idle_stack['unused_min'])
+            self.assertTrue(all(not r['bound'] and not r['available'] for r in cost.workers))
+            self.assertTrue(all(r['stack']['measured'] for r in cost.workers))
+            self.assertIsNone(cost.scheduler)
+            scheduler = next(bytes.fromhex(line.split(':', 1)[1]) for line in result.stdout.splitlines()
+                             if line.startswith('SCHEDULER:'))
+            measured = decode_workcost(scheduler, request_id=27)
+            self.assertEqual(measured.scheduler, dict(elapsed_ms=0x200000009, idle_ms=0xfffffffd,
+                                                      tick_ms=1, method='native_tick_attribution'))
 
             from tools.config_transfer.capabilities import decode_capabilities
             from tools.config_transfer.discovery import decode_discovery, discovery_request
@@ -160,6 +191,16 @@ class RuntimePortFailureTests(unittest.TestCase):
                       if line.startswith("TELEMETRY:")]
             self.assertEqual(len(frames), 2)
             first, second = [decode_telemetry(frame, request_id=27) for frame in frames]
+            self.assertIsNone(first.memory_audit)
+            self.assertTrue(second.memory_audit["sealed"])
+            self.assertTrue(second.memory_audit["saturated"])
+            self.assertEqual(second.memory_audit["startup"]["bytes"], 1024)
+            self.assertEqual(second.memory_audit["normal"]["allocations"], 1)
+            self.assertEqual(second.memory_audit["normal"]["creates"]["alarm"], 21)
+            self.assertEqual(second.memory_audit["startup"]["kernel_calls"]["malloc"], 8)
+            self.assertEqual(second.memory_audit["normal"]["kernel_calls"]["free"], 4)
+            self.assertEqual(second.memory_audit["application_startup"]["allocations"], 2)
+            self.assertEqual(second.memory_audit["application_startup"]["kernel_calls"]["malloc"], 1)
             self.assertEqual([s["quality"] for s in first.samples], ["stale", "missing", "fresh", "fresh"])
             self.assertEqual(first.samples[0]["value"]["distance_mm"], 321)
             self.assertEqual(first.samples[2]["value"], {"pressure_pa": 100000, "temperature_c": -12.5})

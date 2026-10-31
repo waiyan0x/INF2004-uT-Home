@@ -5,7 +5,7 @@
 #ifndef UTHOME_TEST_TKFAKE_MAIN_H
 #define UTHOME_TEST_TKFAKE_MAIN_H
 
-int main (void);
+int main (int argc, char ** pp_argv);
 
 #endif
 

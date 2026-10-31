@@ -1,5 +1,11 @@
 # Verification
 
+Dated test counts and build results belong in the
+[evidence index](../firmware/qualification/README.md) and
+[completed-work log](../docs/COMPLETED_WORK_LOG.md). Run the checks below for the
+source you are changing; a previous pass does not qualify a new revision.
+Hardware, wireless/static compliance and model eligibility are separate gates.
+
 Run from the repository root. Install `tools/requirements.txt`, the pinned
 formatter in `tools/c_standard/requirements.txt`, and training dependencies
 for AI tests. Put GCC on PATH; Node is needed for presentation checks.
@@ -30,6 +36,13 @@ intentionally overlap some original C suites; runner totals are not unique C
 assertion counts. Fake-kernel tests inject lifecycle failures and invoke workers
 manually; they do not emulate physical scheduling. Sensor fixtures test parsing,
 ownership, bounds and recovery, not electrical waveforms or measurement accuracy.
+
+Admission tests also require GNU `objcopy` to redirect parser/vendor allocator
+references to the `heaptrap` test module. Interception excludes the host CRT and
+file-I/O harness. The trap records/refuses calls rather than aborting the process;
+unexpected heap use produces a diagnostic and failure status. The positive
+interception control and injected-failure test both complete without deliberate
+crashes or Windows application-error dialogs.
 
 C/Python parity checks decode real C-produced USB frames. UI fixtures cover
 single-use review tokens, changed state/capabilities, concurrent asset requests,

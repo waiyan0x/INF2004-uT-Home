@@ -1,0 +1,280 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-26T19:09:38.245138+00:00",
+  "scope": "USB static core and per-worker/protocol measurement qualification; radio services not integrated",
+  "hardware_qualified": false,
+  "whole_system_static_qualified": false,
+  "usb_static_baseline_qualified": true,
+  "deployment_allowed": false,
+  "firmware_elf_sha256": "6e1e206aa9382aaba003fc6c361f13469493c309e53611007bb4c7d6526ea87d",
+  "firmware_binary_sha256": "1b96a8e3976e05571bea47d593a66a6f6f1dec9482e8173057a766dad7762659",
+  "target_builds": {
+    "app": "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-completion-app-a10",
+    "fixture": "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-completion-fixture-a9"
+  },
+  "software": {
+    "target_tests": 140,
+    "existing_ai_tests": 90,
+    "new_cost_and_readiness_tests": 7,
+    "c_gate_files": 247,
+    "c_gate_findings": 0,
+    "warnings_as_errors": true
+  },
+  "fixture": {
+    "checks_each_boot": 1693,
+    "boots": 2,
+    "controller_unused_bytes": 5936,
+    "idle_unused_bytes": 896,
+    "worker_unused_bytes": [
+      7804,
+      7856,
+      8064,
+      8064
+    ],
+    "isolated_helper_mean_us": [
+      5,
+      5
+    ],
+    "isolated_helper_max_us": [
+      51,
+      52
+    ],
+    "overhead_limit": "128 trials per boot; includes clock/check overhead, excludes complete scheduler/transport instrumentation cost",
+    "isolated_uart_fault_fixture": "not_run"
+  },
+  "application": {
+    "profile_cycles": 20,
+    "successful_apply_saves": 40,
+    "idle_i2c_uart_cycles": 20,
+    "rejected_capacity": 20,
+    "failed_activation_rollback": true,
+    "reset_restore": true,
+    "host_disconnect_30s": true,
+    "physical_usb_unplug": false,
+    "parser_queue_rejection_cases": [
+      "typed_nodes_513",
+      "parse_call_limit",
+      "exact_input_8192",
+      "malformed",
+      "queue_depth_9",
+      "queue_count_5"
+    ],
+    "parser_exhaustion_scope": "Host exact-boundary/recovery with heap traps; target over-node/call-limit and maximum-input rejection followed by valid Apply",
+    "active_configuration": {
+      "active_crc": 3623560383,
+      "active_revision": 389,
+      "flags": 80,
+      "saved_crc": 3623560383,
+      "saved_revision": 389
+    },
+    "memory_audit": {
+      "application_startup": {
+        "allocations": 0,
+        "bytes": 0,
+        "frees": 0,
+        "kernel_calls": {
+          "calloc": 0,
+          "free": 0,
+          "malloc": 0,
+          "realloc": 0
+        }
+      },
+      "normal": {
+        "allocations": 0,
+        "bytes": 0,
+        "creates": {
+          "alarm": 0,
+          "cyclic": 0,
+          "fixed_pool": 0,
+          "flag": 0,
+          "mailbox": 0,
+          "message_buffer": 0,
+          "mutex": 0,
+          "rendezvous": 0,
+          "semaphore": 0,
+          "task": 0,
+          "variable_pool": 0
+        },
+        "frees": 0,
+        "kernel_calls": {
+          "calloc": 0,
+          "free": 0,
+          "malloc": 0,
+          "realloc": 0
+        }
+      },
+      "saturated": false,
+      "sealed": true,
+      "startup": {
+        "allocations": 30,
+        "bytes": 1907,
+        "creates": {
+          "alarm": 0,
+          "cyclic": 0,
+          "fixed_pool": 0,
+          "flag": 1,
+          "mailbox": 0,
+          "message_buffer": 0,
+          "mutex": 21,
+          "rendezvous": 0,
+          "semaphore": 4,
+          "task": 6,
+          "variable_pool": 0
+        },
+        "frees": 0,
+        "kernel_calls": {
+          "calloc": 0,
+          "free": 0,
+          "malloc": 1,
+          "realloc": 0
+        }
+      }
+    },
+    "workcost": {
+      "active_crc": 3623560383,
+      "active_revision": 389,
+      "capture_us": 532,
+      "controller_stack": {
+        "bytes": 8448,
+        "empirical": true,
+        "measured": true,
+        "unused_min": 7088
+      },
+      "generation": 7,
+      "idle_stack": {
+        "bytes": 1024,
+        "empirical": true,
+        "measured": true,
+        "unused_min": 896
+      },
+      "result": 0,
+      "timestamp_us": 130453893,
+      "workers": [
+        {
+          "available": true,
+          "bound": true,
+          "slot": 0,
+          "source_index": 0,
+          "stack": {
+            "bytes": 8192,
+            "empirical": true,
+            "measured": true,
+            "unused_min": 7376
+          },
+          "stats": {
+            "bus_active_us": 229569,
+            "bus_wait_us": 2445,
+            "elapsed_us": 261855,
+            "errors": 0,
+            "flags": 0,
+            "max_elapsed_us": 4153,
+            "max_lateness_us": 0,
+            "steps": 65,
+            "timeouts": 0,
+            "transfer_bytes": 585,
+            "transfers": 130
+          },
+          "task_handle": 19
+        },
+        {
+          "available": true,
+          "bound": true,
+          "slot": 1,
+          "source_index": 1,
+          "stack": {
+            "bytes": 8192,
+            "empirical": true,
+            "measured": true,
+            "unused_min": 7360
+          },
+          "stats": {
+            "bus_active_us": 376249,
+            "bus_wait_us": 6677,
+            "elapsed_us": 456599,
+            "errors": 0,
+            "flags": 0,
+            "max_elapsed_us": 4061,
+            "max_lateness_us": 0,
+            "steps": 130,
+            "timeouts": 0,
+            "transfer_bytes": 133900,
+            "transfers": 260
+          },
+          "task_handle": 20
+        },
+        {
+          "available": true,
+          "bound": true,
+          "slot": 2,
+          "source_index": 2,
+          "stack": {
+            "bytes": 8192,
+            "empirical": true,
+            "measured": true,
+            "unused_min": 7296
+          },
+          "stats": {
+            "bus_active_us": 456246,
+            "bus_wait_us": 51012,
+            "elapsed_us": 833544,
+            "errors": 0,
+            "flags": 0,
+            "max_elapsed_us": 690,
+            "max_lateness_us": 2000,
+            "steps": 3242,
+            "timeouts": 0,
+            "transfer_bytes": 18600,
+            "transfers": 3242
+          },
+          "task_handle": 21
+        },
+        {
+          "available": false,
+          "bound": false,
+          "slot": 3,
+          "source_index": null,
+          "stack": {
+            "bytes": 8192,
+            "empirical": true,
+            "measured": false,
+            "unused_min": null
+          },
+          "stats": null,
+          "task_handle": null
+        }
+      ]
+    },
+    "oled_visual_confirmation": "deferred while user sleeps; latest visual confirmation was preceding audit image"
+  },
+  "memory": {
+    "groups": {
+      "application_fixed": 123973,
+      "kernel_sdk_fixed": 68319,
+      "ram_code": 39140,
+      "total_dram": 231432,
+      "rtc": 60
+    },
+    "budget_passed": true,
+    "reservation_change": "c3app reservation 50176 to 50688 for fixed observation context; actual 50260; unchanged group limits",
+    "not_free_heap": true
+  },
+  "manual_review": "firmware/src/runtime/README.md#stack-and-workload-instrumentation",
+  "local_artifacts_root": "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code\\build\\system-completion-20261026-233938",
+  "local_artifact_sha256": {
+    "board-workcost-backup.json": "8a44a47d01d782000ee30121a1df0c2856661b4e8b9b47fc023b27b9f2bb9e77",
+    "workcost-discovery-bench.json": "2173f1eab993e0d357fb90597326e7c9bcf195e72495ec7169ed436003f2ed94",
+    "workcost-bench-journal.jsonl": "1ed7169383a6caba1ac18ce14ca6f6d329c31cbd11278054b27b58c3c170cc49",
+    "workcost-capacity-disconnect.json": "18d7ce004e8d3ae1f05c538ada79e87eba907f7efa80106f9974a2fdf6286a02",
+    "workcost-reboot.json": "6889c838cf6d48a09a10e247dc7f493cd5d88ef2f5681127fd0f6cc80b8f6445",
+    "target-suite-cost3.log": "79c25a790c7e6c2600caf51d88684298c3daa7468c5b4944b0b3cccc12733f43",
+    "ai-suite-cost1.log": "56242c81167402308a553d2003ce0471071f54094bad62775696181efd0a49cf",
+    "workcost-rollback-bench.json": "5f6d33eb5ac2c839942ae7741703efb3916f4600dd04ef10280f0aae21d5f672"
+  },
+  "limits": [
+    "Same three peripherals and reviewed wiring only; no unseen-device accuracy",
+    "Stack sentinels are empirical; worker margins collected only after dormancy",
+    "SDK hooks count successful allocation events; kernel counters count calls; source review remains required",
+    "UART absence/electrical tests remain deferred; no wireless or embedded AI deployment",
+    "Elapsed/bus durations are wall time, not CPU busy time or electrical wire time; lateness has 1 ms resolution"
+  ]
+}

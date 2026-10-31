@@ -2,7 +2,9 @@
 
 This path collects evidence on a reviewed connection. Identity is resolved by
 the PC catalogue, without a trained model. The generic runtime and node schema
-remain unchanged. Hardware acceptance of this new path is still pending.
+remain unchanged. Scoped USB-core discovery/profile cycles have retained
+[evidence](../../qualification/README.md). Broader electrical/failure tests and
+combined-radio acceptance remain open.
 
 ## Small, separate responsibilities
 

@@ -7,32 +7,32 @@ performs no explicit reset and never flashes. Some host drivers can still pulse
 control lines during open; verify actual board behavior during acceptance.
 
 The board must run the **configuration application image**, not the acceptance
-fixture. An earlier application was used for the BMP/OLED/radar bench checks;
-installation and physical acceptance of the newer discovery build are not
-established by those observations. Verify the current image/capabilities before
-use. See [build, protocol and storage contracts](../../firmware/src/config/README.md#transport-and-request-identity).
+fixture. Query its identity and capabilities before use. Scoped discovery/core
+acceptance is indexed in [qualification](../../firmware/qualification/README.md);
+it does not establish the current board state or complete hardware acceptance.
+See [build, protocol and storage contracts](../../firmware/src/config/README.md#transport-and-request-identity).
 
 ```console
 python -m pip install -r tools/config_transfer/requirements.txt
-python -B -m tools.config_transfer probe --port COM8
-python -B -m tools.config_transfer query --port COM8
-python -B -m tools.config_transfer apply --port COM8 --revision 1 --profile configs/nodes/distance-only.json
-python -B -m tools.config_transfer save --port COM8 --revision 1
-python -B -m tools.config_transfer recover --port COM8
+python -B -m tools.config_transfer probe --port COMx
+python -B -m tools.config_transfer query --port COMx
+python -B -m tools.config_transfer apply --port COMx --revision 1 --profile configs/nodes/distance-only.json
+python -B -m tools.config_transfer save --port COMx --revision 1
+python -B -m tools.config_transfer recover --port COMx
 ```
 
 These are usage examples, not a record of commands executed on the board.
-Discover the current COM port; COM8 was used in earlier sessions.
+Replace `COMx` with the currently detected board port.
 APPLY requires a reviewed node profile and a positive revision.
 Preflight with the host planner; target admission is independently authoritative.
-OLED and rule/PWM bindings are now compiled; physical hardware remains
-unqualified. The original prototype still requests unsupported GPIO2 CS.
+OLED and rule/PWM bindings are compiled; complete hardware acceptance remains
+open. The original prototype still requests unsupported GPIO2 CS.
 RECOVER retries checked cleanup only when the controller reports recovery;
 it cannot stop a healthy active plan. Apply a reviewed empty hardware profile
 through the normal path when an idle configuration is required. Saved data
 remains available for a later boot. SAVE persists the current active revision.
 
-Every command except PROBE, TELEMETRY and CAPABILITIES discovers the last request ID and queries current
+Every command except PROBE, TELEMETRY, WORKCOST and CAPABILITIES discovers the last request ID and queries current
 state first. Replies report numeric status: 0 OK, 1 SAVED, 2 UNSAVED, 3 REJECTED,
 4 RECOVERY, 5 STALE, 6 CONFLICT, 7 STORAGE, 8 EMPTY. PROBE has `last_request_id`
 instead of `status`. Flags and active/saved revisions/CRCs remain separate.
@@ -48,7 +48,7 @@ borrowed stream with finite timeouts, making its behavior testable without USB.
 ## One read-only telemetry snapshot
 
 ```powershell
-python -m tools.config_transfer telemetry --port COM8
+python -m tools.config_transfer telemetry --port COMx
 ```
 
 Use after the separately approved application installation. This reads typed
@@ -59,9 +59,26 @@ retry occurs. See [wire format and limits](../../firmware/src/services/TELEMETRY
 Earlier bench sessions used telemetry; full physical USB/recovery acceptance
 still remains open. A successful snapshot does not qualify the whole setup.
 
+## One read-only workload snapshot
+
+`python -B -m tools.config_transfer workcost --port COMx` reads command 9's
+bounded per-worker timing, transfer/error counters and empirical stack margins.
+It does not query storage, consume mutation IDs, reset counters or change the
+profile. Results distinguish a valid snapshot (exit 0) from BUSY/unavailable
+(exit 2); unavailable data never becomes a zero-cost measurement. The snapshot
+includes profile revision/CRC and binding generation. Compare deltas only within
+one verified image, profile and generation; use the AI recorder for a complete
+identity-bound dataset. Elapsed worker time includes waits and preemption and is
+not CPU utilization. Version 2 additionally carries a coherent native idle/tick
+observation. `reply.scheduler_window(previous)` computes sampled non-idle time
+over a verified 100 ms..60 s same-profile window; it is not cycle-accurate CPU
+usage and cannot isolate interrupts. Version 1 remains supported and reports
+the scheduler observation absent. See [wire details](../../firmware/src/services/TELEMETRY.md)
+and [measurement contracts](../../ai/README.md).
+
 ## Compiled capabilities
 
-`python -B -m tools.config_transfer capabilities --port COM8` reads the board,
+`python -B -m tools.config_transfer capabilities --port COMx` reads the board,
 node schema, driver IDs, feature bits and bounded capacities without changing
 configuration or mutation IDs. Hardware qualification is a separate field and
 remains false. See [the capability layout and local UI](../configurator/README.md).
@@ -71,11 +88,11 @@ session; a host build record alone cannot establish the board's current state.
 ## Explicit connection discovery
 
 ```powershell
-python -B -m tools.config_transfer discover --port COM8 --wiring-confirmed
-python -B -m tools.config_transfer discover --port COM8 --preset bench_uart --wiring-confirmed
+python -B -m tools.config_transfer discover --port COMx --wiring-confirmed
+python -B -m tools.config_transfer discover --port COMx --preset bench_uart --wiring-confirmed
 ```
 
-This requires the new D2 configuration image and an empty hardware configuration
+This requires the D2 discovery feature in the configuration image and an empty hardware configuration
 (both devices and interfaces). Confirm the reviewed `bench_i2c` wiring before
 using the flag: GPIO0 SDA, GPIO1 SCL, 3.3 V supply/logic, approved equipment.
 The command reads capabilities/current state, then requests the compiled preset;

@@ -9,6 +9,7 @@ reference reviewed descriptors and board/build limits in the [catalogue](../cata
 
 | Location | Purpose |
 |---|---|
+| `nodes/c3-protocol-demo.json` | Preserved three-peripheral C3 bench profile: BMP388 I2C, six-pin OLED SPI and LD2450 UART |
 | `nodes/two-environment-sensors.json` | Independent instances sharing I2C at distinct addresses |
 | `nodes/distance-only.json` | Distance sensor without another sensor/display dependency |
 | `nodes/distance-controlled-output.json` | Schema 2.1 typed rule and PWM example |
@@ -22,14 +23,24 @@ the current backend rejects it. Use the bench profiles below and the
 [hardware guide](../CONTRIBUTING.md) instead. Actual driver support and narrower
 target parser/resource limits must pass connected review before deployment.
 
+`c3-protocol-demo.json` preserves the actual restored bench settings (compact
+CRC 3623560383), including BMP388 address `0x77`, SPI at 4 MHz and UART at
+256000 baud. The six-pin OLED has no CS wire; GPIO4 is reserved but left unwired
+in this reviewed layout. Follow layout A in the hardware guide; do not infer
+wire roles from cable colours. This profile has scoped USB/peripheral evidence,
+not wireless, universal module or complete hardware qualification. It is
+available as a normal profile in the Desk without a UI change or auto-Apply.
+
 ## Target limits
 
 - Ordinary GPIO: 0, 1, 3, 4, 5, 6, 7, 10; UART1 RX20/TX21.
 - Preserve native USB18/19, BOOT/LED8/9, GPIO2 and flash/unavailable pins.
 - Four active peripheral workers, eight configured instances, four queues of
-  depth eight, 16 KiB peripheral stacks. Disabled entries still reserve wiring.
-- Profiles are at most 8192 compact bytes; target parsing has a separate 32 KiB
-  allocation-request ceiling. Passing the Python planner alone is insufficient.
+  depth eight, 16 KiB admitted stack demand. Physical worker reservation is four
+  permanent 8 KiB stacks; disabled entries still reserve wiring.
+- Profiles are at most 8192 compact bytes. Parsing uses 512 fixed cJSON node
+  slots and 12 KiB of text storage; exhaustion rejects the candidate without
+  heap fallback. Passing the Python planner alone is insufficient.
 - The target-pending manifest intentionally advertises no hardware-qualified
   peripherals. Compiled support reported by a connected build is separate.
 

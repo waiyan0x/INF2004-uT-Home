@@ -1,0 +1,230 @@
+{
+  "record_version": "1.0.0",
+  "date": "2026-10-26",
+  "recorded_utc": "2026-10-26T14:02:57.615190+00:00",
+  "scope": "Fetch and integrate system-integration with preserved local AI, bench and runtime work; software/build verification only",
+  "branch": "system-integration",
+  "head": "f1234d350e7cda88b686e574062291e74a05ef8c",
+  "local_changes_committed": false,
+  "pushed": false,
+  "flashed": false,
+  "hardware_qualified": false,
+  "static_memory_compliant": false,
+  "previous_branch": "main",
+  "previous_head": "c46c2f7f0ca29d5b81e2ff7e22d793b224a72d91",
+  "incoming_commit_count": 14,
+  "preservation": {
+    "backup": "build/integration-sync-20261026-135119",
+    "manifest_sha256": "02e86410a3e496ee383eb1fe022fd610ba45bfa39d567531e6abd17b468c4b8e",
+    "stash": "5ee4f4d1fcd62db4e37a986a103b6fac3650d2dd",
+    "tracked_files": 20,
+    "untracked_files": 48,
+    "original_untracked_hashes_verified": true
+  },
+  "merge_resolution": {
+    "path": "firmware/hal/ports/esp32c3/c3uart.c",
+    "description": "Retain startup-ready and poisoned-state guards while permitting the lifecycle owner guarded cleanup context to close the logically owned UART.",
+    "sha256": "b3a534d036785943f9ec8fa091d7d7214a07cb2061ac1ea536d4f9a36f167028"
+  },
+  "manual_c_review": {
+    "scope": "UART conflict resolution and composition with retained cleanup/shared-guard changes; no whole-branch certification",
+    "rules_1_to_8": "Reviewed: ABI/types/casts unchanged; explicit Boolean grouping; permanent descriptor/mutex lifetime retained; owner-only guarded cleanup; no new allocation/loop; failure preserves claim; existing tests/assertions and source profile retained.",
+    "deviations_changed": false,
+    "formatter_changed": false,
+    "tests_weakened": false
+  },
+  "checks": [
+    {
+      "suite": "target",
+      "count": 103,
+      "status": "passed",
+      "log": "build/integration-sync-20261026-135119/target-tests-final.log",
+      "sha256": "1c46e96e3e0fca287f52aed187fe89432121aeb702dc2a17ececc83f79bde6aa"
+    },
+    {
+      "suite": "runtime",
+      "count": 20,
+      "status": "passed",
+      "log": "build/integration-sync-20261026-135119/runtime-tests.log",
+      "sha256": "efa2067869f12f3caccb4bdd60cc4c5f6c1c88ea32fce27f838776c767e7c112"
+    },
+    {
+      "suite": "discovery",
+      "count": 19,
+      "status": "passed",
+      "log": "build/integration-sync-20261026-135119/discovery-tests.log",
+      "sha256": "ad10aceb93d2ad6fea852e22db1e6eda1374fa79b69e9dc82fe8fce1eff42447"
+    },
+    {
+      "suite": "ai",
+      "count": 76,
+      "status": "passed",
+      "log": "build/integration-sync-20261026-135119/ai-tests.log",
+      "sha256": "8041d173419644a5c7046725092de16ecc6aa508fef0a4a5be036e2bc0eb4d8e"
+    }
+  ],
+  "coding_standard": {
+    "status": "passed",
+    "files": 221,
+    "findings": 0,
+    "tool_policy_errors": 0,
+    "log": "build/integration-sync-20261026-135119/c-standard.log",
+    "sha256": "67989716f14d09dc9e14228beef098ef87875e4544cd4725b7884e2c3fe06249"
+  },
+  "initial_target_test_attempt": {
+    "status": "missing_test_dependency",
+    "missing": "PyYAML==6.0.2",
+    "resolution": "Installed the incoming branch pinned requirement in the existing project AI environment and reran the full target suite.",
+    "log": "build/integration-sync-20261026-135119/target-tests.log",
+    "sha256": "b6d65e19984d08b22bcc801a32a7e3312f98cd20c94a71a76ce99b66fa5828a2"
+  },
+  "builds": {
+    "app": {
+      "status": "passed",
+      "board_status": "not_tested",
+      "record": "firmware/qualification/esp32c3-system-integration-20261026-app-build.json",
+      "record_sha256": "1bdc408ea1548b3dcacdec7935e951eebfe3481be6b15d8805a0dada095228ea",
+      "retained_artifacts": "build/integration-sync-20261026-135119/app-build",
+      "original_build": "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-integration-app-20261026-135119",
+      "source_manifest_sha256": "52704c9694e67a3cc943d0f1910028f6f9ee2057206cf96aa1f61caa7089c216",
+      "artifacts": {
+        "build/uthome_runtime_port.bin": {
+          "sha256": "23bac88bd414f9508ab47660f36f230a093763638188b7ceae5368e2afdb1e24",
+          "size_bytes": 220864
+        },
+        "build/uthome_runtime_port.elf": {
+          "sha256": "abe8fb6bfcdcf678ffbee389a3195b083167a14e50de74e01aec22a4adf2e310",
+          "size_bytes": 4806328
+        },
+        "build/uthome_runtime_port.map": {
+          "sha256": "110529f02a185d3f17d36ab451620e905ab11c18703f35d0681c4d1bfc007f87",
+          "size_bytes": 3432139
+        },
+        "build/compile_commands.json": {
+          "sha256": "b5c85c8deda98d6be2a19496cd8d43800d421e4b5e5ea9de63203726104725bc",
+          "size_bytes": 8208616
+        },
+        "build/bootloader/bootloader.bin": {
+          "sha256": "cbf18a5103bde4b25f5b610a95bc3b4257ee302bcabc7740d3e45ebc14e7de24",
+          "size_bytes": 21232
+        },
+        "build/partition_table/partition-table.bin": {
+          "sha256": "7f7b089b96a3f7c3d7c431bd974909909e60a2bb8bdf4bb6802e9edbb6d9167e",
+          "size_bytes": 3072
+        },
+        "build/flasher_args.json": {
+          "sha256": "3d8fa411379da7c602c6163efb550377de6db43de2b55aa679833eaf385dc80f",
+          "size_bytes": 953
+        },
+        "sdkconfig": {
+          "sha256": "691689225d5deb79dbcead91f0e71c872c98780080a52de2fca9eac943429979",
+          "size_bytes": 87310
+        },
+        "build.log": {
+          "sha256": "2d032464f9017e5c1ed2985613b9fad27c21840478cf7a3f642a2e6cd2896510",
+          "size_bytes": 162473
+        },
+        "project/dependencies.lock": {
+          "sha256": "abfbc8e0e96b4740d37351e3f43cc500e5efab4b1ce7413692a0ffc9abd53c61",
+          "size_bytes": 530
+        },
+        "project/sdkconfig.defaults": {
+          "sha256": "b4581a80d073a58c99f88c6330b8000c94c349e3b6340459f96dd640c344e5d0",
+          "size_bytes": 757
+        }
+      },
+      "native_uart_object_audit": {
+        "ser.c.obj": {
+          "sha256": "cbdf1cf5eb6daabbd7534aa3ca1cffae45b92675fe8ce2bbec9d2d06a6b48eb8",
+          "allocator": "c3umem_serial_alloc",
+          "release": "c3umem_serial_free",
+          "native_heap_reference": false
+        },
+        "msdrvif.c.obj": {
+          "sha256": "91afc11abf6fb7a60a7be136ef8acd48beb7375efe57404625fc81ab1edcdd3e",
+          "allocator": "c3umem_record_alloc",
+          "release": "c3umem_record_free",
+          "native_heap_reference": false
+        }
+      },
+      "uart_static_storage_bytes": 1280
+    },
+    "fixture": {
+      "status": "passed",
+      "board_status": "not_tested",
+      "record": "firmware/qualification/esp32c3-system-integration-20261026-fixture-build.json",
+      "record_sha256": "e052ba97e5dbe79ce8b6cdc3c5b7e15a91c70d7d0b82caa7ab725546263b70d1",
+      "retained_artifacts": "build/integration-sync-20261026-135119/fixture-build",
+      "original_build": "C:\\Users\\kkak4\\AppData\\Local\\Temp\\uthome-integration-fixture-20261026-135119",
+      "source_manifest_sha256": "52704c9694e67a3cc943d0f1910028f6f9ee2057206cf96aa1f61caa7089c216",
+      "artifacts": {
+        "build/uthome_runtime_port.bin": {
+          "sha256": "44b3bdf27bbd875fd93068b9babf3215688d843bbbc2504204a9223f9b6f1d55",
+          "size_bytes": 242448
+        },
+        "build/uthome_runtime_port.elf": {
+          "sha256": "0fcc4a09716e9919196fceb99987f6881d883309a120d4660faad57d51a9d7bb",
+          "size_bytes": 4903096
+        },
+        "build/uthome_runtime_port.map": {
+          "sha256": "6d7dd73c36510668e6b84ed33f24063f9cddf82a27ee3503f22c0f14e5b49026",
+          "size_bytes": 3517442
+        },
+        "build/compile_commands.json": {
+          "sha256": "f6a4749ea1a1ceb5ab413ce1ce722fd143ad4ce682f2e31ae73be538b555a785",
+          "size_bytes": 8243068
+        },
+        "build/bootloader/bootloader.bin": {
+          "sha256": "ab31d0ab2b31b7225810724af791699375d8e92a91540f7b3022d965c139358c",
+          "size_bytes": 21232
+        },
+        "build/partition_table/partition-table.bin": {
+          "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820",
+          "size_bytes": 3072
+        },
+        "build/flasher_args.json": {
+          "sha256": "3d8fa411379da7c602c6163efb550377de6db43de2b55aa679833eaf385dc80f",
+          "size_bytes": 953
+        },
+        "sdkconfig": {
+          "sha256": "8b09aa8645869210d38f009f72a2eed59074377792fcf3508480f7fae300f682",
+          "size_bytes": 87361
+        },
+        "build.log": {
+          "sha256": "e42cbbf03fa0c0bf894c4dfb8b584bd51d05cc4442b35ca7c263c627b1f5b5b9",
+          "size_bytes": 162723
+        },
+        "project/dependencies.lock": {
+          "sha256": "abfbc8e0e96b4740d37351e3f43cc500e5efab4b1ce7413692a0ffc9abd53c61",
+          "size_bytes": 530
+        },
+        "project/sdkconfig.defaults": {
+          "sha256": "b4581a80d073a58c99f88c6330b8000c94c349e3b6340459f96dd640c344e5d0",
+          "size_bytes": 757
+        }
+      },
+      "native_uart_object_audit": {
+        "ser.c.obj": {
+          "sha256": "08d9c4c3925bc1f5cf7ea7a7835ff1284250b124e78f58c09a34c66592055b7d",
+          "allocator": "c3umem_serial_alloc",
+          "release": "c3umem_serial_free",
+          "native_heap_reference": false
+        },
+        "msdrvif.c.obj": {
+          "sha256": "40296b632e35b822475deaf70883991adfc340c538ad4d6675b1693bd6e4fdce",
+          "allocator": "c3umem_record_alloc",
+          "release": "c3umem_record_free",
+          "native_heap_reference": false
+        }
+      },
+      "uart_static_storage_bytes": 1280
+    }
+  },
+  "remaining": [
+    "Fixed parser and SDK partition allocation paths",
+    "Permanent worker pool and fixed stacks",
+    "Complete per-module and total RAM budget",
+    "Physical integration acceptance; neither new image was installed",
+    "Fresh AI timing study only after the compliant runtime baseline"
+  ]
+}

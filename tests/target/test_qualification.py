@@ -25,6 +25,55 @@ def setUpModule():
 
 
 class QualificationTests(unittest.TestCase):
+    def test_diagnostic_mode_rejects_paths_and_application_before_side_effects(self):
+        cases = ({"static_net_queues": True},
+                 {"static_net_queues": True, "runtime_port": True, "native_uart_fixture": True},
+                 {"upstream_example": "../escape"},
+                 {"upstream_example": "ble_gatt", "runtime_port": True},
+                 {"upstream_example": "udp_pingpong_c3", "configuration_app": True})
+        for options in cases:
+            with self.subTest(options=options), tempfile.TemporaryDirectory() as folder:
+                work = Path(folder) / "fresh"
+                with patch.object(qualification, "inspect") as inspect:
+                    with self.assertRaises(qualification.QualificationError):
+                        qualification.build(Path("kernel"), Path("sdk"), work, **options)
+                    inspect.assert_not_called()
+                self.assertFalse(work.exists())
+
+    def test_diagnostic_failure_records_scope_without_claiming_board_acceptance(self):
+        with tempfile.TemporaryDirectory() as folder:
+            work = Path(folder) / "fresh"
+            with patch.object(qualification, "inspect", return_value={}), \
+                 patch.object(qualification, "run", side_effect=qualification.QualificationError("archive failed")):
+                with self.assertRaisesRegex(qualification.QualificationError, "archive failed"):
+                    qualification.build(Path("kernel"), Path("sdk"), work, upstream_example="ble_gatt")
+            evidence = json.loads((work / "evidence.json").read_text())
+            self.assertEqual(evidence["example"], "examples/ble_gatt")
+            self.assertTrue(evidence["diagnostic_only"])
+            self.assertEqual(evidence["board_status"], "not_tested")
+            self.assertEqual(evidence["build_status"], "failed")
+
+    def test_lf_patch_applies_to_crlf_kernel_file_on_any_host(self):
+        # Reproduces the Linux CI failure: pinned kernel file CRLF, patch LF,
+        # and no core.autocrlf in the user's Git configuration.
+        with tempfile.TemporaryDirectory() as folder:
+            work = Path(folder)
+            source = work / "source"
+            source.mkdir()
+            (source / "config.h").write_bytes(b"#define A 1\r\n#define B 1\r\n#define C 1\r\n")
+            patch_file = work / "change.patch"
+            patch_file.write_bytes(b"--- a/config.h\n+++ b/config.h\n@@ -1,3 +1,3 @@\n"
+                                   b" #define A 1\n-#define B 1\n+#define B 0\n #define C 1\n")
+            empty = work / "gitconfig"
+            empty.write_bytes(b"")
+            isolated = {"GIT_CONFIG_GLOBAL": str(empty), "GIT_CONFIG_NOSYSTEM": "1"}
+            with patch.dict(qualification.os.environ, isolated):
+                plain = subprocess.run(["git", "apply", "--check", str(patch_file)], cwd=source,
+                                       capture_output=True)
+                self.assertNotEqual(plain.returncode, 0, "scenario must reproduce the CI failure")
+                qualification.apply_patch(patch_file, source)
+            self.assertIn(b"#define B 0", (source / "config.h").read_bytes())
+
     def test_application_requires_runtime_mode_before_building(self):
         with tempfile.TemporaryDirectory() as folder:
             work = Path(folder) / "uncreated"
@@ -229,6 +278,191 @@ class QualificationTests(unittest.TestCase):
             self.assertEqual(qualification.main(["verify-snapshot", "--project-dir", "project"]), 0)
             verify.assert_called_once_with(Path("project"))
 
+    def test_wifi_probe_rejects_nonisolated_modes_before_any_build_work(self):
+        for options in ({}, {"runtime_port": True},
+                        {"runtime_port": True, "static_net_queues": True, "configuration_app": True},
+                        {"runtime_port": True, "static_net_queues": True, "native_uart_fixture": True}):
+            with self.subTest(options=options), patch.object(qualification, "inspect") as inspect:
+                with self.assertRaisesRegex(qualification.QualificationError, "Wi-Fi probe"):
+                    qualification.build(Path("kernel"), Path("sdk"), Path("unused"), wifi_probe=True, **options)
+                inspect.assert_not_called()
+
+    def test_model_probe_requires_isolated_static_mode(self):
+        for options in ({}, {'runtime_port': True},
+                        {'runtime_port': True, 'static_net_queues': True, 'configuration_app': True},
+                        {'runtime_port': True, 'static_net_queues': True, 'wifi_probe': True},
+                        {'runtime_port': True, 'static_net_queues': True, 'ble_probe': True},
+                        {'runtime_port': True, 'static_net_queues': True, 'native_uart_fixture': True}):
+            with self.subTest(options=options), patch.object(qualification, 'inspect') as inspect:
+                with self.assertRaisesRegex(qualification.QualificationError, 'Model probe'):
+                    qualification.build(Path('kernel'),Path('sdk'),Path('unused'),model_probe=True,**options)
+                inspect.assert_not_called()
+
+    def test_model_symbols_cannot_leak_into_normal_images_or_activate_radios(self):
+        expected = {'aifrozen_predict', 'aicases_count', 'aicases_get', 'aiprobe_run'}
+        self.assertFalse(qualification.check_model_symbols(set(), False)['deployment_allowed'])
+        self.assertEqual(qualification.check_model_symbols(expected, True)['linked_symbols'], sorted(expected))
+        for name in expected:
+            with self.subTest(name=name), self.assertRaises(qualification.QualificationError):
+                qualification.check_model_symbols(expected-{name}, True)
+            with self.subTest(leaked=name), self.assertRaises(qualification.QualificationError):
+                qualification.check_model_symbols({name}, False)
+        for name in ('esp_wifi_init','esp_wifi_start','nimble_port_init'):
+            with self.subTest(radio=name), self.assertRaises(qualification.QualificationError):
+                qualification.check_model_symbols(expected|{name}, True)
+
+    def test_queue_link_proof_rejects_missing_wrong_and_flash_aliases(self):
+        aliases = qualification.queue_aliases(
+            ROOT/'tests/target/runtime_port_board/main/netqueue.cmake')
+        symbols = {}
+        for owned in sorted(set(aliases.values())):
+            symbols[owned] = 0x40381000 + len(symbols) * 32
+        for original, owned in aliases.items():
+            symbols['__wrap_' + original] = symbols[owned]
+        self.assertEqual(len(qualification.check_queue_symbols(symbols, aliases)), 24)
+        for name in ('c3nq_send_isr', '__wrap_xQueueGenericSendFromISR'):
+            for value in (0, 0x42010000, 0x40380004):
+                damaged = dict(symbols, **{name: value})
+                with self.subTest(name=name, value=value), self.assertRaises(qualification.QualificationError):
+                    qualification.check_queue_symbols(damaged, aliases)
+
+    def test_ble_probe_requires_isolated_static_mode(self):
+        for options in ({}, {"runtime_port": True},
+                        {"runtime_port": True, "static_net_queues": True, "configuration_app": True},
+                        {"runtime_port": True, "static_net_queues": True, "native_uart_fixture": True},
+                        {"runtime_port": True, "static_net_queues": True, "wifi_probe": True}):
+            with self.subTest(options=options), patch.object(qualification, "inspect") as inspect:
+                with self.assertRaises(qualification.QualificationError):
+                    qualification.build(Path("kernel"), Path("sdk"), Path("unused"), ble_probe=True, **options)
+                inspect.assert_not_called()
+
+    def test_ble_probe_checks_linked_activation_and_real_settings(self):
+        settings = ["CONFIG_FREERTOS_HZ=1000", "CONFIG_BT_ENABLED=y", "CONFIG_BT_NIMBLE_ENABLED=y",
+                    "# CONFIG_BT_NIMBLE_NVS_PERSIST is not set",
+                    "# CONFIG_ESP_PHY_CALIBRATION_AND_DATA_STORAGE is not set",
+                    "# CONFIG_BT_NIMBLE_ROLE_PERIPHERAL is not set",
+                    "# CONFIG_BT_NIMBLE_ROLE_CENTRAL is not set",
+                    "# CONFIG_BT_NIMBLE_ROLE_OBSERVER is not set",
+                    "CONFIG_BT_NIMBLE_ROLE_BROADCASTER=y", "CONFIG_BT_BLE_CCA_MODE_HW=y",
+                    "CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY=y"]
+        names = ["c3ble_probe", "c3bport_enter", "c3bport_leave", "c3bport_delay", "c3bport_exit",
+                 "c3bport_capture", "c3bport_seal", "nimble_port_init"]
+        nm = '\n'.join('42010000 T ' + name for name in names)
+        with tempfile.TemporaryDirectory() as folder:
+            work = Path(folder)
+            (work/'build').mkdir()
+            (work/'build/uthome_runtime_port.elf').write_bytes(b'fixture')
+            config = work/'sdkconfig'
+            # ESP_WIFI_ENABLED is an invisible capability default, not a user
+            # selection. Linked activation functions must still be absent.
+            config.write_text('\n'.join(settings + ['CONFIG_ESP_WIFI_ENABLED=y']))
+            with patch.object(qualification, 'run', return_value=nm):
+                result = qualification.verify_ble_probe(work)
+                self.assertFalse(result['wifi_activation_linked'])
+                for setting in settings:
+                    config.write_text('\n'.join(s for s in settings if s != setting))
+                    with self.subTest(setting=setting), self.assertRaises(qualification.QualificationError):
+                        qualification.verify_ble_probe(work)
+            config.write_text('\n'.join(settings))
+            for forbidden in ('esp_wifi_init', 'esp_wifi_start', 'esp_wifi_connect', 'c3wifi_probe',
+                              'shim_ble_patch_modules_funcs', 'c3ble_native_patch', 'ke_event_schedule_safe'):
+                with patch.object(qualification, 'run', return_value=nm + '\n42020000 T ' + forbidden):
+                    with self.subTest(forbidden=forbidden), self.assertRaises(qualification.QualificationError):
+                        qualification.verify_ble_probe(work)
+            for missing in names:
+                damaged = '\n'.join(line for line in nm.splitlines() if line.split()[-1] != missing)
+                with patch.object(qualification, 'run', return_value=damaged):
+                    with self.subTest(missing=missing), self.assertRaises(qualification.QualificationError):
+                        qualification.verify_ble_probe(work)
+
+    def test_gatt_probe_requires_explicit_isolated_ble_mode(self):
+        for options in ({}, {"runtime_port": True, "static_net_queues": True},
+                        {"runtime_port": True, "static_net_queues": True, "wifi_probe": True},
+                        {"runtime_port": True, "static_net_queues": True, "model_probe": True},
+                        {"runtime_port": True, "static_net_queues": True, "ble_probe": True,
+                         "configuration_app": True}):
+            with self.subTest(options=options), patch.object(qualification, "inspect") as inspect:
+                with self.assertRaises(qualification.QualificationError):
+                    qualification.build(Path("kernel"), Path("sdk"), Path("unused"), ble_gatt_probe=True, **options)
+                inspect.assert_not_called()
+
+    def test_gatt_probe_requires_one_connection_and_linked_service(self):
+        settings = ["CONFIG_FREERTOS_HZ=1000", "CONFIG_BT_ENABLED=y", "CONFIG_BT_NIMBLE_ENABLED=y",
+                    "# CONFIG_BT_NIMBLE_NVS_PERSIST is not set",
+                    "# CONFIG_ESP_PHY_CALIBRATION_AND_DATA_STORAGE is not set",
+                    "CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=y", "CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1",
+                    "# CONFIG_BT_NIMBLE_ROLE_CENTRAL is not set",
+                    "# CONFIG_BT_NIMBLE_ROLE_OBSERVER is not set",
+                    "CONFIG_BT_NIMBLE_ROLE_BROADCASTER=y", "CONFIG_BT_BLE_CCA_MODE_HW=y",
+                    "CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY=y"]
+        names = ["c3ble_probe", "c3bport_enter", "c3bport_leave", "c3bport_delay", "c3bport_exit",
+                 "c3bport_capture", "c3bport_seal", "nimble_port_init", "c3gatt_init",
+                 "c3gatt_reads", "ble_gatts_add_svcs"]
+        nm = '\n'.join('42010000 T ' + name for name in names)
+        with tempfile.TemporaryDirectory() as folder:
+            work = Path(folder)
+            (work/'build').mkdir()
+            (work/'build/uthome_runtime_port.elf').write_bytes(b'fixture')
+            config = work/'sdkconfig'
+            config.write_text('\n'.join(settings))
+            with patch.object(qualification, 'run', return_value=nm):
+                self.assertTrue(qualification.verify_ble_probe(work, True)['read_only_gatt_diagnostic'])
+                with self.assertRaises(qualification.QualificationError):
+                    qualification.verify_ble_probe(work, True, True)
+                config.write_text('\n'.join(settings+['# CONFIG_BT_NIMBLE_STATIC_TO_DYNAMIC is not set']))
+                static = qualification.verify_ble_probe(work, True, True)
+                self.assertTrue(static['static_host_experiment'])
+                self.assertFalse(static['whole_system_static_qualified'])
+                config.write_text('\n'.join(settings+['CONFIG_BT_NIMBLE_STATIC_TO_DYNAMIC=y']))
+                with self.assertRaises(qualification.QualificationError):
+                    qualification.verify_ble_probe(work, True, True)
+                for setting in settings:
+                    config.write_text('\n'.join(s for s in settings if s != setting))
+                    with self.subTest(setting=setting), self.assertRaises(qualification.QualificationError):
+                        qualification.verify_ble_probe(work, True)
+            config.write_text('\n'.join(settings))
+            for missing in names:
+                damaged = '\n'.join(line for line in nm.splitlines() if line.split()[-1] != missing)
+                with patch.object(qualification, 'run', return_value=damaged):
+                    with self.subTest(missing=missing), self.assertRaises(qualification.QualificationError):
+                        qualification.verify_ble_probe(work, True)
+            settings = [s.replace('CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=y',
+                                 '# CONFIG_BT_NIMBLE_ROLE_PERIPHERAL is not set') for s in settings]
+            config.write_text('\n'.join(settings))
+            with patch.object(qualification, 'run', return_value=nm):
+                with self.assertRaises(qualification.QualificationError):
+                    qualification.verify_ble_probe(work)
+
+    def test_static_ble_host_is_an_isolated_diagnostic_only(self):
+        for options in ({}, {'runtime_port':True,'static_net_queues':True},
+                        {'runtime_port':True,'static_net_queues':True,'wifi_probe':True},
+                        {'runtime_port':True,'static_net_queues':True,'ble_probe':True,
+                         'configuration_app':True}):
+            with self.subTest(options=options), patch.object(qualification, 'inspect') as inspect:
+                with self.assertRaises(qualification.QualificationError):
+                    qualification.build(Path('kernel'),Path('sdk'),Path('unused'),ble_static_host=True,**options)
+                inspect.assert_not_called()
+
+    def test_event_and_startup_link_proof_rejects_misdirection(self):
+        path = ROOT/'tests/target/runtime_port_board/main/netqueue.cmake'
+        import re
+        pairs = re.findall(r'^\s*(\w+)=(c3event_\w+)\s*$', path.read_text(), re.MULTILINE)
+        symbols = {}
+        for original, owned in pairs:
+            symbols.setdefault(owned, 0x40382000 + len(symbols) * 32)
+            symbols['__wrap_' + original] = symbols[owned]
+        startup = [('__wrap_esp_startup_start_app', 'c3boot_start'),
+                   ('knl_main', 'c3boot_native_main'),
+                   ('knl_lowmem_top', 'gp_c3boot_begin'),
+                   ('knl_lowmem_limit', 'gp_c3boot_end')]
+        for original, owned in startup:
+            symbols[original] = symbols[owned] = 0x42040000 + len(symbols) * 32
+        self.assertEqual(len(qualification.check_event_symbols(symbols, path)), 11)
+        for name in ['c3event_set_isr', '__wrap_xEventGroupWaitBits', *[pair[1] for pair in startup]]:
+            for value in (0, 0x42010000, 0x40380100):
+                with self.subTest(name=name, value=value), self.assertRaises(qualification.QualificationError):
+                    qualification.check_event_symbols(dict(symbols, **{name: value}), path)
+
     def test_runtime_sources_are_snapshotted_and_identified_by_hash(self):
         with tempfile.TemporaryDirectory() as folder:
             work = Path(folder)
@@ -236,7 +470,14 @@ class QualificationTests(unittest.TestCase):
             defaults.parent.mkdir(parents=True)
             defaults.write_bytes(b"CONFIG_IDF_TARGET=\"esp32c3\"\n")
             project, sources = qualification.stage_runtime_port(work)
-            self.assertEqual(len(sources), 128)
+            self.assertEqual(len(sources), 197)
+            for name in ('stackmon', 'workcost', 'workmeter'):
+                self.assertIn(f'firmware/src/runtime/{name}.c', sources)
+                self.assertIn(f'firmware/src/runtime/{name}.h', sources)
+            for name in ("hal/c3umem.c", "hal/c3umem.h", "main/uartcheck.c", "main/uartcheck.h"):
+                self.assertTrue((project / name).is_file())
+            for name in ("hal/c3task.c", "hal/c3task.h"):
+                self.assertTrue((project / name).is_file())
             qualification.verify_runtime_snapshot(project)
             for source, entry in sources.items():
                 target = work / entry["staged_path"]

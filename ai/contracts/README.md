@@ -7,7 +7,46 @@ See [the timing guide](../README.md#prepare-an-experiment) for the generated exp
 contract and validation. Neither contract represents measured training data or
 a model prediction. Current run, dataset and timing-tree contracts are described
 in [the AI guide](../README.md); run structure is checked by
-`timing-run.schema.json`. They are explicitly separate from the older API below.
+`timing-run.schema.json` for legacy/offline 0.1.0 records and
+`timing-run-v0.2.schema.json` for live hardware 0.2.0 records. The live contract
+adds interrupted outcomes, bounded terminal overshoot, raw-journal hashes,
+retained device/build identity and exact Apply receipts. Bundle, dataset and
+model versions remain 0.1.0. The recorder verifies journal/sample correlation
+before bundling; schema validation alone cannot establish physical measurements.
+These are explicitly separate from the older API below.
+
+`execution-context.schema.json` adds `uthome.execution-context` 0.1.0 as a
+separate sidecar. `ai/static_context.py` validates actual permanent stack
+reservations, the four-candidate advice bound and reviewed static-memory
+qualification evidence. It freezes `uthome.static-experiment` 0.1.0 bindings
+without changing old experiment hashes or counting idle workers as model load.
+Missing measurements remain null. Current branch blockers are reported by
+`ai/static_readiness.py`; source scans alone do not establish compliance.
+
+`ai/measurements.py` defines strict `uthome.workload-measurement` 0.1.0 snapshots:
+at most four unique worker/source pairs, explicit availability, eleven uint32
+counters matching `workcost_stats_t`, firmware/profile hashes, runtime generation
+and uint64 microsecond snapshot time. Counter resets, context changes and
+saturation invalidate a window. Maxima describe time since reset, not just the
+delta window. Command 9 exposes the bounded workload snapshots; they are
+auxiliary measurements, not new model inputs. Independent calibration and
+combined wireless-load qualification remain open.
+
+`ai/protocol_export.py` emits `uthome.protocol-c-export` 0.1.0 metadata and
+`protree.c/.h` for eighteen uint32 features. It retains the original model hash,
+required context hashes and disabled deployment status. The C classifier is
+bounded to five node visits with no heap/recursion/writable globals; context and
+profile validation remain required in its future caller.
+
+The protocol workload study adds independently versioned 0.2.0 contracts:
+`uthome.protocol-study`, `uthome.protocol-dataset`, `uthome.protocol-tree` and
+`uthome.protocol-evaluation`. Their strict preparation/replay/model validators
+are in `ai/protocol_study.py` and `ai/protocol_model.py`; the example input is
+`ai/examples/protocol-study.json`. Eighteen input features are defined by
+`ai/workload.py`. The protocol model uses its own experimental C exporter and is
+intentionally incompatible with the old six-input exporter. See the
+[protocol study guide](../README.md#protocol-workload-study) for metrics,
+coverage/fallback behavior, fixed splits and limitations.
 
 > **Legacy prototype experiment.** AI contract 0.2.0 is retained for regression
 > tests only. The current preparation work begins with
@@ -62,7 +101,7 @@ abstention response, run a model or deploy firmware.
 ## Status and migration
 
 Retain 0.2.0 for historical regression tests. Do not generate new datasets or
-node profiles from it. Current timing contracts use version 0.1.0 independently
+node profiles from it. Current timing contracts are versioned independently
 of this legacy API. They map explicit instance IDs to platform catalogue and
 node-schema capabilities, retaining catalogue/build provenance. See the
 [current pipeline](../README.md) for preparation, training and remaining work.

@@ -1,0 +1,93 @@
+#include "fixed_stack_pool.h"
+
+static const uint32_t capacities[BUDDY1_POOL_SLOTS] = {
+    5632U, 5120U, 6144U
+};
+
+void buddy1_pool_init(buddy1_stack_pool_t *pool)
+{
+    if (pool == NULL) {
+        return;
+    }
+
+    for (uint32_t i = 0U; i < BUDDY1_POOL_SLOTS; ++i) {
+        pool->slots[i].capacity = capacities[i];
+        pool->slots[i].generation = 0U;
+        pool->slots[i].owner = 0U;
+        pool->slots[i].occupied = false;
+    }
+}
+
+bool buddy1_pool_acquire(
+    buddy1_stack_pool_t *pool,
+    uint32_t owner,
+    uint32_t required_bytes,
+    buddy1_stack_token_t *token)
+{
+    if (pool == NULL || token == NULL ||
+        owner == 0U || required_bytes == 0U) {
+        return false;
+    }
+
+    for (uint32_t i = 0U; i < BUDDY1_POOL_SLOTS; ++i) {
+        if (pool->slots[i].occupied &&
+            pool->slots[i].owner == owner) {
+            return false;
+        }
+    }
+
+    uint32_t best = BUDDY1_POOL_SLOTS;
+
+    for (uint32_t i = 0U; i < BUDDY1_POOL_SLOTS; ++i) {
+        buddy1_stack_slot_t *slot = &pool->slots[i];
+
+        if (slot->occupied || slot->capacity < required_bytes) {
+            continue;
+        }
+
+        if (best == BUDDY1_POOL_SLOTS ||
+            slot->capacity < pool->slots[best].capacity) {
+            best = i;
+        }
+    }
+
+    if (best == BUDDY1_POOL_SLOTS) {
+        return false;
+    }
+
+    buddy1_stack_slot_t *slot = &pool->slots[best];
+
+    slot->occupied = true;
+    slot->owner = owner;
+    ++slot->generation;
+
+    token->index = best;
+    token->generation = slot->generation;
+
+    return true;
+}
+
+bool buddy1_pool_release(
+    buddy1_stack_pool_t *pool,
+    buddy1_stack_token_t token,
+    uint32_t owner,
+    bool kernel_task_deleted)
+{
+    if (pool == NULL || !kernel_task_deleted ||
+        owner == 0U || token.index >= BUDDY1_POOL_SLOTS) {
+        return false;
+    }
+
+    buddy1_stack_slot_t *slot = &pool->slots[token.index];
+
+    if (!slot->occupied ||
+        slot->owner != owner ||
+        slot->generation != token.generation) {
+        return false;
+    }
+
+    slot->occupied = false;
+    slot->owner = 0U;
+
+    return true;
+}

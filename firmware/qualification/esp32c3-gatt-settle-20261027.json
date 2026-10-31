@@ -1,0 +1,319 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-27T02:00:32.176240+00:00",
+  "scope": "Isolated one-connection read-only uptime GATT on ESP under uT-Kernel; PC read/reconnect client",
+  "passed": true,
+  "board_passed": true,
+  "client": {
+    "started_utc": "2026-10-27T01:58:40.625294+00:00",
+    "passed": true,
+    "target_address_sha256": "4a9087f4f5c48f546e29e695425ee41987362a6571c26f31a390b3566e3b4f0e",
+    "connections": [
+      {
+        "cycle": 1,
+        "reads": [
+          {
+            "uptime_ms": 5554,
+            "hex": "5554484701000000b2150000"
+          },
+          {
+            "uptime_ms": 6588,
+            "hex": "5554484701000000bc190000"
+          }
+        ],
+        "write_rejected": true,
+        "write_error": "(3, 'GATT Protocol Error: Write Not Permitted')",
+        "disconnected": true
+      },
+      {
+        "cycle": 2,
+        "reads": [
+          {
+            "uptime_ms": 17884,
+            "hex": "5554484701000000dc450000"
+          },
+          {
+            "uptime_ms": 18919,
+            "hex": "5554484701000000e7490000"
+          }
+        ],
+        "write_rejected": true,
+        "write_error": "(3, 'GATT Protocol Error: Write Not Permitted')",
+        "disconnected": true
+      }
+    ],
+    "pairing_requested": false,
+    "configuration_mutation": false,
+    "elapsed_seconds": 27.594953899970278,
+    "finished_utc": "2026-10-27T01:59:08.220491+00:00"
+  },
+  "board_connections": 2,
+  "board_disconnections": 2,
+  "board_reads": 4,
+  "client_disconnect_settle_seconds": 8,
+  "observations": [
+    {
+      "index": 0,
+      "free_bytes": 125016,
+      "largest_bytes": 114688,
+      "startup_allocations": 24,
+      "startup_allocated_bytes": 7939,
+      "normal_allocations": 0,
+      "normal_allocated_bytes": 0,
+      "application_startup_allocations": 0,
+      "sealed": 0,
+      "native_creates": {
+        "0": {
+          "startup": 7,
+          "normal": 0
+        },
+        "1": {
+          "startup": 32,
+          "normal": 0
+        },
+        "2": {
+          "startup": 50,
+          "normal": 0
+        },
+        "3": {
+          "startup": 1,
+          "normal": 0
+        },
+        "4": {
+          "startup": 0,
+          "normal": 0
+        },
+        "5": {
+          "startup": 0,
+          "normal": 0
+        },
+        "6": {
+          "startup": 0,
+          "normal": 0
+        },
+        "7": {
+          "startup": 0,
+          "normal": 0
+        },
+        "8": {
+          "startup": 0,
+          "normal": 0
+        },
+        "9": {
+          "startup": 0,
+          "normal": 0
+        },
+        "10": {
+          "startup": 0,
+          "normal": 0
+        }
+      },
+      "available": true
+    },
+    {
+      "index": 1,
+      "free_bytes": 66384,
+      "largest_bytes": 57344,
+      "startup_allocations": 92,
+      "startup_allocated_bytes": 67291,
+      "normal_allocations": 0,
+      "normal_allocated_bytes": 0,
+      "application_startup_allocations": 68,
+      "sealed": 0,
+      "native_creates": {
+        "0": {
+          "startup": 9,
+          "normal": 0
+        },
+        "1": {
+          "startup": 32,
+          "normal": 0
+        },
+        "2": {
+          "startup": 52,
+          "normal": 0
+        },
+        "3": {
+          "startup": 1,
+          "normal": 0
+        },
+        "4": {
+          "startup": 0,
+          "normal": 0
+        },
+        "5": {
+          "startup": 0,
+          "normal": 0
+        },
+        "6": {
+          "startup": 0,
+          "normal": 0
+        },
+        "7": {
+          "startup": 0,
+          "normal": 0
+        },
+        "8": {
+          "startup": 0,
+          "normal": 0
+        },
+        "9": {
+          "startup": 0,
+          "normal": 0
+        },
+        "10": {
+          "startup": 0,
+          "normal": 0
+        }
+      },
+      "available": true
+    },
+    {
+      "index": 2,
+      "free_bytes": 66384,
+      "largest_bytes": 57344,
+      "startup_allocations": 92,
+      "startup_allocated_bytes": 67291,
+      "normal_allocations": 56,
+      "normal_allocated_bytes": 920,
+      "application_startup_allocations": 68,
+      "sealed": 1,
+      "native_creates": {
+        "0": {
+          "startup": 9,
+          "normal": 0
+        },
+        "1": {
+          "startup": 32,
+          "normal": 0
+        },
+        "2": {
+          "startup": 52,
+          "normal": 0
+        },
+        "3": {
+          "startup": 1,
+          "normal": 0
+        },
+        "4": {
+          "startup": 0,
+          "normal": 0
+        },
+        "5": {
+          "startup": 0,
+          "normal": 0
+        },
+        "6": {
+          "startup": 0,
+          "normal": 0
+        },
+        "7": {
+          "startup": 0,
+          "normal": 0
+        },
+        "8": {
+          "startup": 0,
+          "normal": 0
+        },
+        "9": {
+          "startup": 0,
+          "normal": 0
+        },
+        "10": {
+          "startup": 0,
+          "normal": 0
+        }
+      },
+      "available": true
+    },
+    {
+      "index": 3,
+      "free_bytes": 66384,
+      "largest_bytes": 57344,
+      "startup_allocations": 92,
+      "startup_allocated_bytes": 67291,
+      "normal_allocations": 56,
+      "normal_allocated_bytes": 920,
+      "application_startup_allocations": 68,
+      "sealed": 1,
+      "native_creates": {
+        "0": {
+          "startup": 9,
+          "normal": 0
+        },
+        "1": {
+          "startup": 32,
+          "normal": 0
+        },
+        "2": {
+          "startup": 52,
+          "normal": 0
+        },
+        "3": {
+          "startup": 1,
+          "normal": 0
+        },
+        "4": {
+          "startup": 0,
+          "normal": 0
+        },
+        "5": {
+          "startup": 0,
+          "normal": 0
+        },
+        "6": {
+          "startup": 0,
+          "normal": 0
+        },
+        "7": {
+          "startup": 0,
+          "normal": 0
+        },
+        "8": {
+          "startup": 0,
+          "normal": 0
+        },
+        "9": {
+          "startup": 0,
+          "normal": 0
+        },
+        "10": {
+          "startup": 0,
+          "normal": 0
+        }
+      },
+      "available": true
+    }
+  ],
+  "firmware_elf_sha256": "7fde96ace9c283b676a70ca1f720671fb7c4adddc7e1c5bf749dcc52fbad7b44",
+  "software_record": "esp32c3-static-host-build-20261027.json",
+  "original_application_restored": true,
+  "configuration_unchanged": true,
+  "current_configuration": {
+    "active_revision": 737,
+    "saved_revision": 737,
+    "active_crc": 3623560383,
+    "saved_crc": 3623560383,
+    "flags": 80
+  },
+  "sequence_record": "build\\system-completion-20261026-233938\\gatt-settle-sequence-20261027-015824.json",
+  "sequence_sha256": "01b5bfc3c42886d3bb0243cd685c757a177743f3f350468954c2835fb0ff2ae4",
+  "source_sha256": {
+    "build\\system-completion-20261026-233938\\gatt_client_settle.py": "8f3263c28c6abda98526c1d293e95b9b4db017d7487f0b17ced1655082ebb556",
+    "build\\system-completion-20261026-233938\\gatt_sequence_settle.py": "0a0389b5518ee3a0aa4fbf694e226e1a8b87329a787e49a8a264971d58388412"
+  },
+  "whole_system_static_qualified": false,
+  "coexistence_tested": false,
+  "phone_tested": false,
+  "authenticated_service": false,
+  "mqtt_http_tested": false,
+  "model_deployed": false,
+  "limitations": [
+    "Uptime is diagnostic data, not integrated sensor/configuration BLE functionality.",
+    "SDK allocations remain counted and violate the unrestricted no-malloc goal.",
+    "PC connects only to the previously observed board address hash; no pairing or nearby-device inventory.",
+    "No simultaneous peripheral, Wi-Fi, flash-save, AP/broker or actuator qualification."
+  ],
+  "log": "logs/esp32c3-gatt-settle-20261027.log",
+  "log_sha256": "4ea3386b32a02edce962a9e11dedb508cad447be824abcb9216465e1779f6969"
+}

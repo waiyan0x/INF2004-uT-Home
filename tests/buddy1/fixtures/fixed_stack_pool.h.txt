@@ -1,0 +1,45 @@
+#ifndef BUDDY1_FIXED_STACK_POOL_H
+#define BUDDY1_FIXED_STACK_POOL_H
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#define BUDDY1_POOL_SLOTS 3U
+
+typedef struct
+{
+    uint32_t capacity;
+    uint32_t generation;
+    uint32_t owner;
+    bool occupied;
+} buddy1_stack_slot_t;
+
+typedef struct
+{
+    buddy1_stack_slot_t slots[BUDDY1_POOL_SLOTS];
+} buddy1_stack_pool_t;
+
+typedef struct
+{
+    uint32_t index;
+    uint32_t generation;
+} buddy1_stack_token_t;
+
+void buddy1_pool_init(buddy1_stack_pool_t *pool);
+
+bool buddy1_pool_acquire(
+    buddy1_stack_pool_t *pool,
+    uint32_t owner,
+    uint32_t required_bytes,
+    buddy1_stack_token_t *token
+);
+
+bool buddy1_pool_release(
+    buddy1_stack_pool_t *pool,
+    buddy1_stack_token_t token,
+    uint32_t owner,
+    bool kernel_task_deleted
+);
+
+#endif

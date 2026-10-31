@@ -1,0 +1,238 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-27T00:38:41.561138+00:00",
+  "scope": "Corrected SPI/static USB core, new workload combinations on the same three supported peripherals",
+  "firmware_elf_sha256": "abc9c46ce19ae23e950315107333d82ffa9650f226483d5eb8cd59adefc23024",
+  "recordings": 80,
+  "usable": 80,
+  "observations": 29280,
+  "capture_error": null,
+  "restored": true,
+  "restored_configuration": {
+    "active_crc": 3623560383,
+    "active_revision": 690,
+    "flags": 80,
+    "saved_crc": 3623560383,
+    "saved_revision": 690
+  },
+  "study_sha256": "8c55380d9de0a76f670aa5fe0d34a99223a5909f1f4aee7e014de4a308d0dcdd",
+  "model_sha256": "6a48b830c8d5cf0734555ab457c067b224414b9518a6e1310301c93016fc32e0",
+  "dataset_sha256": "970d977b87c74ca0430fdf0ebd6de0398152bf5be462f09f3a19549934a14206",
+  "split": {
+    "test": 2,
+    "train": 6,
+    "validation": 2
+  },
+  "nodes": 5,
+  "statistical_criteria_passed": false,
+  "gate_reasons": [
+    "no_measured_benefit_over_simple_rule"
+  ],
+  "benefit_definition": "At least one held-out safe coverage or interval gain, with no regression against a passing rule choice",
+  "heldout": {
+    "families": 4,
+    "tree_violations": 0,
+    "tree_correct_abstentions": 0,
+    "tree_unnecessary_abstentions": 0,
+    "simple_rule_violations": 0,
+    "safe_coverage_gains": 0,
+    "safe_interval_gains": 0
+  },
+  "heldout_decisions": {
+    "validation": {
+      "val-1000-r200-u": {
+        "compatible_context": true,
+        "oracle_ms": 500,
+        "regression_against_safe_rule": false,
+        "safe_coverage_gain": false,
+        "safe_interval_delta_ms": 0,
+        "safe_interval_gain": false,
+        "simple_rule_ms": 500,
+        "tree_ms": 500,
+        "unnecessary_abstention": false,
+        "violation": false
+      },
+      "val-625-r125": {
+        "compatible_context": true,
+        "oracle_ms": 500,
+        "regression_against_safe_rule": false,
+        "safe_coverage_gain": false,
+        "safe_interval_delta_ms": 0,
+        "safe_interval_gain": false,
+        "simple_rule_ms": 500,
+        "tree_ms": 500,
+        "unnecessary_abstention": false,
+        "violation": false
+      }
+    },
+    "test": {
+      "test-625-r200-u": {
+        "compatible_context": true,
+        "oracle_ms": 500,
+        "regression_against_safe_rule": false,
+        "safe_coverage_gain": false,
+        "safe_interval_delta_ms": 0,
+        "safe_interval_gain": false,
+        "simple_rule_ms": 500,
+        "tree_ms": 500,
+        "unnecessary_abstention": false,
+        "violation": false
+      },
+      "test-800-r125": {
+        "compatible_context": true,
+        "oracle_ms": 500,
+        "regression_against_safe_rule": false,
+        "safe_coverage_gain": false,
+        "safe_interval_delta_ms": 0,
+        "safe_interval_gain": false,
+        "simple_rule_ms": 500,
+        "tree_ms": 500,
+        "unnecessary_abstention": false,
+        "violation": false
+      }
+    }
+  },
+  "c_verification": {
+    "export": {
+      "automatic_apply": false,
+      "constant_data_bytes": 244,
+      "context_check": "required_by_caller",
+      "context_hashes": [
+        "64e6b11ad7449b0d4d72c17df2dffe84c79c75d4f9d8f30539e5db6c0c89710b",
+        "cad29b446b27cabab60e90ba729bc3ca5513b8f7978d71fc4ac9a43975abb05f"
+      ],
+      "contract": "uthome.protocol-c-export",
+      "deployment_allowed": false,
+      "feature_bytes": 72,
+      "generated_c_findings": 0,
+      "generated_format_errors": 0,
+      "input_contract": {
+        "features": [
+          "execution_kind",
+          "interval_ms",
+          "goal_ms",
+          "active_tasks",
+          "source_period_ms",
+          "timeout_us",
+          "target_priority",
+          "higher_priority_workers",
+          "i2c_workers",
+          "i2c_min_clock_hz",
+          "i2c_requests_millihz",
+          "spi_workers",
+          "spi_min_clock_hz",
+          "spi_refresh_millihz",
+          "uart_workers",
+          "uart_min_baud",
+          "uart_declared_bytes_per_second",
+          "uart_min_rx_buffer_bytes"
+        ],
+        "name": "uthome.protocol-tree",
+        "storage": "uint32_t[18]",
+        "version": "0.2.0"
+      },
+      "max_candidates": 4,
+      "max_node_visits": 5,
+      "model_sha256": "6a48b830c8d5cf0734555ab457c067b224414b9518a6e1310301c93016fc32e0",
+      "origin": "hardware",
+      "qualification": "experimental_only",
+      "threshold_per_mille": 900,
+      "version": "0.1.0",
+      "writable_global_bytes": 0
+    },
+    "parity": {
+      "compiler": "C:\\Users\\kkak4\\mingw64\\bin\\gcc.EXE",
+      "hardware_tested": false,
+      "mismatches": 0,
+      "standard": "c99",
+      "vectors": 1108
+    },
+    "target_object": {
+      "command": [
+        "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\tools\\riscv32-esp-elf\\esp-15.2.0_20251204\\riscv32-esp-elf\\bin\\riscv32-esp-elf-gcc.exe",
+        "-std=c99",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pedantic",
+        "-Os",
+        "-march=rv32imc",
+        "-mabi=ilp32",
+        "-fstack-usage",
+        "-c",
+        "protree.c",
+        "-o",
+        "protree.o"
+      ],
+      "compiler_version": "riscv32-esp-elf-gcc.exe (crosstool-NG esp-15.2.0_20251204) 15.2.0",
+      "firmware_linked": false,
+      "hardware_tested": false,
+      "object_sha256": "77259fa93ba52a9990c5151f371dfe6b874ecb9c8346caf58d523756311a2e7c",
+      "size_output": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n    360\t      0\t      0\t    360\t    168\tprotree.o\n",
+      "source_sha256": "82d13fb4b238f7edb5c50f1be55483bc12cb81d9ac6c3083d08048b3a1cd5862",
+      "stack_usage": "protree.c:46:5:protree_predict\t0\tstatic\n"
+    }
+  },
+  "auxiliary_costs": {
+    "i2c": {
+      "windows": 80,
+      "transfer_errors": 0,
+      "transfer_timeouts": 0,
+      "mean_step_us": {
+        "min": 844.4222222222222,
+        "median": 2329.9120772946862,
+        "max": 4368.8
+      }
+    },
+    "spi": {
+      "windows": 80,
+      "transfer_errors": 5031,
+      "transfer_timeouts": 5031,
+      "mean_step_us": {
+        "min": 7593.146993318485,
+        "median": 14391.451666666666,
+        "max": 20327.224444444444
+      }
+    },
+    "uart": {
+      "windows": 40,
+      "transfer_errors": 0,
+      "transfer_timeouts": 0,
+      "mean_step_us": {
+        "min": 305.3555852247441,
+        "median": 308.5927382442677,
+        "max": 317.17445482866043
+      }
+    }
+  },
+  "observer_rtt_ms": {
+    "max": 123,
+    "median": 95.0
+  },
+  "deployment_allowed": false,
+  "automatic_apply": false,
+  "whole_system_qualified": false,
+  "new_physical_devices_tested": false,
+  "wireless_load_tested": false,
+  "model_retuned_after_holdouts": false,
+  "cpu_utilization_measured": false,
+  "limitations": [
+    "Whole workload-family holdouts, not unique clock values or unseen physical devices.",
+    "No extension of results to the later queue-partition/scheduler image.",
+    "No visible OLED latency, electrical wire timing or radio load is measured.",
+    "The unexecuted stress-r1 plan and rejected stress-r2 preflight remain preserved."
+  ],
+  "local_artifacts_sha256": {
+    "build\\protocol-study-20261027-stress-r3\\study.json": "c3b079967caa1167814ce7ecdd043f96ec3575b8b5383e17fae7f340f0f43b48",
+    "build\\protocol-study-20261027-stress-r3\\execution-plan.json": "66c544d0bc1ccc4031608dfafb564978aa0248fdcb4fd1884da132da716bb8c2",
+    "build\\protocol-study-20261027-stress-r3\\admission.json": "9b283b5f38e3d395af8d27d6ec67e8ff1dd0c9579e92a3e6f4fa7e58d3f31891",
+    "build\\protocol-study-20261027-stress-r3\\capture\\summary.json": "8ec44581d8c3aa665dbb55608f2dfe2070635086989d138cf6aed4e38acf3b47",
+    "build\\protocol-study-20261027-stress-r3\\analysis\\plan.json": "fdab076d71abbd70c7073038594d55a19edebd80e85b9c8f1e6912df194ee72c",
+    "build\\protocol-study-20261027-stress-r3\\analysis\\trained\\model.json": "b7d91821aa4b6c5afb5be5835ecc031e30c977d341982d5e6c02e475ef7fd8d3",
+    "build\\protocol-study-20261027-stress-r3\\analysis\\trained\\dataset.json": "5211f7f4a06f6e1cbe761bfc96beba53b79debc40b3c28e62803e6eeda1b269f",
+    "build\\protocol-study-20261027-stress-r3\\analysis\\trained\\evaluation.json": "c0a31517a7ad8adc15ed5ee31c5bf66d444aee9d52ebe2c38fc5f45e69635acb",
+    "build\\protocol-study-20261027-stress-r3\\analysis\\trained\\gate.json": "ab0edbf2f0848cd19da527964462a9b9d350a6ad88e0994d1abad53cb9a6056d",
+    "build\\protocol-study-20261027-stress-r3\\analysis\\trained\\c-verification.json": "a8e3df372446a7eee418f703f438ab1cb35655702bd98c8af8682f1926512637",
+    "build\\protocol-study-20261027-stress-r3\\analysis\\trained\\cost-characterization.json": "9f1eb879b453d6c91fe5ab45444d7476d49692b85f5eff502c72c39a72e13dc4"
+  }
+}

@@ -37,14 +37,15 @@ git apply --check <path-to-reviewed-patch>
 git apply <path-to-reviewed-patch>
 ```
 
-The application resource patch does not supply the UART HAL wrapper, finite
-timeouts, the application's 64 KiB kernel-heap override, runtime worker adapter,
-or a complete application build. See [the platform baseline](../../../PROJECT_BASELINE.md).
+The resource patch changes native ring capacity and ADC startup only. Owned HAL,
+worker and startup-storage adapters are separate build inputs. Inspect each
+image's map for its actual pool reservation; the earlier 64 KiB override claim
+was incorrect. See [the platform baseline](../../../README.md#platform-contract).
 
 When a reviewed upstream revision includes a patch's changes, update the
 submodule pin and remove that superseded patch in the same reviewed change.
 
-Checkpoint 4b applies the unchanged application patch using
-`qualify_kernel.py build --resource-patch` alongside `--compat-patch` in the
-isolated UART software build. This does not alter the dependency checkout or
-claim that the resource-patched image has run on the board.
+Use `qualify_kernel.py build --resource-patch --compat-patch` with the selected
+application/fixture options. This stages the patches without changing the pinned
+dependency checkout. Build results and actual board execution remain separate
+evidence; preserve the exact source/patch hashes for each image.

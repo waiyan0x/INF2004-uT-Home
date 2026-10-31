@@ -1,0 +1,428 @@
+{
+  "contract": "uthome.allocation-audit-checkpoint",
+  "version": "0.1.0",
+  "recorded_utc": "2026-10-26T18:04:06.195685+00:00",
+  "scope": "USB core with BMP388, SPI OLED and LD2450; no wireless or deployed AI",
+  "build_records": {
+    "app": "esp32c3-allocation-audit-20261027-app-build.json",
+    "fixture": "esp32c3-allocation-audit-20261027-fixture-build.json"
+  },
+  "immutable_build_archives": {
+    "app": "build\\system-completion-20261026-233938\\app-a9-archive",
+    "fixture": "build\\system-completion-20261026-233938\\fixture-a8-archive"
+  },
+  "software_tests": {
+    "target": 128,
+    "ai": 90,
+    "c_standard_files": 237,
+    "c_standard_findings": 0,
+    "warnings_as_errors": true
+  },
+  "manual_review": {
+    "status": "completed",
+    "guides": [
+      "C_CODING_STANDARD.md",
+      "firmware/src/runtime/README.md#allocation-and-object-counters",
+      "firmware/src/services/TELEMETRY.md#wire-contract"
+    ],
+    "topics": [
+      "C99 and exact native SZ/size_t callback ABIs",
+      "fixed aligned idle stack and counter budgets",
+      "single-core interrupt-save/restore and IRAM hook path",
+      "saturating counters and irreversible application/startup boundaries",
+      "explicit wire encoding and legacy version decoding",
+      "bounded malformed input, snapshots and ownership",
+      "scoped source substitutions and verified linker aliases"
+    ],
+    "new_deviations": false
+  },
+  "changes": [
+    "SDK heap and kernel allocator/object counters",
+    "fixed 1 KiB idle stack",
+    "separate boot/application-startup/normal boundaries",
+    "version-3 telemetry; versions 1/2 retained by decoder",
+    "fixture audit archive extraction dependency"
+  ],
+  "fixture_boots": [
+    {
+      "path": "firmware/qualification/logs/esp32c3-allocation-audit-20261027-boot1.log",
+      "sha256": "e8891b9029a466e657adef312ecbf1b1ccb840b7b9090f92d720cdca5536ff4c",
+      "checks": 909,
+      "isolated_uart_tested": false
+    },
+    {
+      "path": "firmware/qualification/logs/esp32c3-allocation-audit-20261027-boot2.log",
+      "sha256": "e8891b9029a466e657adef312ecbf1b1ccb840b7b9090f92d720cdca5536ff4c",
+      "checks": 909,
+      "isolated_uart_tested": false
+    }
+  ],
+  "bench": {
+    "cycles": 20,
+    "successful_apply_save": 40,
+    "target_capacity_rejections": 20,
+    "idle_i2c_discovery": 20,
+    "idle_uart_discovery": 20,
+    "failed_activation_rollback": true,
+    "reset_restore": true,
+    "final": {
+      "request_id": 872156225,
+      "result": 0,
+      "timestamp_ms": 2107,
+      "configuration": {
+        "active_revision": 342,
+        "saved_revision": 342,
+        "active_crc": 3623560383,
+        "saved_crc": 3623560383,
+        "flags": 80
+      },
+      "runtime": {
+        "state": 1,
+        "generation": 1,
+        "failed_workers": 0,
+        "retained_instances": 3,
+        "service_error": 0,
+        "apply_error": 0,
+        "recovery_error": 0
+      },
+      "health": {
+        "total_events": 31,
+        "total_suppressed": 29,
+        "last_event": 4,
+        "last_event_time_ms": 2086,
+        "event_counts": [
+          0,
+          0,
+          0,
+          0,
+          31,
+          0,
+          0,
+          0
+        ],
+        "suppressed_counts": [
+          0,
+          0,
+          0,
+          0,
+          29,
+          0,
+          0,
+          0
+        ]
+      },
+      "queues": [
+        {
+          "index": 0,
+          "type": 1,
+          "published": 5,
+          "consumed": 0,
+          "dropped": 0,
+          "depth": 5,
+          "high_water": 5
+        },
+        {
+          "index": 1,
+          "type": 4,
+          "published": 2,
+          "consumed": 0,
+          "dropped": 0,
+          "depth": 2,
+          "high_water": 2
+        },
+        {
+          "index": 2,
+          "type": 2,
+          "published": 39,
+          "consumed": 0,
+          "dropped": 31,
+          "depth": 8,
+          "high_water": 8
+        }
+      ],
+      "samples": [
+        {
+          "queue": 0,
+          "type": 1,
+          "source_index": 0,
+          "name": "environment_sensor",
+          "quality": "fresh",
+          "timestamp_ms": 2060,
+          "sequence": 4,
+          "status": 1,
+          "stale_after_ms": 1200,
+          "age_ms": 47,
+          "value": {
+            "pressure_pa": 101005.921875,
+            "temperature_c": 24.75251579284668
+          }
+        },
+        {
+          "queue": 2,
+          "type": 2,
+          "source_index": 2,
+          "name": "presence_sensor",
+          "quality": "fresh",
+          "timestamp_ms": 2086,
+          "sequence": 38,
+          "status": 1,
+          "stale_after_ms": 370,
+          "age_ms": 21,
+          "value": {
+            "targets": [
+              {
+                "present": false,
+                "resolution_mm": 0,
+                "x_mm": 0,
+                "y_mm": 0,
+                "speed_cm_s": 0
+              },
+              {
+                "present": false,
+                "resolution_mm": 0,
+                "x_mm": 0,
+                "y_mm": 0,
+                "speed_cm_s": 0
+              },
+              {
+                "present": false,
+                "resolution_mm": 0,
+                "x_mm": 0,
+                "y_mm": 0,
+                "speed_cm_s": 0
+              }
+            ]
+          }
+        },
+        {
+          "queue": 1,
+          "type": 4,
+          "source_index": 65535,
+          "name": "health",
+          "quality": "fresh",
+          "timestamp_ms": 2011,
+          "sequence": 1,
+          "status": 1,
+          "stale_after_ms": 2100,
+          "age_ms": 96,
+          "value": {
+            "event": 4,
+            "occurrences": 29
+          }
+        }
+      ],
+      "memory_audit": {
+        "sealed": true,
+        "saturated": false,
+        "application_startup": {
+          "allocations": 0,
+          "bytes": 0,
+          "frees": 0,
+          "kernel_calls": {
+            "malloc": 0,
+            "calloc": 0,
+            "realloc": 0,
+            "free": 0
+          }
+        },
+        "startup": {
+          "allocations": 30,
+          "bytes": 1907,
+          "frees": 0,
+          "creates": {
+            "task": 6,
+            "mutex": 21,
+            "semaphore": 4,
+            "flag": 1,
+            "mailbox": 0,
+            "message_buffer": 0,
+            "fixed_pool": 0,
+            "variable_pool": 0,
+            "rendezvous": 0,
+            "cyclic": 0,
+            "alarm": 0
+          },
+          "kernel_calls": {
+            "malloc": 1,
+            "calloc": 0,
+            "realloc": 0,
+            "free": 0
+          }
+        },
+        "normal": {
+          "allocations": 0,
+          "bytes": 0,
+          "frees": 0,
+          "creates": {
+            "task": 0,
+            "mutex": 0,
+            "semaphore": 0,
+            "flag": 0,
+            "mailbox": 0,
+            "message_buffer": 0,
+            "fixed_pool": 0,
+            "variable_pool": 0,
+            "rendezvous": 0,
+            "cyclic": 0,
+            "alarm": 0
+          },
+          "kernel_calls": {
+            "malloc": 0,
+            "calloc": 0,
+            "realloc": 0,
+            "free": 0
+          }
+        }
+      }
+    },
+    "running_build": "fdffbf15ada5455364e81f1ed29aa3c61089c049385d3308e6612f2bfe4031d0"
+  },
+  "final_image_oled_visual": "deferred while user asleep; user confirmed preceding a8 image readable/updating",
+  "backup": {
+    "recorded_utc": "2026-10-26T17:51:50.588935+00:00",
+    "port": "COM8",
+    "usb_serial": "D4:05:92:E6:C3:BC",
+    "path": "C:\\Users\\kkak4\\esp\\hardware-backup-20261027-allocation-audit\\board-before-audit-final.bin",
+    "size": 4194304,
+    "sha256": "3b388237121bb85b03b4247a1fa878a1deb96c0185d0f4d0770ef937141bbe99",
+    "configuration_sha256": "db5d3547016076db13eabfc67445b4ef9a5ac0e80710dd1253ee925402f51158",
+    "action": "read-only flash backup; reset performed; no erase or firmware write"
+  },
+  "configuration_unchanged_by_flash": true,
+  "memory": {
+    "record": "esp32c3-allocation-audit-20261027-memory.json",
+    "sha256": "9404138168887a9faa77ec3f9a1576e506b3f870f0d3762f2df2e07e75b5bb2f",
+    "groups": {
+      "application_fixed": 123089,
+      "kernel_sdk_fixed": 68315,
+      "ram_code": 38786,
+      "total_dram": 230190,
+      "rtc": 60
+    },
+    "budgets": {
+      "application_fixed_limit": 131072,
+      "kernel_sdk_fixed_limit": 98304,
+      "ram_code_limit": 49152,
+      "total_dram_limit": 278528,
+      "rtc_limit": 128
+    },
+    "module_limits": {
+      "c3audit.c.obj": 192,
+      "c3app.c.obj": 50176,
+      "tkport.c.obj": 33792,
+      "cfgjson.c.obj": 29184,
+      "activate.c.obj": 4096,
+      "msgbus.c.obj": 2304,
+      "sampcache.c.obj": 1536,
+      "c3umem.c.obj": 1280,
+      "c3store.c.obj": 384,
+      "watchdog.c.obj": 512,
+      "health.c.obj": 256,
+      "shared.c.obj": 128,
+      "c3pin.c.obj": 160,
+      "c3pwm.c.obj": 128,
+      "c3pulse.c.obj": 64,
+      "c3uart.c.obj": 64,
+      "c3i2c.c.obj": 64,
+      "c3spi.c.obj": 64,
+      "c3bind.c.obj": 32,
+      "c3usb.c.obj": 16,
+      "main.c.obj": 1040,
+      "cJSON.c.obj": 32
+    }
+  },
+  "local_artifacts": {
+    "build\\system-completion-20261026-233938\\audit-final-discovery-bench.json": "26a9f5ae636346eb5ffe2a18f1134f533abc598328ea5b5718540dec1b545669",
+    "build\\system-completion-20261026-233938\\audit-final-bench-journal.jsonl": "e43e7ea010de97d903e3baa1310fe59752af6147d73bf232b438db36a04389a5",
+    "build\\system-completion-20261026-233938\\audit-final-rollback-bench.json": "e6015ff5ed56c021e9a9b44abcd893367958258cb56d776a4b937d56d18b515a",
+    "build\\system-completion-20261026-233938\\audit-final-reboot.json": "5665b8b7a5fb8161a476b5002b678b92c2b459f9568714d0747ba62e3c2447c6",
+    "build\\system-completion-20261026-233938\\audit-final-reboot.log": "ca7ef18f635eb856bf1b8db1a0a3daf3b3515abe0c9f08259ef9065a3e5ea60a",
+    "build\\system-completion-20261026-233938\\board-audit-final-backup.json": "f951870fb7d8a2b7a6130859f63f76e0505166524ca29dff0c5713300708e3bb",
+    "build\\system-completion-20261026-233938\\target-suite-audit3.log": "06785864b34db93eeedd59ae19b2f801ea421f1a9c65cc1b676ab274e2db57d1",
+    "build\\system-completion-20261026-233938\\ai-suite-audit.log": "a5d21a741846a85bc1ba8227f39ff596d9c3c91c932dcc42e28a10640d7804b4",
+    "build\\system-completion-20261026-233938\\memory-budget-audit-final.json": "9404138168887a9faa77ec3f9a1576e506b3f870f0d3762f2df2e07e75b5bb2f",
+    "build\\system-completion-20261026-233938\\audit_final_discovery.py": "c471fc47e53474e0d70331c0541726a1fff54c72f32f4b924193772f0c9d6591",
+    "build\\system-completion-20261026-233938\\audit_final_rollback.py": "5fe7b4ac6a3c3d0c322519ac13ad5cc97e30e0e0cf346d457416ec1a95133340",
+    "build\\system-completion-20261026-233938\\audit_reboot.py": "5fcc6281a5880146949e3e1fbf861b7971bfd640726c53e9805247c9875cac20",
+    "build\\system-completion-20261026-233938\\verify-config-175804.json": "2ef482577dd8b27d580494436385bcd12a93e84972d453b1c768f50a97b577f7",
+    "build\\system-completion-20261026-233938\\app-175800.json": "11a2deb4d156624d78254bef065a71b389b2a306593849a8765874a217177a74",
+    "build\\system-completion-20261026-233938\\fixture-175357.json": "ab2d9036383548119f04c92f5493908e38ae278e2c3e2c9e31b9584e0c679d71"
+  },
+  "counters": {
+    "application_startup": {
+      "allocations": 0,
+      "bytes": 0,
+      "frees": 0,
+      "kernel_calls": {
+        "malloc": 0,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    },
+    "normal": {
+      "allocations": 0,
+      "bytes": 0,
+      "frees": 0,
+      "creates": {
+        "task": 0,
+        "mutex": 0,
+        "semaphore": 0,
+        "flag": 0,
+        "mailbox": 0,
+        "message_buffer": 0,
+        "fixed_pool": 0,
+        "variable_pool": 0,
+        "rendezvous": 0,
+        "cyclic": 0,
+        "alarm": 0
+      },
+      "kernel_calls": {
+        "malloc": 0,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    },
+    "boot_totals": {
+      "allocations": 30,
+      "bytes": 1907,
+      "frees": 0,
+      "creates": {
+        "task": 6,
+        "mutex": 21,
+        "semaphore": 4,
+        "flag": 1,
+        "mailbox": 0,
+        "message_buffer": 0,
+        "fixed_pool": 0,
+        "variable_pool": 0,
+        "rendezvous": 0,
+        "cyclic": 0,
+        "alarm": 0
+      },
+      "kernel_calls": {
+        "malloc": 1,
+        "calloc": 0,
+        "realloc": 0,
+        "free": 0
+      }
+    }
+  },
+  "limitations": [
+    "SDK hooks count successful allocation events, not failed attempts; direct multi_heap APIs require source/call-graph review",
+    "Kernel allocator entries count attempts; internal calloc/realloc calls are not counted twice",
+    "Stack high-water and observation overhead not yet measured",
+    "Wireless diagnostics only compiled; no integrated radio acceptance",
+    "Radar zero-target and isolated UART injection remain deferred",
+    "No new model trained or deployed at this checkpoint"
+  ],
+  "whole_system_static_qualified": false,
+  "hardware_qualified": false,
+  "failed_attempts": [
+    {
+      "log": "build\\system-completion-20261026-233938\\fixture-a6.log",
+      "reason": "Fixture had no strong reference to audit object; weak SDK hook and link aliases did not extract it; explicit fixture-only undefined reference fixed this in later builds"
+    }
+  ]
+}

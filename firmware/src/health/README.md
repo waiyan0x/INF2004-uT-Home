@@ -5,12 +5,12 @@ overflow checks and bounded heartbeat registration/checking. Calls supply a
 monotonic timestamp. They do not create a supervisor task or publish to USB,
 a display or a configured queue automatically.
 
-The caller explicitly registers watches, submits heartbeats and checks queues.
-Runtime restart/configuration does not yet remove or replace watchdog entries.
-Do not treat an expired or stale watch as an automatic instruction to release a
-driver resource. A heartbeat should represent completed work, not timer activity.
+The portable modules require serialized access. The target `shared` wrapper
+provides synchronization, queue/health mapping and watchdog operations; its
+quiescent reset initializes watches for the replacement configuration. The
+controller schedules bounded health snapshots. See
+[the runtime contract](../runtime/README.md#verification-and-limits).
 
-Target integration must add synchronization, watch ownership/removal, queue and
-runtime event mapping, stack measurements, supervisor scheduling and bounded
-report delivery. The host module uses static state and requires serialized access.
-See [the runtime integration record](../runtime/README.md#verification-and-limits).
+An expired watch does not authorize automatic driver-resource release. Heartbeats
+represent completed work, not timer activity, and do not prove fresh sensor data.
+Combined workload scheduling, stack margins and delivery still need qualification.

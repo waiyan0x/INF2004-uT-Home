@@ -23,6 +23,27 @@ def payload():
 
 
 class TelemetryTests(unittest.TestCase):
+    def test_version_two_audit_and_missing_provider(self):
+        data = payload() + bytearray(160)
+        struct.pack_into("<I", data, 0, 2)
+        self.assertIsNone(decode_telemetry(frame(data), request_id=27).memory_audit)
+        struct.pack_into("<I", data, 160, 3)
+        struct.pack_into("<6I", data, 168, 7, 1024, 2, 1, 20, 3)
+        struct.pack_into("<11I", data, 192, *range(11))
+        struct.pack_into("<11I", data, 236, *range(11, 22))
+        audit = decode_telemetry(frame(data), request_id=27).memory_audit
+        self.assertTrue(audit["sealed"])
+        self.assertEqual(audit["startup"]["bytes"], 1024)
+        self.assertEqual(audit["normal"]["creates"]["alarm"], 21)
+        for offset, value in ((160, 8), (160, 0), (160, 1), (164, 1), (280, 1), (284, 1)):
+            changed = data.copy()
+            struct.pack_into("<I", changed, offset, value)
+            with self.subTest(offset=offset, value=value), self.assertRaises(ValueError):
+                decode_telemetry(frame(changed), request_id=27)
+        busy = bytearray(320)
+        struct.pack_into("<2I", busy, 0, 2, 1)
+        self.assertEqual(decode_telemetry(frame(busy), request_id=27).result, 1)
+
     def test_empty_capture_and_explicit_busy(self):
         data = payload()
         result = decode_telemetry(frame(data), request_id=27)
@@ -33,6 +54,21 @@ class TelemetryTests(unittest.TestCase):
         result = decode_telemetry(frame(data), request_id=27)
         self.assertEqual(result.result, 1)
         self.assertEqual(result.health, {})
+
+    def test_version_three_application_startup_and_inconsistent_subset(self):
+        data = payload() + bytearray(192)
+        struct.pack_into("<I", data, 0, 3)
+        struct.pack_into("<I", data, 160, 3)
+        struct.pack_into("<3I", data, 168, 2, 64, 1)
+        struct.pack_into("<I", data, 288, 2)
+        struct.pack_into("<8I", data, 320, 1, 1, 32, 1, 1, 0, 0, 0)
+        result = decode_telemetry(frame(data), request_id=27)
+        self.assertEqual(result.memory_audit["application_startup"]["bytes"], 32)
+        for offset, value in ((320, 0), (320, 2), (324, 3), (328, 65), (332, 2), (336, 3)):
+            changed = data.copy()
+            struct.pack_into("<I", changed, offset, value)
+            with self.subTest(offset=offset), self.assertRaises(ValueError):
+                decode_telemetry(frame(changed), request_id=27)
 
     def test_wrong_version_counts_reserved_and_crc_fail(self):
         for offset, value in ((0, 2), (4, 3), (56, 13), (60, 5), (84, 9), (72, 2), (32, 1)):
@@ -99,3 +135,16 @@ class TelemetryTests(unittest.TestCase):
         result = Client(stream, clock=stream.clock).exchange(Command.TELEMETRY, 27)
         self.assertEqual(len(result.samples), 12)
         self.assertTrue(all(sample["value"] is None for sample in result.samples))
+        # The new maximum must survive the stream reader as well as decoding.
+        data[0:4] = struct.pack("<I", 2)
+        data[160:160] = bytes(160)
+        self.assertEqual(len(data), 1984)
+        stream = Stream(frame(data), read_size=31)
+        result = Client(stream, clock=stream.clock).exchange(Command.TELEMETRY, 27)
+        self.assertEqual(len(result.samples), 12)
+        self.assertIsNone(result.memory_audit)
+        data[0:4] = struct.pack("<I", 3)
+        data[320:320] = bytes(32)
+        self.assertEqual(len(data), 2016)
+        stream = Stream(frame(data), read_size=31)
+        self.assertEqual(len(Client(stream, clock=stream.clock).exchange(Command.TELEMETRY, 27).samples), 12)

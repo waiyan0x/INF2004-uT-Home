@@ -6,17 +6,22 @@
 #include "shared.h"
 #include "activate.h"
 #include "cfgctrl.h"
-#define UTHOME_TELEMETRY_HEADER 160U
+#include "memaudit.h"
+#define UTHOME_TELEMETRY_HEADER 352U
 #define UTHOME_TELEMETRY_QUEUE  32U
 #define UTHOME_TELEMETRY_SAMPLE 128U
-#define UTHOME_TELEMETRY_MAX    1824U
+#define UTHOME_TELEMETRY_MAX    2016U
+
+typedef int telemetry_audit_t (memaudit_t * p_state);
 
 typedef struct
 {
-    shared_capture_t  capture;
-    activate_status_t runtime;
-    const cfgctrl_t * p_control;
-    int               service_error;
+    shared_capture_t    capture;
+    activate_status_t   runtime;
+    const cfgctrl_t *   p_control;
+    int                 service_error;
+    memaudit_t          audit;
+    telemetry_audit_t * p_audit;
 } telemetry_t;
 
 /* Zero-initialized static storage, same owner as configuration. Observe takes

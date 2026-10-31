@@ -63,26 +63,43 @@ class Handler(BaseHTTPRequestHandler):
             self.send(404, {"error": "Not found"})
 
     def do_POST(self):
-        if (not self.local_request() or
-            not secrets.compare_digest(self.headers.get("X-Session", ""), self.server.token)):
-            self.send(403, {"error": "Local session required"})
-            return
+        authorized = (self.local_request() and
+                      secrets.compare_digest(self.headers.get("X-Session", "").encode("utf-8"),
+                                             self.server.token.encode("ascii")))
         try:
-            if self.headers.get("Content-Type") != "application/json" or self.headers.get("Transfer-Encoding"):
+            # Consume a valid bounded body before closing even when access is
+            # denied. Unread TCP data can otherwise reset the socket on Windows
+            # before the client receives our rejection. Never parse or dispatch
+            # an unauthorized body; the existing socket timeout still applies.
+            raw = self.read_body()
+            if not authorized:
+                self.send(403, {"error": "Local session required"})
+                return
+            if self.headers.get("Content-Type") != "application/json":
                 raise ValueError("Send a bounded JSON request")
-            length = int(self.headers.get("Content-Length", "0"))
-            if not 0 < length <= 65536:
-                raise ValueError("Request must be between 1 and 65536 bytes")
-            raw = self.rfile.read(length)
-            if len(raw) != length:
-                raise ValueError("Incomplete request")
             body = parse_document(raw)
             if not self.path.startswith("/api/"):
                 raise ValueError("Unknown operation")
             result = self.server.workflow.dispatch(self.path[5:], body)
             self.send(200, result)
         except (ImportError, OSError, ValueError, TransferError, RecursionError) as error:
-            self.send(400, {"error": str(error), "connected": self.server.workflow.client is not None})
+            if authorized:
+                self.send(400, {"error": str(error), "connected": self.server.workflow.client is not None})
+            else:
+                self.send(403, {"error": "Local session required"})
+
+    def read_body(self):
+        lengths = self.headers.get_all("Content-Length", [])
+        if (self.headers.get("Transfer-Encoding") or len(lengths) != 1 or
+            not lengths[0].isascii() or not lengths[0].isdecimal()):
+            raise ValueError("Send one bounded Content-Length")
+        length = int(lengths[0])
+        if not 0 < length <= 65536:
+            raise ValueError("Request must be between 1 and 65536 bytes")
+        raw = self.rfile.read(length)
+        if len(raw) != length:
+            raise ValueError("Incomplete request")
+        return raw
 
     def log_message(self, format, *args):
         pass

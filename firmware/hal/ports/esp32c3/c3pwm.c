@@ -37,7 +37,36 @@ static pwmio_t g_ports[4] = {
     {.p_operations = &g_operations, .p_context = &g_states[2]},
     {.p_operations = &g_operations, .p_context = &g_states[3]}};
 
-static uint8_t g_users = 0U;
+static uint8_t g_users      = 0U;
+static bool    gb_attempted = false;
+static bool    gb_ready     = false;
+
+/** @brief Create the fixed mutex set once before normal operation begins.
+ * A partial failure retains created objects and fails closed until reboot. */
+int c3pwm_startup (void)
+{
+    if (!rt_port_is_owner())
+    {
+        return PWMIO_STATE;
+    }
+    if (gb_attempted)
+    {
+        return gb_ready ? 0 : PWMIO_IO;
+    }
+    gb_attempted       = true;
+    const T_CMTX mutex = {.mtxatr = TA_INHERIT};
+    for (size_t index = 0U; index < 4U; ++index)
+    {
+        const ID h_mutex = tk_cre_mtx(&mutex);
+        if (h_mutex <= 0)
+        {
+            return PWMIO_IO;
+        }
+        g_states[index].h_mutex = h_mutex;
+    }
+    gb_ready = true;
+    return 0;
+}
 
 /** @brief Borrow static storage without enabling a clock or changing a pin. */
 pwmio_t * c3pwm_port (uint8_t channel)
@@ -49,7 +78,7 @@ pwmio_t * c3pwm_port (uint8_t channel)
 static int open_port (void * p_context, const pwmio_config_t * p_config)
 {
     c3pwm_state_t * p_state = p_context;
-    if ((!rt_port_is_owner()) || (0 != p_state->h_mutex) ||
+    if ((!rt_port_is_owner()) || (!gb_ready) || (p_state->b_clock) ||
         (p_state->output.b_open) || (p_config->frequency_hz < 100U) ||
         (p_config->frequency_hz > 20000U))
     {
@@ -61,13 +90,6 @@ static int open_port (void * p_context, const pwmio_config_t * p_config)
     if ((divider < 256U) || (divider > UINT32_C(0x3FFFF)))
     {
         return PWMIO_INVALID;
-    }
-    const T_CMTX mutex = {.mtxatr = TA_INHERIT};
-    p_state->h_mutex   = tk_cre_mtx(&mutex);
-    if (p_state->h_mutex <= 0)
-    {
-        p_state->h_mutex = 0;
-        return PWMIO_IO;
     }
     if (0 != c3pin_open(&p_state->output, p_config->gpio, false))
     {
@@ -106,7 +128,7 @@ static int open_port (void * p_context, const pwmio_config_t * p_config)
 static int close_port (void * p_context)
 {
     c3pwm_state_t * p_state = p_context;
-    if (!rt_port_is_owner())
+    if ((!rt_port_is_owner()) && (!rt_port_is_cleanup_owner()))
     {
         return PWMIO_STATE;
     }
@@ -114,11 +136,7 @@ static int close_port (void * p_context)
     {
         return PWMIO_IO;
     }
-    if ((0 < p_state->h_mutex) && (E_OK != tk_del_mtx(p_state->h_mutex)))
-    {
-        return PWMIO_IO;
-    }
-    p_state->h_mutex = 0;
+    /* Mutex lifetime is the boot lifetime, independent of hardware claims. */
     if ((p_state->output.b_open) && (0 != c3pin_close(&p_state->output)))
     {
         return PWMIO_IO;

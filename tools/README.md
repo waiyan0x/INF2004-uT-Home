@@ -11,7 +11,8 @@
   hashes and compiler-profile checks; building does not flash or qualify a board.
 - [c_standard/](c_standard/README.md): mandatory BARR-C checks and audit evidence.
 
-Hardware acceptance is checkpoint 8; AI and model tooling remain checkpoint 9.
+Follow the [current delivery plan](../README.md#overall-delivery-plan) for
+combined hardware acceptance and AI integration; old checkpoint numbers are retired.
 The local configurator adapts Member 5's cached design; its README records the
 source revision and the retained/replaced pieces.
 

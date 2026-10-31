@@ -1,0 +1,14 @@
+# ISR/poll entry points touch only internal storage. Native kernel dependencies
+# remain flash-resident; cache-off operations explicitly reject for now.
+[mapping:uthome_netqueue]
+archive: libmain.a
+entries:
+    c3nq (noflash)
+    netring (noflash)
+    netpool (noflash)
+    c3event (noflash)
+    # Startup-only work runs with cache enabled and needs no scarce RAM code.
+    c3nq:c3nq_init (default)
+    c3nq:c3nq_bootstrap (default)
+    c3nq:c3nq_diagnostic (default)
+    netpool:boot_mutex (default)

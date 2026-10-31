@@ -19,6 +19,7 @@ static void encode_sample (const sampcache_entry_t * p_entry,
 static void encode_value (const sampcache_entry_t * p_entry, uint8_t * p_data);
 static void put_float (uint8_t * p_data, float value);
 static void put_time (uint8_t * p_data, uint64_t value);
+static void encode_audit (telemetry_t * p_context, uint8_t * p_data);
 
 /** @brief Return a bounded versioned observation, including explicit failures.
  */
@@ -51,6 +52,7 @@ int telemetry_observe (void *    p_context,
     {
         return 0;
     }
+    encode_audit(p_state, p_data);
     const shared_capture_t * p_capture = &p_state->capture;
     for (size_t index = 0U; index < p_capture->queue_count; ++index)
     {
@@ -77,7 +79,7 @@ static void
 encode_header (const telemetry_t * p_context, uint32_t result, uint8_t * p_data)
 {
     const cfgctrl_t * p_control = p_context->p_control;
-    cfgbytes_put(p_data, 1U);
+    cfgbytes_put(p_data, 3U);
     cfgbytes_put(&p_data[4], result);
     if (0U != result)
     {
@@ -120,6 +122,48 @@ encode_header (const telemetry_t * p_context, uint32_t result, uint8_t * p_data)
     }
     cfgbytes_put(&p_data[152], (uint32_t)p_runtime->apply_error);
     cfgbytes_put(&p_data[156], (uint32_t)p_runtime->recovery_error);
+}
+
+/** @brief Publish allocation evidence only when its provider succeeds. */
+static void encode_audit (telemetry_t * p_context, uint8_t * p_data)
+{
+    memaudit_t * p_audit = &p_context->audit;
+    if ((NULL == p_context->p_audit) || (0 != p_context->p_audit(p_audit)))
+    {
+        return;
+    }
+    cfgbytes_put(&p_data[160],
+                 1U | (p_audit->b_sealed ? 2U : 0U) |
+                     (p_audit->b_saturated ? 4U : 0U));
+    cfgbytes_put(&p_data[168], p_audit->startup.allocations);
+    cfgbytes_put(&p_data[172], p_audit->startup.bytes);
+    cfgbytes_put(&p_data[176], p_audit->startup.frees);
+    cfgbytes_put(&p_data[180], p_audit->normal.allocations);
+    cfgbytes_put(&p_data[184], p_audit->normal.bytes);
+    cfgbytes_put(&p_data[188], p_audit->normal.frees);
+    for (size_t index = 0U; index < UTHOME_AUDIT_KINDS; ++index)
+    {
+        cfgbytes_put(&p_data[192U + (index * 4U)],
+                     p_audit->startup.creates[index]);
+        cfgbytes_put(&p_data[236U + (index * 4U)],
+                     p_audit->normal.creates[index]);
+    }
+    for (size_t index = 0U; index < UTHOME_AUDIT_ALLOCATORS; ++index)
+    {
+        cfgbytes_put(&p_data[288U + (index * 4U)],
+                     p_audit->startup.kernel_calls[index]);
+        cfgbytes_put(&p_data[304U + (index * 4U)],
+                     p_audit->normal.kernel_calls[index]);
+    }
+    cfgbytes_put(&p_data[320], p_audit->b_application ? 1U : 0U);
+    cfgbytes_put(&p_data[324], p_audit->application.allocations);
+    cfgbytes_put(&p_data[328], p_audit->application.bytes);
+    cfgbytes_put(&p_data[332], p_audit->application.frees);
+    for (size_t index = 0U; index < UTHOME_AUDIT_ALLOCATORS; ++index)
+    {
+        cfgbytes_put(&p_data[336U + (index * 4U)],
+                     p_audit->application.kernel_calls[index]);
+    }
 }
 
 /** @brief Serialize bounded queue counters; native size_t never crosses USB. */

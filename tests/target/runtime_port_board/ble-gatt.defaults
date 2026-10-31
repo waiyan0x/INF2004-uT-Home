@@ -1,0 +1,2 @@
+# Explicit read-only GATT diagnostic; inherits the isolated BLE defaults.
+CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=y

@@ -1,0 +1,121 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-27T01:35:26.439979+00:00",
+  "scope": "Build-only isolated NimBLE static host-global experiment and ordinary-image isolation",
+  "builds_passed": true,
+  "target_tests": 183,
+  "target_test_record": {
+    "recorded_utc": "2026-10-27T01:34:37.838100+00:00",
+    "folder": "tests/target",
+    "returncode": 0,
+    "log": "target-static-host-a1.log",
+    "sha256": "6c62366549d4b98a9eb52e4142862d5e5f50a7133b4a975ee0f36d01b9af7894"
+  },
+  "owned_c_files": 283,
+  "full_pinned_formatter_gate_passed": true,
+  "warnings_as_errors": true,
+  "builds": {
+    "gattstatic-a1": {
+      "evidence": "build\\system-completion-20261026-233938\\gattstatic-a1-archive\\evidence.json",
+      "sha256": "38769d68b7cfa85b1806efecd8b00c6e4bee9375a5f71de5c4df91dbfa627450",
+      "elf_sha256": "7fde96ace9c283b676a70ca1f720671fb7c4adddc7e1c5bf749dcc52fbad7b44",
+      "coding_standard": {
+        "status": "passed",
+        "command": [
+          "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+          "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code\\tools\\c_standard\\check.py",
+          "--root",
+          "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code"
+        ],
+        "output": "C standard gate: 283 files, 0 findings, 0 tool/policy errors."
+      }
+    },
+    "app-static-host-isolated-a1": {
+      "evidence": "build\\system-completion-20261026-233938\\app-static-host-isolated-a1-archive\\evidence.json",
+      "sha256": "d92a5c502a37c7a279a021a3976a229d0267518283d2729c17ff97c74f731a40",
+      "elf_sha256": "c6051e7d3623dcf76c5fcbbb70a9080c4a9a8d5820001dc24dbefba9c9c09288",
+      "coding_standard": {
+        "status": "passed",
+        "command": [
+          "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+          "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code\\tools\\c_standard\\check.py",
+          "--root",
+          "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code"
+        ],
+        "output": "C standard gate: 283 files, 0 findings, 0 tool/policy errors."
+      }
+    }
+  },
+  "sdk_setting": "CONFIG_BT_NIMBLE_STATIC_TO_DYNAMIC=n",
+  "sdk_source_sha256": {
+    "components/bt/host/nimble/Kconfig.in": "fc63f5692531dac9e8d3e1ba4255a9db09ca9d69fd120b39cab32fdccf59ca05",
+    "components/bt/host/nimble/nimble/porting/nimble/src/nimble_port.c": "7a3d2dcd42667855839045e3877a20930d63a69bf447f84e4c5ffd73c1df27c1",
+    "components/bt/porting/npl/freertos/src/npl_os_freertos.c": "8fbaaccdf69d316f6c84ae3f093cd0c645d3ba3f26299f261398de7b1efb7d0e",
+    "components/bt/host/nimble/port/src/esp_nimble_mem.c": "f4a9a164f3a83cdede8e4ecf8aa9ff0ec762a0b693e43a06aa2cd0933b6bc319"
+  },
+  "before_dynamic_host": {
+    "groups": {
+      "application_fixed": 149615,
+      "kernel_sdk_fixed": 41566,
+      "ram_code": 56338,
+      "total_dram": 247519,
+      "rtc": 0
+    },
+    "passed": true,
+    "record_sha256": "787e799448f8a0a04c29b77a1807b84bb5987c0101cf4f1d50ae5822d6fb5fd5"
+  },
+  "static_host": {
+    "groups": {
+      "application_fixed": 149615,
+      "kernel_sdk_fixed": 45918,
+      "ram_code": 56280,
+      "total_dram": 251813,
+      "rtc": 0
+    },
+    "passed": true,
+    "failures": [],
+    "record_sha256": "1a93a89916f711cf23c9248d804723a385f573b7018893b8ac344b16fae6259e"
+  },
+  "delta_bytes": {
+    "application_fixed": 0,
+    "kernel_sdk_fixed": 4352,
+    "ram_code": -58,
+    "total_dram": 4294,
+    "rtc": 0
+  },
+  "ordinary_image": {
+    "groups": {
+      "application_fixed": 148809,
+      "kernel_sdk_fixed": 35559,
+      "ram_code": 45784,
+      "total_dram": 230152,
+      "rtc": 0
+    },
+    "passed": true,
+    "radio_and_model_symbols_absent": true
+  },
+  "source_sha256": {
+    "tools/target/qualify_kernel.py": "213bfc95789cb842741c695d5a8bda092bd14a6c82f4beaeb7bd85c2d97b25b1",
+    "tests/target/test_qualification.py": "7c19c6aefac1353d9a31d64d8efa99e9d3c63f8dff4d1a8b0d4ca7d4bcb0217e",
+    "tests/target/runtime_port_board/CMakeLists.txt": "2adaaa20fc779f80a591f881976c375956b63e000085257ff19658b0df4e3c79",
+    "tests/target/runtime_port_board/ble-static.defaults": "655ffbb4a1abbe46b6911574fd3204de8bc5857ce4a3b8e59a29c7125993584e",
+    "tools/target/network-budget.json": "0ecdf7767e6e3970b45875a51faf06497beff616b83316bf2be733b674453c15"
+  },
+  "earlier_preflight": {
+    "log": "build/system-completion-20261026-233938/static-host-qualification-only.log",
+    "sha256": "22e0868bc7f8430019ff523cfbadb620f8acd29c0380354cbe0730e9f7588e86",
+    "cause": "Ad hoc test invocation omitted the pinned formatter environment; zero tests ran. Maintained suite helper supplies the exact installed formatter; no check was relaxed."
+  },
+  "installed": false,
+  "radio_execution_tested": false,
+  "whole_system_static_qualified": false,
+  "vendor_files_modified": false,
+  "aggregate_limits_changed": false,
+  "new_c_exceptions": false,
+  "limits": [
+    "Selecting static host globals does not eliminate controller, NPL backing pool, task, timer and traffic allocations.",
+    "NPL source still allocates pool backing storage even with OS_MEM_ALLOC=1; that macro means pooled leases, not static backing arrays.",
+    "Map changes are not observed heap reductions. Cumulative requested bytes are not peak live allocation.",
+    "Use separate runtime allocation/lifecycle evidence before selecting this context for integrated firmware."
+  ]
+}

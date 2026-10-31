@@ -1,0 +1,145 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-27T00:18:22.181876+00:00",
+  "scope": "Software regression and new core builds; hardware outcomes recorded separately",
+  "passed": true,
+  "checks": [
+    {
+      "name": "standard",
+      "returncode": 0,
+      "log": "build/system-completion-20261026-233938/final-regression-standard.log",
+      "sha256": "8ebdbd8140167370334e9ecf48af9c28d90b73d5a2fdcc6ba67a665273ba1f35",
+      "tests": null
+    },
+    {
+      "name": "policy",
+      "returncode": 0,
+      "log": "build/system-completion-20261026-233938/final-regression-policy.log",
+      "sha256": "ae56733fe13762be6ed1b8c8cf6409a2fdc131382b73a88b1adfdd1b796a0bb3",
+      "tests": 54
+    },
+    {
+      "name": "foundation",
+      "returncode": 0,
+      "log": "build/system-completion-20261026-233938/final-regression-foundation.log",
+      "sha256": "f444f45610ebe15f8b8cfcf643a107b3852e2278cc5c0b204ac12bfc2238779d",
+      "tests": 26
+    },
+    {
+      "name": "runtime",
+      "returncode": 0,
+      "log": "build/system-completion-20261026-233938/final-regression-runtime.log",
+      "sha256": "9b173283f62e2a95a53200a48f4bf12f1a7e9a5416d5f0908719baf39503b2bb",
+      "tests": 20
+    },
+    {
+      "name": "discovery",
+      "returncode": 0,
+      "log": "build/system-completion-20261026-233938/final-regression-discovery.log",
+      "sha256": "5be5e8eefd0f2bf10a89e910082f3562fe10b878d6fd29b5485127928f962ae6",
+      "tests": 19
+    },
+    {
+      "name": "dashboard",
+      "returncode": 0,
+      "log": "build/system-completion-20261026-233938/final-regression-dashboard.log",
+      "sha256": "160bd33a2ea9f56594bcdb5538b751f2fb19be395be531bdaa06320c68026b0c",
+      "tests": null
+    },
+    {
+      "name": "target",
+      "returncode": 0,
+      "log": "build/system-completion-20261026-233938/target-cpu-a1-retry.log",
+      "sha256": "29c2846daa64b5999c6c1c2bf28d61b6ead34dec5d0f0685e288d7f0b030770a",
+      "tests": 180
+    },
+    {
+      "name": "ai",
+      "returncode": 0,
+      "log": "build/system-completion-20261026-233938/ai-after-workcost-v2.log",
+      "sha256": "aff3a59af8aaf6dca2c8a984b4f040b7cc74f47b4e34e8cb1f34e2658b5f0ff3",
+      "tests": 119
+    }
+  ],
+  "builds": {
+    "app-cpu-a1": {
+      "evidence": "build\\system-completion-20261026-233938\\app-cpu-a1-archive\\evidence.json",
+      "sha256": "a8299ae6e8a9c3ed3276a01e66dce1a38adb6b79a088ad6b53398f50f88bf68b",
+      "elf_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801"
+    },
+    "fixture-cpu-a1": {
+      "evidence": "build\\system-completion-20261026-233938\\fixture-cpu-a1-archive\\evidence.json",
+      "sha256": "0637969c60af138cb74567612a661a0f6b7212d0c4e23c0c95ea18dfdc351bf6",
+      "elf_sha256": "580935ef7af015f663df86787a12d0b9a5adba800c697014ce092e4832f3cfaa"
+    },
+    "probe-partition-a1": {
+      "evidence": "build\\system-completion-20261026-233938\\probe-partition-a1-archive\\evidence.json",
+      "sha256": "6169020300b0209af2b0d98744f1d467b6b3ff176eba6a652e4808b6f282b353",
+      "elf_sha256": "04aa6c08d1db448dd53c8bcc0d91bf414edfef754c4b6177b6c8996f3d7ff7a0"
+    }
+  },
+  "owned_c_files": 281,
+  "full_pinned_formatter_gate_passed": true,
+  "warnings_as_errors": true,
+  "manual_review": "C_CODING_STANDARD.md; network/README.md partition review; services/TELEMETRY.md scheduler review; no new deviations",
+  "application_memory": {
+    "record": "build\\system-completion-20261026-233938\\app-cpu-a1-memory.json",
+    "sha256": "e82c22e8caafa12a4b3ea936cab4fec23b1ebeeca380bafe671d4adddc613f93",
+    "groups": {
+      "application_fixed": 148809,
+      "kernel_sdk_fixed": 35559,
+      "ram_code": 45784,
+      "total_dram": 230152,
+      "rtc": 0
+    }
+  },
+  "source_sha256": {
+    "tools/configurator/web.py": "9f8ff0be5c4d0588800c346e63ce26b5a2d77a6a51f487c614c29304c72268da",
+    "tests/target/test_configurator.py": "e0cd3a1b9b4d1523c6412071068ac10d363dbb3541e0eba34bb2d923d75cd126",
+    "tools/config_transfer/__main__.py": "527e2ceae63c2734cbc6f0b61209e460dae86911eb4aa162c1c36e43785d5111",
+    "tools/config_transfer/workcost.py": "0cb8995dc1219f71dfedbc48583cb4a7152303b3c19e4445ccdf55a0c519ba41",
+    "tests/target/test_workcost_wire.py": "145156de64ca171c981c469bf73889bbfc4c2bec2494510dd2852d7758ee9090",
+    "tests/target/test_runtime_port.py": "883c726a7ad4dd433ef6104c8af49579bf7b3c03579228973cd52bf14185c35f",
+    "firmware/src/services/costview.c": "91e514f39a2fb68422e5cadfc4ff879817d96e61c1a57a89ffd87baeba53bd1f",
+    "firmware/src/services/costview.h": "20a02ec1c0933d80ff5eec3cf3a2ea4a6e2a20e17e2528dfb617a0a32ff260fb",
+    "firmware/src/network/netpool.c": "bb5d6caf5ffc8651b918aef0b06803857b05be4a3a00671e15e2f3ebd4ea9b52",
+    "firmware/src/network/netpool.h": "4edcbe0911e48edc18df6b1bdaeb1bbef299693191a8b74f96776a368d7c3a4a",
+    "tests/target/runtime_port_board/main/nqcheck.c": "8bde94c238fb7f9557ed541fb31d37fa6fbfec7fece860dc16661cebbc227617",
+    "tests/target/runtime_port_board/main/main.c": "cbb0ac96358af15862476aefdb2d96a9654c5c26879bba18fe7ebdc0934fb515",
+    "firmware/app/c3app.c": "fa212f15ec2a6d25ed0a83c665226eab3cdcc6b723346d5c92f80e0d595b5ad7",
+    "firmware/app/c3app.h": "901ae37317062cb27a9c128aa2d30568686dd9cbff07a82da75c5e0d637f6540",
+    "tests/target/servtest.c": "8c5541fe6d472dca2e1df92778ef906926fa1584f228df7e70fdb9ca8cdf2cb9",
+    "configs/nodes/c3-protocol-demo.json": "a9fab6f2c82f569eafa6d2d310965479e001f55fd3eb251f84b0b2e78c195de1",
+    "tests/target/test_admission.py": "093c58dfdadf740cde238f774e275b9b7bd988d7c6b3ddb3779a7477c3d948e9",
+    "tools/c_standard/deviations.json": "944b37b61443100370c8028a4b74eb0f739bb823cfdfcab5f0b492db9567a2e7",
+    "tools/c_standard/check.py": "c9dc9c4bfd9b3c6d4e0896d446ed54a5a80216ab05bdad792a063bdfbfd6c541",
+    "tools/c_standard/requirements.txt": "097ec5378ad885fa749368c7426bd5cee0544a1ca6a1e9a3fb3bfb4f35641a0a"
+  },
+  "corrected_failures": [
+    {
+      "log": "build/system-completion-20261026-233938/final-regression-target.log",
+      "sha256": "c1edb017eefce2280c936b7b4fb0ab24c275683bafe7dad2e48664ea9814ff5f",
+      "cause": "Windows HTTP rejection closed before consuming a bounded POST body, causing a connection abort.",
+      "resolution": "Consume only well-framed bounded bodies before authorization rejection; deny malformed framing, never parse/dispatch unauthorized data. Targeted and full regression pass."
+    },
+    {
+      "log": "build/system-completion-20261026-233938/target-cpu-a1.log",
+      "sha256": "edf7052e7413adb07d4ad1b7c5890086982ef7a58575b3d3fc9b9cf1cdfd812f",
+      "cause": "Host GCC compilation exceeded its unchanged 30-second test deadline during simultaneous full ESP builds.",
+      "resolution": "Repeat after build load ended. Same source, assertions, warnings and deadline; all 180 tests passed."
+    }
+  ],
+  "ui_style_changed": false,
+  "new_c_exceptions": false,
+  "committed": false,
+  "pushed": false,
+  "hardware_qualified": false,
+  "wireless_static_qualified": false,
+  "model_deployment_allowed": false,
+  "limits": [
+    "These are suite counts, not independent physical checks or unique C assertions.",
+    "Foundation/runtime/policy/dashboard scopes passed before the final scheduler addition; affected target and AI suites passed afterward.",
+    "The firmware builds include a fresh 281-file pinned-format gate; no diagnostic skip-format is accepted.",
+    "No live phone, visual OLED, interrupted-power-save or new-peripheral acceptance is inferred."
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-27T00:16:27.011613+00:00",
+  "scope": "Post-study design review using primary training families only; no new fit or threshold change",
+  "training_families": 16,
+  "training_candidate_rows": 64,
+  "source_sha256": {
+    "dataset.json": "8eb59045a7f0260801636a573ebce623cdbda3d61a718487fff5e7d912041f82",
+    "gate.json": "0be8969f646e0d6086e807f8fc1e0d23a44525f9f933a39fb01907cfb61e3c5c"
+  },
+  "feature_values": {
+    "execution_kind": [
+      0
+    ],
+    "interval_ms": [
+      200,
+      500,
+      1000,
+      2000
+    ],
+    "goal_ms": [
+      800
+    ],
+    "active_tasks": [
+      1,
+      2,
+      3
+    ],
+    "source_period_ms": [
+      0
+    ],
+    "timeout_us": [
+      100000
+    ],
+    "target_priority": [
+      12
+    ],
+    "higher_priority_workers": [
+      0,
+      1
+    ],
+    "i2c_workers": [
+      1
+    ],
+    "i2c_min_clock_hz": [
+      100000,
+      200000,
+      250000,
+      400000
+    ],
+    "i2c_requests_millihz": [
+      500,
+      1000,
+      2000,
+      5000
+    ],
+    "spi_workers": [
+      0,
+      1
+    ],
+    "spi_min_clock_hz": [
+      0,
+      1000000,
+      1500000,
+      2000000,
+      2500000,
+      4000000,
+      8000000
+    ],
+    "spi_refresh_millihz": [
+      0,
+      2000,
+      2858,
+      4000,
+      5000,
+      10000
+    ],
+    "uart_workers": [
+      0,
+      1
+    ],
+    "uart_min_baud": [
+      0,
+      256000
+    ],
+    "uart_declared_bytes_per_second": [
+      0,
+      300
+    ],
+    "uart_min_rx_buffer_bytes": [
+      0,
+      512
+    ]
+  },
+  "constant_features": [
+    "execution_kind",
+    "goal_ms",
+    "source_period_ms",
+    "timeout_us",
+    "target_priority",
+    "i2c_workers"
+  ],
+  "training_decisions": {
+    "oracle_ms": {
+      "None": 4,
+      "500": 12
+    },
+    "simple_rule_ms": {
+      "500": 16
+    },
+    "tree_ms": {
+      "None": 4,
+      "500": 12
+    }
+  },
+  "conclusions": [
+    "The 800 ms goal and 200/500/1000/2000 ms candidates leave a coarse interval decision. A failed all-candidate workload permits abstention, not a safe alternative interval.",
+    "Safety abstention can be useful, but is distinct from the prospectively required safe interval/coverage benefit. The existing gate is not changed.",
+    "The fixed goal and invariant timeout/priority/buffering do not train behavior across those dimensions.",
+    "Configured UART frame rate is a declared value, not the independently measured actual reporting rate.",
+    "Current contexts intentionally bind the supported drivers, topology and firmware. Unknown peripherals must still configure through supported drivers while advice abstains."
+  ],
+  "prospective_next_study": [
+    "First finish the radio/static platform and freeze its execution context; retain existing studies under their original hashes.",
+    "Use independently collected protocol service costs and actual stream rates as candidate model inputs, with missing/saturated measurements producing abstention.",
+    "Predeclare operational goals, candidate ranges and an objective that simple interval-plus-source-period rules do not already solve; preserve baselines and report negative results.",
+    "Keep goal variants, repeated sessions and near-duplicate workload profiles within the same family split. Reserve whole new families before any labels are inspected.",
+    "Run an additional supported peripheral type and separate-session holdout before claiming cross-device generalization.",
+    "Use temporal/grouped evaluation, deterministic export and bounded on-target inference; keep hardware admission and explicit Apply authoritative."
+  ],
+  "stress_study_changed": false,
+  "heldout_used_for_this_analysis": false,
+  "model_retuned": false,
+  "automatic_apply": false,
+  "deployment_allowed": false
+}

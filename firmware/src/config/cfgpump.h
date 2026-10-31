@@ -47,6 +47,8 @@ typedef struct
     void *                p_capability_context;
     cfgpump_discover_t *  p_discover;
     void *                p_discovery_context;
+    cfgpump_observe_t *   p_workcost;
+    void *                p_workcost_context;
     size_t                received_size;
     size_t                received_used;
     size_t                sent;
@@ -87,6 +89,10 @@ int cfgpump_capabilities (cfgpump_t *         p_pump,
 int cfgpump_discovery (cfgpump_t *          p_pump,
                        cfgpump_discover_t * p_discover,
                        void *               p_context);
+/* Independent read-only workload/stack evidence; no mutation retry eviction. */
+int cfgpump_workcost (cfgpump_t *         p_pump,
+                      cfgpump_observe_t * p_observe,
+                      void *              p_context);
 #endif
 /* End of file. */
 

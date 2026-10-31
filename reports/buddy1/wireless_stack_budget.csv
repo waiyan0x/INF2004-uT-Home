@@ -1,0 +1,15 @@
+Record,Profile,Item,Bytes,Notes
+Stack,WiFi,Event loop,2816,Selected SDK configuration
+Stack,WiFi,TCP/IP,3584,Selected SDK configuration
+Stack,WiFi,ESP timer,4096,Selected SDK configuration
+Stack,WiFi,Wi-Fi,6656,Selected SDK configuration
+Stack total,WiFi,Radio task stacks,17152,Four bounded pool slots
+Stack,BLE,ESP timer,4096,Selected SDK configuration
+Stack,BLE,NimBLE host,4096,Selected SDK configuration
+Stack,BLE,Controller,4096,Selected SDK configuration
+Stack total,BLE,Radio task stacks,12288,Three bounded pool slots
+Stack,Common,Deferred-cleanup reaper,1024,Permanent stack outside pool
+ELF,WiFi,c3task writable object,18504,Includes pool metadata and reaper stack
+ELF,WiFi,Total DRAM used,278402,126 bytes beneath 278528-byte cap
+ELF,BLE,c3task writable object,13632,Includes pool metadata and reaper stack
+ELF,BLE,Total DRAM used,259127,19401 bytes beneath 278528-byte cap

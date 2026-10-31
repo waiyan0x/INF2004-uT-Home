@@ -51,7 +51,36 @@ static pulseio_t g_ports[2] = {
     {.p_operations = &g_operations, .p_context = &g_states[0]},
     {.p_operations = &g_operations, .p_context = &g_states[1]}};
 
-static uint8_t g_users = 0U;
+static uint8_t g_users      = 0U;
+static bool    gb_attempted = false;
+static bool    gb_ready     = false;
+
+/** @brief Create the fixed mutex set once before normal operation begins.
+ * A partial failure retains created objects and fails closed until reboot. */
+int c3pulse_startup (void)
+{
+    if (!rt_port_is_owner())
+    {
+        return PULSEIO_STATE;
+    }
+    if (gb_attempted)
+    {
+        return gb_ready ? 0 : PULSEIO_IO;
+    }
+    gb_attempted       = true;
+    const T_CMTX mutex = {.mtxatr = TA_INHERIT};
+    for (size_t index = 0U; index < 2U; ++index)
+    {
+        const ID h_mutex = tk_cre_mtx(&mutex);
+        if (h_mutex <= 0)
+        {
+            return PULSEIO_IO;
+        }
+        g_states[index].h_mutex = h_mutex;
+    }
+    gb_ready = true;
+    return 0;
+}
 
 /** @brief Return static noncopyable storage with no hardware side effects. */
 pulseio_t * c3pulse_port (uint8_t pair)
@@ -64,17 +93,12 @@ static int open_port (void * p_context, const pulseio_config_t * p_config)
 {
     c3pulse_state_t * p_state   = p_context;
     const uint32_t    frequency = esp_clk_xtal_freq();
-    if ((!rt_port_is_owner()) || (0 != p_state->h_mutex) || (0U == frequency) ||
-        (0U != (frequency % 1000000U)) || ((frequency / 1000000U) > 256U))
+    if ((!rt_port_is_owner()) || (!gb_ready) || (p_state->b_clock) ||
+        (p_state->trigger.b_open) || (p_state->input.b_open) ||
+        (0U == frequency) || (0U != (frequency % 1000000U)) ||
+        ((frequency / 1000000U) > 256U))
     {
         return PULSEIO_INVALID;
-    }
-    const T_CMTX mutex = {.mtxatr = TA_INHERIT};
-    p_state->h_mutex   = tk_cre_mtx(&mutex);
-    if (p_state->h_mutex <= 0)
-    {
-        p_state->h_mutex = 0;
-        return PULSEIO_IO;
     }
     if ((0 != c3pin_open(&p_state->trigger, p_config->trigger_gpio, false)) ||
         (0 != c3pin_input_open(&p_state->input, p_config->input_gpio)))
@@ -119,7 +143,7 @@ static int open_port (void * p_context, const pulseio_config_t * p_config)
 static int close_port (void * p_context)
 {
     c3pulse_state_t * p_state = p_context;
-    if (!rt_port_is_owner())
+    if ((!rt_port_is_owner()) && (!rt_port_is_cleanup_owner()))
     {
         return PULSEIO_STATE;
     }
@@ -127,11 +151,7 @@ static int close_port (void * p_context)
     {
         return PULSEIO_IO;
     }
-    if ((0 < p_state->h_mutex) && (E_OK != tk_del_mtx(p_state->h_mutex)))
-    {
-        return PULSEIO_IO;
-    }
-    p_state->h_mutex = 0;
+    /* Mutex lifetime is the boot lifetime, independent of hardware claims. */
     if (((p_state->input.b_open) &&
          (0 != c3pin_input_close(&p_state->input))) ||
         ((p_state->trigger.b_open) && (0 != c3pin_close(&p_state->trigger))))

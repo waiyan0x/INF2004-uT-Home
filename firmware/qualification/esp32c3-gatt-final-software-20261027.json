@@ -1,0 +1,96 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-27T01:12:14.567064+00:00",
+  "passed": true,
+  "scope": "Isolated read-only BLE GATT software/build preparation and ordinary-image exclusion; board outcome separate",
+  "builds": {
+    "gattprobe-a3": {
+      "evidence": "build\\system-completion-20261026-233938\\gattprobe-a3-archive\\evidence.json",
+      "sha256": "2d1e9877a31a6765b9f8d7e8e6b721c1b7e7de1fd01ffb2aa7368c569c3534c5",
+      "elf_sha256": "4688039852f0aacc0ebb2925b59719783d42a815a8cc8bdeb33c23546111173a",
+      "coding_standard": {
+        "status": "passed",
+        "command": [
+          "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+          "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code\\tools\\c_standard\\check.py",
+          "--root",
+          "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code"
+        ],
+        "output": "C standard gate: 283 files, 0 findings, 0 tool/policy errors."
+      }
+    },
+    "app-gatt-isolated-a3": {
+      "evidence": "build\\system-completion-20261026-233938\\app-gatt-isolated-a3-archive\\evidence.json",
+      "sha256": "a5a642b0540d4180caedc663d8062c0708f1f0c38644389120a9321f4ae7f646",
+      "elf_sha256": "1de6ca2e71d1155fc16855650f4c187f595127d7eb0f232d9e549143e188ed77",
+      "coding_standard": {
+        "status": "passed",
+        "command": [
+          "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+          "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code\\tools\\c_standard\\check.py",
+          "--root",
+          "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code"
+        ],
+        "output": "C standard gate: 283 files, 0 findings, 0 tool/policy errors."
+      }
+    }
+  },
+  "memory": {
+    "gattprobe-memory-a3.json": {
+      "sha256": "787e799448f8a0a04c29b77a1807b84bb5987c0101cf4f1d50ae5822d6fb5fd5",
+      "groups": {
+        "application_fixed": 149615,
+        "kernel_sdk_fixed": 41566,
+        "ram_code": 56338,
+        "total_dram": 247519,
+        "rtc": 0
+      }
+    },
+    "app-gatt-isolated-a3-memory.json": {
+      "sha256": "caad06294309223c2a30bf2323c78c7f08df29bf6c5cdbef0f6502bea2e91c9f",
+      "groups": {
+        "application_fixed": 148809,
+        "kernel_sdk_fixed": 35559,
+        "ram_code": 45784,
+        "total_dram": 230152,
+        "rtc": 0
+      }
+    }
+  },
+  "target_tests": 182,
+  "target_test_record": {
+    "recorded_utc": "2026-10-27T01:01:44.027641+00:00",
+    "folder": "tests/target",
+    "returncode": 0,
+    "log": "target-gatt-a1.log",
+    "sha256": "745867b79b0080b736d8dab47a013656510d165687b1efc6b97901fc85dc1d91"
+  },
+  "owned_c_files": 283,
+  "warnings_as_errors": true,
+  "full_pinned_formatter_gate_passed": true,
+  "prior_regression": "system-software-regression-20261027.json",
+  "source_sha256": {
+    "firmware/hal/ports/esp32c3/c3gatt.c": "6a133b3bbd0c2b83025030ae3495168ee9de6f46ad38679f742533e613a5b5a3",
+    "firmware/hal/ports/esp32c3/c3gatt.h": "7832a0b06fb424e604fdef4864302503be447b4d60da86e9f4c9e6a64de3af66",
+    "firmware/hal/ports/esp32c3/c3ble.c": "046b1abed36a14a810ec9b8d6105b95c31b12e1cdb7d46d7fa8b9d9dc72d20b2",
+    "firmware/hal/ports/esp32c3/c3ble.h": "9d34576d7f9dc8a47d3b77c49dc74aa93313b8981220772196b01ec749830906",
+    "tests/target/runtime_port_board/main/main.c": "a9c0a1a8c8da32c280728dba818e4d20378c98d9cbee004d488dceb3744faeea",
+    "tools/target/qualify_kernel.py": "2870ceea48e2797adb2b392745cb75138df866aa5ac1ffd4246d23c3ae128056",
+    "tests/target/test_qualification.py": "a52d386e26f5179a530bffd7d9df0620146b12563f601ab1107365cedd055022",
+    "tools/target/network-budget.json": "0ecdf7767e6e3970b45875a51faf06497beff616b83316bf2be733b674453c15",
+    "tools/c_standard/deviations.json": "944b37b61443100370c8028a4b74eb0f739bb823cfdfcab5f0b492db9567a2e7",
+    "tools/c_standard/check.py": "c9dc9c4bfd9b3c6d4e0896d446ed54a5a80216ab05bdad792a063bdfbfd6c541",
+    "tools/c_standard/requirements.txt": "097ec5378ad885fa749368c7426bd5cee0544a1ca6a1e9a3fb3bfb4f35641a0a"
+  },
+  "normal_image_radio_and_model_symbols_absent": true,
+  "normal_image_installed": false,
+  "diagnostic_installed": false,
+  "whole_system_static_qualified": false,
+  "model_deployment_allowed": false,
+  "manual_review": "firmware/src/network/README.md#read-only-gatt-diagnostic and C_CODING_STANDARD.md; C99, no new exceptions, no vendor edits",
+  "limits": [
+    "GATT proof must include actual uncached reads and reconnect; build success is insufficient.",
+    "No no-malloc compliance, authenticated service, sensor telemetry, phone or radio coexistence claim.",
+    "Module c3gatt state is explicitly capped at four bytes; aggregate and existing module limits are unchanged."
+  ]
+}

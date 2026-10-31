@@ -63,14 +63,15 @@ are not universal optima. Details: [hardware guide](../CONTRIBUTING.md).
 - [Firmware observer, exact wire format and manual C review](../firmware/src/discovery/README.md).
 - [Configuration Desk workflow](../tools/configurator/README.md).
 - [Host USB client](../tools/config_transfer/README.md).
-- [Tests](../tests/README.md); D1-D4 software is implemented, physical discovery
-  acceptance remains pending.
+- [Tests](../tests/README.md) and [scoped bench evidence](../firmware/qualification/README.md).
+  Discovery is implemented and has repeated USB-core bench checks; broader
+  electrical/failure and combined-radio acceptance remain open.
 
 ## Historical references
 
-Repeated checkpoint diaries were consolidated on 2026-10-17. Current status and
-remaining work are in [the project README](../README.md). Earlier text remains
-in Git at commit `37319fbd55ca622779eca498519128e6a33bcaa5`:
+Current status and remaining work are in [the project README](../README.md).
+Completed checkpoints belong in [the history log](COMPLETED_WORK_LOG.md).
+Older removed guides remain in Git at commit `37319fbd55ca622779eca498519128e6a33bcaa5`:
 
 ```console
 git show 37319fb:INTEGRATION_PLAN.md
@@ -115,17 +116,21 @@ and [approval records](../tools/c_standard/README.md) retain their own files.
 
 ## Local artifacts and review documents
 
-The following are local files, not part of the published repository. Paths are
-relative to the `Code` folder unless stated otherwise. Preserve them when
-changing workspaces; a new chat does not need a new clone on this workstation.
+These paths are local to the original workstation, not included in Git. Preserve
+them; a fresh clone does not contain raw datasets, build archives or board backups.
+Older paths and checkpoint outcomes are indexed in the
+[completed-work log](COMPLETED_WORK_LOG.md).
 
-| Location | State / purpose |
+| Location relative to `Code` | Purpose |
 |---|---|
-| `build/ai-offline-20261013/` | Simulated runs, dataset, readable trained model and C export; see the [AI guide](../ai/README.md#existing-local-model) |
-| `build/publish-20261017-*.log` | Six Python suite logs: 243 tests; the seven dashboard tests made the reported total 250. These are historical checks, not reruns on 18 October |
-| `build/ai-c-gate-final.json` | Retained 194-file full-gate result; policy and manual-review requirements remain in the [C standard](../C_CODING_STANDARD.md) |
-| `../ESP/Tribunal1/Week8_Tribunal1_Template.docx` | Only Version A was edited to match uT-Home. Front matter and Versions B/C were preserved; this document was not pushed to GitHub |
-| `build/tribunal_review_20261017/` | Original Word backup, edit script, scope verification and rendered layout checks |
+| `build/system-completion-20261026-233938/` | Frozen builds, capture scripts, core/radio observations and verified `board-before-network.bin` 4 MiB backup; use its backup JSON/hash before recovery |
+| `build/protocol-study-20261027-static-r2/` | Primary USB-core study, raw journals, frozen sources and evaluation |
+| `build/protocol-study-20261027-stress-r3/` | Separate corrected stress study and evaluation; retain r1/r2 rejected/unexecuted plans too |
+| `build/protocol-study-20261026-r1/`, `r2/`, `r3/` | Earlier independent study contexts; do not mix with later firmware labels |
+| `build/static-ai-20261026/`, `build/shared-handoff-20261026/`, `build/hardware-acceptance-20261026/` | Earlier bench/build records and external-backup references |
+| `build/ai-offline-20261013/` | Simulated regression model/data; not a hardware model |
+| `../ESP/Tribunal1/Week8_Tribunal1_Template.docx` | Local submission document; not published with this repository |
+| `build/tribunal_review_20261017/` | Original document backup, edit verification and rendered checks |
 
 **Tribunal follow-up:** the front-page Team Information table still contains the
 template's unrelated personas because it was outside the requested Version A
@@ -136,6 +141,3 @@ table is authorized for editing. Leave student details for the team to fill in.
 Buddy prompts/positions in Version A are proposals, not invented records of
 completed individual sessions. The team must confirm them and reconcile the
 Week 6 comparisons with its submitted architecture freeze before submission.
-
-On 18 October, the Word file was verified to match the saved Version A edit.
-No edits to it or to its neighboring PDF were made during the handoff check.

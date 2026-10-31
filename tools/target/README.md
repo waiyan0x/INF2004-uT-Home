@@ -16,8 +16,44 @@ and paths inside dependencies are rejected, never cleaned. Custom `--sdk` and
 | Flags | Image purpose |
 |---|---|
 | Neither mode flag | Upstream `examples/tasks` two-task kernel example |
+| `--upstream-example ble_gatt` | Pinned BLE GATT diagnostic; excludes application/runtime flags |
+| `--upstream-example udp_pingpong_c3` | Pinned Wi-Fi/UDP diagnostic; excludes application/runtime flags |
 | `--runtime-port` | Project acceptance fixture; no peripheral activation |
+| `--runtime-port --native-uart-fixture` | Isolated native UART ring/fault checks; disconnect external UART senders and receivers before installation |
 | `--runtime-port --configuration-app` | USB/profile/storage application used with the UI and peripherals |
+
+Diagnostic examples retain their pinned source bytes and get separate build
+records marked `diagnostic_only`. They do not qualify the application, static
+memory or radio coexistence. The existing source/pin/archive/output protections
+also apply; unknown examples and mixed modes fail before any workspace changes.
+These examples have their own startup, networking and persistence behavior;
+compilation does not authorize installing them on an assembled application board.
+
+The native UART fixture transmits bytes and assumes an empty receive path. It is
+explicitly separate from the ordinary runtime fixture, which prints that UART
+fault checks were not run. Neither an ordinary fixture PASS nor the connected
+radar's normal operation qualifies the isolated fault suite. The build gate
+rejects missing/ambiguous mode definitions and any test-hook leakage into the
+application or ordinary fixture.
+
+The configuration application also verifies its generated partition-table hash
+against `cfgpart`'s reviewed layout. Both allocating SDK flash-protection queries
+are replaced only in `spi_flash_os_func_app.c` with the checked configuration-only
+write guard. Missing, overridden or leaked substitutions fail qualification.
+NVS/OTA writes remain prohibited by this application guard; wireless persistence
+requires a separately reviewed static design.
+
+The runtime builds enable SDK heap hooks and owned `c3audit` wrappers. Generated
+compiler commands must show the exact callback/creator/allocator substitutions
+only in their reviewed vendor translation units. The ELF check verifies wrapper
+aliases and internal-RAM addresses for heap-hook primitives. The ordinary
+fixture explicitly pulls the audit object from its archive; weak SDK references
+alone do not guarantee extraction. Source dependencies remain unmodified.
+These checks establish instrumentation wiring, not zero application allocations.
+The application reports boot totals, its startup subset (marked at `usermain`),
+and normal-operation counts separately in version-3 telemetry. Restore is after
+the normal-operation boundary. The fixture intentionally creates test objects;
+its PASS is not an application no-allocation result.
 
 ## Configuration application build
 
@@ -28,8 +64,12 @@ python tools/target/qualify_kernel.py build --runtime-port --configuration-app -
 The compatibility patch supplies missing ESP-IDF 6.1 systimer dependencies; omit
 it only to reproduce the known upstream build failure. The resource patch adds
 512 usable native UART bytes and disables unused ADC startup. Patches are applied
-only to the staged copy and hashed. The app has a 64 KiB kernel-heap override;
-the fixture uses 32 KiB. Neither is a free-RAM measurement.
+only to the staged copy and hashed. Native startup pool size is build-dependent:
+inspect the actual image map, not an earlier override claim. A pool reservation
+is not measured free RAM. The
+[static-memory impact review](../../firmware/README.md#mandatory-static-memory-change)
+describes the outstanding allocation, lifecycle and budget changes; existing
+build success does not establish compliance with the new requirement.
 
 Outputs include `project/`, `build/`, `build.log`, `sdkconfig`, patches and
 `evidence.json` with hashes/exit status. Failed builds retain diagnostics.
@@ -46,7 +86,7 @@ python -B -m unittest discover -s tests/target -v
 
 ## Identify or recover the board
 
-Disconnect peripherals and other serial clients. Use a known USB data cable,
+Close other serial clients. Use a known USB data cable,
 then `python -m serial.tools.list_ports -v`; Bluetooth ports are not the board.
 Replace COMX in `python -m esptool --port COMX flash-id` with the actual port.
 Confirm ESP32-C3 / 4 MB. A power LED alone does not prove USB data works.
@@ -58,8 +98,14 @@ released and RESET, or esptool's watchdog reset. See the [recorded behavior](../
 
 ## Install the configuration application
 
-This procedure **writes firmware**. Start with the board alone and serial clients
-closed. Use a newly built, verified configuration application, not the fixture
+This procedure **writes firmware**. Keep serial clients closed. A board-alone
+setup is useful for isolating power, boot-pin or communication failures; it is
+not inherently required for a USB backup or firmware update. The reviewed
+BMP388/six-pin OLED/LD2450 layout may remain assembled when its supply is stable,
+boot/USB pins are free, and no actuator is connected. On 26 October the full
+backup and verified update succeeded with that wiring intact. If isolation is
+needed, disconnect all power before changing any signal or supply wiring.
+Use a newly built, verified configuration application, not the fixture
 or an arbitrary historical binary. In the activated pinned environment, set the
 actual run directory and board port:
 
@@ -117,3 +163,52 @@ and `[port-test] PASS`, then alive counters with no FAIL. Repeat after reset.
 These qualify their fixture scope, not peripheral electricity, timing or storage
 power-loss behavior. Record new board evidence separately; leave build records
 unchanged. See the [evidence index](../../firmware/qualification/README.md).
+
+## Fixed memory budget
+
+`static-budget.json` declares the current USB-core reservations, including every
+linked application module with writable state. Run in the pinned SDK Python:
+
+```powershell
+python tools/target/memory_budget.py --build C:/path/to/qualified-build --output C:/path/to/new-memory-record.json
+```
+
+The tool verifies the ELF/map hashes, obtains SDK size attribution, rejects new
+unbudgeted application state, checks each module and aggregate reservation, and
+checks the linker region capacity. SDK/kernel writable data and alignment are
+counted once; the kernel's internal pool already includes stacks carved from it.
+RAM-resident code is a separate category. A passed fixed-map check never sets
+runtime heap, stack high-water or whole-system qualification to true.
+
+Unassigned linker space is not measured free heap or stack headroom. Keep
+per-module limits and actual sizes in the generated budget record. Wireless/AI
+reservations and complete stack evidence are required before combined release.
+Historical map and allocator results are in
+[qualification](../../firmware/qualification/README.md).
+
+The optional fixed-queue/event/startup variant uses `--static-net-queues` and
+`--budget tools/target/network-budget.json` with the memory checker. Its overall
+278,528-byte reservation remains unchanged. The selected limits are 168,192
+bytes of application fixed data, 53,184 bytes of SDK/kernel fixed data and
+57,152 bytes of RAM code. The checker accepts passed configuration-application
+builds and passed isolated Wi-Fi/BLE diagnostics; the resulting record retains
+`whole_system_static_qualified=false`. The older `netqueue-budget.json` describes
+the preceding queue-only experiment, not the current selected variant. The
+scan-only `--wifi-probe` additionally requires that queue option and the isolated runtime
+fixture (without `--configuration-app`). Its explicit noncompliant scope and
+memory observations are described in the [network guide](../../firmware/src/network/README.md).
+Do not install either while the AI collector owns serial. Diagnostic binaries
+are not release candidates and must not be substituted for application acceptance.
+
+`--ble-probe` selects isolated nonconnectable advertising. Adding
+`--ble-gatt-probe` selects the bounded, one-connection, read-only GATT diagnostic
+described in the network guide. The qualifier checks actual SDK peripheral-role,
+connection, persistence and linked-service settings; neither radio mode can be
+combined with the application or model diagnostic. Both retain visible SDK heap
+usage and do not establish no-malloc compliance.
+
+The optional `--ble-static-host` modifier also requires the isolated BLE mode.
+It selects the SDK's static NimBLE host-global definitions and verifies the
+effective setting. It is a footprint experiment, not an exemption or proof that
+controller, NPL, task/timer and traffic paths no longer allocate. Use a new build
+folder and the same network memory budget for a meaningful comparison.

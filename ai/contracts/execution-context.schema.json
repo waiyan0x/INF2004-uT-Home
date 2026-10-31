@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "version", "firmware_elf_sha256", "workers", "parser", "ai", "qualification"],
+  "properties": {
+    "contract": {"const": "uthome.execution-context"},
+    "version": {"const": "0.1.0"},
+    "firmware_elf_sha256": {"$ref": "#/$defs/hash"},
+    "workers": {
+      "type": "object", "additionalProperties": false,
+      "required": ["slots", "stack_bytes", "reserved_stack_bytes", "created_at_startup"],
+      "properties": {
+        "slots": {"const": 4},
+        "stack_bytes": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "integer", "minimum": 1024, "maximum": 8192, "multipleOf": 256}},
+        "reserved_stack_bytes": {"type": "integer", "minimum": 4096, "maximum": 32768},
+        "created_at_startup": {"type": "boolean"}
+      }
+    },
+    "parser": {
+      "type": "object", "additionalProperties": false,
+      "required": ["input_bytes", "workspace_bytes"],
+      "properties": {
+        "input_bytes": {"const": 8192},
+        "workspace_bytes": {"type": ["integer", "null"], "minimum": 1, "maximum": 65536}
+      }
+    },
+    "ai": {
+      "type": "object", "additionalProperties": false,
+      "required": ["max_candidates", "writable_bytes", "incremental_stack_bytes", "code_rodata_bytes", "stack_accounting"],
+      "properties": {
+        "max_candidates": {"const": 4},
+        "writable_bytes": {"type": "integer", "minimum": 0, "maximum": 512},
+        "incremental_stack_bytes": {"type": "integer", "minimum": 0, "maximum": 512},
+        "code_rodata_bytes": {"type": "integer", "minimum": 1, "maximum": 4096},
+        "stack_accounting": {"const": "inside_controller_stack"}
+      }
+    },
+    "qualification": {
+      "type": "object", "additionalProperties": false,
+      "required": ["checks", "startup_application_heap_calls", "runtime_application_heap_calls", "post_startup_kernel_creations", "apply_cycles", "evidence_sha256"],
+      "properties": {
+        "checks": {"type": "object", "additionalProperties": {"enum": ["passed", "failed", "not_measured"]}},
+        "startup_application_heap_calls": {"$ref": "#/$defs/counter"},
+        "runtime_application_heap_calls": {"$ref": "#/$defs/counter"},
+        "post_startup_kernel_creations": {"$ref": "#/$defs/counter"},
+        "apply_cycles": {"type": "integer", "minimum": 0, "maximum": 1000000},
+        "evidence_sha256": {"type": "object", "maxProperties": 64, "propertyNames": {"maxLength": 256}, "additionalProperties": {"$ref": "#/$defs/hash"}}
+      }
+    }
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "counter": {"type": ["integer", "null"], "minimum": 0, "maximum": 4294967295}
+  }
+}

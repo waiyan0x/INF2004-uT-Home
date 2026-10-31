@@ -1,0 +1,37 @@
+[port-test] independent workers fast=6 slow=3; cleanup verified
+[port-test] sleeping worker cancellation=0 ms
+[port-test] timeout retained ownership; retry cleaned and released binding
+[port-test] step failure and cleanup retry verified
+[activation-test] start barrier passed
+[activation-test] PASS generation=15; typed queue, replacement, recovery, six cycles and empty stop
+[uart-test] NOT RUN: requires isolated UART fixture
+[port-test] worker stack 0 unused=7804/8192
+[port-test] worker stack 1 unused=7856/8192
+[port-test] worker stack 2 unused=8064/8192
+[port-test] worker stack 3 unused=8064/8192
+[port-test] stack controller=5936/8448 idle=896/1024; helper mean=5 max=52 us (128 trials, clock/check overhead included)
+[port-test] shared guard handoff passed
+[port-test] PASS checks=1693; 24 four-slot binding/release cycles
+[port-test] alive 0
+[port-test] alive 1
+[port-test] alive 2
+[port-test] alive 3
+[port-test] alive 4
+[port-test] alive 5
+[port-test] alive 6
+[port-test] alive 7
+[port-test] alive 8
+[port-test] alive 9
+[port-test] alive 10
+[port-test] alive 11
+[port-test] alive 12
+[port-test] alive 13
+[port-test] alive 14
+[port-test] alive 15
+[port-test] alive 16
+[port-test] alive 17
+[port-test] alive 18
+[port-test] alive 19
+[port-test] alive 20
+[port-test] alive 21
+[port-test] alive 22

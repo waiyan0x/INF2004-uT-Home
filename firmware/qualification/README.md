@@ -1,73 +1,76 @@
-# Build and hardware evidence
+# Build and hardware evidence log
 
-These dated JSON records and captures are immutable evidence, not a claim that
-every newer source revision has been tested on the board. Build-only results
-remain separate from physical observations. Keep new runs in new files.
+This folder is a designated evidence log. Dated JSON and captures are immutable
+historical results, not the current board state or proof for newer source.
+Use the [root plan](../../README.md#remaining-work) for outstanding tasks and
+the [completed-work log](../../docs/COMPLETED_WORK_LOG.md) for the consolidated
+checkpoint narrative. Keep exact hashes, failed runs and source identities.
 
 ## Evidence index
 
-| Area | Recorded scope | Record |
+| Scope | Record | Boundary |
 |---|---|---|
-| Pinned kernel | Build, then C3 revision 0.4 / 4 MB identification and startup/reset captures | [build](esp32c3-kernel-20260928.json), [board](esp32c3-board-20260928.json) |
-| Worker port | 369 checks on each of two resets | [runtime](esp32c3-runtime-20260928.json) |
-| BARR refactor | Two 369-check resets and repeated four-slot allocation/release | [regression](esp32c3-barr-20260928.json), [signed audit](../../tools/c_standard/AUDIT.md) |
-| Typed activation | 514 checks on each of two resets; replacement, failure and recovery | [activation](esp32c3-activation-20260928.json) |
-| I2C / BMP388 | Software, compiler and build checks | [I2C](esp32c3-i2c-20260928.json) |
-| SPI / OLED | Software, compiler and build checks | [SPI](esp32c3-spi-20260928.json) |
-| UART / radar | Software, compiler and build checks | [UART](esp32c3-uart-20260928.json) |
-| GPIO / distance / PWM | Software, compiler and build checks | [GPIO](esp32c3-gpio-20260928.json) |
-| Configuration framing/storage | Portable core and injected failure checks | [core](esp32c3-config-core-20260928.json) |
-| Target admission/binding | Parsing, resource admission and simulated driver lifecycle | [admission](esp32c3-admission-20260928.json) |
-| USB and flash adapters | Application/fixture builds and host transport/storage checks | [USB/storage](esp32c3-usbstore-20260928.json) |
-| Telemetry / health | Wire parity, sample freshness and monitoring | [telemetry](esp32c3-telemetry-20260928.json) |
-| Display renderer | Software rendering and application/fixture builds | [display](esp32c3-display-20260928.json) |
-| UI / rules | Local workflow, capabilities and bounded output rules | [UI/rules](esp32c3-ui-rules-20260928.json) |
-| I2C discovery | Bounded observer, host resolution and target builds | [discovery](esp32c3-discovery-20261012.json) |
-| UART/manual discovery | Radar observer, confirmations and target builds | [D4](esp32c3-discovery-d4-20261012.json) |
+| Consolidated overnight handoff | [handoff](system-overnight-handoff-20261027.json) | Core stability and AI collection; not a full release |
+| Core lifecycle/scheduler | [core](esp32c3-scheduler-20261027.json) | USB image, rollback/capacity/reboot; combined radio load separate |
+| SPI polling correction | [comparison](esp32c3-spi-polling-20261027.json) | Tested clocks/deadlines; preserve old negative data |
+| Wi-Fi/BLE diagnostics | [radio](esp32c3-radio-diagnostics-20261027.json), [GATT](esp32c3-gatt-settle-20261027.json) | Scan/restart and read/reconnect; SDK allocations remain |
+| Remaining SDK semantics | [source audit](esp32c3-wireless-source-audit-20261027.json) | Source findings, not proof every path executed |
+| Source/build isolation | [static-host build](esp32c3-static-host-build-20261027.json), [regression](system-software-regression-20261027.json) | Build/test evidence, not hardware acceptance |
+| AI studies | [primary](../../ai/qualification/protocol-static-study-20261027.json), [stress](../../ai/qualification/protocol-stress-study-20261027.json) | Frozen benefit gates failed; deployment disabled |
+| Experimental target model | [probe](../../ai/qualification/model-target-probe-20261027.json) | Isolated parity/timing; loaded advice unqualified |
 
-Companion `*-build.json`, `*-application-build.json`, `*-app-build.json` and
-`*-fixture-build.json` files retain exact tool versions, source/artifact hashes
-and compiler profiles. Captures are under `logs/`. Their static type/object sizes
-are historical accounting, not available RAM or measured stack headroom.
-Older manual-review paths resolve through the [documentation migration map](../../docs/README.md#historical-references).
+Earlier records and companion `*-build.json` files remain in this folder; raw
+serial transcripts are under `logs/`. Counts and object sizes apply to each exact
+image. Build success, object size, stack sentinel and physical operation are
+different evidence. An unavailable measurement is not zero.
 
 ## Peripheral bench observations
 
-These observations were recorded in the hardware guide for 29 September 2026;
-they are partial functional checks, not a completed acceptance report.
+Retain these lessons when interpreting current readings:
 
-| Setup | Observed result | Limit |
-|---|---|---|
-| BMP388 | 0x77, I2C 100 kHz, 500 ms interval, 100 ms timeout started successfully | Earlier 20 ms initialization timeout failed; bus sharing/accuracy not qualified |
-| BMP388 + six-pin OLED | SPI 4 MHz; 120.12 s, 240 new BMP samples, no device timeouts/I/O errors/failed workers in that interval; user confirmed live text | 1 MHz refresh timed out; exact OLED controller and internal CS wiring unconfirmed |
-| Saved BMP/OLED restart | Revision 5 and CRC restored after USB power cycle; screen resumed, 21 new BMP samples with no recorded errors in follow-up | One functional restart, not power-loss storage qualification |
-| BMP/OLED + LD2450 V1.1 | UART RX20/TX21, measured 5 V module supply; revision 7 restored; user confirmed moving positions | USB-fed power observation is not a general supply/current qualification |
-| Combined radar interval | 120.3 s, 57 snapshots, 1350 new radar reports and 241 BMP samples; fresh, no new device/UART/worker failures | Two startup timeouts were already present; their source/timing is unresolved |
-
-Queue-overwrite counts matched the configured drop-oldest queues. These are real
-historical events, not evidence of a broken sensor or an all-clear health report.
-
-**Unresolved empty-scene test:** The OLED showed `READING UNAVAILABLE`; the user
-also moved/touched boards or cables. Counters reached 113 device timeouts and
-13 UART frame errors. A disturbed connection is possible, not established.
-Repeat with stationary hardware: valid zero-target reports should stay FRESH
-with three ABSENT slots. Only one target was observed; accuracy/multi-target
-acceptance remains open. Interrupted USB runs do not count as clean runs.
+- A shared-guard holder preempted by a higher-priority worker could lose a
+  publication on immediate BUSY. The owned wrapper uses three bounded attempts
+  and at most two one-ms delay requests before acquiring ownership. Recursion
+  still fails immediately; requested delays are not exact scheduling guarantees.
+- The OLED reads the latest cache. Application queue overwrites (health event 4)
+  are not UART overruns (event 7), and zero FIFO consumption is expected.
+- The claimed 50-byte UART ring was not the tested image: the patched native ring
+  has 513 slots/512 usable bytes. Oversized capacity is rejected, not silently
+  clamped. Baud is not continuous arrival rate. Check the exact ELF/settings
+  before diagnosing overflow from upstream defaults.
+- The earlier intermittent radar silence has no established root cause. Fan-off,
+  contact changes and phone-app comparisons did not establish causality. A working
+  Bluetooth view does not prove the wired UART path. Later recovery does not
+  erase earlier failures.
+- DC voltage or continuity cannot decode UART traffic or prove supply stability
+  at the module. Probe actual labels; connector drawings and wire colours are
+  not a pin-order authority. Keep modules off conductive supports.
+- Fresh zero-target radar reports are valid data. Moving hardware, uncontrolled
+  occupancy or interrupted USB captures cannot establish an empty-scene pass.
+  The radar zero-target test is deferred at the user's request.
+- SPI success does not prove an OLED is attached or readable. The six-pin panel's
+  exact controller/internal CS wiring remains unconfirmed; preserve the reviewed
+  layout and unused CS reservation until separately qualified.
+- BLE client sessions can reuse one physical Windows connection. Verify the
+  board's connection/disconnection counters, not just client context exits. The
+  passing diagnostic used device access and eight seconds between sessions.
+- Oversize internal queue requests need correct partition sizing, not a larger
+  total by default; Wi-Fi required a 200-by-8-byte queue. SDK `Static` host options
+  do not remove all allocations.
 
 ## Reproduce and finish acceptance
 
-Use [target tooling](../../tools/target/README.md) for fresh isolated builds,
-source verification, backup and intentional flashing. Earlier runs are under
-`%USERPROFILE%/esp`; their records identify exact directories. Normalized repo
-logs and original raw captures have separate hashes. Do not replace either.
+Use [target tooling](../../tools/target/README.md) for isolated builds, identity,
+backup and intentional updates. Reviewed wiring may stay attached under that
+procedure; isolate the board for tests that require it. Download-mode recovery,
+large SDK timestamps and kernel time progress do not prove clock accuracy.
+Original raw and any normalized logs have separate hashes; never replace them.
 
-The initial kernel reset stayed in download mode; a watchdog reset recovered
-boot. Later complete startup captures show alternating A/B progress. ESP-IDF
-startup timestamps were unusually large and are not timing evidence. Kernel
-time advanced 101 ms for a requested 100 ms delay: progress, not clock accuracy.
-
-Still required: stationary radar absence, HC-SR04 pulse/voltage checks, PWM/load
-tests, combined-load timing, physical disconnect/recovery, flash interruptions,
-repeat profile/reboot checks and heap/stack high-water measurements. Follow the
-[hardware acceptance guide](../../CONTRIBUTING.md) and retain honest PASS / FAIL /
-NOT TESTED results. Hardware-qualified remains false until a reviewed sign-off.
+Follow [hardware acceptance](../../CONTRIBUTING.md) for remaining external UART,
+HC-SR04, PWM/load, controlled power-loss and combined wireless/peripheral tests.
+Independent UART observation and module-side supply/contact checks remain open
+for diagnosing the earlier intermittent radar silence. Scheduling latency and
+counter-report contention also need measurement under combined load.
+Repeat lifecycle/resource checks on the changed integrated image and keep scoped
+PASS / FAIL / NOT TESTED results. Hardware-qualified remains false until reviewed
+sign-off. Do not turn the deferred radar absence test into an automatic next step.

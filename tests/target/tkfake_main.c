@@ -16,6 +16,8 @@
 #include "shared.h"
 #include "periph.h"
 #include "oledtest.h"
+#include "owntest.h"
+#include "spowntest.h"
 #include "uarttest.h"
 #include "gpiotest.h"
 #include "bindtest.h"
@@ -27,23 +29,29 @@
 #define FAKE_LARGE_STACK_LIMIT 2U
 #define FAKE_RUNNING_STATE     4U
 
-static ID       gh_caller                 = 1;
-static uint32_t g_system_state            = 0U;
-static uint64_t g_clock_ms                = 0U;
-static uint32_t g_states[FAKE_TASK_LIMIT] = {0U};
-static uint32_t g_creates                 = 0U;
-static uint32_t g_starts                  = 0U;
-static uint32_t g_fail_create_at          = 0U;
-static uint32_t g_fail_start_at           = 0U;
-static uint32_t g_deletes                 = 0U;
-static uint32_t g_cleanups                = 0U;
-static uint32_t g_steps                   = 0U;
-static bool     gb_fail_create            = false;
-static bool     gb_fail_start             = false;
-static bool     gb_fail_delete            = false;
-static bool     gb_fail_priority          = false;
-static bool     gb_fail_cleanup           = false;
-static bool     gb_stuck                  = false;
+static ID        gh_caller                            = 1;
+static uint32_t  g_system_state                       = 0U;
+static uint64_t  g_clock_ms                           = 0U;
+static uint32_t  g_states[FAKE_TASK_LIMIT]            = {0U};
+static uint32_t  g_creates                            = 0U;
+static uint32_t  g_starts                             = 0U;
+static uint32_t  g_fail_create_at                     = 0U;
+static uint32_t  g_fail_start_at                      = 0U;
+static uint32_t  g_priorities                         = 0U;
+static uint32_t  g_fail_priority_at                   = 0U;
+static uintptr_t g_stack_addresses[FAKE_WORKER_LIMIT] = {0};
+static bool      gb_fail_ref                          = false;
+static uint32_t  g_deletes                            = 0U;
+static uint32_t  g_cleanups                           = 0U;
+static uint32_t  g_steps                              = 0U;
+static bool      gb_fail_create                       = false;
+static bool      gb_fail_start                        = false;
+static bool      gb_fail_delete                       = false;
+static bool      gb_fail_priority                     = false;
+static bool      gb_fail_cleanup                      = false;
+static bool      gb_stuck                             = false;
+static bool      gb_fail_delay                        = false;
+static unsigned  g_delay_calls                        = 0U;
 
 typedef struct
 {
@@ -109,6 +117,18 @@ ID tk_cre_tsk (const T_CTSK * p_config)
 {
     assert((p_config->task) && (p_config->exinf));
     ++g_creates;
+    assert(g_creates <= FAKE_WORKER_LIMIT);
+    assert(0U != (p_config->tskatr & TA_USERBUF));
+    assert(UTHOME_PORT_WORKER_STACK_BYTES == p_config->stksz);
+    assert(NULL != p_config->bufptr);
+    /* uintptr_t represents a pointer without truncation on this host. */
+    const uintptr_t address = (uintptr_t)p_config->bufptr;
+    assert(0U == (address % 8U));
+    for (size_t index = 0U; index < (g_creates - 1U); ++index)
+    {
+        assert(g_stack_addresses[index] != address);
+    }
+    g_stack_addresses[g_creates - 1U] = address;
     if (gb_fail_create || (g_creates == g_fail_create_at))
     {
         return -33;
@@ -140,6 +160,10 @@ ER tk_sta_tsk (ID h_task, INT code)
 /** @brief Return a fake task's current lifecycle state. */
 ER tk_ref_tsk (ID h_task, T_RTSK * p_state)
 {
+    if (gb_fail_ref)
+    {
+        return -42;
+    }
     p_state->tskstat = g_states[h_task];
     return g_states[h_task] ? E_OK : -42;
 }
@@ -157,6 +181,11 @@ ER tk_wup_tsk (ID h_task)
 /** @brief Advance virtual time during a stop timeout. */
 ER tk_dly_tsk (TMO delay)
 {
+    ++g_delay_calls;
+    if (gb_fail_delay)
+    {
+        return E_OBJ;
+    }
     g_clock_ms += (uint32_t)delay;
     return E_OK;
 }
@@ -178,12 +207,28 @@ ER tk_chg_pri (ID h_task, int priority)
 {
     (void)h_task;
     (void)priority;
-    return gb_fail_priority ? -41 : E_OK;
+    ++g_priorities;
+    return (gb_fail_priority || (g_priorities == g_fail_priority_at)) ? -41
+                                                                      : E_OK;
 }
 
 /** @brief Exercise allocation, stop, cleanup, and deletion failures. */
-int main (void)
+int main (int argc, char ** pp_argv)
 {
+    if (2 == argc)
+    {
+        assert(('1' <= pp_argv[1][0]) && ('4' >= pp_argv[1][0]) &&
+               ('\0' == pp_argv[1][1]));
+        /* The checked one-digit argument is in the unsigned range 1..4. */
+        g_fail_create_at = (uint32_t)(pp_argv[1][0] - '0');
+        assert(-1 == rt_port_init());
+        assert(g_fail_create_at == g_creates);
+        assert(-1 == rt_port_init());
+        assert(g_fail_create_at == g_creates);
+        assert(0U == g_deletes);
+        puts("Permanent-worker startup failure remained latched.");
+        return 0;
+    }
     int contexts[FAKE_WORKER_LIMIT + 1U] = {0};
 
     rt_port_task_config_t config = {
@@ -198,16 +243,29 @@ int main (void)
     assert(rt_port_init() != 0);
     g_system_state = 0U;
     assert(0 == rt_port_init());
+    assert(FAKE_WORKER_LIMIT == g_creates);
+    rt_port_stack_t stack_rows[FAKE_WORKER_LIMIT] = {0};
+    rt_port_cost_t  cost_rows[FAKE_WORKER_LIMIT]  = {0};
+    assert(rt_port_stack_capture(NULL, FAKE_WORKER_LIMIT) != 0);
+    assert(rt_port_stack_capture(stack_rows, FAKE_WORKER_LIMIT - 1U) != 0);
+    assert(0 == rt_port_stack_capture(stack_rows, FAKE_WORKER_LIMIT));
+    assert(!stack_rows[0].b_measured);
+    assert(0 == rt_port_cost_capture(cost_rows, FAKE_WORKER_LIMIT));
+    assert((!cost_rows[0].b_bound) && (!cost_rows[0].b_available));
+    gb_fail_create = true; /* No later operation may create a kernel task. */
+    gb_fail_delete = true; /* No later operation may delete a kernel task. */
     assert(rt_port_transaction_begin() != 0);
     assert(rt_port_task_prepare(&config, &h_task) != 0);
-    gb_fail_create = true;
+    gb_fail_priority = true;
     assert((rt_port_task_prepare_worker(&config, &worker, &h_task) != 0) &&
            (-99 == h_task));
-    gb_fail_create   = false;
+    gb_fail_priority = false;
     config.period_ms = 0U;
     assert(rt_port_task_prepare_worker(&config, &worker, &h_task) != 0);
     config.period_ms = 100U;
     assert(0 == rt_port_task_prepare_worker(&config, &worker, &h_task));
+    assert(0 == rt_port_cost_capture(cost_rows, FAKE_WORKER_LIMIT));
+    assert((cost_rows[0].b_bound) && (!cost_rows[0].b_available));
     assert((0 == g_steps) && (0 == g_cleanups));
     assert(rt_port_init() != 0);
     assert(rt_port_task_prepare_worker(&config, &worker, &h_tasks[0]) !=
@@ -238,11 +296,18 @@ int main (void)
            (0 == g_deletes));
     assert(rt_port_task_start(h_task) != 0);
     gb_fail_cleanup = false;
-    gb_fail_delete  = true;
-    assert((rt_port_task_stop(h_task) != 0) && (2 == g_cleanups));
-    gb_fail_delete = false;
+    gb_fail_ref     = true;
+    assert((rt_port_task_stop(h_task) != 0) && (1 == g_cleanups));
+    gb_fail_ref = false;
     assert((0 == rt_port_task_stop(h_task)) &&
            (2 == g_cleanups)); /* No double cleanup */
+    assert(0 == rt_port_stack_capture(stack_rows, FAKE_WORKER_LIMIT));
+    assert((stack_rows[0].b_measured) &&
+           (UTHOME_PORT_WORKER_STACK_BYTES == stack_rows[0].unused_min));
+    /* Round-trip the exact buffer address supplied to the fake native API;
+     * emulate a downward stack touching this in-bounds object byte. */
+    unsigned char * p_stack = (unsigned char *)g_stack_addresses[0];
+    p_stack[4096]           = 0U;
     assert((0 == rt_port_task_is_prepared(h_task, &b_prepared)) &&
            (!b_prepared));
     assert((0 == rt_port_task_prepare_worker(&config, &worker, &h_tasks[0])) &&
@@ -260,6 +325,8 @@ int main (void)
     {
         assert(0 == rt_port_task_stop(h_tasks[index]));
     }
+    assert(0 == rt_port_stack_capture(stack_rows, FAKE_WORKER_LIMIT));
+    assert(4096U == stack_rows[0].unused_min);
     config.stack_size_bytes = 8192U;
     for (size_t index = 0U; index < FAKE_LARGE_STACK_LIMIT; ++index)
     {
@@ -278,16 +345,20 @@ int main (void)
     g_clock_ms   = UINT64_C(0x100000007);
     assert((0 == rt_port_now_ms(&now)) && (now == g_clock_ms));
     assert(0 == rt_port_init());
-    assert((0 == g_steps) && (g_creates > 0));
+    assert((0 == g_steps) && (FAKE_WORKER_LIMIT == g_creates) &&
+           (0U == g_deletes));
     puts(
         "Target-port failure injection passed; no kernel execution simulated.");
     verify_activation();
     periph_run();
     oledtest_run();
+    owntest_run();
+    spowntest_run();
     uarttest_run();
     gpiotest_run();
     bindtest_run(&g_clock_ms);
     servtest_run(&g_clock_ms);
+    assert((FAKE_WORKER_LIMIT == g_creates) && (0U == g_deletes));
     return 0;
 }
 
@@ -304,7 +375,17 @@ static int cleanup (void * p_context)
 {
     (void)p_context;
     ++g_cleanups;
+    assert(rt_port_is_cleanup_owner());
+    assert(!rt_port_is_owner());
     assert(rt_port_init() != 0);
+    assert(rt_port_gate_set(true) != 0);
+    gh_caller = 2;
+    assert(!rt_port_is_cleanup_owner());
+    gh_caller      = 1;
+    g_system_state = 4U;
+    assert(!rt_port_is_cleanup_owner());
+    g_system_state = 0U;
+    assert(rt_port_is_cleanup_owner());
     return gb_fail_cleanup ? -1 : 0;
 }
 
@@ -361,8 +442,10 @@ static void make_plan (void)
         activate_device_t * p_device     = &g_plan.devices[index];
         p_device->component.p_context    = &g_plan_contexts[index];
         p_device->component.p_operations = &g_plan_operations;
-        p_device->worker                 = (rt_port_worker_t){
-            plan_step, plan_cleanup, &g_plan_contexts[index]};
+        p_device->worker =
+            (rt_port_worker_t){.p_step    = plan_step,
+                               .p_cleanup = plan_cleanup,
+                               .p_context = &g_plan_contexts[index]};
         p_device->task         = (rt_port_task_config_t){10U, 2048U, 50U};
         p_device->heartbeat_ms = 1000U;
         p_device->b_enabled    = true;
@@ -407,7 +490,7 @@ static void check_plan_failures (void)
     g_plan_contexts[1].configure_failures = 1U;
     assert(UTHOME_ACTIVATE_REJECTED == activate_apply(&g_plan));
     assert(7U == g_plan_contexts[0].value);
-    g_fail_create_at = g_creates + 2U;
+    g_fail_priority_at = g_priorities + 2U;
     assert(UTHOME_ACTIVATE_REJECTED == activate_apply(&g_plan));
     assert(7U == g_plan_contexts[0].value);
     g_fail_start_at = g_starts + 2U;
@@ -432,12 +515,12 @@ static void check_recovery (void)
     assert(UTHOME_ACTIVATE_REJECTED == activate_apply(&g_plan));
     assert(0 == activate_recover());
     assert(7U == g_plan_contexts[0].value);
-    gb_fail_delete = true;
+    gb_fail_ref = true;
     assert(UTHOME_ACTIVATE_RECOVERY == activate_apply(&g_plan));
     const unsigned cleaned = g_plan_contexts[0].cleaned;
-    gb_fail_delete         = false;
+    gb_fail_ref            = false;
     assert(0 == activate_recover());
-    assert(cleaned == g_plan_contexts[0].cleaned);
+    assert((cleaned + 1U) == g_plan_contexts[0].cleaned);
     g_plan_contexts[0].configure_failures = 2U;
     assert(UTHOME_ACTIVATE_RECOVERY == activate_apply(&g_plan));
     assert(0 == activate_get_status(&status));
@@ -455,10 +538,26 @@ static int check_shared_reentry (void * p_data)
 {
     /* This callback needs no user state; it probes the wrapper guard. */
     (void)p_data;
+    const unsigned before = g_delay_calls;
     assert(UTHOME_PORT_ERR_BUSY == shared_check());
+    assert(before == g_delay_calls);
     assert(!rt_port_is_owner());
+    assert(!rt_port_is_cleanup_owner());
     assert(rt_port_init() != 0);
     assert(rt_port_gate_set(true) != 0);
+    /* A simulated different task cannot release this callback's guard.
+     * Verify finite contention and wait failure without executing the body. */
+    const ID h_saved = gh_caller;
+    gh_caller        = 2;
+    assert(UTHOME_PORT_ERR_BUSY == shared_check());
+    assert((before + 2U) == g_delay_calls);
+    gb_fail_delay = true;
+    assert(-1 == shared_check());
+    assert((before + 3U) == g_delay_calls);
+    gb_fail_delay = false;
+    gh_caller     = h_saved;
+    assert(UTHOME_PORT_ERR_BUSY == shared_check());
+    assert((before + 3U) == g_delay_calls);
     return 0;
 }
 

@@ -33,8 +33,9 @@ The interface uses one fixed colour palette.
 Switching views preserves the draft and current review; editing the draft still
 requires a new review. The view tabs support Left/Right arrows and Home/End.
 
-The D2 discovery command requires a newly built application image. Physical USB,
-peripheral and persistence acceptance belongs to checkpoint 8. Offline review
+Discovery requires compatible application firmware; check its reported feature
+bits before use. Combined peripheral, radio and persistence acceptance remains
+separate from the working USB workflow. Offline review
 uses the host reference catalogue; it is not permission to wire or deploy a
 profile. Connected review enforces the narrower compiled target limits.
 The original first-prototype profile still uses unsupported GPIO2 CS.
@@ -95,6 +96,12 @@ compact profiles are bounded to 8192 bytes.
 The server binds only `127.0.0.1`, checks Host/Origin and a per-server session
 token, bounds request bodies, and serves an explicit allowlist of UI assets. It is a local
 single-controller tool, not a network service or multi-user deployment system.
+POST framing requires one decimal Content-Length of 1–65,536 bytes and rejects
+transfer encoding. Within the existing three-second socket timeout, bounded
+request bodies are consumed before returning an access rejection; this prevents
+unread TCP bytes from hiding the 403 response behind a Windows connection reset.
+Unauthorized bodies are never parsed or dispatched. Malformed/oversized framing
+is rejected before reading payload data. This changes no UI or review/Apply rule.
 The browser polls one snapshot per second while visible, with one outstanding
 operation. A failed snapshot clears current readings. Health counters are
 historical; no actual PWM duty or physical feedback is inferred from them.

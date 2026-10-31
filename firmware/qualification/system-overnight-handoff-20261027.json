@@ -1,0 +1,137 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-27T02:00:35.946568+00:00",
+  "scope": "Overnight USB-core acceptance, separate radio diagnostics and experimental AI collection; not full-system release",
+  "current_image_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+  "current_configuration": {
+    "active_revision": 737,
+    "saved_revision": 737,
+    "active_crc": 3623560383,
+    "saved_crc": 3623560383,
+    "flags": 80
+  },
+  "final_restore_record": "build\\system-completion-20261026-233938\\gatt-settle-sequence-20261027-015824.json",
+  "final_restore_sha256": "01b5bfc3c42886d3bb0243cd685c757a177743f3f350468954c2835fb0ff2ae4",
+  "serial_closed": true,
+  "final_fresh_sensors": [
+    "environment_sensor",
+    "presence_sensor"
+  ],
+  "startup_and_runtime_application_allocations_zero": true,
+  "post_startup_native_creates_zero": true,
+  "stability_captures": [
+    {
+      "started_utc": "2026-10-27T00:59:58.417978+00:00",
+      "finished_utc": "2026-10-27T01:19:59.071297+00:00",
+      "duration_seconds": 1200,
+      "windows": 1776,
+      "samples_by_name": {
+        "environment_sensor": 1776,
+        "presence_sensor": 1776,
+        "health": 1776
+      },
+      "sampled_non_idle_percent": {
+        "min": 1.0204081632653061,
+        "median": 1.610541727672035,
+        "max": 2.1739130434782608
+      },
+      "observer_max_us": 636,
+      "two_request_rtt_ms": {
+        "median": 180.65024999668822,
+        "max": 188.00580000970513
+      },
+      "raw_sha256": "ca42a730b3eb562b2e7d36118f9530662b0d9d97a675c0d1b7bb230f3a771eb6"
+    },
+    {
+      "started_utc": "2026-10-27T01:21:55.157281+00:00",
+      "finished_utc": "2026-10-27T01:46:55.716218+00:00",
+      "duration_seconds": 1500,
+      "windows": 2220,
+      "samples_by_name": {
+        "environment_sensor": 2220,
+        "presence_sensor": 2220,
+        "health": 2220
+      },
+      "sampled_non_idle_percent": {
+        "min": 1.0204081632653061,
+        "median": 1.610541727672035,
+        "max": 2.1705426356589146
+      },
+      "observer_max_us": 629,
+      "two_request_rtt_ms": {
+        "median": 180.6812500290107,
+        "max": 185.35159999737516
+      },
+      "raw_sha256": "f2dd60bce39e49b29c77cb199748e72d9726cb961b647777ff6e7a521c027914"
+    }
+  ],
+  "total_stability_seconds": 2700,
+  "total_stability_windows": 3996,
+  "ai_usable_runs": 272,
+  "ai_observations": 99552,
+  "ai_models_eligible": false,
+  "wifi_scan_restart_passed": true,
+  "ble_advertising_observed": true,
+  "ble_read_only_gatt_passed": true,
+  "ble_static_host_gatt_passed": true,
+  "target_tests": 183,
+  "ai_tests": 119,
+  "owned_c_gate_files": 283,
+  "dependencies": {
+    "kernel": {
+      "commit": "ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2",
+      "pristine": true
+    },
+    "sdk": {
+      "commit": "fff9895c82d744c7237be8847347bdd1b07c6643",
+      "pristine": true
+    }
+  },
+  "source_records_sha256": {
+    "firmware/qualification/esp32c3-scheduler-20261027.json": "c9e0a0b99a10599d4a53bcbd846e6c9047ecb36062aab7710f637c64a5cad431",
+    "firmware/qualification/esp32c3-radio-diagnostics-20261027.json": "98adcb153cf8435ac8d8335ed652f22e2fdac94d27e0a164e41b19da9e0d51bb",
+    "firmware/qualification/esp32c3-gatt-20261027.json": "75ea081ba180b9f96267d97036dfac2a4ecef6116f700513e6d72ab1a9ef448a",
+    "firmware/qualification/esp32c3-gatt-retry-20261027.json": "d77969090293cf6e5f0c4d406db4f926a29f563dd6023a781ead44906d99b60c",
+    "firmware/qualification/esp32c3-gatt-static-20261027.json": "63b87b711e9be4ab79e3b4a992ecbd9c3d4f57b4b57886e1dab10d018ac89ff1",
+    "firmware/qualification/esp32c3-gatt-access-20261027.json": "5804d074f5d34eb231d10648d4f300e0cbc712ab51d9438fba3d885c08078652",
+    "firmware/qualification/esp32c3-gatt-settle-20261027.json": "8e840dc15641a321e5fc42f80a224ace63765370ed2f9cc58a3959a5318a134b",
+    "firmware/qualification/esp32c3-static-host-build-20261027.json": "d91b7da4ad5d941633d9237bab88e498c29d9eb8a9e58c78ed9daad5a6b1497e",
+    "firmware/qualification/esp32c3-gatt-final-software-20261027.json": "432e894852e63d4748ae37049e7f029e06d8d131e94cf54c4bea3de134178fd0",
+    "firmware/qualification/system-software-regression-20261027.json": "a9c595ede099b0b5455468742dd9301018f5213427c6539f7571f2e5d8d37a83",
+    "firmware/qualification/esp32c3-wireless-source-audit-20261027.json": "20cf1340b7a2e79c1fd11c909ea8963e5a3cc2942face5a7a27b2a2f043344ff",
+    "ai/qualification/protocol-static-study-20261027.json": "dc69d210a611f574caa89e10e892dab401a4e80df3c2e018a64d481452a4e8fb",
+    "ai/qualification/protocol-stress-study-20261027.json": "eb0ed1db6ae18eef0b3e8fea14d24257604affb813be724d6e4514f80e9dc94b",
+    "ai/qualification/model-target-probe-20261027.json": "e60584c4815027828b873b476a9e3fda1369522224e2d1364befe7feb22ea55d",
+    "ai/qualification/primary-training-design-review-20261027.json": "b199321d79886ebfc8faf48292d0bc9e8d80ebfa8885fad9274072ed39b452d5"
+  },
+  "local_artifacts_sha256": {
+    "final-radio-soak.json": "871435ef06d0da9be7aea38cab80239b8e8e8d637e98cccf783ac6f09e080fb2",
+    "cpu-final-soak.json": "b9fcc8d15eb0f2e1b0d10646ae1fc7cab5b80141a5db63f9f4d64cdc1d9563ed",
+    "cpu-final-soak.jsonl": "f2dd60bce39e49b29c77cb199748e72d9726cb961b647777ff6e7a521c027914",
+    "cpu_final_observe.py": "08b374c756576e7f66bc938341ba1082c84d6c3f08052943e7e9bce8f92e9f54",
+    "final_radio_soak.py": "521dd3940e2c0e86353107e866a6e78b9067f86f74a4490f466a9d5a945a1a18",
+    "board-before-network.json": "50487ffb7c8aaa2b9965b275c08ef2520a23b0ee7772256dc7bbfacfd8ed2beb",
+    "gatt-static-elevated-client-20261027-014946-074607.json": "e745259a786f557a22171e67ab55ecfccb1ea296be933cb0e1ff67186b252136"
+  },
+  "fixed_core_dram_bytes": 230152,
+  "whole_system_static_qualified": false,
+  "hardware_qualified": false,
+  "ui_style_changed": false,
+  "model_deployed": false,
+  "committed": false,
+  "pushed": false,
+  "remaining_software": [
+    "Static radio task/notification/timer and SDK/BLE/lwIP allocation paths",
+    "Bounded authenticated on-device MQTT/HTTP/BLE services and coexistence",
+    "Prospective varied-goal/cost model study with analytical baseline and new-device holdout",
+    "Eligible embedded adviser transport and loaded AI-on/off verification",
+    "Complete combined-system release and demonstration"
+  ],
+  "user_deferred": [
+    "Visual OLED confirmation of retained core image",
+    "Review the concrete Desk advice proposal before UI changes",
+    "AP/broker credentials and phone tests when networking is ready",
+    "Additional peripheral/output wiring and controlled electrical/power-loss tests",
+    "Radar zero-target test remains explicitly skipped at user request"
+  ]
+}

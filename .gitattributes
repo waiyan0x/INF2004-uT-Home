@@ -5,3 +5,8 @@
 # Preserve committed patch bytes and the host/target dependency licence check.
 firmware/third_party/patches/*.patch text eol=lf
 firmware/third_party/cjson/LICENSE text eol=lf
+# These new qualification records contain byte hashes of each other and raw logs.
+# Preserve their captured bytes on Windows and Unix; do not normalize evidence.
+ai/qualification/*2026102[67]*.json -text
+firmware/qualification/*2026102[67]*.json -text
+firmware/qualification/logs/*2026102[67]*.log -text

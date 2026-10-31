@@ -1,0 +1,372 @@
+{
+  "schema_version": "1.0.0",
+  "date": "2026-10-26",
+  "scope": "Cleanup ownership correction and physical sensor-profile observations",
+  "board": {
+    "chip": "ESP32-C3",
+    "revision": "0.4",
+    "flash_bytes": 4194304,
+    "usb_serial": "D4:05:92:E6:C3:BC",
+    "port_at_test": "COM8",
+    "wiring": "BMP388 + six-pin OLED + LD2450 left assembled at user request"
+  },
+  "change": {
+    "problem": "The owner is marked busy during cleanup; normal-owner validation rejected UART close and retained the radar instance. Pulse/PWM close had the same guard.",
+    "resolution": "Narrow cleanup-owner predicate accepts only task-context owner cleanup outside shared callbacks. Open and lifecycle reentry guards remain unchanged.",
+    "manual_review": "firmware/src/runtime/README.md",
+    "deviations_changed": false
+  },
+  "software": {
+    "full_c_gate": {
+      "files": 194,
+      "findings": 0,
+      "tool_errors": 0
+    },
+    "python_tests": {
+      "c_standard": 54,
+      "foundation": 26,
+      "runtime": 18,
+      "target": 76,
+      "total": 174,
+      "note": "One target compiler subprocess exceeded its unchanged 30 s timeout during concurrent ESP builds. The isolated rerun passed; original failure log retained."
+    },
+    "builds": [
+      "esp32c3-cleanup-20261026-app-build.json",
+      "esp32c3-cleanup-20261026-fixture-build.json"
+    ]
+  },
+  "backup": {
+    "task_date": "2026-10-26",
+    "started_utc": "2026-10-26T03:16:40.844836+00:00",
+    "port": "COM8",
+    "usb_identity": "USB VID:PID=303A:1001 SER=D4:05:92:E6:C3:BC LOCATION=1-3:x.0",
+    "peripherals": "BMP388, six-pin OLED and LD2450 left assembled at user request; no actuator profile",
+    "purpose": "Full pre-update flash backup; no flash writes",
+    "commands": [
+      {
+        "name": "flash-id",
+        "argv": [
+          "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+          "-m",
+          "esptool",
+          "--chip",
+          "esp32c3",
+          "--port",
+          "COM8",
+          "--after",
+          "watchdog-reset",
+          "flash-id"
+        ],
+        "returncode": 0
+      },
+      {
+        "name": "read-flash",
+        "argv": [
+          "C:\\Users\\kkak4\\esp\\uthome-c3-tools\\python_env\\idf6.1_py3.14_env\\Scripts\\python.exe",
+          "-m",
+          "esptool",
+          "--chip",
+          "esp32c3",
+          "--port",
+          "COM8",
+          "--after",
+          "watchdog-reset",
+          "read-flash",
+          "0x0",
+          "0x400000",
+          "C:\\Users\\kkak4\\esp\\hardware-backup-20261026-fef8c15d\\board-before.bin"
+        ],
+        "returncode": 0
+      }
+    ],
+    "backup_complete": true,
+    "backup_sha256": "2d1d5052998ffecc0587ec65536d2eb1767b182e52ee7f561e29eb2976c5c3ce",
+    "backup_bytes": 4194304,
+    "backup_folder": "C:\\Users\\kkak4\\esp\\hardware-backup-20261026-fef8c15d"
+  },
+  "fixture": {
+    "status": "PASS",
+    "boots": 2,
+    "checks_per_boot": 881,
+    "activation_pass": true,
+    "four_slot_cycles_per_boot": 24,
+    "logs": [
+      {
+        "raw_path": "build/hardware-acceptance-20261026/fixture-flash-032328-serial.log",
+        "raw_sha256": "5f2706496dec1f46dc3031f062fda662c84a5d6555ec8c0904b0f701663014f1",
+        "path": "firmware/qualification/logs/esp32c3-cleanup-20261026-boot1.log",
+        "sha256": "5c27fd315218fbb52518e445763649e7b0864e4532cff3b34ae17d59687e950c"
+      },
+      {
+        "raw_path": "build/hardware-acceptance-20261026/fixture-reset-032430-serial.log",
+        "raw_sha256": "5f2706496dec1f46dc3031f062fda662c84a5d6555ec8c0904b0f701663014f1",
+        "path": "firmware/qualification/logs/esp32c3-cleanup-20261026-boot2.log",
+        "sha256": "5c27fd315218fbb52518e445763649e7b0864e4532cff3b34ae17d59687e950c"
+      }
+    ]
+  },
+  "application": {
+    "image_sha256": "da36bc9da64667816c04dc91d5362f641b20d4b031f09873c1738e271dba9433",
+    "elf_sha256": "6aa04a732a2d04c0176e7440f3631fc489760de8ba230ca34a81e1cf596045cd",
+    "esptool_write_verification": "PASS",
+    "saved_revision_restored_after_install": 9,
+    "features": 7,
+    "hardware_qualified": false
+  },
+  "observations": [
+    {
+      "test": "Empty cleanup and combined restoration",
+      "status": "PASS",
+      "empty_revision": 10,
+      "retained_after_empty": 0,
+      "restored_revision": 11
+    },
+    {
+      "test": "Physical discovery initially",
+      "status": "PASS",
+      "bmp": {
+        "address": "0x77",
+        "chip_id": "0x50",
+        "other_address": "0x76 not responding"
+      },
+      "uart": {
+        "window_ms": 1000,
+        "received_bytes": 330,
+        "valid_reports": 11,
+        "framing_errors": 0
+      },
+      "build_identity": "Discovery ELF digest matches retained build ELF"
+    },
+    {
+      "test": "OLED",
+      "status": "PASS",
+      "scope": "User reported readable and updating after installation; controller marking, waveform and visible latency unmeasured"
+    },
+    {
+      "test": "Combined load 10 minutes",
+      "status": "FAIL",
+      "summary": {
+        "type": "summary",
+        "samples": 2401,
+        "errors": [],
+        "quality": {
+          "environment_sensor": {
+            "fresh": 2354,
+            "stale": 47
+          },
+          "presence_sensor": {
+            "fresh": 1924,
+            "fault": 477
+          },
+          "health": {
+            "fresh": 2401
+          }
+        },
+        "ages": {
+          "environment_sensor": {
+            "min": 162,
+            "max": 2433
+          },
+          "presence_sensor": {
+            "min": 0,
+            "max": 222
+          },
+          "health": {
+            "min": 210,
+            "max": 990
+          }
+        },
+        "radar_counts": {
+          "1": 144,
+          "2": 1777,
+          "0": 3
+        },
+        "max_rtt_ms": 97.03309999895282,
+        "duration_seconds": 600.0878789999988,
+        "health_delta": [
+          0,
+          0,
+          478,
+          11,
+          7516,
+          27,
+          0,
+          0
+        ],
+        "runtime_end": {
+          "state": 1,
+          "generation": 3,
+          "failed_workers": 0,
+          "retained_instances": 3,
+          "service_error": 0,
+          "apply_error": 0,
+          "recovery_error": 0
+        },
+        "configuration": {
+          "active_revision": 11,
+          "saved_revision": 11,
+          "active_crc": 3623560383,
+          "saved_crc": 3623560383,
+          "flags": 80
+        }
+      },
+      "note": "USB remained responsive and no worker failed. Normal queue overwrite events are distinct from timeouts and heartbeat misses."
+    },
+    {
+      "test": "Stationary radar absence attempt",
+      "status": "INCONCLUSIVE",
+      "note": "User reported only moving themself. Radar timeouts began approximately 20 s before the recorded starting marker. Zero-byte idle observations persisted after driver reopen, ESP reset and user-confirmed full power cycle. No sustained valid zero-target acceptance."
+    },
+    {
+      "test": "Ten timing profile changes",
+      "status": "PASS",
+      "scope": "All ten admitted, active and saved with three retained active instances and no failed worker; pre-existing radar faults remained, so this is lifecycle evidence only."
+    },
+    {
+      "test": "Target reserved GPIO2 rejection",
+      "status": "PASS",
+      "scope": "Direct target APPLY rejected, active/saved identities unchanged."
+    },
+    {
+      "test": "Absent BMP388 activation rollback",
+      "status": "PASS",
+      "scope": "0x76 admitted but activation failed; prior combined revision24 and CRC3623560383 restored; apply_error -3 retained diagnostically."
+    },
+    {
+      "test": "Saved-profile restoration after software reset",
+      "status": "PASS",
+      "boots": 3,
+      "revision": 24,
+      "crc": 3623560383,
+      "note": "Software watchdog resets, not interrupted-save or power-cycle qualification. Radar communication fault remained."
+    }
+  ],
+  "limitations": [
+    "Intermittent stale BMP388/publication gaps under combined load; shared guard contention is a hypothesis, not established cause.",
+    "Radar communication loss unresolved; supply measurement requested.",
+    "HC-SR04, LED/PWM, physical fault-to-zero, interrupted-save, timing and RAM/stack high-water acceptance not completed.",
+    "Bench captures are not AI-labelled timing runs; live AI recorder and real dataset collection remain pending."
+  ],
+  "local_evidence": [
+    {
+      "path": "build/hardware-acceptance-20261026/initial-state-a620b5a7.json",
+      "sha256": "8006736b5be3274b788d322002a75287e36ac0961970db26999152d3feba2d3c",
+      "bytes": 9442
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/empty-cleanup-ea0842ea.json",
+      "sha256": "3548f8bf67409123d2f746ce13d5867ea9c6ea4fbfc0649f7ecf30497c156722",
+      "bytes": 7911
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/cleanup-recovery-61924cc8.json",
+      "sha256": "ddb6d83d7f391a6287bdea400e2c527ac941bfc213fc10473ed5394a3eff6982",
+      "bytes": 9514
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/backup-reference-fef8c15d.json",
+      "sha256": "2ea7a35bd92985a3f0a5ce24f3c385ff7362fc442455f4dcc835579541765086",
+      "bytes": 1475
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/backup-inspection.json",
+      "sha256": "3292f6872b1c76852b6d7e857ad931da639ff9c715297ca9ff39124fbb17112d",
+      "bytes": 1122
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/fixture-flash-032328.json",
+      "sha256": "7e01075b55aa4cbfe1892f7ee45d30343d8872aa7853e6ff9522092406304ab6",
+      "bytes": 787
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/fixture-reset-032430.json",
+      "sha256": "8d32d000eb5bd5e9d8e5c7f8c51e82ac324a583f13fcf93af70fc5302f00bf53",
+      "bytes": 764
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/app-flash-032531.json",
+      "sha256": "417966a842135225f46c0ef8254b72295f9c37a6923a42e815e926a7eb2b205e",
+      "bytes": 713
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/query-032539.json",
+      "sha256": "3c06dcfde20b6a46c9da64e253dbc0e1a824e444ed519e43c58b7a368a085f4f",
+      "bytes": 7206
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/empty-032544.json",
+      "sha256": "f6c48516aed0ab66306eed83c2c079ac33ca0747c956152263090e5b8f2c8d0a",
+      "bytes": 6878
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/discover-032552.json",
+      "sha256": "b6c54f78b3be88439f1fb71e42e3a890e0eab107cff5889c8633ea9c31c4afe9",
+      "bytes": 4810
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/restore-032600.json",
+      "sha256": "b69395c254a7b84d49b86aeb6d6055c69890959ae93a806c4ab11e01b9b08e7d",
+      "bytes": 15692
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/combined-stability-032640.jsonl",
+      "sha256": "6473ea369daa0cfd19c9417faafc5a7d8b1a3cc7f6ea6b152c137d2543f1ae8b",
+      "bytes": 4535350
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/radar-empty-view-start.json",
+      "sha256": "32966f6cd8222c4bfc3ce31abd7e172dca7071d9fabedc9411c2a0996c8c233f",
+      "bytes": 449
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/oled-user-observation.json",
+      "sha256": "0b5e25ef88676c72bcd7128343e945b1abd8f0a6ad8c6ae2bcea385291856c5f",
+      "bytes": 296
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/discover-033706.json",
+      "sha256": "36ade1fb83dc79f2de954c82db56aa44de2334f19b2f743e17ffd019a9315e3c",
+      "bytes": 4817
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/discover-033725.json",
+      "sha256": "f446fe4b170e79e2ee584081193f6785f7e283c24d8a81d1eb04691f6b96493f",
+      "bytes": 4805
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/discover-033901.json",
+      "sha256": "793879f9fc01ac59f3a5f033b84f16f5cc00b941c7cc2a6f6d3bfe2cba590886",
+      "bytes": 4809
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/profile-reboot-acceptance-034001.jsonl",
+      "sha256": "65d14db5a330158edffaec7d38c4ed2e542e245bea6035018322a6ce18258523",
+      "bytes": 201292
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/cleanup-fix-c_standard.log",
+      "sha256": "a65b60223f78c83719c1b0c891b4cda2097df00f35698c2928b62ec89292d0a0",
+      "bytes": 104
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/cleanup-fix-foundation.log",
+      "sha256": "8a50c37753ee2cdd442b46c1b8d8249b7ce9fce523430cccffeb8a1c46696c2e",
+      "bytes": 167
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/cleanup-fix-runtime.log",
+      "sha256": "11b385ea20d3408029f6f486f5d05e20fa495e77a774748eb4bdfd32c2016ac6",
+      "bytes": 168
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/cleanup-fix-target.log",
+      "sha256": "233f69489d437c058590394f86a56f5ef397aac228af9990435d5b775ec0763e",
+      "bytes": 9777
+    },
+    {
+      "path": "build/hardware-acceptance-20261026/cleanup-fix-runtime-port-rerun.log",
+      "sha256": "29471aa83068322762eeebdefd6728144a431ff7355d040232f5b754a33919eb",
+      "bytes": 300
+    }
+  ]
+}

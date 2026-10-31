@@ -641,7 +641,9 @@ static bool make_plan (cfgbind_state_t * p_state)
         p_bound->component.p_context    = &p_state->slots[index];
         p_bound->component.p_operations = &g_device_ops;
         p_bound->worker =
-            (rt_port_worker_t){step, cleanup, &p_state->slots[index]};
+            (rt_port_worker_t){.p_step    = step,
+                               .p_cleanup = cleanup,
+                               .p_context = &p_state->slots[index]};
         p_bound->task =
             (rt_port_task_config_t){.priority = (uint8_t)p_device->priority,
                                     .stack_size_bytes = p_device->stack_bytes,
