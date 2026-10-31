@@ -48,6 +48,14 @@ intentionally incompatible with the old six-input exporter. See the
 [protocol study guide](../README.md#protocol-workload-study) for metrics,
 coverage/fallback behavior, fixed splits and limitations.
 
+Study/specification version 0.3.0 moves `goal_ms` from the top level into every
+family. The preparation tool accepts both versions explicitly; mixed fields are
+rejected. Goal changes do not change workload-family identity. Experiment/run,
+eighteen-input feature, dataset and model encodings are unchanged. Preserve old
+studies with their frozen implementation sources; new preparation does not
+rewrite historical hashes. See the
+[varied-goal design](../examples/protocol-study-varied-goals.json).
+
 > **Legacy prototype experiment.** AI contract 0.2.0 is retained for regression
 > tests only. The current preparation work begins with
 > [device discovery](../../docs/README.md) and the platform catalogue;

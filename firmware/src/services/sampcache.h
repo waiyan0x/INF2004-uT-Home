@@ -14,6 +14,7 @@ typedef union
     sample_target_report_t targets;
     sample_distance_t      distance;
     sample_health_t        health;
+    sample_light_t         light;
 } sampcache_value_t;
 
 typedef struct

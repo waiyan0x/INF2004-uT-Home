@@ -14,6 +14,9 @@ int i2cbus_transfer (i2cbus_t * p_bus, const i2cbus_request_t * p_request)
         (!valid_address(p_request->address)) ||
         (p_request->write_size > UTHOME_I2C_TX_MAX) ||
         (p_request->read_size > UTHOME_I2C_RX_MAX) ||
+        (p_request->read_pause_ms > UTHOME_I2C_PAUSE_MAX_MS) ||
+        ((0U != p_request->read_pause_ms) &&
+         ((0U == p_request->write_size) || (0U == p_request->read_size))) ||
         ((0U == p_request->write_size) && (0U == p_request->read_size)) ||
         ((0U != p_request->write_size) && (NULL == p_request->p_write)) ||
         ((0U != p_request->read_size) && (NULL == p_request->p_read)))

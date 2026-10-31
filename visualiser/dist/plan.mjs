@@ -27,7 +27,7 @@ export function parseEndpoint(id) {
   }
   const rail = /^([AB]):([LR])([+-])([1-9]\d?)$/.exec(id);
   if (rail && Number(rail[4]) <= 50) return { type: "rail", board: rail[1], side: rail[2], sign: rail[3], index: Number(rail[4]) };
-  const port = /^(radar|bmp|oled|distance):([A-Z0-9]+)$/.exec(id);
+  const port = /^(radar|bmp|oled|distance|light):([A-Z0-9]+)$/.exec(id);
   if (port && MODULES[port[1]].ports.includes(port[2])) return { type: "module", module: port[1], pin: port[2] };
   throw new Error(`Unknown endpoint: ${id}`);
 }
@@ -65,6 +65,7 @@ export const MODULES = {
   bmp: { short: "BMP388", name: "BMP388", ports: ["VIN", "GND", "SDA", "SCL"], x: 390, y: 32, w: 224, h: 100, location: "Above Board B · on a nonconductive support" },
   oled: { short: "OLED", name: "Six-pin SPI OLED", ports: ["GND", "VCC", "SCL", "SDA", "RES", "DC"], x: 374, y: 866, w: 268, h: 104, location: "Below Board B · facing you" },
   distance: { short: "HC-SR04", name: "HC-SR04 · 5 V", ports: ["VCC", "TRIG", "ECHO", "GND"], x: 390, y: 32, w: 224, h: 100, location: "Above Board B · transducers face the target" },
+  light: { short: "SEN0390", name: "SEN0390 · I2C light", ports: ["VCC", "SCL", "SDA", "GND", "EN"], x: 42, y: 866, w: 260, h: 104, location: "Below Board A · on a nonconductive support" },
 };
 const check = (id, title, instruction, test, options = {}) => ({
   id, title, instruction, check: test, phase: "Prepare", kind: "check", ...options,
@@ -132,6 +133,25 @@ const distance = [
   wire("distance-input", "Divider midpoint → ESP input", "B:a18", "A:b29", "signal", "Connect a18 on Board B to b29 on Board A, ESP GPIO5. This is the reduced-voltage midpoint.", { phase: "HC-SR04" }),
   wire("distance-trig", "ESP trigger → HC-SR04", "A:j32", "distance:TRIG", "signal", "Connect j32 on Board A, ESP GPIO4, to HC-SR04 TRIG.", { phase: "HC-SR04", module: "distance" }),
 ];
+// Existing connections are shown for orientation only; this plan starts at
+// the first new check and never instructs the user to dismantle their bench.
+const existingCombined = [...foundation, ...fiveVolt, ...radar, ...bmp, ...oled]
+  .filter(s => s.kind === "wire")
+  .map(s => ({ ...s, phase: "Existing wiring reference", title: `Existing · ${s.title}`,
+    instruction: "Reference only: confirm this existing connection matches your actual wiring. Leave it in place.",
+    check: "This existing connection was verified without moving it." }));
+const light = [
+  check("light-prepare", "Prepare the existing setup", "Unplug USB and any other power. Keep the BMP388, OLED and radar wiring intact. Verify the existing layout matches the reference wires; this is a proposed addition, not a detected circuit.", "The sensor cable is unplugged from the module and the available holes and printed ESP pin labels have been verified.", { phase: "SEN0390 · preparation", note: "Do not plug or unplug peripherals while powered. The SEN0390 driver and four-device profile are not yet available; this is a provisional wiring plan." }),
+  check("light-electrical", "Verify the sensor cable and bus", "Identify the SEN0390's VCC, SCL, SDA, GND and EN by its printed connector labels and verify each cable conductor with power off. Check both I2C lines have suitable pull-ups to 3.3 V, with combined resistance appropriate for the bus.", "The cable has been traced by continuity rather than colour, and the 3.3 V supply and shared-bus pull-ups have been checked.", { phase: "SEN0390 · preparation", module: "light", note: "The connector in this drawing is schematic. Do not infer conductor colours or orientation from it. Consult the board's markings and manufacturer data; never connect the sensor to the 5 V rail." }),
+  wire("light-gnd", "SEN0390 ground lead", "B:L-11", "light:GND", "ground", "With all power disconnected, connect Board B's LEFT blue ground rail hole 11 to the cable conductor verified as SEN0390 GND.", { phase: "SEN0390 · leads", module: "light" }),
+  wire("light-vcc", "SEN0390 supply lead", "B:L+11", "light:VCC", "v33", "Connect Board B's LEFT red 3.3 V rail hole 11 to the conductor verified as SEN0390 VCC.", { phase: "SEN0390 · leads", module: "light", note: "Verify this is the 3.3 V rail; Board A's LEFT red rail is 5 V and must not be used here." }),
+  wire("light-scl", "SEN0390 clock lead", "A:i35", "light:SCL", "signal", "Connect Board A i35 to the conductor verified as SEN0390 SCL. i35 shares the five-hole strip with the existing BMP388 SCL at j35 and ESP GPIO1.", { phase: "SEN0390 · leads", module: "light" }),
+  wire("light-sda", "SEN0390 data lead", "A:i36", "light:SDA", "signal", "Connect Board A i36 to the conductor verified as SEN0390 SDA. i36 shares the five-hole strip with the existing BMP388 SDA at j36 and ESP GPIO0.", { phase: "SEN0390 · leads", module: "light" }),
+  wire("light-pulldown", "Fit the 10 kΩ enable pull-down", "A:a29", "A:a24", "signal", "With all power disconnected, fit the measured 10 kΩ resistor between Board A a29 and a24. The a29 hole shares the GPIO5 strip with b29 and the ESP pin at c29. Either resistor direction works.", { phase: "SEN0390 · enable", resistor: 10000 }),
+  wire("light-pulldown-ground", "Ground the pull-down", "A:b24", "A:R-14", "ground", "Connect Board A b24 to its RIGHT blue ground rail hole 14. b24 shares row 24's left five-hole strip with the resistor at a24. Count rail holes from the top, ignoring gaps.", { phase: "SEN0390 · enable" }),
+  wire("light-en", "Move SEN0390 enable to GPIO5", "A:b29", "light:EN", "signal", "Trace the existing SEN0390 EN conductor to its breadboard end. With all power disconnected, remove that end from the 3.3 V rail and insert it at Board A b29; leave the sensor end and the other wires in place.", { phase: "SEN0390 · enable", module: "light", note: "Never connect EN to 3.3 V and GPIO5 at the same time. GPIO5 is also used by the separate HC-SR04 plan." }),
+  check("light-finish", "Secure the connector for the demo", "Keep the sensor connector unplugged for now. Secure and individually insulate any exposed free conductor ends; label the connector so it cannot be reversed. Recheck the wiring and supply before a supervised sensor test.", "No free ends can touch each other or another net. The SEN0390 will be connected or removed only with USB and external power disconnected.", { phase: "SEN0390 · review", module: "light", note: "Current firmware has no SEN0390 driver or reviewed four-device profile. Do not expect readings or automatic hot-plug; hardware and timing acceptance are still required." }),
+];
 function finish(id, description) {
   return check(`${id}-finish`, "Review, then run the matching profile", "Inspect every endpoint and voltage before power-up. Connect USB only after these checks, then review and apply the matching profile through Configuration Desk.", description, { phase: "Bench test", power: "controlled", note: "A diagram is not acceptance evidence. Stop on recovery errors, wrong voltages or recurring communication faults. Save an empty profile and unplug all power before changing this wiring." });
 }
@@ -142,6 +162,7 @@ export const PLANS = {
   display: { name: "04 · BMP388 + OLED", description: "Check the sensor and six-pin SPI display together. GPIO4 remains reserved and unwired.", modules: ["bmp", "oled"], steps: [...foundation, ...bmp, ...oled, finish("display", "Fresh BMP readings and visibly updating OLED. Retain the tested 4 MHz SPI speed, 250 ms refresh and 20 ms timeout.")] },
   combined: { name: "05 · BMP388 + OLED + radar", description: "Combine only after individual tests. No HC-SR04 in this configuration.", modules: ["radar", "bmp", "oled"], steps: [...foundation, ...fiveVolt, ...radar, ...bmp, ...oled, finish("combined", "All three devices work under combined load without recurring I/O faults or resets. Physical acceptance is still required.")] },
   distance: { name: "06 · HC-SR04, separate setup", description: "A separate 5 V sensor test with a 10 kΩ / 15 kΩ Echo divider. No OLED in this plan.", modules: ["distance"], steps: [...foundation, ...fiveVolt, ...distance, finish("distance", "Use known targets and verify distance readings. Check the Echo high level with a suitable scope; a meter's average cannot establish pulse peak voltage.")] },
+  light: { name: "07 · Add SEN0390 to existing setup", description: "Provisional add-on to the existing BMP388 + OLED + radar assembly. Keep its wiring intact; plug and unplug only with power off. Sensor support is not yet implemented.", modules: ["radar", "bmp", "oled", "light"], initialStep: existingCombined.length, steps: [...existingCombined, ...light] },
 };
 export const EQUIPMENT = [
   ["ESP32-C3 SuperMini", "Board A · across centre gap", "Pin labels must match placement"],
@@ -149,5 +170,6 @@ export const EQUIPMENT = [
   ["Six-pin OLED", "Below Board B · SPI", "Manual confirmation; GPIO4 reserved"],
   ["HLK-LD2450", "Above Board A · UART", "Intermittent faults still unresolved"],
   ["HC-SR04 · 5 V", "Above Board B · separate setup", "Driver supported; manual identity; Echo divider required"],
+  ["SEN0390 light sensor", "Below Board A · shared I2C", "Provisional wiring; driver and hardware tests pending"],
   ["FC-51 + HC-020K", "Keep off the connected boards", "Pin/supply verification and new drivers still required"],
 ];

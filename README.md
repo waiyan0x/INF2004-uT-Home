@@ -31,6 +31,33 @@ telemetry are implemented. Wi-Fi scanning and read-only BLE have isolated
 diagnostics, but wireless services are not integrated or static-memory qualified.
 The timing models remain experimental: none passed its deployment-benefit gate.
 
+The varied-goal AI study is trained and evaluated. Its model matched the simple
+timing rule, so the required added benefit was not demonstrated; deployment stays
+disabled. Follow the [AI guide](ai/README.md) and
+[evaluation record](ai/qualification/protocol-varied-goals-evaluation-20261027.json).
+Raw recordings, the verified inventory and trained artifacts remain local under
+`build/protocol-study-20261027-varied-r1/`. Preserve the collection-order deviation
+and revealed holdouts. Any further model development needs a justified new study
+and fresh evaluation data, not retuning against this test set.
+
+The required experimental AI component uses a compact integer decision tree
+with fixed storage and on-demand inference in the existing controller. Its
+[C export](ai/qualification/protocol-varied-goals-compact-export-20261027.json)
+has host parity and size evidence. The
+[loaded board diagnostic](ai/qualification/protocol-varied-goals-loaded-probe-20261027.json)
+passed classifier parity, timing, application-allocation and peripheral-impact
+checks. The original firmware/profile were restored; normal advice remains
+disabled. Full adviser/transport latency and useful-model qualification are still
+open. A larger model service is unnecessary for timing advice. The separate
+[datasheet assistant](ai/README.md#datasheet-assisted-device-drafts) uses an
+online model on the PC. Its Desk draft flow has a live Gemini connection test;
+extraction evaluation and SEN0390 integration remain unfinished. The reviewed
+SEN0390 descriptor, GPIO-enable control and light worker are provisional. A
+[short diagnostic application capture](firmware/qualification/sen0390-combined-app-20261031.json)
+showed fresh light and BMP388 readings, but the radar timed out before, during and
+after that capture. Normal firmware does not advertise the driver while combined
+reliability and acceptance remain open.
+
 Do not assume a previous COM port, firmware image, wiring or free serial port.
 Identify the board, query capabilities/state and close competing Desk/serial
 clients before bench work. Keep reviewed wiring intact unless a test requires
@@ -133,7 +160,7 @@ can proceed in parallel; deployment-qualifying data must match that baseline.
 Changing firmware, observation load or resource layout requires a new study
 context. Do not merge old USB-only studies into wireless-load evidence.
 
-Keep normal configuration working when AI abstains. Both existing protocol models
+Keep normal configuration working when AI abstains. The evaluated protocol models
 failed their frozen benefit criteria; do not retune gates after seeing test data.
 A larger host/API language model is optional explanation work, not a substitute
 for useful measured embedded inference.

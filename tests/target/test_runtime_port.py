@@ -31,6 +31,7 @@ class RuntimePortFailureTests(unittest.TestCase):
                        "-I", str(ROOT / "firmware/hal/include"),
                        "-I", str(ROOT / "firmware/hal/ports/host_sim"),
                        "-I", str(ROOT / "firmware/drivers/bmp388"),
+                       "-I", str(ROOT / "firmware/drivers/generic_i2c"),
                        "-I", str(ROOT / "firmware/drivers/hc_sr04"),
                        "-I", str(ROOT / "firmware/drivers/pwm_output"),
                        "-I", str(ROOT / "firmware/drivers/ssd1306_spi"),
@@ -80,6 +81,9 @@ class RuntimePortFailureTests(unittest.TestCase):
                        str(ROOT / "firmware/hal/ports/host_sim/i2cfake.c"),
                        str(ROOT / "firmware/drivers/bmp388/bmp388.c"),
                        str(ROOT / "firmware/drivers/bmp388/bmpinst.c"),
+                       str(ROOT / "firmware/drivers/generic_i2c/geni2c.c"),
+                       str(ROOT / "firmware/drivers/generic_i2c/senlux.c"),
+                       str(ROOT / "firmware/drivers/generic_i2c/seninst.c"),
                        str(ROOT / "firmware/third_party/bmp3/bmp3.c"),
                        str(ROOT / "firmware/src/config/drvreg.c"),
                        str(ROOT / "firmware/src/runtime/tkport.c"),
@@ -209,3 +213,30 @@ class RuntimePortFailureTests(unittest.TestCase):
             self.assertEqual(second.samples[-1]["source_index"], 65535)
             self.assertEqual(second.samples[-1]["value"], {"event": 5, "occurrences": 1})
             self.assertEqual(second.health["event_counts"][5], 2)
+
+            # Exercise the explicit diagnostic capability on the host; ordinary
+            # firmware keeps the light binding unavailable.
+            light_binary = Path(folder) / "light_binding.exe"
+            light_command = [str(light_binary) if item == str(binary) else item
+                             for item in command]
+            light_command.insert(1, "-DUTHOME_SENLUX_APP_PROBE=1")
+            compiled = subprocess.run(light_command, capture_output=True, text=True, timeout=30)
+            self.assertEqual(compiled.returncode, 0, compiled.stdout + compiled.stderr)
+            light = json.loads((ROOT / "configs/nodes/c3-protocol-demo.json").read_bytes())
+            descriptor = json.loads((ROOT / "catalogue/devices/sen0390.json").read_bytes())
+            light["queues"].append(dict(id="readings.light", item_type="light_sample", depth=8,
+                                        overflow_policy="drop_oldest"))
+            light["devices"].append(dict(
+                device_id="light", driver="sen0390", enabled=True,
+                descriptor=dict(id="sen0390", version="1.0.0"),
+                interface=dict(ref="i2c0", address="0x4a", enable_gpio=5),
+                behaviour=dict(descriptor["defaults"]["behaviour"], destination="readings.light"),
+                task=dict(name="light_reader", priority=12, stack_size_bytes=3072)))
+            light_path = Path(folder) / "light.json"
+            light_path.write_text(json.dumps(light, separators=(",", ":")), encoding="utf-8")
+            light_result = subprocess.run([str(light_binary)], capture_output=True, text=True, timeout=10,
+                env=dict(os.environ, UTHOME_DISPLAY_PROFILE=str(profile_path),
+                         UTHOME_RULE_PROFILE=str(rule_path), UTHOME_ALT_RULE_PROFILE=str(alt_path),
+                         UTHOME_LIGHT_PROFILE=str(light_path)))
+            self.assertEqual(light_result.returncode, 0, light_result.stdout + light_result.stderr)
+            self.assertIn("Provisional four-device light binding and cleanup passed.", light_result.stdout)

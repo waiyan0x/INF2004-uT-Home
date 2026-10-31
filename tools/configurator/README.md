@@ -12,6 +12,30 @@ standard HTTP server and local HTML/CSS/JavaScript; no Node build or new web
 framework is required. Offline review needs only the planner dependencies.
 The interface uses one fixed colour palette.
 
+**Datasheet assistant** under **Add a device** sends the selected PDF to Google Gemini
+after the user selects Analyse; it shows unreviewed facts, page references and
+uncertainties. Set the API key as described in the
+[AI guide](../../ai/README.md#datasheet-assisted-device-drafts). The PDF is
+limited to 2 MiB / 60 pages and the request may incur charges. Existing offline
+configuration continues without the optional PDF dependency or API.
+
+On Windows, create a key in [Google AI Studio](https://aistudio.google.com/apikey),
+then use **Edit environment variables for your account** to add the user variable
+`GEMINI_API_KEY` with the complete key as its value. Restart the terminal and Desk
+so they inherit it. Keep the key private and out of the repository. The optional
+`UTHOME_GEMINI_MODEL` user variable selects a Gemini model supporting PDF input
+and structured output. See the [Gemini documentation](https://ai.google.dev/gemini-api/docs/structured-output).
+
+Check a reviewed catalogue ID against the connected firmware, choose its address
+and GPIO pins, and confirm the actual module and electrical wiring. The periodic
+I2C draft builder uses reviewed catalogue defaults, rejects conflicting pins and
+missing drivers, and changes only the draft. Use the normal review and Apply
+controls afterwards. A name match does not verify identity. The SEN0390 remains
+unavailable in normal firmware: a diagnostic build exercised the reviewed Desk
+backend and light sensor, but full combined-system acceptance remains open.
+When supported light telemetry is available, the live monitor shows illuminance
+in lux with the source name and freshness.
+
 1. In **Profile**, choose an example or import JSON. Open **Edit profile JSON**
    for custom instances, wiring, timing and routes. Optional discovery is under
    **Add a device**; interfaces, queues and the catalogue are under

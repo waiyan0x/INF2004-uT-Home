@@ -125,6 +125,9 @@ Link exactly one backend. This layout does not license unrelated public names.
 | Queue health observation | `hlthbus_`, `uthome/hlthbus.h` |
 | Heartbeat watchdog | `watchdog_`, `uthome/watchdog.h` |
 | Portable I2C bus | `i2cbus_`, `i2cbus.h` |
+| Generic I2C register-read primitive | `geni2c_`, `geni2c.h` |
+| SEN0390 light-sensor sequence | `senlux_`, `senlux.h` |
+| SEN0390 component instance | `seninst_`, `seninst.h` |
 | C3 I2C backend / host register fake | `c3i2c_` / `i2cfake_`, matching headers |
 | Permanent I2C lock and session lifecycle | `i2cown_`, `i2cown.h` |
 | BMP388 driver / instance adapter | `bmp388_` / `bmpinst_`, matching headers |
@@ -161,6 +164,8 @@ SDK = software development kit; tk = external T-Kernel interface. Test filename
 prefixes identify their subject (cmp, reg, rt, stats, res, integ, trans, fault).
 I2C = Inter-Integrated Circuit; C3 identifies ESP32-C3; BMP388 is Bosch's part
 identifier; bmpinst identifies that driver's component instance adapter.
+senlux denotes the SEN0390 light-sensor sequence and seninst its component
+instance; both use C99 and no new exception.
 i2cown is I2C bus ownership (permanent lock plus session lifecycle); owntest
 tests it. Both use C99 and add no exception or language scope.
 SPI = Serial Peripheral Interface; CS = chip select; D/C = data/command line;
@@ -174,6 +179,11 @@ New abbreviations must be added with their meaning during review.
 `workcost` denotes caller-owned worker/transfer cost counters; `protree` denotes
 the experimental eighteen-input protocol decision tree. Both are C99 modules
 with paired headers and no new deviation or external-interface exception.
+
+The separate loaded diagnostic uses `ailite` for the frozen classifier,
+`aivects` for immutable parity vectors and `aiload` for its bounded workload
+observer. `loadfake` provides its host test clock/observer. These C99 modules
+add no compatibility exception; diagnostic symbols stay out of ordinary images.
 
 `heaptrap` is the host parser test's allocator-call counter and rejection module.
 It uses C99 and ordinary public prefixes; object-level symbol redirection stays

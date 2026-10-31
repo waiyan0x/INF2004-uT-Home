@@ -66,6 +66,8 @@ the [firmware guide](../../README.md) and [target tooling](../../../tools/target
 | Typed queues | Environment, targets, distance, health |
 
 Production bindings cover BMP388, LD2450, HC-SR04, SSD1306 and PWM output.
+An explicit SEN0390 application probe enables the provisional light binding for
+diagnostics only; ordinary builds retain the existing driver capability mask.
 Radar polls every 10 ms. OLED renders registered samples without consuming them.
 Each enabled PWM output needs exactly one admitted [rule](../automation/README.md).
 Compiled support is separate from hardware acceptance; the target-pending
@@ -238,6 +240,13 @@ Copied scalar settings without pointers; alignment and bounded allocation;
 complete tree release; bounded recursion/loops; callback serialization/lifetime;
 explicit status mapping; stopped-worker resource release and retained failures.
 Vendor spelling stays inside existing exceptions.
+
+The light diagnostic uses the same bounded plan, copied settings and static
+instance slots; its compile-time flag adds one capability bit only in the
+explicit application probe. GPIO output slots are reserved independently for
+the display and sensor, and failed release retains the handle for recovery.
+The ordinary build excludes that capability. The qualifier checks the effective
+binder compiler flag; target timing and stack evidence remain scoped to each run.
 
 The fixed-pool change additionally reviews C99 effective type and alignment:
 nodes are declared `cJSON` objects, never objects cast into an untyped byte arena;

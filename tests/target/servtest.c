@@ -9,6 +9,7 @@
 #include "costview.h"
 #include "statusmon.h"
 #include "rulecalc.h"
+#include "cfgbytes.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -20,6 +21,7 @@ static uint8_t     g_frame[UTHOME_CFGWIRE_HEADER + UTHOME_TELEMETRY_MAX] = {0};
 static void verify_sources (uint64_t * p_clock);
 static void verify_values (uint64_t now_ms);
 static void verify_monitor (uint64_t * p_clock);
+static void verify_light (uint64_t now_ms);
 static void emit (void);
 static void verify_rule (void);
 static void verify_rule_metrics (void);
@@ -45,6 +47,7 @@ void servtest_run (uint64_t * p_clock)
     emit();
     g_telemetry.p_audit = capture_audit;
     verify_monitor(p_clock);
+    verify_light(*p_clock);
     assert(0 == shared_reset(NULL, 0U));
     assert(0 == shared_capture(&g_capture));
     assert(!g_capture.samples.entries[0].b_expected);
@@ -52,6 +55,40 @@ void servtest_run (uint64_t * p_clock)
     assert(0 == rt_port_shared_call(check_contention, NULL));
     puts("Services: independent sources, freshness, health, reset and wire "
          "parity passed.");
+}
+
+/** @brief Encode a valid zero light value and reject out-of-range data. */
+static void verify_light (uint64_t now_ms)
+{
+    const msgbus_queue_config_t queue = {UTHOME_SAMPLE_LIGHT,
+                                         sizeof(sample_light_t),
+                                         1U,
+                                         UTHOME_MSGBUS_DROP_OLDEST};
+    assert(0 == shared_reset(&queue, 1U));
+    const sampcache_source_t source = {.name         = "light",
+                                       .h_queue      = 0,
+                                       .type         = UTHOME_SAMPLE_LIGHT,
+                                       .source_index = 0U,
+                                       .stale_ms     = 1000U};
+    assert(0 == shared_expect(&source));
+    sample_light_t sample = {
+        .header   = {.timestamp_ms = now_ms, .status = UTHOME_SAMPLE_OK},
+        .millilux = 0U};
+    assert(0 ==
+           shared_publish(0, UTHOME_SAMPLE_LIGHT, &sample, sizeof(sample)));
+    size_t size = 0U;
+    assert(0 == telemetry_observe(
+                    &g_telemetry, &g_frame[24], UTHOME_TELEMETRY_MAX, &size));
+    assert(4U == cfgbytes_get(&g_frame[24]));
+    assert(5U == cfgbytes_get(&g_frame[24U + UTHOME_TELEMETRY_HEADER + 4U]));
+    assert(0U == cfgbytes_get(&g_frame[24U + UTHOME_TELEMETRY_HEADER +
+                                       UTHOME_TELEMETRY_QUEUE + 72U]));
+    sample.header.sequence = 1U;
+    sample.millilux        = 200000001U;
+    assert(0 ==
+           shared_publish(0, UTHOME_SAMPLE_LIGHT, &sample, sizeof(sample)));
+    assert(0 == shared_capture(&g_capture));
+    assert(UTHOME_SAMPLE_INVALID == g_capture.samples.entries[0].header.status);
 }
 
 /** @brief Provide an independently recognizable high-word clock. */

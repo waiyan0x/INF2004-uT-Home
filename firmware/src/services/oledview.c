@@ -155,9 +155,17 @@ static void values (ssd1306_t * p_display, const sampcache_entry_t * p_entry)
                        p_entry->value.distance.echo_us);
         line(p_display, 3U, text);
     }
+    else if (UTHOME_SAMPLE_LIGHT == p_entry->source.type)
+    {
+        (void)snprintf(text,
+                       sizeof(text),
+                       "LIGHT %" PRIu32 " LUX",
+                       p_entry->value.light.millilux / 1000U);
+        line(p_display, 2U, text);
+    }
     else
     {
-        /* The cache admits only these four types and eight health event codes.
+        /* The cache admits only these five types and eight health event codes.
          */
         (void)snprintf(text,
                        sizeof(text),

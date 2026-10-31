@@ -17,6 +17,7 @@
 #include "hal/gpio_ll.h"
 #include "hal/i2c_ll.h"
 #include "soc/gpio_sig_map.h"
+#include "soc/i2c_reg.h"
 #include "soc/io_mux_reg.h"
 
 /* Per-session settings; closing resets only this structure. */
@@ -46,10 +47,11 @@ static int stop_bus (void * p_context);
 static void setup_pin (uint8_t pin, uint32_t output, uint32_t input);
 static void release_pin (uint8_t pin);
 static void reset_controller (void);
-static void load_commands (const i2cbus_request_t * p_request);
+static void load_commands (const i2cbus_request_t * p_request, bool b_pause);
 static void
 command (uint32_t slot, uint32_t operation, uint32_t count, bool b_last_read);
-static int wait_complete (uint64_t deadline_ms);
+static int wait_complete (uint64_t deadline_ms, uint32_t completion);
+static int resume_read (const i2cbus_request_t * p_request);
 static int exchange (const i2cbus_request_t * p_request);
 
 static const i2cbus_ops_t g_operations = {
@@ -338,7 +340,7 @@ static void reset_controller (void)
 
 /** @brief Load at most seven commands and 32 transmit bytes, with final NACK.
  */
-static void load_commands (const i2cbus_request_t * p_request)
+static void load_commands (const i2cbus_request_t * p_request, bool b_pause)
 {
     uint8_t  bytes[32] = {0};
     size_t   count     = 0U;
@@ -364,7 +366,7 @@ static void load_commands (const i2cbus_request_t * p_request)
         }
         bytes[count++] = (uint8_t)((p_request->address << 1U) | 1U);
         command(slot++, I2C_LL_CMD_WRITE, 1U, false);
-        if (p_request->read_size > 1U)
+        if ((!b_pause) && (p_request->read_size > 1U))
         {
             /* The common HAL limits read_size to 32. */
             command(slot++,
@@ -372,9 +374,12 @@ static void load_commands (const i2cbus_request_t * p_request)
                     (uint32_t)(p_request->read_size - 1U),
                     false);
         }
-        command(slot++, I2C_LL_CMD_READ, 1U, true);
+        if (!b_pause)
+        {
+            command(slot++, I2C_LL_CMD_READ, 1U, true);
+        }
     }
-    command(slot, I2C_LL_CMD_STOP, 0U, false);
+    command(slot, b_pause ? I2C_LL_CMD_END : I2C_LL_CMD_STOP, 0U, false);
     /* The two address bytes plus payload fit the hardware's 32-byte FIFO. */
     i2c_ll_write_txfifo(I2C_LL_GET_HW(0), bytes, (uint32_t)count);
 }
@@ -393,7 +398,7 @@ command (uint32_t slot, uint32_t operation, uint32_t count, bool b_last_read)
 
 /** @brief Poll with kernel yields and report distinct deadline/NACK failures.
  */
-static int wait_complete (uint64_t deadline_ms)
+static int wait_complete (uint64_t deadline_ms, uint32_t completion)
 {
     unsigned polls = 0U;
     for (;;)
@@ -412,7 +417,8 @@ static int wait_complete (uint64_t deadline_ms)
          * The pinned LL get_intr_mask helper reads masked int_status instead.
          */
         status = I2C_LL_GET_HW(0)->int_raw.val;
-        if (0U != (status & (I2C_LL_INTR_TIMEOUT | I2C_LL_INTR_ST_TO)))
+        if (0U != (status & (I2C_LL_INTR_TIMEOUT | I2C_LL_INTR_ST_TO |
+                             I2C_SCL_MAIN_ST_TO_INT_RAW)))
         {
             return I2CBUS_TIMEOUT;
         }
@@ -424,7 +430,7 @@ static int wait_complete (uint64_t deadline_ms)
         {
             return I2CBUS_NACK;
         }
-        if (0U != (status & I2C_LL_INTR_MST_COMPLETE))
+        if (0U != (status & completion))
         {
             return 0;
         }
@@ -439,6 +445,49 @@ static int wait_complete (uint64_t deadline_ms)
             }
         }
     }
+}
+
+/** @brief Continue the held read without a new START or releasing the lock. */
+static int resume_read (const i2cbus_request_t * p_request)
+{
+    i2c_dev_t * p_hardware = I2C_LL_GET_HW(0);
+    i2c_ll_clear_intr_mask(p_hardware, UINT32_MAX);
+    int result = delay_us(
+        &g_state, p_request->read_pause_ms * 1000U, p_request->deadline_ms);
+    const uint32_t status = p_hardware->int_raw.val;
+    if ((0 == result) &&
+        (0U != (status & (I2C_LL_INTR_TIMEOUT | I2C_LL_INTR_ST_TO |
+                          I2C_SCL_MAIN_ST_TO_INT_RAW))))
+    {
+        result = I2CBUS_TIMEOUT;
+    }
+    if ((0 == result) &&
+        (0U != (status & (I2C_LL_INTR_NACK | I2C_LL_INTR_ARBITRATION))))
+    {
+        result = I2CBUS_IO;
+    }
+    if (0 == result)
+    {
+        uint32_t slot = 0U;
+        for (uint32_t index = 0U; index < I2C_LL_CMD_REG_NUM; ++index)
+        {
+            command(index, I2C_LL_CMD_END, 0U, false);
+        }
+        if (p_request->read_size > 1U)
+        {
+            command(slot++,
+                    I2C_LL_CMD_READ,
+                    (uint32_t)(p_request->read_size - 1U),
+                    false);
+        }
+        command(slot++, I2C_LL_CMD_READ, 1U, true);
+        command(slot, I2C_LL_CMD_STOP, 0U, false);
+        i2c_ll_update(p_hardware);
+        i2c_ll_start_trans(p_hardware);
+        result =
+            wait_complete(p_request->deadline_ms, I2C_LL_INTR_MST_COMPLETE);
+    }
+    return result;
 }
 
 /** @brief Run and reset one transfer while retaining the bus mutex. */
@@ -461,10 +510,30 @@ static int exchange (const i2cbus_request_t * p_request)
     {
         command(index, I2C_LL_CMD_END, 0U, false);
     }
-    load_commands(p_request);
+    const bool b_pause          = (0U != p_request->read_pause_ms);
+    int        previous_timeout = 0;
+    uint32_t   previous_scl     = 0U;
+    uint32_t   previous_main    = 0U;
+    if (b_pause)
+    {
+        i2c_ll_get_tout(p_hardware, &previous_timeout);
+        previous_scl  = p_hardware->scl_st_time_out.scl_st_to;
+        previous_main = p_hardware->scl_main_st_time_out.scl_main_st_to;
+        /* At the C3 XTAL clock this bounds the held SCL period above 10 ms. */
+        i2c_ll_set_tout(p_hardware, 22);
+        p_hardware->scl_st_time_out.scl_st_to           = 22U;
+        p_hardware->scl_main_st_time_out.scl_main_st_to = 22U;
+    }
+    load_commands(p_request, b_pause);
     i2c_ll_update(p_hardware);
     i2c_ll_start_trans(p_hardware);
-    int result = wait_complete(p_request->deadline_ms);
+    int result = wait_complete(p_request->deadline_ms,
+                               b_pause ? I2C_LL_INTR_END_DETECT
+                                       : I2C_LL_INTR_MST_COMPLETE);
+    if ((0 == result) && b_pause)
+    {
+        result = resume_read(p_request);
+    }
     if ((0 == result) && (0U != p_request->read_size))
     {
         uint32_t count = 0U;
@@ -481,6 +550,17 @@ static int exchange (const i2cbus_request_t * p_request)
     if (0 != result)
     {
         reset_controller();
+    }
+    else if (b_pause)
+    {
+        i2c_ll_set_tout(p_hardware, previous_timeout);
+        p_hardware->scl_st_time_out.scl_st_to           = previous_scl;
+        p_hardware->scl_main_st_time_out.scl_main_st_to = previous_main;
+        i2c_ll_update(p_hardware);
+    }
+    else
+    {
+        /* Ordinary successful transfers leave the normal timeout unchanged. */
     }
     return result;
 }

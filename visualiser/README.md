@@ -38,9 +38,20 @@ storage; they are user notes, never measured verification.
 
 The first setup covers placement, ground, and 3.3 V. Other setups cover radar
 alone, BMP388 alone, BMP388/OLED, the original three-module combination, and
-HC-SR04 separately. Each is a complete plan starting from empty wiring;
-switching the dropdown is **not** an instruction to add a sensor to the
-physical setup currently in front of you.
+HC-SR04 separately. Those plans start from empty wiring. The **Add SEN0390 to
+existing setup** plan instead starts with the existing BMP388 + OLED + radar
+connections as references and guides the new leads. Verify that your actual
+assembly and free holes match the reference before using it.
+
+The SEN0390 plan is provisional: its driver, combined profile, required EN
+startup behaviour and hardware acceptance are not complete. It proposes GPIO5
+for EN and a 10 kΩ pull-down to ground; the existing EN lead may currently be
+tied to 3.3 V. Remove all power before moving it, and never connect it to GPIO5
+and 3.3 V at the same time. Confirm
+the cable conductor-to-pin mapping, the 3.3 V rail and shared I2C pull-ups first.
+To prepare for a demonstration, keep unused connector ends insulated and label
+the plug; connect or disconnect peripherals only after removing USB and any
+external power. The plan does not claim powered hot-plug or automatic discovery.
 
 Use **Print this plan** for the connection list and selected view. For a wiring
 overview, choose Overview and All wires first. The browser's print-to-PDF is

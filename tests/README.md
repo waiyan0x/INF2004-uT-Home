@@ -54,6 +54,12 @@ requirements. The preserved Member 5 workflow runs independently with
 `python -B -m unittest discover -s tests -v` from `legacy/member5`; it is the
 legacy schema-1.0 host workflow, not the current C3 deployment path.
 
+`ai.tests.test_loaded_model` checks the frozen diagnostic corpus, integer
+classifier parity, phase boundaries, invalid input and clock reversal with a
+host clock/observer double. Target qualification also checks legal build modes
+and absence of model symbols in ordinary images. These software checks do not
+replace the active-peripheral OFF/ON board comparison.
+
 For real kernel execution, use the [board fixture](target/runtime_port_board/README.md).
 Build and captured board outcomes live in the [evidence index](../firmware/qualification/README.md).
 Physical timing, USB interruption, flash power loss, pin voltages, output safety,

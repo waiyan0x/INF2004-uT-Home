@@ -17,7 +17,7 @@ from tools.config_validator.planner import ConfigurationError, load_document, re
 
 
 def collect(workflow, port, study, identity, original, output, families, *, execution_context=None, qualification_folder=None,
-            collect_costs=False):
+            collect_costs=False, previous_captures=()):
     """Caller supplies an explicitly selected study subset. Never retry a run."""
     validate_study(study)
     known = {c["experiment"]["scenario"]["family_id"]: c["experiment"] for c in study["cases"]}
@@ -34,6 +34,11 @@ def collect(workflow, port, study, identity, original, output, families, *, exec
             # Refuse unqualified context/evidence before opening serial or Apply.
             check_capture(binding, identity["build"]["elf_sha256"], qualification_folder)
             bindings[family] = binding
+    from ai.protocol_resume import resume_plan
+    continuation = resume_plan(study, identity, previous_captures, families,
+                               collect_costs=collect_costs, bindings=bindings if execution_context is not None else None)
+    pending = {(r['family_id'], r['interval_ms'], r['repetition']) for r in continuation['missing_runs']}
+    require(pending, "Selected families are already complete; no board access required")
     raw = json.dumps(original, ensure_ascii=True, separators=(",", ":")).encode("ascii")
     original_crc = zlib.crc32(raw)
     output = Path(output)
@@ -46,6 +51,9 @@ def collect(workflow, port, study, identity, original, output, families, *, exec
         file.write(raw)
     summary = dict(started_utc=utc_now(), study_sha256=digest(study), selected_families=families,
                    runs=[], restored=False, error=None, measured_costs=collect_costs)
+    if previous_captures:
+        summary.update(previous_captures=continuation['previous_captures'],
+                       previously_completed_runs=continuation['completed_runs'])
     changed = False
     try:
         connection = workflow.dispatch("connect", {"port": port})
@@ -61,6 +69,8 @@ def collect(workflow, port, study, identity, original, output, families, *, exec
         random.Random(42).shuffle(order)
         summary["family_order"] = order
         for family in order:
+            if not any(key[0] == family for key in pending):
+                continue
             experiment = known[family]
             folder = output / family
             folder.mkdir()
@@ -68,13 +78,17 @@ def collect(workflow, port, study, identity, original, output, families, *, exec
             intervals = [t["interval_ms"] for t in experiment["trials"]]
             random.Random("42-" + family).shuffle(intervals)
             for interval in intervals:
+                repetitions = [rep for rep in range(experiment['scenario']['repetitions'])
+                               if (family, interval, rep) in pending]
+                if not repetitions:
+                    continue
                 require(not (output / "stop-requested").exists(), "Collection stopped by operator")
                 setup = folder / ("apply-" + str(interval))
                 setup.mkdir()
                 # Even an ambiguous Apply reply requires a separate restore attempt.
                 changed = True
                 receipt = apply_trial(workflow, experiment, interval, identity, setup)
-                for repetition in range(experiment["scenario"]["repetitions"]):
+                for repetition in repetitions:
                     require(not (output / "stop-requested").exists(), "Collection stopped by operator")
                     run_folder = folder / f"run-{interval}-{repetition}"
                     result = record_run(workflow.client, experiment, interval, repetition, identity, receipt,
@@ -115,6 +129,8 @@ def main(argv=None):
     parser.add_argument("--port", required=True)
     parser.add_argument("--wiring-unchanged", action="store_true")
     parser.add_argument('--measure-costs', action='store_true', help='Require command-9 measurements and zero allocation counters')
+    parser.add_argument('--resume-from', nargs='+', type=Path, default=[],
+                        help='All prior capture batch folders; verify saved runs and collect only missing repetitions')
     parser.add_argument("--families", nargs="+", required=True, help="Explicit family IDs, or 'all'")
     parser.add_argument("--execution-context", type=Path, required=True, help="Reviewed static-memory execution sidecar")
     parser.add_argument("--qualification-folder", type=Path, required=True, help="Retained evidence referenced by the sidecar")
@@ -130,7 +146,8 @@ def main(argv=None):
         require((args.execution_context is None) == (args.qualification_folder is None), "Supply both static-context arguments")
         result = collect(Workflow(), args.port, study, identity, load_document(args.restore_profile), args.output, families,
                          execution_context=load_document(args.execution_context) if args.execution_context else None,
-                         qualification_folder=args.qualification_folder, collect_costs=args.measure_costs)
+                         qualification_folder=args.qualification_folder, collect_costs=args.measure_costs,
+                         previous_captures=args.resume_from)
         print(json.dumps(dict(output=str(args.output), completed_runs=len(result["runs"]),
                               restored=result["restored"], error=result["error"], restore_error=result.get("restore_error"))), flush=True)
         return 0 if result["error"] is None and result["restored"] else 2

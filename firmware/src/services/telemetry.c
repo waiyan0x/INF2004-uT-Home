@@ -79,7 +79,18 @@ static void
 encode_header (const telemetry_t * p_context, uint32_t result, uint8_t * p_data)
 {
     const cfgctrl_t * p_control = p_context->p_control;
-    cfgbytes_put(p_data, 3U);
+    uint32_t          version   = 3U;
+    if (0U == result)
+    {
+        for (size_t index = 0U; index < p_context->capture.queue_count; ++index)
+        {
+            if (UTHOME_SAMPLE_LIGHT == p_context->capture.queues[index].type)
+            {
+                version = 4U;
+            }
+        }
+    }
+    cfgbytes_put(p_data, version);
     cfgbytes_put(&p_data[4], result);
     if (0U != result)
     {
@@ -230,6 +241,10 @@ static void encode_value (const sampcache_entry_t * p_entry, uint8_t * p_data)
     {
         cfgbytes_put(p_data, p_value->health.event);
         cfgbytes_put(&p_data[4], p_value->health.occurrences);
+    }
+    else if (UTHOME_SAMPLE_LIGHT == p_entry->source.type)
+    {
+        cfgbytes_put(p_data, p_value->light.millilux);
     }
     else
     {

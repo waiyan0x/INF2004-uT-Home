@@ -72,20 +72,54 @@ class AdmissionTests(unittest.TestCase):
         self.assertEqual(result.stdout, "")
         self.assertEqual(result.stderr.strip(), "Unexpected heap use: 1 calls")
 
-    def run_documents(self, documents, catalogue=False, parser=False):
+    def run_documents(self, documents, catalogue=False, parser=False, light_probe=False):
         paths = []
         for index, document in enumerate(documents):
             raw = document if isinstance(document, bytes) else json.dumps(document, separators=(",",":")).encode()
             path = self.folder / f"input-{index}.json"
             path.write_bytes(raw)
             paths.append(str(path))
-        mode = "parser" if parser else "catalogue" if catalogue else "binding"
+        mode = ("parser" if parser else "light-probe" if light_probe else
+                "catalogue" if catalogue else "binding")
         result = subprocess.run([str(self.binary), mode, *paths],
                                 capture_output=True, text=True, timeout=20)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         rows = [tuple(map(int, line.split())) for line in result.stdout.splitlines()]
         self.assertEqual(len(rows), len(documents))
         return rows
+
+    def test_unadvertised_light_admission_matches_host_limits(self):
+        document = json.loads((ROOT / "configs/nodes/c3-protocol-demo.json").read_bytes())
+        descriptor = self.catalogue.descriptors[("sen0390", "1.0.0")]
+        document["queues"].append(dict(id="readings.light", item_type="light_sample",
+                                      depth=8, overflow_policy="drop_oldest"))
+        document["devices"].append(dict(
+            device_id="light", driver="sen0390", enabled=True,
+            descriptor=dict(id="sen0390", version="1.0.0"),
+            interface=dict(ref="i2c0", address="0x4a", enable_gpio=5),
+            behaviour=dict(descriptor["defaults"]["behaviour"], destination="readings.light"),
+            task=dict(name="light_reader", priority=12, stack_size_bytes=3072)))
+        manifest = deepcopy(self.manifest)
+        manifest["drivers"].append("sen0390")
+        invalid = []
+        for field, value in (("enable_gpio", 0), ("enable_gpio", 18), ("address", "0x4b")):
+            candidate = deepcopy(document)
+            candidate["devices"][-1]["interface"][field] = value
+            invalid.append(candidate)
+        for field, value in (("interval_ms", 999), ("timeout_ms", 29)):
+            candidate = deepcopy(document)
+            candidate["devices"][-1]["behaviour"][field] = value
+            invalid.append(candidate)
+        candidate = deepcopy(document)
+        del candidate["devices"][-1]["interface"]["enable_gpio"]
+        invalid.append(candidate)
+        self.assertNotEqual(self.run_documents([document])[0][0], 0)
+        results = self.run_documents([document, *invalid], light_probe=True)
+        self.assertEqual([row[0] == 0 for row in results], [True] + [False] * len(invalid))
+        build_plan(document, manifest, self.catalogue)
+        for candidate in invalid:
+            with self.assertRaises(ConfigurationError):
+                build_plan(candidate, manifest, self.catalogue)
 
     def test_pool_exhaustion_and_recovery_with_heap_traps(self):
         # Root + array + 510 Boolean nodes use all 512 typed slots.
@@ -223,7 +257,7 @@ class AdmissionTests(unittest.TestCase):
         self.assertEqual(board["resources"]["device_stack_budget_bytes"],16384)
         self.assertEqual(board["resources"]["max_queues"],4)
         self.assertEqual(set(self.catalogue.descriptors),
-                         {(name,"1.0.0") for name in ("bmp388","ssd1306_spi","hlk_ld2450","hc_sr04","pwm_output")})
+                         {(name,"1.0.0") for name in ("bmp388","ssd1306_spi","hlk_ld2450","hc_sr04","pwm_output","sen0390")})
 
     def test_rule_profile_and_alternate_signed_environment_metric(self):
         rule = json.loads((ROOT / "configs/nodes/distance-controlled-output.json").read_bytes())

@@ -70,6 +70,24 @@ class TelemetryTests(unittest.TestCase):
             with self.subTest(offset=offset), self.assertRaises(ValueError):
                 decode_telemetry(frame(changed), request_id=27)
 
+    def test_version_four_light_sample_and_legacy_rejection(self):
+        data = payload() + bytearray(192)
+        struct.pack_into("<I", data, 0, 4)
+        struct.pack_into("<2I", data, 56, 1, 1)
+        data.extend(struct.pack("<8I", 0, 5, 1, 0, 0, 0, 0, 0))
+        row = bytearray(128)
+        struct.pack_into("<10I", row, 0, 0, 5, 0, 1, 0, 0, 0, 1, 1000, 0)
+        row[40:46] = b"sensor"
+        struct.pack_into("<I", row, 72, 123456)
+        data.extend(row)
+        result = decode_telemetry(frame(data), request_id=27)
+        self.assertEqual(result.samples[0]["value"], {"millilux": 123456})
+        for offset, value in ((0, 3), (352 + 32 + 72, 200000001), (352 + 32 + 76, 1)):
+            changed = data.copy()
+            struct.pack_into("<I", changed, offset, value)
+            with self.subTest(offset=offset), self.assertRaises(ValueError):
+                decode_telemetry(frame(changed), request_id=27)
+
     def test_wrong_version_counts_reserved_and_crc_fail(self):
         for offset, value in ((0, 2), (4, 3), (56, 13), (60, 5), (84, 9), (72, 2), (32, 1)):
             data = payload()

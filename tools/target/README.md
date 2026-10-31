@@ -21,6 +21,9 @@ and paths inside dependencies are rejected, never cleaned. Custom `--sdk` and
 | `--runtime-port` | Project acceptance fixture; no peripheral activation |
 | `--runtime-port --native-uart-fixture` | Isolated native UART ring/fault checks; disconnect external UART senders and receivers before installation |
 | `--runtime-port --configuration-app` | USB/profile/storage application used with the UI and peripherals |
+| `--runtime-port --configuration-app --static-net-queues --model-load-probe` | Test-only varied-goal classifier OFF/ON comparison with active peripherals; command-9 payload is diagnostic-only |
+| `--runtime-port --static-net-queues --senlux-probe` | Isolated SEN0390 and BMP388 read diagnostic; no application workers |
+| `--runtime-port --configuration-app --static-net-queues --senlux-app-probe` | Diagnostic configuration application with the provisional SEN0390 binding enabled |
 
 Diagnostic examples retain their pinned source bytes and get separate build
 records marked `diagnostic_only`. They do not qualify the application, static
@@ -83,6 +86,42 @@ Check a staged project against current owned source before reuse:
 python tools/target/qualify_kernel.py verify-snapshot --project-dir "$env:USERPROFILE/esp/uthome-config-new-build/project"
 python -B -m unittest discover -s tests/target -v
 ```
+
+## Loaded classifier diagnostic
+
+The loaded model probe uses the frozen fixture in
+`tests/target/runtime_port_board/loadmodel/`. It preserves the configuration
+application and substitutes only its workload-observer call. The first command-9
+request starts four 75-second phases: OFF, ON, OFF, ON; phase four stays done.
+Each ON request runs four classifier calls over immutable Python parity vectors.
+No recommendation, Apply, new task or runtime allocation is introduced. The
+large read-only test corpus is diagnostic flash, not model storage.
+
+Diagnostic workload replies use payload version `0x41494C31`. Header words
+20..23 hold phase, cumulative predictions, last batch wall time in microseconds
+and cumulative mismatches. Ordinary host decoders intentionally reject it.
+Use the retained bench reader; do not open Configuration Desk during this image's
+test. The reader validates and retains original frames before adapting a copy
+for the existing workload decoder. Standard telemetry and configuration paths
+remain unchanged. The qualifier checks fixture hashes, observer substitution
+scope and absent diagnostic symbols in ordinary images. Radio/isolated-model
+modes cannot be combined with this probe.
+
+Preserve the running image/profile and full flash backup before installation;
+restore them afterward. Use the reviewed three-peripheral wiring without an
+actuator. Loaded classifier timing is not full adviser/feature/UI latency or
+evidence of model benefit. Compiler stack records and empirical sentinels are
+separate observations, not worst-case stack proofs.
+
+## SEN0390 application diagnostic
+
+`--senlux-app-probe` requires the configuration application and static network
+queues, and cannot be combined with the other probes. The build checks the
+binder's actual compiler flag and marks its evidence `diagnostic_only`; ordinary
+builds keep the light capability disabled. Applying a profile still writes the
+saved configuration. Preserve the complete flash and exact partition layout
+before this test, and restore and verify the original firmware **and** saved
+configuration afterward. A short diagnostic capture is not a release sign-off.
 
 ## Identify or recover the board
 

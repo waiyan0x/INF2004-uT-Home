@@ -33,6 +33,14 @@ UPSTREAM_EXAMPLES = {
 }
 
 RUNTIME_SOURCE_FILES = {
+    "tests/target/runtime_port_board/loadmodel/ailite.c": "loadmodel/ailite.c",
+    "tests/target/runtime_port_board/loadmodel/ailite.h": "loadmodel/ailite.h",
+    "tests/target/runtime_port_board/loadmodel/aivects.c": "loadmodel/aivects.c",
+    "tests/target/runtime_port_board/loadmodel/aivects.h": "loadmodel/aivects.h",
+    "tests/target/runtime_port_board/loadmodel/aiload.c": "loadmodel/aiload.c",
+    "tests/target/runtime_port_board/loadmodel/aiload.h": "loadmodel/aiload.h",
+    "tests/target/runtime_port_board/loadmodel/model.json": "loadmodel/model.json",
+    "tests/target/runtime_port_board/loadmodel/fixture.json": "loadmodel/fixture.json",
     "tests/target/runtime_port_board/ble-static.defaults": "ble-static.defaults",
     "firmware/hal/ports/esp32c3/c3gatt.c": "hal/c3gatt.c",
     "firmware/hal/ports/esp32c3/c3gatt.h": "hal/c3gatt.h",
@@ -225,6 +233,12 @@ RUNTIME_SOURCE_FILES = {
     "firmware/drivers/ssd1306_spi/oledinst.c": "drivers/oledinst.c",
     "firmware/hal/ports/esp32c3/c3i2c.h": "hal/c3i2c.h",
     "firmware/hal/ports/esp32c3/c3i2c.c": "hal/c3i2c.c",
+    "firmware/drivers/generic_i2c/geni2c.h": "drivers/geni2c.h",
+    "firmware/drivers/generic_i2c/geni2c.c": "drivers/geni2c.c",
+    "firmware/drivers/generic_i2c/senlux.h": "drivers/senlux.h",
+    "firmware/drivers/generic_i2c/senlux.c": "drivers/senlux.c",
+    "firmware/drivers/generic_i2c/seninst.h": "drivers/seninst.h",
+    "firmware/drivers/generic_i2c/seninst.c": "drivers/seninst.c",
     "firmware/drivers/bmp388/bmp388.h": "drivers/bmp388.h",
     "firmware/drivers/bmp388/bmp388.c": "drivers/bmp388.c",
     "firmware/drivers/bmp388/bmpinst.h": "drivers/bmpinst.h",
@@ -758,10 +772,69 @@ def verify_model_probe(work, enabled):
     return result
 
 
+def check_model_load_symbols(symbols, enabled):
+    """Keep the loaded diagnostic separate from ordinary advice and radio."""
+    expected = {'ailite_predict', 'aivects_count', 'aivects_get', 'aiload_observe'}
+    present = expected & set(symbols)
+    if (enabled and present != expected) or (not enabled and present):
+        raise QualificationError('Unexpected loaded model link boundary')
+    if enabled and any(n in symbols for n in ('esp_wifi_init', 'esp_wifi_start', 'nimble_port_init')):
+        raise QualificationError('Loaded model diagnostic must not initialize radio')
+    return dict(enabled=enabled, linked_symbols=sorted(present), deployment_allowed=False)
+
+
+def verify_model_load_probe(work, enabled):
+    folder = work / 'project/loadmodel'
+    record = json.loads((folder / 'fixture.json').read_text())
+    expected = {f'{name}.{suffix}' for name in ('ailite', 'aivects', 'aiload') for suffix in ('c', 'h')}
+    if (record.get('deployment_allowed') is not False or record.get('vectors') != 1132
+            or set(record.get('source_sha256', {})) != expected):
+        raise QualificationError('Incomplete frozen loaded model fixture')
+    for name, checksum in record['source_sha256'].items():
+        if sha256(folder / name) != checksum:
+            raise QualificationError('Frozen loaded fixture changed: ' + name)
+    if not re.search(r'#define\s+AILITE_DEPLOYABLE\s+\(0U\)', (folder / 'ailite.h').read_text()):
+        raise QualificationError('Loaded model deployment guard changed')
+    commands = json.loads((work / 'build/compile_commands.json').read_text())
+    replacements = [c for c in commands if 'costview_observe=aiload_observe' in c['command']]
+    if (enabled and (len(replacements) != 1 or Path(replacements[0]['file']).name != 'c3app.c')) or (not enabled and replacements):
+        raise QualificationError('Loaded observer substitution escaped its application call site')
+    output = run(['riscv32-esp-elf-nm', '-n', work / 'build/uthome_runtime_port.elf'])
+    symbols = {n for _, _, n in re.findall(r'^([0-9a-fA-F]+)\s+(\w)\s+(\S+)$', output, re.MULTILINE)}
+    result = check_model_load_symbols(symbols, enabled)
+    result.update(model_sha256=record['model_sha256'], vectors=1132, fixture_sha256=sha256(folder/'fixture.json'))
+    return result
+
+
+def verify_senlux_app_probe(work, enabled):
+    """Check the binder's actual compiler mode, including normal builds."""
+    entries = json.loads((work / "build/compile_commands.json").read_text(encoding="utf-8"))
+    binder = (work / "project/config/cfgbind.c").resolve()
+    commands = [entry["command"] for entry in entries if Path(entry["file"]).resolve() == binder]
+    if len(commands) != 1:
+        raise QualificationError("Missing or ambiguous SEN0390 application binder")
+    modes = re.findall(r'(?:^|\s)-D\s*"?UTHOME_SENLUX_APP_PROBE=([01])"?', commands[0])
+    if modes != [str(int(enabled))]:
+        raise QualificationError("SEN0390 application capability differs from requested mode")
+    return {"enabled": enabled, "diagnostic_only": enabled}
+
+
 def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_patch=None,
           configuration_app=False, upstream_example=None, native_uart_fixture=False, static_net_queues=False,
           wifi_probe=False, ble_probe=False, model_probe=False, ble_gatt_probe=False,
-          ble_static_host=False):
+          ble_static_host=False, model_load_probe=False, senlux_probe=False, senlux_app_probe=False):
+    if senlux_app_probe and (not runtime_port or not configuration_app or not static_net_queues
+                             or senlux_probe or model_load_probe or model_probe or wifi_probe or ble_probe
+                             or native_uart_fixture or upstream_example is not None):
+        raise QualificationError("SEN0390 application probe requires configuration app and static queues only")
+    if senlux_probe and (not runtime_port or not static_net_queues or configuration_app
+                         or native_uart_fixture or upstream_example is not None or wifi_probe
+                         or ble_probe or model_probe or model_load_probe):
+        raise QualificationError("SEN0390 probe requires the isolated runtime fixture and static queues")
+    if model_load_probe and (not runtime_port or not configuration_app or not static_net_queues
+                             or model_probe or wifi_probe or ble_probe or native_uart_fixture
+                             or upstream_example is not None):
+        raise QualificationError('Loaded model probe requires the configuration application and static queues only')
     if ble_gatt_probe and not ble_probe:
         raise QualificationError("GATT probe requires the isolated BLE diagnostic")
     if ble_static_host and not ble_probe:
@@ -798,7 +871,7 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
     work.mkdir(parents=True, exist_ok=False)
     evidence = {"schema_version": "1.0.0", "created_utc": datetime.now(timezone.utc).isoformat(),
                 "example": "tests/target/runtime_port_board" if runtime_port else f"examples/{example}",
-                "diagnostic_only": (not runtime_port) or wifi_probe or ble_probe or model_probe,
+                "diagnostic_only": (not runtime_port) or wifi_probe or ble_probe or model_probe or model_load_probe or senlux_probe or senlux_app_probe,
                 "configuration_application": configuration_app,
                 "native_uart_fixture": native_uart_fixture,
                 "static_network_queues": static_net_queues,
@@ -807,6 +880,9 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
                 "ble_gatt_probe": ble_gatt_probe,
                 "ble_static_host": ble_static_host,
                 "model_probe": model_probe,
+                "model_load_probe": model_load_probe,
+                "senlux_probe": senlux_probe,
+                "senlux_app_probe": senlux_app_probe,
                 "board_kit": "iote_esp32c3_mini", "target": "esp32c3",
                 "versions": versions, "build_status": "in_progress", "board_status": "not_tested",
                 "application_runtime_status": "not_tested", "artifacts": {},
@@ -851,6 +927,9 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
                               f"-DUTHOME_BLE_GATT_PROBE={int(ble_gatt_probe)}",
                               f"-DUTHOME_BLE_STATIC_HOST={int(ble_static_host)}",
                               f"-DUTHOME_MODEL_PROBE={int(model_probe)}",
+                              f"-DUTHOME_MODEL_LOAD_PROBE={int(model_load_probe)}",
+                              f"-DUTHOME_SENLUX_PROBE={int(senlux_probe)}",
+                              f"-DUTHOME_SENLUX_APP_PROBE={int(senlux_app_probe)}",
                               f"-DUTHOME_SOURCE_ROOT={ROOT.as_posix()}",
                               f"-DUTHOME_CHECK_PYTHON={Path(sys.executable).as_posix()}"]
         evidence["command"] = command
@@ -870,9 +949,11 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
             raise QualificationError(f"Kernel build failed ({result}); inspect {work / 'build.log'}")
         if runtime_port:
             evidence["compiler_profiles"] = verify_compile_profiles(work)
+            evidence["senlux_app_isolation"] = verify_senlux_app_probe(work, senlux_app_probe)
             evidence["memory_audit_link"] = verify_audit_link(work)
             evidence["network_queue_adapter"] = verify_queue_adapter(work, static_net_queues)
             evidence["model_isolation"] = verify_model_probe(work, model_probe)
+            evidence["model_load_isolation"] = verify_model_load_probe(work, model_load_probe)
             if wifi_probe:
                 config_lines = set((work / "sdkconfig").read_text().splitlines())
                 required = {"CONFIG_FREERTOS_HZ=1000", "# CONFIG_BT_ENABLED is not set",
@@ -960,6 +1041,12 @@ def main(argv=None):
                         help="disable NimBLE dynamic global-state conversion in an isolated BLE diagnostic; not full static compliance")
     parser.add_argument("--model-probe", action="store_true",
                         help="isolated experimental classifier parity/latency diagnostic; requires static-net-queues")
+    parser.add_argument("--model-load-probe", action="store_true",
+                        help="diagnostic classifier OFF/ON workload replies; requires configuration-app and static-net-queues")
+    parser.add_argument("--senlux-probe", action="store_true",
+                        help="isolated SEN0390 I2C/enable diagnostic; requires static-net-queues")
+    parser.add_argument("--senlux-app-probe", action="store_true",
+                        help="diagnostic application with SEN0390 enabled; requires configuration-app and static-net-queues")
     parser.add_argument("--upstream-example", choices=tuple(UPSTREAM_EXAMPLES),
                         help="build a pinned diagnostic example; excludes project runtime/application modes")
     args = parser.parse_args(argv)
@@ -987,7 +1074,7 @@ def main(argv=None):
                            args.resource_patch.resolve() if args.resource_patch else None, args.configuration_app,
                            args.upstream_example, args.native_uart_fixture, args.static_net_queues,
                            args.wifi_probe, args.ble_probe, args.model_probe, args.ble_gatt_probe,
-                           args.ble_static_host)
+                           args.ble_static_host, args.model_load_probe, args.senlux_probe, args.senlux_app_probe)
             print(f"Build evidence: {report}\nPhysical board and application runtime remain untested.")
     except (QualificationError, OSError) as exc:
         print(str(exc), file=sys.stderr)

@@ -13,6 +13,7 @@
 #include "statusmon.h"
 #include "oledinst.h"
 #include "pwminst.h"
+#include "seninst.h"
 typedef int cfgbind_i2c_open_t (const i2cbus_config_t * p_config,
                                 i2cbus_t **             pp_bus);
 typedef int cfgbind_i2c_close_t (i2cbus_t * p_bus);
@@ -58,6 +59,12 @@ typedef struct
     rulecalc_state_t  state;
 } cfgbind_output_t;
 
+typedef struct
+{
+    seninst_t instance;
+    digiout_t enable;
+} cfgbind_light_t;
+
 typedef union
 {
     bmpinst_t         environment;
@@ -65,6 +72,7 @@ typedef union
     hcinst_t          distance;
     cfgbind_display_t display;
     cfgbind_output_t  output;
+    cfgbind_light_t   light;
 } cfgbind_context_t;
 typedef struct cfgbind_state cfgbind_state_t;
 
@@ -78,6 +86,7 @@ typedef struct
     bool                   b_touched;
     bool                   b_display;
     bool                   b_output;
+    bool                   b_light;
 } cfgbind_slot_t;
 
 /* Noncopyable, zero-initialized, application-lifetime storage. One serialized

@@ -1,4 +1,4 @@
-"""Strict decoding of version 1/2/3 typed observations (TELEMETRY.md)."""
+"""Strict decoding of version 1/2/3/4 typed observations (TELEMETRY.md)."""
 from dataclasses import dataclass
 import math
 import re
@@ -36,9 +36,9 @@ def decode_telemetry(frame: bytes, *, request_id: int) -> Snapshot:
         raise ValueError("telemetry checksum mismatch")
     data = frame[24:]
     h = struct.unpack_from("<40I", data)
-    if h[0] not in (1, 2, 3) or h[1] > 2:
+    if h[0] not in (1, 2, 3, 4) or h[1] > 2:
         raise ValueError("unsupported telemetry version/result")
-    header_size = {1: 160, 2: 320, 3: 352}[h[0]]
+    header_size = {1: 160, 2: 320, 3: 352, 4: 352}[h[0]]
     if len(data) < header_size:
         raise ValueError("truncated telemetry header")
     if h[1]:
@@ -55,7 +55,7 @@ def decode_telemetry(frame: bytes, *, request_id: int) -> Snapshot:
     offset = header_size
     for index in range(queues):
         q = struct.unpack_from("<8I", data, offset)
-        if q[0] != index or not 1 <= q[1] <= 4 or q[5] > q[6] or q[6] > 8 or q[7]:
+        if q[0] != index or not 1 <= q[1] <= (5 if h[0] == 4 else 4) or q[5] > q[6] or q[6] > 8 or q[7]:
             raise ValueError("invalid queue row")
         queue_rows.append(dict(zip(("index", "type", "published", "consumed", "dropped",
                                     "depth", "high_water"), q[:7])))
@@ -140,7 +140,7 @@ def _decode_audit(data):
 
 
 def _decode_value(kind, data):
-    used = 36 if kind == 2 else 8
+    used = 36 if kind == 2 else (4 if kind == 5 else 8)
     if any(data[used:]):
         raise ValueError("nonzero value padding")
     if kind == 1:
@@ -156,6 +156,11 @@ def _decode_value(kind, data):
         if event >= 8:
             raise ValueError("unknown health event")
         return dict(event=event, occurrences=occurrences)
+    if kind == 5:
+        millilux, = struct.unpack_from("<I", data)
+        if millilux > 200000000:
+            raise ValueError("invalid illuminance")
+        return dict(millilux=millilux)
     targets = []
     for index in range(3):
         flags, position, speed = struct.unpack_from("<3I", data, index * 12)

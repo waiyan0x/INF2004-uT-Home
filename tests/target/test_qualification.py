@@ -287,6 +287,71 @@ class QualificationTests(unittest.TestCase):
                     qualification.build(Path("kernel"), Path("sdk"), Path("unused"), wifi_probe=True, **options)
                 inspect.assert_not_called()
 
+    def test_senlux_probe_requires_isolation_before_any_build_work(self):
+        for options in ({}, {"runtime_port": True},
+                        {"runtime_port": True, "static_net_queues": True, "configuration_app": True},
+                        {"runtime_port": True, "static_net_queues": True, "wifi_probe": True},
+                        {"runtime_port": True, "static_net_queues": True, "model_probe": True}):
+            with self.subTest(options=options), patch.object(qualification, "inspect") as inspect:
+                with self.assertRaisesRegex(qualification.QualificationError, "SEN0390 probe"):
+                    qualification.build(Path("kernel"), Path("sdk"), Path("unused"), senlux_probe=True, **options)
+                inspect.assert_not_called()
+
+    def test_senlux_application_probe_requires_explicit_isolated_mode(self):
+        for options in ({}, {"runtime_port": True, "static_net_queues": True},
+                        {"runtime_port": True, "configuration_app": True},
+                        {"runtime_port": True, "static_net_queues": True, "configuration_app": True,
+                         "senlux_probe": True},
+                        {"runtime_port": True, "static_net_queues": True, "configuration_app": True,
+                         "model_load_probe": True}):
+            with self.subTest(options=options), patch.object(qualification, "inspect") as inspect:
+                with self.assertRaisesRegex(qualification.QualificationError, "SEN0390 application probe"):
+                    qualification.build(Path("kernel"), Path("sdk"), Path("unused"),
+                                        senlux_app_probe=True, **options)
+                inspect.assert_not_called()
+
+    def test_senlux_application_probe_checks_compiler_mode(self):
+        with tempfile.TemporaryDirectory() as folder:
+            work = Path(folder)
+            (work / "build").mkdir()
+            binder = work / "project/config/cfgbind.c"
+            database = work / "build/compile_commands.json"
+            def set_command(command):
+                database.write_text(json.dumps([{"file": str(binder), "command": command}]))
+            set_command("cc -DUTHOME_SENLUX_APP_PROBE=0 cfgbind.c")
+            self.assertFalse(qualification.verify_senlux_app_probe(work, False)["enabled"])
+            with self.assertRaises(qualification.QualificationError):
+                qualification.verify_senlux_app_probe(work, True)
+            set_command("cc -DUTHOME_SENLUX_APP_PROBE=1 cfgbind.c")
+            self.assertTrue(qualification.verify_senlux_app_probe(work, True)["diagnostic_only"])
+            set_command("cc -DUTHOME_SENLUX_APP_PROBE=1 -DUTHOME_SENLUX_APP_PROBE=0 cfgbind.c")
+            with self.assertRaises(qualification.QualificationError):
+                qualification.verify_senlux_app_probe(work, True)
+
+
+    def test_loaded_model_rejects_wrong_build_modes_before_side_effects(self):
+        for options in ({}, {'runtime_port': True, 'configuration_app': True},
+                        {'runtime_port': True, 'static_net_queues': True},
+                        {'runtime_port': True, 'configuration_app': True, 'static_net_queues': True, 'model_probe': True},
+                        {'runtime_port': True, 'configuration_app': True, 'static_net_queues': True, 'wifi_probe': True}):
+            with self.subTest(options=options), patch.object(qualification, 'inspect') as inspect:
+                with self.assertRaisesRegex(qualification.QualificationError, 'Loaded model probe'):
+                    qualification.build(Path('kernel'), Path('sdk'), Path('unused'), model_load_probe=True, **options)
+                inspect.assert_not_called()
+
+    def test_loaded_symbols_cannot_leak_or_initialize_radios(self):
+        expected = {'ailite_predict', 'aivects_count', 'aivects_get', 'aiload_observe'}
+        self.assertFalse(qualification.check_model_load_symbols(set(), False)['deployment_allowed'])
+        self.assertEqual(qualification.check_model_load_symbols(expected, True)['linked_symbols'], sorted(expected))
+        for name in expected:
+            with self.assertRaises(qualification.QualificationError):
+                qualification.check_model_load_symbols({name}, False)
+            with self.assertRaises(qualification.QualificationError):
+                qualification.check_model_load_symbols(expected - {name}, True)
+        for name in ['esp_wifi_init', 'esp_wifi_start', 'nimble_port_init']:
+            with self.assertRaises(qualification.QualificationError):
+                qualification.check_model_load_symbols(expected | {name}, True)
+
     def test_model_probe_requires_isolated_static_mode(self):
         for options in ({}, {'runtime_port': True},
                         {'runtime_port': True, 'static_net_queues': True, 'configuration_app': True},
@@ -470,7 +535,7 @@ class QualificationTests(unittest.TestCase):
             defaults.parent.mkdir(parents=True)
             defaults.write_bytes(b"CONFIG_IDF_TARGET=\"esp32c3\"\n")
             project, sources = qualification.stage_runtime_port(work)
-            self.assertEqual(len(sources), 195)
+            self.assertEqual(len(sources), 209)
             for name in ('stackmon', 'workcost', 'workmeter'):
                 self.assertIn(f'firmware/src/runtime/{name}.c', sources)
                 self.assertIn(f'firmware/src/runtime/{name}.h', sources)

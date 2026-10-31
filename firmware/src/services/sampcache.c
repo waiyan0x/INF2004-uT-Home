@@ -22,8 +22,9 @@ size_t sampcache_size (msgbus_type_t type)
                             sizeof(sample_environment_t),
                             sizeof(sample_target_report_t),
                             sizeof(sample_distance_t),
-                            sizeof(sample_health_t)};
-    return (type <= UTHOME_SAMPLE_HEALTH) ? sizes[type] : 0U;
+                            sizeof(sample_health_t),
+                            sizeof(sample_light_t)};
+    return (type <= UTHOME_SAMPLE_LIGHT) ? sizes[type] : 0U;
 }
 
 /** @brief Enroll one expected source, including an explicit missing state. */
@@ -197,6 +198,10 @@ static bool valid_value (msgbus_type_t type, const sampcache_value_t * p_value)
     if (UTHOME_SAMPLE_HEALTH == type)
     {
         return p_value->health.event < UTHOME_HEALTH_EVENT_COUNT;
+    }
+    if (UTHOME_SAMPLE_LIGHT == type)
+    {
+        return p_value->light.millilux <= 200000000U;
     }
     if (UTHOME_SAMPLE_TARGETS == type)
     {

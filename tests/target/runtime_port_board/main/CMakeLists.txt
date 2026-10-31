@@ -7,6 +7,9 @@ idf_component_register(SRCS "../discovery/discuart.c" "../discovery/disci2c.c" "
                        "../health/health.c" "../health/watchdog.c"
                        "../config/drvreg.c" "../hal/i2cbus.c" "../hal/i2cown.c" "../hal/c3i2c.c"
                        "../drivers/bmp388.c" "../drivers/bmpinst.c"
+                       "../drivers/geni2c.c"
+                       "../drivers/senlux.c"
+                       "../drivers/seninst.c"
                        "../hal/pinpool.c" "../hal/spibus.c" "../hal/spiown.c"
                        "../hal/c3pin.c" "../hal/c3spi.c"
                        "../drivers/ssd1306.c" "../drivers/oledinst.c"
@@ -31,6 +34,9 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE UTHOME_RUNTIME_UTKERNEL=1
     UTHOME_BLE_PROBE=$<BOOL:${UTHOME_BLE_PROBE}>
     UTHOME_BLE_GATT_PROBE=$<BOOL:${UTHOME_BLE_GATT_PROBE}>
     UTHOME_MODEL_PROBE=$<BOOL:${UTHOME_MODEL_PROBE}>
+    UTHOME_SENLUX_PROBE=$<BOOL:${UTHOME_SENLUX_PROBE}>
+    UTHOME_SENLUX_APP_PROBE=$<BOOL:${UTHOME_SENLUX_APP_PROBE}>
+    UTHOME_MODEL_LOAD_PROBE=$<BOOL:${UTHOME_MODEL_LOAD_PROBE}>
     UTHOME_NATIVE_UART_FIXTURE=$<BOOL:${UTHOME_NATIVE_UART_FIXTURE}>)
 if(UTHOME_CONFIGURATION_APP AND UTHOME_NATIVE_UART_FIXTURE)
     message(FATAL_ERROR "Application cannot include native UART fixture")
@@ -52,6 +58,9 @@ set_source_files_properties("../discovery/discuart.c" "../discovery/disci2c.c" "
     "../runtime/component.c" "../messaging/msgbus.c" "../health/health.c"
     "../health/watchdog.c" "../config/drvreg.c" "../hal/i2cbus.c" "../hal/i2cown.c"
     "../drivers/bmp388.c" "../drivers/bmpinst.c"
+    "../drivers/geni2c.c"
+    "../drivers/senlux.c"
+    "../drivers/seninst.c"
     "../hal/pinpool.c" "../hal/spibus.c" "../hal/spiown.c"
     "../drivers/ssd1306.c" "../drivers/oledinst.c"
     "../hal/uartio.c" "../hal/c3uart.c" "../hal/c3umem.c" "../drivers/ldparse.c"
@@ -227,3 +236,15 @@ target_sources(${COMPONENT_LIB} PRIVATE
 target_include_directories(${COMPONENT_LIB} PRIVATE "../model")
 set_source_files_properties("../model/aifrozen.c" "../model/aicases.c" "../model/aiprobe.c"
     PROPERTIES COMPILE_OPTIONS "-std=c99;${UTHOME_WARNINGS};-fstack-usage")
+
+# Only this explicit diagnostic redirects the application observer call.
+# The real costview implementation and ordinary USB/Apply paths are unchanged.
+target_sources(${COMPONENT_LIB} PRIVATE
+    "../loadmodel/ailite.c" "../loadmodel/aivects.c" "../loadmodel/aiload.c")
+target_include_directories(${COMPONENT_LIB} PRIVATE "../loadmodel")
+set_source_files_properties("../loadmodel/ailite.c" "../loadmodel/aivects.c" "../loadmodel/aiload.c"
+    PROPERTIES COMPILE_OPTIONS "-std=c99;${UTHOME_WARNINGS};-fstack-usage")
+if(UTHOME_MODEL_LOAD_PROBE)
+    set_property(SOURCE "../app/c3app.c" APPEND PROPERTY COMPILE_DEFINITIONS
+        costview_observe=aiload_observe)
+endif()

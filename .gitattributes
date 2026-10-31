@@ -7,6 +7,10 @@ firmware/third_party/patches/*.patch text eol=lf
 firmware/third_party/cjson/LICENSE text eol=lf
 # These new qualification records contain byte hashes of each other and raw logs.
 # Preserve their captured bytes on Windows and Unix; do not normalize evidence.
-ai/qualification/*2026102[67]*.json -text
-firmware/qualification/*2026102[67]*.json -text
+ai/qualification/*2026102[67]*.json -text whitespace=cr-at-eol
+firmware/qualification/*2026102[67]*.json -text whitespace=cr-at-eol
+ai/qualification/*2026103[01]*.json -text whitespace=cr-at-eol
+firmware/qualification/*2026103[01]*.json -text whitespace=cr-at-eol
 firmware/qualification/logs/*2026102[67]*.log -text
+# Frozen model fixtures are referenced by qualification hashes.
+tests/target/runtime_port_board/loadmodel/*.json -text whitespace=cr-at-eol

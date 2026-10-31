@@ -7,6 +7,7 @@ const drivers = {
   hlk_ld2450: ['HLK-LD2450', 'radar', 'violet'],
   hc_sr04: ['HC-SR04', 'ruler', 'cyan'],
   pwm_output: ['PWM output', 'gpio', 'teal'],
+  sen0390: ['SEN0390 light sensor', 'gauge', 'amber'],
 };
 const display = value => value === null || typeof value === 'object'
   ? '[invalid value]' : String(value);
@@ -115,6 +116,8 @@ export function renderTelemetry(snapshot) {
       pills.push(pill(sample, 'Distance', `${value.distance_mm} mm`, 'ruler', 'cyan'));
     } else if (sample.type === 2) {
       pills.push(pill(sample, 'Presence', `${value.targets.filter(t => t.present).length} targets`, 'radar', 'violet'));
+    } else if (sample.type === 5) {
+      pills.push(pill(sample, 'Light', `${(value.millilux / 1000).toFixed(3)} lux`, 'gauge', 'amber'));
     }
   }
   el('pills').replaceChildren(...(pills.length ? pills : [node('p', 'hint', 'No available sensor values in this snapshot.')]));

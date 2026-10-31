@@ -12,11 +12,21 @@ checkpoint narrative. Keep exact hashes, failed runs and source identities.
 |---|---|---|
 | Consolidated overnight handoff | [handoff](system-overnight-handoff-20261027.json) | Core stability and AI collection; not a full release |
 | Core lifecycle/scheduler | [core](esp32c3-scheduler-20261027.json) | USB image, rollback/capacity/reboot; combined radio load separate |
+| Radar app-state comparison | [captures](esp32c3-radar-app-comparison-20261027.json) | Initial silence, then healthy connected/disconnected windows; cause unresolved |
+| Radar readout on restored firmware | [capture](esp32c3-radar-readout-20261031.json) | No payload in a 60-s interval; requested phone-app attempts not timestamp-confirmed; cause unresolved |
+| SEN0390 sensor and application | [isolated light response](sen0390-isolated-light-response-20261031.json), [longer wait](sen0390-startup-wait-20261031.json), [BMP388 first](sen0390-bmp-first-20261031.json), [combined application](sen0390-combined-app-20261031.json) | Clear light response and short combined capture; radar timed out before, during and after; full acceptance remains open |
+| SEN0390 Desk rehearsal | [user-operated flow](sen0390-desk-rehearsal-20261031.json), [restoration](sen0390-desk-rehearsal-restore-20261031.json) | Diagnostic firmware, user-reported light response and one live snapshot; full acceptance remains open |
 | SPI polling correction | [comparison](esp32c3-spi-polling-20261027.json) | Tested clocks/deadlines; preserve old negative data |
 | Wi-Fi/BLE diagnostics | [radio](esp32c3-radio-diagnostics-20261027.json), [GATT](esp32c3-gatt-settle-20261027.json) | Scan/restart and read/reconnect; SDK allocations remain |
 | Remaining SDK semantics | [source audit](esp32c3-wireless-source-audit-20261027.json) | Source findings, not proof every path executed |
 | Source/build isolation | [static-host build](esp32c3-static-host-build-20261027.json), [regression](system-software-regression-20261027.json) | Build/test evidence, not hardware acceptance |
 | AI studies | [primary](../../ai/qualification/protocol-static-study-20261027.json), [stress](../../ai/qualification/protocol-stress-study-20261027.json) | Frozen benefit gates failed; deployment disabled |
+| Prospective varied-goal AI study | [design](../../ai/qualification/protocol-varied-goals-design-20261027.json) | Host preflight and predeclared criteria; no new training data |
+| Varied-goal collection | [completion](../../ai/qualification/protocol-varied-goals-completion-20261027.json), [first session](../../ai/qualification/protocol-varied-goals-session-a1-20261027.json), [home session / agent handoff](../../ai/qualification/protocol-varied-goals-session-a2-20261027.json) | 120 verified trials and 15 independent calibrations; order deviation retained, USB-only scope |
+| Varied-goal model evaluation | [evaluation](../../ai/qualification/protocol-varied-goals-evaluation-20261027.json) | All six held-out choices match the longest observed passing intervals and the simple rule; no added benefit over that rule, deployment disabled |
+| Varied-goal compact model | [C export](../../ai/qualification/protocol-varied-goals-compact-export-20261027.json) | 400 bytes classifier code/read-only tables; 1,132 parity vectors, no mismatches; no linked firmware or board latency evidence, benefit gate unchanged |
+| Varied-goal model with active peripherals | [loaded diagnostic](../../ai/qualification/protocol-varied-goals-loaded-probe-20261027.json) | Corrected OFF/ON procedure passed: 2,996 predictions, no mismatches, 85 us maximum four-call batch; failed first procedure retained (498 us maximum). Original firmware/profile restored; full advice, wireless and benefit gates remain open |
+| AI continuation and measured-rule comparison | [offline verification](../../ai/qualification/protocol-offline-tools-20261027.json) | Host regression and retained-journal replay; frozen tools used for the completed study |
 | Experimental target model | [probe](../../ai/qualification/model-target-probe-20261027.json) | Isolated parity/timing; loaded advice unqualified |
 
 Earlier records and companion `*-build.json` files remain in this folder; raw

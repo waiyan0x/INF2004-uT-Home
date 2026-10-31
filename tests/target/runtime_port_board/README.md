@@ -57,6 +57,19 @@ The build helper snapshots the exact adapter, activation/shared modules and
 their component/queue/health/watchdog dependencies. Preserve historical records;
 new runs belong in separate build and board evidence files.
 
+The separate `--senlux-probe` image checks the known BMP388 chip-ID register at
+0x77 before starting the fixed SEN0390 GPIO-enable/read sequence. It logs the
+preflight result and every light-read status without changing saved profiles.
+The preflight uses initialized one-byte buffers, a single 100 ms deadline and a
+synchronous, serialized read. It introduces no task, heap allocation or shared
+buffer lifetime. This is an isolated diagnostic, not four-device acceptance.
+
+`--senlux-app-probe` is a separate diagnostic configuration application. It
+enables the provisional light binding only for that build; use a full flash
+backup because applying the profile updates saved configuration. The host suite
+also compiles this explicit mode and checks four-worker activation, failed GPIO
+acquisition, light and fault samples, retained cleanup and recovery.
+
 ## Peripheral and configuration coverage
 
 The fixture links I2C/SPI/UART/GPIO drivers and configuration/admission modules
@@ -112,3 +125,27 @@ ordering/narrowing and checked cumulative time. Four-candidate indices remain
 within the corpus; checksum additions cannot exceed 2,048. Native counter fields
 are compared individually, never by structure padding. No heap, kernel-object
 creation, recursive calls, configuration mutation or new deviation is added.
+
+## Model comparison with active peripherals
+
+The separate `--model-load-probe` mode retains the configuration application
+and runs the varied-goal classifier during explicit workload observations.
+Use it with `--runtime-port --configuration-app --static-net-queues`; see the
+[loaded diagnostic procedure](../../../tools/target/README.md#loaded-classifier-diagnostic)
+for phase timing and its diagnostic-only reply contract. `loadmodel/fixture.json`
+binds `ailite`, the immutable `aivects` corpus and the `aiload` observer wrapper.
+Ordinary application builds must exclude all four diagnostic entry points.
+
+Use one serial owner and a sustainable combined-observer cadence. Keep the first
+settling period of each phase out of throughput comparisons. Worker stack
+sentinels are measured only after cooperative stop; retain null live readings
+and capture dormant margins after the timed windows, then restore the original
+profile and firmware. Preserve incomplete attempts and any procedure correction.
+This checks classifier load, not feature construction or full advice latency.
+
+Manual BARR-C review: the observer belongs to the existing serialized controller,
+uses fixed scalars, bounded four-call batches and a validated immutable tree.
+Time is checked before narrowing, cumulative counts cannot wrap within an
+accepted batch, and indices stay inside the frozen corpus. Replies use explicit
+word encoding and retain invalid-input checks. No allocator, task, lock, runtime
+model parser, Apply operation or new compatibility exception is introduced.

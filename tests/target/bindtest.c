@@ -59,6 +59,7 @@ static pulseio_t * pulse (uint8_t pair);
 static pwmio_t * pwm (uint8_t channel);
 static void load_profile (const char * p_variable);
 static void verify_output_binding (uint64_t * p_clock);
+static void verify_light_binding (void);
 static int read_slot (void *    p_context,
                       unsigned  slot,
                       size_t    offset,
@@ -167,7 +168,9 @@ void bindtest_run (uint64_t * p_clock)
     assert(0 == activate_clear());
     assert(0 == cfgbind_init(&g_binding, &g_io));
     assert(-1 == cfgbind_init(&g_binding, &g_io));
-    assert(31U == cfgbind_mask());
+    assert(
+        (31U == cfgbind_mask()) ||
+        ((63U == cfgbind_mask()) && (NULL != getenv("UTHOME_LIGHT_PROFILE"))));
     uint8_t frame[376] = {0};
     size_t  size       = 0U;
     assert(0 == cfgbind_capabilities(NULL, &frame[24], 352U, &size));
@@ -202,6 +205,10 @@ void bindtest_run (uint64_t * p_clock)
     verify_output_binding(p_clock);
     assert(0 == activate_clear());
     assert(NULL == g_binding.p_i2c);
+    if (NULL != getenv("UTHOME_LIGHT_PROFILE"))
+    {
+        verify_light_binding();
+    }
     disctest_run(&g_io, &g_store);
     puts("Production admission/binding, shared resources, driver replacement "
          "and safe-empty recovery passed.");
@@ -620,6 +627,58 @@ static void verify_output_binding (uint64_t * p_clock)
     assert(0 == activate_clear());
     assert((0U == g_outputs[0].duty_permille) &&
            (NULL == g_outputs[0].pwm.p_owner));
+}
+
+/** @brief Exercise provisional light admission, shared buses and cleanup. */
+static void verify_light_binding (void)
+{
+    load_profile("UTHOME_LIGHT_PROFILE");
+    const cfgctrl_ops_t * p_ops = cfgbind_operations();
+    /* The parser borrows the initialized character buffer as bytes. */
+    const uint8_t * p_profile = (const uint8_t *)g_display_profile;
+    const size_t    size      = strlen(g_display_profile);
+    assert(0 == p_ops->p_validate(&g_binding, p_profile, size));
+    assert((NULL == g_binding.p_i2c) && (!gb_lines_open[2]));
+    g_fail_line = 2;
+    assert(1 == p_ops->p_activate(&g_binding));
+    assert((NULL == g_binding.p_i2c) && (!gb_lines_open[2]));
+    g_fail_line = -1;
+    assert(0 == p_ops->p_validate(&g_binding, p_profile, size));
+    assert(0 == p_ops->p_activate(&g_binding));
+    assert((gb_lines_open[0]) && (gb_lines_open[1]) && (gb_lines_open[2]));
+    assert((5U == g_line_pins[2]) && (!g_lines[2].b_high));
+    assert(g_binding.slots[0].context.environment.p_bus ==
+           g_binding.slots[3].context.light.instance.p_bus);
+    g_i2c.b_light_present             = true;
+    g_i2c.light_data[0]               = 0xE8U;
+    g_i2c.light_data[1]               = 0x03U;
+    const rt_port_worker_t * p_worker = &g_binding.plan.devices[3].worker;
+    const uint64_t           start    = g_i2c.now_ms;
+    assert(0 == p_worker->p_step(p_worker->p_context));
+    g_i2c.now_ms = start + 1000U;
+    assert(0 == p_worker->p_step(p_worker->p_context));
+    assert(g_lines[2].b_high);
+    g_i2c.now_ms = start + 2000U;
+    assert(0 == p_worker->p_step(p_worker->p_context));
+    sample_light_t sample = {0};
+    assert(0 ==
+           shared_consume(3, UTHOME_SAMPLE_LIGHT, &sample, sizeof(sample)));
+    assert((UTHOME_SAMPLE_OK == sample.header.status) &&
+           (1400U == sample.millilux));
+    g_i2c.b_light_present = false;
+    assert(0 == p_worker->p_step(p_worker->p_context));
+    assert(0 ==
+           shared_consume(3, UTHOME_SAMPLE_LIGHT, &sample, sizeof(sample)));
+    assert((UTHOME_SAMPLE_IO == sample.header.status) &&
+           (0U == sample.millilux));
+    gb_line_close_fail = true;
+    assert(0 != activate_clear());
+    assert((gb_lines_open[2]) && (NULL != g_binding.p_i2c));
+    gb_line_close_fail = false;
+    assert(0 == activate_clear());
+    assert((!gb_lines_open[0]) && (!gb_lines_open[1]) && (!gb_lines_open[2]));
+    assert(NULL == g_binding.p_i2c);
+    puts("Provisional four-device light binding and cleanup passed.");
 }
 
 /* End of file. */

@@ -123,6 +123,11 @@ Older paths and checkpoint outcomes are indexed in the
 
 | Location relative to `Code` | Purpose |
 |---|---|
+| `build/member4-today-20261027/` | Radar phone-app comparison/stability journals, study-design preflight and AI test output; diagnostics are not training data |
+| `build/protocol-study-20261027-varied-r1/` | Verified varied-goal USB collection and `trained/` model/evaluation artifacts; benefit gate failed against the simple rule. Preserve calibration, frozen sources, inventory, failed attempts and superseded reports; heldouts are revealed |
+| `build/ai-loaded-20261027/`, `build/ai-loaded-20261027-cadence200/` | Compact classifier build archives, raw OFF/ON frames, plans, analyses and restoration receipts. Preserve the first failed procedure and corrected acceptance; `backup.json` locates and hashes the external 4 MiB flash backup |
+| `build/datasheet-ui-design/`, `build/datasheet-ui-check-final/`, `build/datasheet-work/` | Datasheet assistant design/comparison and experimental cross-compiled object; none qualifies SEN0390 on hardware |
+| `build/member4-offline-20261027/` | Regression output for verified collection continuation and the independent calibrated-rule comparison |
 | `build/system-completion-20261026-233938/` | Frozen builds, capture scripts, core/radio observations and verified `board-before-network.bin` 4 MiB backup; use its backup JSON/hash before recovery |
 | `build/protocol-study-20261027-static-r2/` | Primary USB-core study, raw journals, frozen sources and evaluation |
 | `build/protocol-study-20261027-stress-r3/` | Separate corrected stress study and evaluation; retain r1/r2 rejected/unexecuted plans too |

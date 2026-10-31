@@ -105,7 +105,7 @@ function render() {
   });
 }
 $("setup").addEventListener("change", e => {
-  state.plan = e.target.value; state.step = 0; selectedHole = null;
+  state.plan = e.target.value; state.step = PLANS[state.plan].initialStep ?? 0; selectedHole = null;
   $("hole-detail").textContent = "Select a hole to see its address and electrical connection.";
   state.allWires = false; state.mode = "overview"; save(); render();
 });
