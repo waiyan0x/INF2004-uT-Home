@@ -25,11 +25,12 @@ class LoadedModelTests(unittest.TestCase):
             raise AssertionError('GCC required')
         cls.temp = tempfile.TemporaryDirectory(prefix='uthome-model-fixture-')
         cls.addClassCleanup(cls.temp.cleanup)
-        library = Path(cls.temp.name) / 'fixture.dll'
+        library = Path(cls.temp.name) / ('fixture.dll' if sys.platform == 'win32' else 'fixture.so')
         subprocess.run([gcc, '-std=c99', '-Wall', '-Wextra', '-Werror', '-pedantic',
                         '-DUTHOME_MODEL_LOAD_PROBE=1', '-Dc3clock_now=loadfake_now', '-Dcostview_observe=loadfake_cost',
                         *[item for folder in ('firmware/include','firmware/src/runtime','firmware/src/config','firmware/src/services','firmware/hal/ports/esp32c3','tests/ai') for item in ('-I', str(ROOT/folder))],
-                        '-O2', '-shared', '-Wl,--export-all-symbols', '-I', str(FIXTURE),
+                        '-O2', '-shared', *(['-Wl,--export-all-symbols'] if sys.platform == 'win32' else ['-fPIC']),
+                        '-I', str(FIXTURE),
                         str(FIXTURE/'ailite.c'), str(FIXTURE/'aivects.c'),
                         str(FIXTURE/'aiload.c'), str(ROOT/'tests/ai/loadfake.c'), str(ROOT/'firmware/src/config/cfgbytes.c'),
                         '-o', str(library)], check=True, capture_output=True)

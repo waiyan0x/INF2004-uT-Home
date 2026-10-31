@@ -25,7 +25,7 @@ class FeatureTests(unittest.TestCase):
             raise AssertionError('GCC required')
         cls.temp = tempfile.TemporaryDirectory(prefix='uthome-adfeat-')
         cls.addClassCleanup(cls.temp.cleanup)
-        dll = Path(cls.temp.name) / 'adfeat.dll'
+        dll = Path(cls.temp.name) / ('adfeat.dll' if sys.platform == 'win32' else 'adfeat.so')
         includes = ['firmware/src/config', 'firmware/src/services', 'firmware/src/automation',
                     'firmware/third_party/cjson', 'firmware/include']
         sources = ['firmware/src/config/' + name + '.c' for name in
@@ -33,7 +33,8 @@ class FeatureTests(unittest.TestCase):
         sources += ['firmware/third_party/cjson/cJSON.c', 'firmware/src/services/adfeat.c',
                     'tests/ai/adfmain.c']
         command = [gcc, '-std=c99', '-Wall', '-Wextra', '-Werror', '-pedantic', '-O2',
-                   '-DCJSON_NESTING_LIMIT=8', '-shared', '-Wl,--export-all-symbols']
+                   '-DCJSON_NESTING_LIMIT=8', '-shared']
+        command += ['-Wl,--export-all-symbols'] if sys.platform == 'win32' else ['-fPIC']
         for name in includes:
             command += ['-I', str(ROOT / name)]
         subprocess.run(command + [str(ROOT / name) for name in sources] + ['-lm', '-o', str(dll)],
