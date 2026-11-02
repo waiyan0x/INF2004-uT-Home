@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "scope": "Development-only verification of conditional I2C address JSON; no new UI display, board access or independent evaluation",
+  "provider": "Gemini",
+  "model": "gemini-3.6-flash",
+  "prior_development_recheck": "ai/qualification/datasheet-development-recheck-20261101.json",
+  "schema_prototype_local": "build/datasheet-work/address-schema-probe-20261101-184235/result.json",
+  "schema_prototype_sha256": "db9023ea774905a6cdc5c181f3f07c8368ece420ebb4b1f56c670f618cf80ec0",
+  "live_run_local": "build/datasheet-work/address-live-20261101-184535/run.json",
+  "live_run_sha256": "06f31463942560715ebfa7c3af4a157479036d136e6847e7ae6eb3aa3995f28c",
+  "live_extractor_sha256": "e779afb8e3001040949d881a70b206998dd9fc2565f71124af7fb19af4bfee0e",
+  "offline_replay_extractor_sha256": "df90aefe882d53244289ac2d4dc7f9bd56c3636db552a62b3f0414306e3969a9",
+  "live_attempts": 3,
+  "results": [
+    {
+      "file": "Sensirion_Datasheet_SHT4x.pdf",
+      "pdf_sha256": "c615676c5b1ddc7b1e389eb7c93345f20e4a88dadc36ebe2eb93074559cbc614",
+      "draft_sha256": "b284ac227ff209590de5562051b12abb72aae4f24d71c77c32e6ecf681c0c7fb",
+      "conditional_7bit_addresses": [68, 69, 70],
+      "scalar_address_fields_null": true,
+      "observation": "Three ordering-dependent options with cited pages; the model did not duplicate address options as facts, though it mentioned the choices in unresolved text."
+    },
+    {
+      "file": "adxl345.pdf",
+      "pdf_sha256": "87ae2212498c35a6759d8732adee0ec9b9d8d60fa95688bc5904f1f07ceb8ff6",
+      "draft_sha256": "bbd37d2dfe510ab8841f3e2d44c6ec4b3fbf89604d6e8070c1ff964f4ea3b67e",
+      "conditional_7bit_addresses": [29, 83],
+      "scalar_address_fields_null": true,
+      "observation": "Two pin-dependent options with cited pages."
+    },
+    {
+      "file": "SEN0390.pdf",
+      "pdf_sha256": "e25c86fe30ce4511ff275d2f2051a395a66ef5c13455957e5406b21b5e7a5247",
+      "draft_sha256": "c4414408d59168d4017f19921df7fd58396f31285708fe11d2aa729c77cf1421",
+      "conditional_7bit_addresses": [],
+      "scalar_address_7bit": 74,
+      "observation": "No conditional choices were returned; the documented scalar address remained available."
+    }
+  ],
+  "offline_replay": "All three saved model drafts passed the stricter local rule requiring unresolved text for conditional options; no model calls were made for that replay.",
+  "limitations": [
+    "The same development documents were reused and one response per case does not establish model accuracy or repeatability.",
+    "Bounded structure, condition strings and in-range citations do not prove factual correctness or completeness.",
+    "The existing Desk renders facts and unresolved text but does not yet provide a dedicated structured-options display.",
+    "No model-generated option is used for hardware access or copied into a profile."
+  ],
+  "acceptance_status": "not qualified"
+}

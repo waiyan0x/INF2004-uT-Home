@@ -39,7 +39,7 @@ so they inherit it. Keep the key private and out of the repository. The optional
 `UTHOME_GEMINI_MODEL` user variable selects a Gemini model supporting PDF input
 and structured output. See the [Gemini documentation](https://ai.google.dev/gemini-api/docs/structured-output).
 
-Check a reviewed catalogue ID against the connected firmware, choose its address
+Check a reviewed catalogue ID or supported product-name alias against the connected firmware, choose its address
 and GPIO pins, and confirm the actual module and electrical wiring. The periodic
 I2C draft builder uses reviewed catalogue defaults, rejects conflicting pins and
 missing drivers, and changes only the draft. Use the normal review and Apply
@@ -48,6 +48,13 @@ unavailable in normal firmware: a diagnostic build exercised the reviewed Desk
 backend and light sensor, but full combined-system acceptance remains open.
 When supported light telemetry is available, the live monitor shows illuminance
 in lux with the source name and freshness.
+The reviewed alias `HLK-LD2450` maps to `hlk_ld2450`; other punctuation and
+unknown names are not inferred. UART devices still use their existing device flow.
+An extracted address can depend on the variant or wiring; compare the cited facts
+and confirm the physical module. Draft JSON version 0.2.0 can include conditional
+address options; they are not automatically copied into the profile, and their
+dedicated display is pending. The existing facts and uncertainties may describe
+options but are model-generated and can still be incorrect.
 
 1. In **Profile**, choose an example or import JSON. Open **Edit profile JSON**
    for custom instances, wiring, timing and routes. Optional discovery is under

@@ -34,7 +34,7 @@ The command sends the PDF to Gemini, then prints an unreviewed JSON draft.
 PDFs over 2 MiB or 60 pages are rejected rather than truncated. Gemini can
 inspect page images, but its facts and page references still need review. The
 local server also exposes a bounded `/api/datasheet` request and a separate
-`datasheet_match` operation for exact catalogue-name candidates. The Desk offers
+`datasheet_match` operation for reviewed catalogue-name candidates. The Desk offers
 the same draft flow for reviewed periodic I2C devices with connected drivers.
 Analysis does not hold the USB workflow lock. A live Gemini test, including the
 Desk endpoint, returned unreviewed SEN0390 drafts; see the
@@ -47,6 +47,16 @@ compares selected claims in both saved Gemini drafts with the original PDF. Both
 identified the address and register discrepancies, but only one flagged the
 EEPROM range and only the other flagged inconsistent light units. The review is
 not a complete draft audit or a general extraction-accuracy evaluation.
+
+A frozen [exploratory evaluation](qualification/datasheet-evaluation-results-20261101.json)
+reviewed selected facts in five Gemini drafts against downloaded PDFs. It found
+missing details and ambiguity around variant addresses; the known BMP388 PDF was
+rejected locally because it is encrypted. The small, single-attempt review does
+not qualify extraction accuracy. The radar name mismatch found in that study is
+now covered by one reviewed alias; unknown spellings are not guessed.
+A [development recheck](qualification/datasheet-development-recheck-20261101.json)
+showed conditional address reporting in two examples but also an incorrect radar
+frame length. The documents were reused and the results are not an independent test.
 
 A previous live Groq connection returned SEN0390 drafts, but the results omitted or
 misstated address evidence and did not identify all known register conflicts.
@@ -63,6 +73,18 @@ capabilities and explicit pin/address confirmation. It validates the original
 and resulting node profiles, rechecks the board state and returns a draft only.
 AI-generated operations are never used by the builder. The existing review token
 and Apply checks still apply to the complete resulting profile.
+
+Version 0.2.0 of the draft adds bounded, cited conditional I2C address options.
+Options require an unresolved point and cannot coexist with a single scalar
+address, but valid structure does not prove the model found every option or
+correctly described its condition.
+The Desk currently shows model facts and unresolved questions; a dedicated
+options display remains pending. The profile builder selects addresses only
+from the reviewed descriptor, not the model's address fields. Verify the source
+and physical variant; no generic variant detection is claimed.
+A [development probe](qualification/datasheet-address-options-probe-20261101.json)
+exercised the new JSON on three previously used datasheets; it is not an
+independent accuracy or hardware acceptance test.
 
 The [mandatory static-memory change](../firmware/README.md#mandatory-static-memory-change)
 now takes priority before deployment qualification. Preserve historical measured

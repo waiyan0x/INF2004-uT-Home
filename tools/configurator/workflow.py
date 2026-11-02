@@ -20,6 +20,9 @@ from .contracts import ConnectionResult, ReplyData, ReviewResult
 STATUS = ("Active", "Active and saved", "Active; saving failed", "Rejected", "Recovery required",
           "Stale revision", "Request conflict", "Storage error", "Empty")
 
+# Reviewed product-name aliases are candidate suggestions, not identification.
+DATASHEET_ALIASES = {"hlk-ld2450": "hlk_ld2450"}
+
 def open_serial(port):
     require(isinstance(port, str) and 0 < len(port) <= 128, "Choose an explicit serial port")
     import serial
@@ -170,9 +173,11 @@ class Workflow:
         require(isinstance(name, str) and 0 < len(name) <= 160,
                 "Enter a device name from the draft")
         observed = self.client.capabilities() if self.client is not None else None
+        candidate = name.strip().casefold()
+        candidate = DATASHEET_ALIASES.get(candidate, candidate)
         matches = []
         for (identifier, version), descriptor in self.catalogue.descriptors.items():
-            if identifier.casefold() == name.strip().casefold():
+            if identifier.casefold() == candidate:
                 driver = descriptor["driver_id"]
                 matches.append({"descriptor_id": identifier, "descriptor_version": version,
                                 "driver_id": driver,
