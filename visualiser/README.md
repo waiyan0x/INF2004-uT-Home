@@ -134,6 +134,9 @@ Server tests launch an isolated loopback process on a temporary available port.
 They check the asset allowlist, GET/HEAD responses, security headers, rejected
 methods and paths, invalid configured ports, and continued service after malformed
 request URLs. They never connect to the ESP.
+Missing-asset tests use an isolated server copy: the browser receives a generic
+500 response, while the local console retains the asset name and original error.
+Restoring that asset must let the same process serve it successfully.
 
 From the repository root, `npm run test:browser -- visualiser.spec.mjs` runs
 the actual browser modules through every setup, endpoint rendering, overview
@@ -141,6 +144,9 @@ and narrow focus views, navigation, persisted progress, invalid saved state
 and unavailable browser storage. Distinct cases cover module close-ups, resistor
 values, placement focus, power instructions and explicit ESP display hints. These checks require the Playwright Chromium
 installation described in the [test guide](../tests/README.md).
+One smoke test also starts the real loopback server on a temporary available port
+and checks initialization, stylesheet loading and navigation under its actual
+Content Security Policy, with no policy violations or browser exceptions.
 
 Endpoint and step variants are documented with JSDoc in `plan.mjs`. Coordinate
 helpers either validate their documented input or require already validated

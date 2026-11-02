@@ -43,7 +43,8 @@ const server = http.createServer(async (req, res) => {
       "Content-Security-Policy": "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'",
     });
     res.end(req.method === "HEAD" ? undefined : data);
-  } catch {
+  } catch (error) {
+    console.error(`Unable to serve visualiser asset ${entry[0]}:`, error);
     res.writeHead(500, { "Content-Type": "text/plain" }).end("Unable to read visualiser file");
   }
 });

@@ -2,8 +2,37 @@ import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { extname } from 'node:path';
 import { PLANS, REVISION, address } from '../../visualiser/dist/plan.mjs';
+import { startGuide } from '../../visualiser/tests/server-process.mjs';
 
 const storageKey = `uthome-wiring-${REVISION}`;
+
+test('the guide initializes and navigates under the real server security policy', async ({page}) => {
+  const server = await startGuide();
+  try {
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.addInitScript(() => {
+      globalThis.policyViolations = [];
+      globalThis.addEventListener('securitypolicyviolation', event => {
+        globalThis.policyViolations.push(event.violatedDirective);
+      });
+    });
+    const response = await page.goto(`http://127.0.0.1:${server.port}/`);
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-security-policy']).toContain("script-src 'self'");
+    await expect(page.locator('#setup option')).toHaveCount(Object.keys(PLANS).length);
+    await expect(page.locator('#step-title')).toHaveText(PLANS.foundation.steps[0].title);
+    await page.locator('#next').click();
+    await expect(page.locator('#step-title')).toHaveText(PLANS.foundation.steps[1].title);
+    const stylesLoaded = await page.evaluate(() => Array.from(globalThis.document.styleSheets)
+      .some(sheet => sheet.href?.endsWith('/style.css') && sheet.cssRules.length > 0));
+    expect(stylesLoaded).toBe(true);
+    expect(await page.evaluate(() => globalThis.policyViolations)).toEqual([]);
+    expect(errors).toEqual([]);
+  } finally {
+    await server.stop();
+  }
+});
 
 async function openGuide(page, saved) {
   const errors = [];
