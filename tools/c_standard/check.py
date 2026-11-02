@@ -425,6 +425,19 @@ def check_source(path: str, source: str,
                                 token.column if token else column,
                                 rule, message, symbol))
 
+    def check_identifier(token: Token) -> None:
+        if token.value in FORBIDDEN:
+            add(FORBIDDEN[token.value], f"Avoid the token '{token.value}'.",
+                token, symbol=token.value)
+        if token.value in JUMPS:
+            add("8.5.b", f"Do not use {token.value}().", token, symbol=token.value)
+        atomic = token.value == "_Atomic" or token.value.startswith(
+            ("atomic_", "ATOMIC_", "memory_order_"))
+        if ((atomic and not atomic_allowed)
+                or (token.value in C11_KEYWORDS and not (atomic and atomic_allowed))):
+            add("1.1.a", "C11 constructs are restricted to the documented atomic profile.",
+                token, symbol=token.value)
+
     filename = Path(path).name
     if not re.fullmatch(r"[a-z][a-z0-9_]*\.[ch]", filename):
         add("4.1.a", "Use a lowercase module filename.", symbol=filename)
@@ -454,14 +467,7 @@ def check_source(path: str, source: str,
             if any(part in body for part in ("/*", "//", "\\")):
                 add("2.1.b", "Comment contains a nested comment token or backslash.", token)
         if token.kind == "identifier" and not token.directive:
-            if token.value in FORBIDDEN:
-                add(FORBIDDEN[token.value], f"Avoid the token '{token.value}'.", token, symbol=token.value)
-            if token.value in JUMPS:
-                add("8.5.b", f"Do not use {token.value}().", token, symbol=token.value)
-            atomic = token.value == "_Atomic" or token.value.startswith(("atomic_", "ATOMIC_", "memory_order_"))
-            if ((atomic and not atomic_allowed)
-                    or (token.value in C11_KEYWORDS and not (atomic and atomic_allowed))):
-                add("1.1.a", "C11 constructs are restricted to the documented atomic profile.", token, symbol=token.value)
+            check_identifier(token)
     if not all_tokens or all_tokens[-1].kind != "comment" or not re.search(
             r"\bend\s+of\s+file\b", all_tokens[-1].value, re.IGNORECASE):
         add("3.3.c", "End the source with an end-of-file comment and a blank line.")
@@ -495,15 +501,8 @@ def check_source(path: str, source: str,
                 add("6.3.a", "A function-like macro needs a specific documented deviation.",
                     name, symbol=name.value)
             for token in directive[3:]:
-                if token.kind == "identifier" and token.value in FORBIDDEN:
-                    add(FORBIDDEN[token.value], f"Avoid the token '{token.value}'.",
-                        token, symbol=token.value)
-                if token.kind == "identifier" and token.value in JUMPS:
-                    add("8.5.b", f"Do not use {token.value}().", token, symbol=token.value)
-                atomic = token.value == "_Atomic" or token.value.startswith(("atomic_", "ATOMIC_", "memory_order_"))
-                if token.kind == "identifier" and ((atomic and not atomic_allowed)
-                        or (token.value in C11_KEYWORDS and not (atomic and atomic_allowed))):
-                    add("1.1.a", "C11 constructs are restricted to the documented atomic profile.", token, symbol=token.value)
+                if token.kind == "identifier":
+                    check_identifier(token)
         if action == "include" and len(directive) >= 3:
             include = "".join(token.value for token in directive[2:]).strip('<>"')
             if include in C11_HEADERS and not (include == "stdatomic.h" and atomic_allowed):

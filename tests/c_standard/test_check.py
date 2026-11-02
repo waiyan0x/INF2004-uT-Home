@@ -299,6 +299,41 @@ class FormatPolicyTests(unittest.TestCase):
 
 
 class LanguageProfileTests(unittest.TestCase):
+    def test_token_policy_is_consistent_in_code_and_macro_bodies(self):
+        tokens = {
+            "auto": "1.7.a", "register": "1.7.b", "short": "5.2.b",
+            "long": "5.2.b", "abort": "8.5.b", "exit": "8.5.b",
+            "setjmp": "8.5.b", "longjmp": "8.5.b", "_Atomic": "1.1.a",
+            "atomic_int": "1.1.a", "ATOMIC_INT_LOCK_FREE": "1.1.a",
+            "memory_order_relaxed": "1.1.a", "_Static_assert": "1.1.a",
+        }
+        atomic_tokens = {"_Atomic", "atomic_int", "ATOMIC_INT_LOCK_FREE",
+                         "memory_order_relaxed"}
+        for word, rule in tokens.items():
+            for atomic_allowed in (False, True):
+                for prefix in ("", "#define SAMPLE "):
+                    with self.subTest(word=word, atomic_allowed=atomic_allowed,
+                                      prefix=prefix):
+                        found = CHECK.check_source(
+                            "sample.c", complete(prefix + word),
+                            atomic_allowed=atomic_allowed)
+                        matches = [(item.rule, item.line, item.column, item.symbol)
+                                   for item in found if item.rule == rule]
+                        expected = ([] if atomic_allowed and word in atomic_tokens
+                                    else [(rule, 1, len(prefix) + 1, word)])
+                        self.assertEqual(expected, matches)
+
+    def test_directive_names_literals_and_comments_are_not_token_uses(self):
+        source = '''#if defined(atomic_int)
+#undef atomic_int
+#define atomic_int 1
+#define LABEL "abort _Atomic long"
+/* abort _Atomic long */
+#endif'''
+        found = CHECK.check_source("sample.c", complete(source))
+        self.assertFalse({"1.1.a", "1.7.a", "1.7.b", "5.2.b", "8.5.b"}
+                         & {item.rule for item in found})
+
     def test_atomic_constructs_require_the_explicit_profile(self):
         source = "#include <stdatomic.h>\nstatic atomic_int g_value;"
         self.assertIn("1.1.a", rules(source))
