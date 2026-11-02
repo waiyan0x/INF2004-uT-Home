@@ -19,6 +19,39 @@ export const ESP_PINS = [
   { label: "1", row: 35, column: "h", access: "j35" },
   { label: "0", row: 36, column: "h", access: "j36" },
 ];
+/**
+ * @typedef {'A'|'B'} Board
+ * @typedef {'radar'|'bmp'|'oled'|'distance'|'light'} ModuleId
+ * @typedef {{type:'grid', board:Board, column:string, row:number} |
+ *   {type:'rail', board:Board, side:'L'|'R', sign:'+'|'-', index:number} |
+ *   {type:'module', module:ModuleId, pin:string}} Endpoint
+ * @typedef {Object} StepDetails
+ * @property {string} id
+ * @property {string} title
+ * @property {string} instruction
+ * @property {string} check
+ * @property {string} phase
+ * @property {string} [note]
+ * @property {'controlled'} [power]
+ * @property {ModuleId} [module]
+ * @property {boolean} [focusEsp]
+ * @property {boolean} [showEsp] ESP is fully visible unless explicitly false.
+ * @typedef {StepDetails & {kind:'check', endpoints?:string[]}} CheckStep
+ * @typedef {StepDetails & {kind:'wire', from:string, to:string,
+ *   net:'ground'|'v33'|'v5'|'signal', resistor?:number}} WireStep
+ * @typedef {CheckStep|WireStep} Step
+ * @typedef {{name:string, description:string, modules:ModuleId[],
+ *   steps:Step[], initialStep?:number}} Plan
+ */
+
+/**
+ * Parse an endpoint ID shared by address/description/strip/diagram helpers.
+ * Grid IDs use A:a1..j63 or B:a0..j60; rails use A/B:L/R +/- 1..50;
+ * module IDs must name a listed module and one of its printed ports.
+ * @param {string} id
+ * @returns {Endpoint}
+ * @throws {Error} If the ID is malformed, out of bounds or names an unknown port.
+ */
 export function parseEndpoint(id) {
   const grid = /^([AB]):([a-j])(0|[1-9]\d?)$/.exec(id);
   if (grid) {
@@ -31,28 +64,60 @@ export function parseEndpoint(id) {
   if (port && MODULES[port[1]].ports.includes(port[2])) return { type: "module", module: port[1], pin: port[2] };
   throw new Error(`Unknown endpoint: ${id}`);
 }
+/**
+ * @param {string} id Endpoint ID accepted by parseEndpoint.
+ * @returns {string}
+ * @throws {Error} Propagates parseEndpoint's invalid-ID error.
+ */
 export function address(id) {
   const e = parseEndpoint(id);
   if (e.type === "module") return `${MODULES[e.module].short} · ${e.pin}`;
   return `${e.board} · ${id.split(":")[1].replace("-", "−")}`;
 }
+/**
+ * @param {string} id Endpoint ID accepted by parseEndpoint.
+ * @returns {string}
+ * @throws {Error} Propagates parseEndpoint's invalid-ID error.
+ */
 export function endpointDescription(id) {
   const e = parseEndpoint(id);
   if (e.type === "module") return `Use the module's printed ${e.pin} label. Illustrated port order is schematic.`;
   if (e.type === "rail") return `Board ${e.board}, ${e.side === "R" ? "right" : "left"} ${e.sign === "-" ? "blue −" : "red +"} rail. Count hole ${e.index} from the top, skipping gaps.`;
   if (e.board === "B") return `Board B, bottom column ${e.column.toUpperCase()}, RIGHT-hand printed row ${e.row}. The left edge shows ${60 - e.row} at this height. Two unnumbered rows sit above row 0.`;
   const pin = e.board === "A" && ESP_PINS.find(p => p.row === e.row && ((p.column < "f") === (e.column < "f")));
-  return `Board ${e.board}, column ${e.column}, printed row ${e.row}.${pin ? ` Same five-hole strip as ESP ${pin.label === "G" ? "ground (G)" : pin.label === "3.3" ? "3.3 V" : pin.label === "5V" ? "5 V" : `GPIO${pin.label}`}.` : ""}`;
+  let sameStrip = "";
+  if (pin) {
+    const supplyLabels = { G: "ground (G)", "3.3": "3.3 V", "5V": "5 V" };
+    const pinLabel = supplyLabels[pin.label] ?? `GPIO${pin.label}`;
+    sameStrip = ` Same five-hole strip as ESP ${pinLabel}.`;
+  }
+  return `Board ${e.board}, column ${e.column}, printed row ${e.row}.${sameStrip}`;
 }
 // Board B uses the bottom A–J letters and right-edge 0–60 numbers in the photo.
 // Its first two physical rows are unnumbered and deliberately unused.
+/**
+ * Convert already validated coordinates; performs no input validation.
+ * @param {Board} board
+ * @param {number} row Integer 1..63 for A or 0..60 for B.
+ * @returns {number} Physical row 1..63.
+ */
 export function physicalGridRow(board, row) {
   return board === "B" ? row + 3 : row;
 }
+/**
+ * @param {number} index Integer hole count from the top, 1..50.
+ * @returns {number} Physical rail row, accounting for the gaps.
+ * @throws {Error} If index is not an integer in 1..50.
+ */
 export function railRow(index) {
   if (!Number.isInteger(index) || index < 1 || index > 50) throw new Error("Rail index must be 1..50");
   return 3 + 6 * Math.floor((index - 1) / 5) + (index - 1) % 5;
 }
+/**
+ * @param {string} id Endpoint ID accepted by parseEndpoint.
+ * @returns {string} Conservative electrical-node identity.
+ * @throws {Error} Propagates parseEndpoint's invalid-ID error.
+ */
 export function connectedStrip(id) {
   const e = parseEndpoint(id);
   if (e.type === "grid") return `${e.board}:${e.column <= "e" ? "ae" : "fj"}${e.row}`;
@@ -67,9 +132,27 @@ export const MODULES = {
   distance: { short: "HC-SR04", name: "HC-SR04 · 5 V", ports: ["VCC", "TRIG", "ECHO", "GND"], x: 390, y: 32, w: 224, h: 100, location: "Above Board B · transducers face the target" },
   light: { short: "SEN0390", name: "SEN0390 · I2C light", ports: ["VCC", "SCL", "SDA", "GND", "EN"], x: 42, y: 866, w: 260, h: 104, location: "Below Board A · on a nonconductive support" },
 };
+/**
+ * @param {string} id
+ * @param {string} title
+ * @param {string} instruction
+ * @param {string} test
+ * @param {Partial<StepDetails> & {endpoints?:string[]}} [options]
+ * @returns {CheckStep}
+ */
 const check = (id, title, instruction, test, options = {}) => ({
   id, title, instruction, check: test, phase: "Prepare", kind: "check", ...options,
 });
+/**
+ * @param {string} id
+ * @param {string} title
+ * @param {string} from
+ * @param {string} to
+ * @param {'ground'|'v33'|'v5'|'signal'} net
+ * @param {string} instruction
+ * @param {Partial<StepDetails> & {resistor?:number}} [options]
+ * @returns {WireStep}
+ */
 const wire = (id, title, from, to, net, instruction, options = {}) => ({
   id, title, from, to, net, instruction, kind: "wire", phase: "Power & ground",
   check: "Both ends are fully seated in the highlighted holes. USB and any external supply remain unplugged.",
@@ -155,6 +238,7 @@ const light = [
 function finish(id, description) {
   return check(`${id}-finish`, "Review, then run the matching profile", "Inspect every endpoint and voltage before power-up. Connect USB only after these checks, then review and apply the matching profile through Configuration Desk.", description, { phase: "Bench test", power: "controlled", note: "A diagram is not acceptance evidence. Stop on recovery errors, wrong voltages or recurring communication faults. Save an empty profile and unplug all power before changing this wiring." });
 }
+/** @type {Record<string, Plan>} */
 export const PLANS = {
   foundation: { name: "01 · Empty boards & power", description: "Start here. Place the ESP and connect ground and 3.3 V across both boards.", modules: [], steps: foundation },
   radar: { name: "02 · Radar only", description: "Isolate the radar first. Add a separately labelled 5 V rail, then four radar connections.", modules: ["radar"], steps: [...foundation, ...fiveVolt, ...radar, finish("radar", "Valid moving-target reports, then valid zero-target reports, then movement again. Hardware stays stationary. Current radar reliability remains unresolved.")] },

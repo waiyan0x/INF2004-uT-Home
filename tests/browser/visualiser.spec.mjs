@@ -114,3 +114,86 @@ test('the guide remains usable when browser storage is unavailable', async ({pag
   expect(warnings.filter(message => message.startsWith('Saved wiring progress could not be loaded.'))).toHaveLength(1);
   expect(warnings.filter(message => message.startsWith('Wiring progress could not be saved.'))).toHaveLength(1);
 });
+
+test('module connections use module close-ups and labelled port instructions', async ({page}) => {
+  const errors = await openGuide(page);
+  await page.setViewportSize({width: 1600, height: 1000});
+  const plan = PLANS.bmp;
+  const index = plan.steps.findIndex(step => step.kind === 'wire' && step.to.startsWith('bmp:'));
+  const step = plan.steps[index];
+  await page.locator('#setup').selectOption('bmp');
+  await page.locator(`[data-step="${index}"]`).click();
+  await page.locator('#focus').click();
+  const panels = page.locator('#bench > svg');
+  await expect(panels).toHaveCount(2);
+  expect((await panels.nth(1).getAttribute('viewBox')).split(' ').map(Number)[2]).toBe(285);
+  await expect(page.locator('#bench')).toContainText('Use the printed module label');
+  await expect(page.locator('#endpoints')).toContainText(address(step.to));
+  await expect(page.locator('#endpoints')).toContainText('Illustrated port order is schematic.');
+  expect(errors).toEqual([]);
+});
+
+test('divider resistors retain their values and both highlighted endpoints', async ({page}) => {
+  const errors = await openGuide(page);
+  const plan = PLANS.distance;
+  const index = plan.steps.findIndex(step => step.kind === 'wire' && step.resistor);
+  const step = plan.steps[index];
+  await page.locator('#setup').selectOption('distance');
+  await page.locator(`[data-step="${index}"]`).click();
+  const wire = page.locator(`#bench [data-wire="${step.id}"]`);
+  await expect(wire.locator('rect')).toHaveCount(1);
+  await expect(wire).toContainText(`${step.resistor / 1000} kΩ`);
+  await expect(wire.locator('.endpoint-ring')).toHaveCount(2);
+  await expect(page.locator('#endpoints')).toContainText(address(step.from));
+  await expect(page.locator('#endpoints')).toContainText(address(step.to));
+  expect(errors).toEqual([]);
+});
+
+test('placement focus has distinct ESP and module views', async ({page}) => {
+  const errors = await openGuide(page);
+  await expect(page.locator('#bench [data-component="esp"]')).toHaveAttribute('opacity', '0.16');
+  const esp = PLANS.foundation.steps.findIndex(step => step.focusEsp);
+  await page.locator(`[data-step="${esp}"]`).click();
+  await page.locator('#focus').click();
+  await expect(page.locator('#bench')).toHaveAttribute('viewBox', '0 0 700 500');
+  await expect(page.locator('#bench [data-component="esp"]')).toHaveAttribute('opacity', '1');
+  const module = PLANS.radar.steps.findIndex(step => step.kind === 'check' && step.module === 'radar');
+  await page.locator('#setup').selectOption('radar');
+  await page.locator(`[data-step="${module}"]`).click();
+  await page.locator('#focus').click();
+  await expect(page.locator('#bench')).toHaveAttribute('viewBox', '0 0 700 350');
+  await expect(page.locator('#bench > svg')).toHaveCount(1);
+  await expect(page.locator('#bench [data-component="radar"]')).toHaveAttribute('opacity', '1');
+  expect(errors).toEqual([]);
+});
+
+test('controlled-power checks return to unplugged instructions for wiring', async ({page}) => {
+  const errors = await openGuide(page);
+  const controlled = PLANS.foundation.steps.findIndex(step => step.power === 'controlled');
+  const wire = PLANS.foundation.steps.findIndex(step => step.kind === 'wire');
+  await page.locator(`[data-step="${controlled}"]`).click();
+  await expect(page.locator('#power-state')).toHaveText('Power only for this check');
+  await expect(page.locator('.power-banner')).toHaveClass(/measure/);
+  await page.locator(`[data-step="${wire}"]`).click();
+  await expect(page.locator('#power-state')).toHaveText('USB unplugged');
+  await expect(page.locator('.power-banner')).not.toHaveClass(/measure/);
+  expect(errors).toEqual([]);
+});
+
+test('ESP display hints survive placement-step renaming', async ({page}) => {
+  const errors = await openGuide(page);
+  const opacities = await page.evaluate(async () => {
+    const {PLANS} = await import('/plan.mjs');
+    const {renderDiagram} = await import('/diagram.mjs');
+    const plan = structuredClone(PLANS.foundation);
+    const placement = plan.steps.findIndex(step => step.id === 'esp');
+    plan.steps[placement].id = 'renamed-placement';
+    const svg = globalThis.document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    return [0, placement].map(index => {
+      renderDiagram(svg, plan, index, 'overview', false, null);
+      return svg.querySelector('[data-component="esp"]').getAttribute('opacity');
+    });
+  });
+  expect(opacities).toEqual(['0.16', '1']);
+  expect(errors).toEqual([]);
+});

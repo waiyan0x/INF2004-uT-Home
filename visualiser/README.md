@@ -138,5 +138,11 @@ request URLs. They never connect to the ESP.
 From the repository root, `npm run test:browser -- visualiser.spec.mjs` runs
 the actual browser modules through every setup, endpoint rendering, overview
 and narrow focus views, navigation, persisted progress, invalid saved state
-and unavailable browser storage. These checks require the Playwright Chromium
+and unavailable browser storage. Distinct cases cover module close-ups, resistor
+values, placement focus, power instructions and explicit ESP display hints. These checks require the Playwright Chromium
 installation described in the [test guide](../tests/README.md).
+
+Endpoint and step variants are documented with JSDoc in `plan.mjs`. Coordinate
+helpers either validate their documented input or require already validated
+coordinates. `showEsp` is the renderer's explicit per-step visibility hint; step
+identifiers are navigation/storage keys, not presentation policy.
