@@ -14,6 +14,10 @@ These annotations preserve the wire/JSON format; decoders validate incoming data
 configurator and capture tools. Request correlation fields do not establish
 board state; active/saved identity and recovery flags remain significant.
 Persisted evidence retains its existing list/object formats.
+The strict check runs in CI and covers AI measurement processing and its shared validation
+dependencies. Live cost observations stay `WorkcostReply` objects until the
+recording boundary; replayed JSON is validated before typed window summaries
+are returned. Unavailable worker counters remain distinct from zero work.
 Check these contracts from the repository root with Python 3.11 or newer:
 
 ```console

@@ -136,7 +136,7 @@ def record_run(client, experiment, interval, repetition, identity, receipt, fold
                     cost_capture.check_audit(snapshot)
                     if elapsed >= cost_due_ms:
                         observed = dict(type='workcost', elapsed_ms=elapsed,
-                                        response=cost_capture.observe(client, **cost_context))
+                                        response=asdict(cost_capture.observe(client, **cost_context)))
                         journal(observed)
                         costs.append(observed)
                         cost_due_ms = elapsed + 1000

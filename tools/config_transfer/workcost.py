@@ -7,10 +7,10 @@ import zlib
 from .protocol import HEADER, Command
 from .payloads import (
     SchedulerObservation, SchedulerWindow, StackObservation, Unavailable,
-    WorkerObservation, WorkloadMeasurement, WorkStats,
+    WorkerObservation, WorkloadMeasurement, WorkStats, WorkStatName,
 )
 
-FIELDS = ('steps', 'elapsed_us', 'max_elapsed_us', 'max_lateness_us',
+FIELDS: tuple[WorkStatName, ...] = ('steps', 'elapsed_us', 'max_elapsed_us', 'max_lateness_us',
           'bus_wait_us', 'bus_active_us', 'transfer_bytes', 'transfers',
           'timeouts', 'errors', 'flags')
 

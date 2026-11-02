@@ -1,20 +1,22 @@
 """Physical ownership admission, including wiring of disabled devices."""
 
+from typing import Any
+
 from .documents import ConfigurationError, check, require
 
 
 class WiringClaims:
     """Track one candidate's pins, controllers, addresses and UART owners."""
 
-    def __init__(self, board, target_limits):
+    def __init__(self, board: dict[str, Any], target_limits: dict[str, Any]) -> None:
         self.board = board
         self.target_limits = target_limits
-        self.pins = {}
-        self.ports = set()
-        self.addresses = set()
-        self.uart_owners = set()
+        self.pins: dict[int, str] = {}
+        self.ports: set[tuple[str, int]] = set()
+        self.addresses: set[tuple[str, int]] = set()
+        self.uart_owners: set[str] = set()
 
-    def claim_pins(self, fields, owner):
+    def claim_pins(self, fields: dict[str, Any], owner: str) -> None:
         for field, pin in fields.items():
             if not field.endswith("_gpio"):
                 continue
@@ -48,7 +50,7 @@ class WiringClaims:
             )
             self.pins[pin] = owner
 
-    def admit_interfaces(self, interfaces):
+    def admit_interfaces(self, interfaces: dict[str, dict[str, Any]]) -> None:
         for iface in interfaces.values():
             protocol = iface["protocol"]
             port = iface["host" if protocol == "spi" else "port"]
@@ -85,7 +87,8 @@ class WiringClaims:
             )
             self.claim_pins(iface, iface["id"])
 
-    def admit_connection(self, device, descriptor, interfaces):
+    def admit_connection(self, device: dict[str, Any], descriptor: dict[str, Any],
+                         interfaces: dict[str, dict[str, Any]]) -> None:
         connection = device["interface"]
         protocol = descriptor["protocol"]
         if protocol != "gpio":

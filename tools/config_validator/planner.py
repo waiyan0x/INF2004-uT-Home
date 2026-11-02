@@ -42,9 +42,8 @@ def build_plan(
         and all(isinstance(item, str) for item in manifest["drivers"]),
         "Build manifest requires driver IDs",
     )
-    board_key = tuple(
-        document["board"][key] for key in ("platform", "variant", "capability_version")
-    )
+    board_key = (document["board"]["platform"], document["board"]["variant"],
+                 document["board"]["capability_version"])
     require(
         board_key in catalogue.boards, f"Unsupported board capabilities: {board_key}"
     )
@@ -84,9 +83,9 @@ def build_plan(
     wiring = WiringClaims(board, target_limits)
     wiring.admit_interfaces(interfaces)
 
-    queue_consumers = {}
-    instance_counts = Counter()
-    driver_limits = {}
+    queue_consumers: dict[str, str] = {}
+    instance_counts: Counter[str] = Counter()
+    driver_limits: dict[str, int] = {}
     tasks = []
     stack_bytes = 0
     active_count = 0
@@ -149,7 +148,7 @@ def build_plan(
     }
 
 
-def rule_plan(document, catalogue):
+def rule_plan(document: dict[str, Any], catalogue: Catalogue) -> list[dict[str, Any]]:
     """Resolve typed source identity and a single command owner per output."""
     devices = {d["device_id"]: (i, d) for i, d in enumerate(document["devices"])}
     metric_types = {
@@ -198,7 +197,8 @@ def rule_plan(document, catalogue):
     return result
 
 
-def _admit_routes(device, descriptor, queues, queue_consumers):
+def _admit_routes(device: dict[str, Any], descriptor: dict[str, Any],
+                  queues: dict[str, dict[str, Any]], queue_consumers: dict[str, str]) -> None:
     """Check typed routes and reserve each enabled FIFO consumer."""
     behaviour = device["behaviour"]
     routing = descriptor["routing"]
@@ -225,7 +225,8 @@ def _admit_routes(device, descriptor, queues, queue_consumers):
             queue_consumers[source] = device["device_id"]
 
 
-def _plan_task(device, descriptor, limits):
+def _plan_task(device: dict[str, Any], descriptor: dict[str, Any],
+               limits: dict[str, Any]) -> dict[str, Any]:
     """Validate and normalize one task independently of aggregate budgets."""
     behaviour = device["behaviour"]
     task = device["task"]

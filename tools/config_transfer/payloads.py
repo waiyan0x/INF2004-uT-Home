@@ -124,6 +124,12 @@ class StackObservation(TypedDict):
     empirical: Literal[True]
 
 
+WorkStatName = Literal[
+    "steps", "elapsed_us", "max_elapsed_us", "max_lateness_us", "bus_wait_us",
+    "bus_active_us", "transfer_bytes", "transfers", "timeouts", "errors", "flags",
+]
+
+
 class WorkStats(TypedDict):
     steps: int
     elapsed_us: int

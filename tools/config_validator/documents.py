@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 import math
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
+from collections.abc import Iterable
 
 from jsonschema import Draft202012Validator
 
@@ -24,7 +25,7 @@ def load_document(path: str | Path, max_bytes: int = 65536) -> dict[str, Any]:
 def parse_document(raw: bytes, max_bytes: int = 65536) -> dict[str, Any]:
     """Apply the same strict JSON handling to files and browser candidates."""
 
-    def unique(pairs):
+    def unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         result = {}
         for key, value in pairs:
             if key in result:
@@ -32,10 +33,10 @@ def parse_document(raw: bytes, max_bytes: int = 65536) -> dict[str, Any]:
             result[key] = value
         return result
 
-    def invalid_constant(value):
+    def invalid_constant(value: str) -> NoReturn:
         raise ConfigurationError(f"Non-finite JSON number: {value}")
 
-    def finite_float(token):
+    def finite_float(token: str) -> float:
         value = float(token)
         if not math.isfinite(value):
             invalid_constant(token)
@@ -57,7 +58,7 @@ def parse_document(raw: bytes, max_bytes: int = 65536) -> dict[str, Any]:
     return value
 
 
-def check(value, schema, location):
+def check(value: object, schema: dict[str, Any], location: str) -> None:
     errors = sorted(
         Draft202012Validator(schema).iter_errors(value),
         key=lambda error: str(list(error.path)),
@@ -68,12 +69,12 @@ def check(value, schema, location):
         raise ConfigurationError(f"{location}.{path}: {error.message}")
 
 
-def require(condition, message):
+def require(condition: object, message: str) -> None:
     if not condition:
         raise ConfigurationError(message)
 
 
-def unique_by(items, field, label):
+def unique_by(items: Iterable[dict[str, Any]], field: str, label: str) -> dict[str, dict[str, Any]]:
     result = {}
     for item in items:
         key = item[field]

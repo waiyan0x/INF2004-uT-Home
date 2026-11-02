@@ -1,2 +1,3 @@
 # Optional static contract check; runtime dependencies remain separate.
 mypy==1.19.1
+types-jsonschema==4.26.0.20261006
