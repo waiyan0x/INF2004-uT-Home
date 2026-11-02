@@ -12,6 +12,7 @@
 #include "i2cfake.h"
 #include "shared.h"
 #include <assert.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 static i2cfake_t       g_fake        = {0};
@@ -296,6 +297,13 @@ static void verify_empty_recovery (cfgwire_request_t * p_request)
     assert(0U == cfgbytes_get(&output[12]));
     assert((5U == g_control.last_id) && (revision == g_control.saved_revision));
     assert(!cfgctrl_view(&g_control).b_available);
+    printf("RECOVERYDISCOVERY:%" PRIu32 ":", revision);
+    for (size_t index = 0U; index < size; ++index)
+    {
+        /* Byte promotion matches the unsigned printf conversion. */
+        printf("%02X", (unsigned)output[index]);
+    }
+    puts("");
     gb_close_fail = false;
     request = (cfgwire_request_t){.command = CFGWIRE_RECOVER, .request_id = 6U};
     assert(0 == cfgctrl_handle(&g_control, &request, fields));

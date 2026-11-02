@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zlib
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -175,6 +176,16 @@ class RuntimePortFailureTests(unittest.TestCase):
                                          payload=discovery_request(123, wiring_confirmed=True))
             self.assertEqual(discovery.result, "complete")
             self.assertEqual([record["value"] for record in discovery.records], [0x50, 0x60])
+            from tools.config_transfer.protocol import HEADER
+            _, revision, payload_hex = next(line for line in result.stdout.splitlines()
+                                            if line.startswith("RECOVERYDISCOVERY:")).split(":")
+            recovery_payload = bytes.fromhex(payload_hex)
+            head = HEADER.pack(b"UTH1", 1, 0x88, 0, 27, int(revision), len(recovery_payload), 0)[:20]
+            crc = zlib.crc32(recovery_payload, zlib.crc32(head))
+            recovered = decode_discovery(head + crc.to_bytes(4, "little") + recovery_payload,
+                                          request_id=27, revision=int(revision),
+                                          payload=discovery_request(123, wiring_confirmed=True))
+            self.assertEqual((recovered.result, recovered.active_revision), ("fault", 0))
             uart_frame = next(bytes.fromhex(line.split(':', 1)[1]) for line in result.stdout.splitlines()
                               if line.startswith('UARTDISCOVERY:'))
             uart = decode_discovery(uart_frame, request_id=27, revision=0,

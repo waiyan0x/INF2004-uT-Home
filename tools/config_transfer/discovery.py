@@ -53,7 +53,10 @@ def decode_discovery(frame, *, request_id, revision, payload):
         received_session != session or count not in (0, expected_count) or
         len(data) != 80 + count * record_size or any(data[72:80]) or not any(data[40:72])):
         raise ValueError("unsupported discovery fields")
-    if result != 4 and active_revision != revision:
+    # Retained probe cleanup enters recovery and invalidates active identity.
+    # Other revision changes are allowed only in an explicit stale response.
+    recovery_invalidated = result == 2 and active_revision == 0
+    if result != 4 and not recovery_invalidated and active_revision != revision:
         raise ValueError("configuration revision changed during discovery")
     if ((result in (0, 5) and count != expected_count) or
         (result in (1, 3, 4) and (count or started or elapsed))):
