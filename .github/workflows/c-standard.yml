@@ -46,7 +46,7 @@ jobs:
           node-version: '22'
       - name: Verify dashboard and wiring visualiser
         run: |
-          node --test tests/target/test_dashboard.mjs
+          node --test tests/target/test_*.mjs
           node --test visualiser/tests/*.test.mjs
 
       - name: Run standalone UART/GPIO and optional-output regressions

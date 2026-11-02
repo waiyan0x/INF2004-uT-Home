@@ -18,7 +18,7 @@ python -B -m unittest discover -s tests/runtime -v
 python -B -m unittest discover -s tests/target -v
 python -B -m unittest discover -s tests/discovery -v
 python -B -m unittest discover -s ai/tests -v
-node --test tests/target/test_dashboard.mjs
+node --test tests/target/test_*.mjs
 node --test visualiser/tests/*.test.mjs
 python tools/test_uart_gpio.py
 python tools/test_outputs.py
@@ -39,6 +39,8 @@ uses the active revision, invalidates outstanding reviews and never silently
 retries an uncertain SAVE or RECOVER. Exhausted sequence/revision values and an
 absent active configuration must not send a mutation. Dashboard and visualiser
 tests run in CI as well as locally.
+The target Node glob includes the configurator polling/review race regressions
+as well as dashboard presentation checks.
 
 These suites are a regression baseline, not proof that arbitrary refactoring is
 safe. Review affected contracts and add focused tests before changing behavior.
