@@ -10,6 +10,12 @@ Run from the repository root. Install `tools/requirements.txt`, the pinned
 formatter in `tools/c_standard/requirements.txt`, and training dependencies
 for AI tests. Put GCC on PATH; Node is needed for presentation checks.
 
+The pinned JavaScript development checks use `package-lock.json`. With Node
+22.13 or later in the 22.x line, or Node 24+, run `npm ci --ignore-scripts` and
+`npm run lint`. `npm test` runs the same dashboard and visualiser Node suites
+listed below. Browser/runtime use still needs no npm install. CI also runs
+the [strict host data-contract check](../tools/config_transfer/README.md).
+
 ```powershell
 python -B -m unittest discover -s tests/c_standard -v
 python tools/c_standard/check.py

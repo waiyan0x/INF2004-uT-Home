@@ -17,7 +17,7 @@ class Element {
   setAttribute(key, value) { this.attributes[key] = value; }
 }
 const elements = new Map();
-globalThis.document = {
+const document = {
   getElementById(id) {
     if (!elements.has(id)) elements.set(id, new Element());
     return elements.get(id);
@@ -25,6 +25,7 @@ globalThis.document = {
   createElement: () => new Element(),
   createElementNS: () => new Element(),
 };
+globalThis.document = document;
 const text = id => document.getElementById(id).textContent;
 
 const discoveryReport = () => ({ preset_id: 'bench_i2c', preset_version: '0.2.0', discovery_id: 'test-token',

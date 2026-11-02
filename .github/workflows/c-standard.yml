@@ -47,6 +47,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+      - name: Verify JavaScript source
+        run: |
+          npm ci --ignore-scripts
+          npm run lint
       - name: Verify dashboard and wiring visualiser
         run: |
           node --test tests/target/test_*.mjs

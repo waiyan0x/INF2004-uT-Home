@@ -23,6 +23,9 @@ __pycache__/
 .venv/
 .desloppify/
 
+# JavaScript development tools
+node_modules/
+
 # Secrets
 secrets/
 *credentials.h
