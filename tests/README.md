@@ -19,6 +19,9 @@ python -B -m unittest discover -s tests/target -v
 python -B -m unittest discover -s tests/discovery -v
 python -B -m unittest discover -s ai/tests -v
 node --test tests/target/test_dashboard.mjs
+node --test visualiser/tests/*.test.mjs
+python tools/test_uart_gpio.py
+python tools/test_outputs.py
 ```
 
 | Suite | What it checks |
@@ -30,6 +33,17 @@ node --test tests/target/test_dashboard.mjs
 | Discovery | Reviewed observations/presets, ambiguity, identity limits, driver support and additive drafts |
 | AI | Experiment/run validation, simulated training, deterministic evaluation and generated C parity |
 | Node | Existing dashboard/discovery presentation and interaction checks |
+
+The target suite also protects the host configuration mutation boundary: SAVE
+uses the active revision, invalidates outstanding reviews and never silently
+retries an uncertain SAVE or RECOVER. Exhausted sequence/revision values and an
+absent active configuration must not send a mutation. Dashboard and visualiser
+tests run in CI as well as locally.
+
+These suites are a regression baseline, not proof that arbitrary refactoring is
+safe. Review affected contracts and add focused tests before changing behavior.
+Hardware timing, electrical effects, combined radio/static operation and
+acceptance remain separate from this software baseline.
 
 Native fixtures use warnings as errors and active assertions. Foundation/runtime
 intentionally overlap some original C suites; runner totals are not unique C

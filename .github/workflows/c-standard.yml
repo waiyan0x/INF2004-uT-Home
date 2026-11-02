@@ -41,6 +41,14 @@ jobs:
       - name: Run target failure and build-tool tests
         run: python -m unittest discover -s tests/target -p 'test_*.py' -v
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify dashboard and wiring visualiser
+        run: |
+          node --test tests/target/test_dashboard.mjs
+          node --test visualiser/tests/*.test.mjs
+
       - name: Run standalone UART/GPIO and optional-output regressions
         run: |
           python tools/test_uart_gpio.py
