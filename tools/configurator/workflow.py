@@ -14,7 +14,7 @@ from tools.config_transfer.protocol import Command
 from tools.config_transfer.identity import configuration_key, capability_key
 from tools.device_discovery import identify_i2c, identify_uart, identity_result, confirm_identity
 from .discovery import connection_preset, recommend, add_to_draft, source_queues
-from .drafts import prepare_i2c_draft
+from .drafts import i2c_builder_options, prepare_i2c_draft
 from .contracts import ConnectionResult, ReplyData, ReviewResult
 
 STATUS = ("Active", "Active and saved", "Active; saving failed", "Rejected", "Recovery required",
@@ -176,6 +176,7 @@ class Workflow:
                 driver = descriptor["driver_id"]
                 matches.append({"descriptor_id": identifier, "descriptor_version": version,
                                 "driver_id": driver,
+                                "draft_builder": i2c_builder_options(descriptor),
                                 "driver_available": None if observed is None else driver in observed.drivers})
         return {"matches": matches, "connected": observed is not None,
                 "identity_verified": False,
@@ -190,9 +191,7 @@ class Workflow:
         version = body.get("descriptor_version")
         require(isinstance(descriptor_id, str) and isinstance(version, str), "Choose a reviewed device")
         descriptor = self.catalogue.descriptors.get((descriptor_id, version))
-        require(descriptor is not None and descriptor["protocol"] == "i2c" and
-                descriptor["execution"]["kind"] == "periodic" and
-                descriptor["defaults"]["behaviour"].get("profile") == "periodic_sensor",
+        require(i2c_builder_options(descriptor)['eligible'],
                 "No reviewed periodic I2C driver for this device")
         current_caps = self.client.capabilities()
         require(capability_key(asdict(current_caps)) == capability_key(asdict(self.caps)),

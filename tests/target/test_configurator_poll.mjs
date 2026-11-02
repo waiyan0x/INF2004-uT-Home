@@ -37,6 +37,7 @@ test('a user review waits for an active observation without disabling the button
       plan: { resources: { active_tasks: 0, device_stack_bytes: 0 }, devices: [], rules: [] } });
     if (url === '/api/datasheet_match') return response({ connected: true, matches: [{
       descriptor_id: 'sen0390', descriptor_version: '1.0.0', driver_id: 'sen0390', driver_available: true,
+      draft_builder: {eligible: true, addresses: ['0x4a'], needs_enable: true},
     }] });
     if (url === '/api/datasheet_prepare_i2c') return duplicate
       ? { ok: false, json: async () => ({ error: 'This device name is already in the profile' }) }

@@ -76,6 +76,148 @@ async function connectAndDetect(page) {
   await expect(page.getByRole('button', {name: 'Confirm module'})).toBeVisible();
 }
 
+const pdfResult = {
+  pages: 2, source_sha256: 'a'.repeat(64),
+  draft: {device_name: 'bmp388', facts: [
+    {name: 'Supply', value: '3.3 V', status: 'stated', pages: [1]},
+  ], unresolved: ['Confirm address strap']},
+  i2c_address_review: {derived_7bit: 0x76, conflicting: false},
+};
+const pdfFile = name => ({name, mimeType: 'application/pdf', buffer: Buffer.from('%PDF-test-fixture')});
+
+test('PDF analysis renders and downloads the exact unreviewed result', async ({page}) => {
+  const desk = await openDesk(page, {datasheet: () => pdfResult});
+  await page.locator('#datasheet-file').setInputFiles(pdfFile('device.pdf'));
+  await page.locator('#datasheet-analyse').click();
+  await expect(page.locator('#datasheet-download')).toBeEnabled();
+  await expect(page.locator('#datasheet-facts')).toContainText('Supply: 3.3 V');
+  await expect(page.locator('#datasheet-uncertainties')).toContainText('Confirm address strap');
+  await expect(page.locator('#datasheet-name')).toHaveValue('bmp388');
+  const pendingDownload = page.waitForEvent('download');
+  await page.locator('#datasheet-download').click();
+  const download = await pendingDownload;
+  expect(download.suggestedFilename()).toBe('device-facts-draft.json');
+  expect(JSON.parse(await readFile(await download.path(), 'utf8'))).toEqual(pdfResult);
+  expect(desk.requests.find(row => row.action === 'datasheet').body.pdf_base64)
+    .toBe(Buffer.from('%PDF-test-fixture').toString('base64'));
+  expect(desk.errors).toEqual([]);
+});
+
+for (const outcome of ['success', 'failure']) {
+  test(`changing the PDF discards the previous analysis ${outcome}`, async ({page}) => {
+    const pending = deferred();
+    const desk = await openDesk(page, {datasheet: async (_body, route) => {
+      await pending.promise;
+      if (outcome === 'success') return pdfResult;
+      await route.fulfill({status: 502, json: {error: 'Old file analysis failed'}});
+    }});
+    await page.locator('#datasheet-file').setInputFiles(pdfFile('first.pdf'));
+    await page.locator('#datasheet-analyse').click();
+    await expect(page.locator('#datasheet-analyse')).toBeDisabled();
+    await page.locator('#datasheet-file').setInputFiles(pdfFile('second.pdf'));
+    pending.resolve();
+    await expect(page.locator('#datasheet-analyse')).toBeEnabled();
+    await expect(page.locator('#datasheet-status')).toHaveText('Choose Analyse to send this PDF to Google Gemini.');
+    await expect(page.locator('#datasheet-facts')).toBeEmpty();
+    await expect(page.locator('#datasheet-download')).toBeDisabled();
+    expect(desk.errors).toEqual([]);
+  });
+}
+
+for (const failure of ['size', 'server']) {
+  test(`PDF ${failure} failure clears stale results and restores analysis controls`, async ({page}) => {
+    const desk = await openDesk(page, {datasheet: () => pdfResult});
+    await page.locator('#datasheet-file').setInputFiles(pdfFile('first.pdf'));
+    await page.locator('#datasheet-analyse').click();
+    await expect(page.locator('#datasheet-download')).toBeEnabled();
+    if (failure === 'size') {
+      await page.locator('#datasheet-file').setInputFiles({name: 'large.pdf', mimeType: 'application/pdf',
+        buffer: Buffer.alloc(2 * 1024 * 1024 + 1)});
+    } else {
+      desk.handlers.datasheet = async (_body, route) => {
+        await route.fulfill({status: 502, json: {error: 'Analysis service unavailable'}});
+      };
+    }
+    await page.locator('#datasheet-analyse').click();
+    await expect(page.locator('#datasheet-status')).toHaveText(failure === 'size'
+      ? 'Choose a PDF no larger than 2 MiB.' : 'Analysis service unavailable');
+    await expect(page.locator('#datasheet-analyse')).toBeEnabled();
+    await expect(page.locator('#datasheet-download')).toBeDisabled();
+    await expect(page.locator('#datasheet-facts')).toBeEmpty();
+    expect(desk.requests.filter(row => row.action === 'datasheet')).toHaveLength(failure === 'size' ? 1 : 2);
+    expect(desk.errors).toEqual([]);
+  });
+}
+
+test('datasheet matching uses server requirements while catalogue loading is pending', async ({page}) => {
+  const pending = deferred();
+  const desk = await openDesk(page, {catalogue: () => pending.promise,
+    datasheet_match: () => ({connected: true, matches: [{
+      descriptor_id: 'sen0390', descriptor_version: '1.0.0', driver_id: 'sen0390', driver_available: true,
+      draft_builder: {eligible: true, addresses: ['0x4a'], needs_enable: true},
+    }]}),
+  });
+  await page.locator('#connect').click();
+  await page.getByText('Driver availability and configuration', {exact: true}).click();
+  await page.locator('#datasheet-name').fill('sen0390');
+  await page.locator('#datasheet-match').click();
+  await expect(page.locator('#datasheet-address')).toHaveValue('0x4a');
+  await expect(page.locator('#datasheet-enable-wrap')).toBeVisible();
+  await expect(page.locator('#datasheet-driver')).toContainText('sen0390 is installed');
+  pending.resolve(catalogue);
+  expect(desk.errors).toEqual([]);
+});
+
+test('an import cannot replace edits made while File.text is pending', async ({page}) => {
+  await page.addInitScript(() => {
+    const read = File.prototype.text;
+    File.prototype.text = async function () {
+      await new Promise(resolve => { globalThis.releaseImport = resolve; });
+      return read.call(this);
+    };
+  });
+  const desk = await openDesk(page);
+  await expect(page.locator('#profile')).toHaveValue(JSON.stringify(draft, null, 2));
+  await page.locator('#file').setInputFiles({name: 'profile.json', mimeType: 'application/json',
+    buffer: Buffer.from('{"node_id":"imported"}')});
+  const newer = '{"node_id":"edited while loading"}';
+  await page.locator('#profile').fill(newer);
+  await page.evaluate(() => globalThis.releaseImport());
+  await expect(page.locator('#notice')).toContainText('draft changed while reading');
+  await expect(page.locator('#profile')).toHaveValue(newer);
+  expect(desk.errors).toEqual([]);
+});
+
+test('a failed local import preserves a valid review and recovery state', async ({page}) => {
+  const desk = await openDesk(page, {telemetry: snapshot});
+  await page.locator('#connect').click();
+  await page.clock.runFor(1000);
+  await expect(page.locator('#recover')).toBeEnabled();
+  await page.locator('#review').click();
+  await expect(page.locator('#apply')).toBeEnabled();
+  await page.locator('#tab-profile').click();
+  await page.locator('#file').setInputFiles({name: 'large.json', mimeType: 'application/json',
+    buffer: Buffer.alloc(32769)});
+  await expect(page.locator('#notice')).toHaveText('Profile file exceeds 32 KiB');
+  await expect(page.locator('#apply')).toBeEnabled();
+  await expect(page.locator('#recover')).toBeEnabled();
+  expect(desk.errors).toEqual([]);
+});
+
+for (const action of ['catalogue', 'connect']) {
+  for (const status of [200, 503]) {
+    test(`${action} keeps HTTP ${status} context when JSON decoding fails`, async ({page}) => {
+      const desk = await openDesk(page, {[action]: async (_body, route) => {
+        await route.fulfill({status, body: '<html>Upstream failure</html>', contentType: 'text/html'});
+      }});
+      if (action === 'connect') await page.locator('#connect').click();
+      await expect(page.locator('#notice')).toContainText(`HTTP ${status}`);
+      await expect(page.locator('#notice')).toContainText('response was not valid JSON');
+      expect(desk.errors).toEqual([]);
+    });
+  }
+}
+
 test('real modules wire confirmation, busy controls, addition and review navigation', async ({page}) => {
   const confirmation = deferred();
   const desk = await openDesk(page, {confirm_discovered: () => confirmation.promise});
@@ -91,7 +233,7 @@ test('real modules wire confirmation, busy controls, addition and review navigat
   await check.check();
   await expect(confirm).toBeDisabled();
   confirmation.resolve(report(true));
-  await page.getByRole('button', {name: 'Add to profile'}).click();
+  await page.getByRole('button', {name: /Add .* to profile/}).click();
   await expect(page.locator('#profile')).toHaveValue(JSON.stringify({...draft, node_id: 'added'}, null, 2));
   await page.locator('#review').click();
   await expect(page.locator('#tab-review')).toHaveAttribute('aria-selected', 'true');
@@ -178,7 +320,7 @@ test('expired discovery cannot add and a rejected apply consumes its review toke
   await page.locator('#connect').click();
   await page.locator('#wiring-confirmed').check();
   await page.locator('#detect').click();
-  await expect(page.getByRole('button', {name: 'Add to profile'})).toBeEnabled();
+  await expect(page.getByRole('button', {name: /Add .* to profile/})).toBeEnabled();
   await page.clock.runFor(60001);
   await expect(page.locator('#discovery-results button')).toHaveCount(0);
   expect(desk.requests.filter(row => row.action === 'add_discovered')).toHaveLength(0);

@@ -2,13 +2,20 @@
 import { tile } from './dashboard.js';
 /** @typedef {{id: string, version: string}} Identity
  * @typedef {{label: string, value: unknown, reason: string, source: string}} Setting
- * @typedef {{observation: {address?: number, register?: number, value?: number|null,
- *   status?: string, method?: string, protocol?: string, valid_reports?: number,
- *   window_ms?: number, receive_errors?: number, discarded_bytes?: number},
- *   identity: {status: string, selected: Identity|null, candidates?: Identity[]},
- *   capabilities: {support: string, driver?: string, hardware_qualified?: boolean},
- *   recommendation: {status: string, instance?: object, settings?: Setting[]},
- *   cautions?: string[], source_queues?: string[], confirmation_text?: string}} DiscoveryDevice
+ * @typedef {{status: 'awaiting_review', instance: object, settings: Setting[]} |
+ *   {status: 'awaiting_identity'|'blocked', instance?: undefined, settings?: object}} Recommendation
+ * @typedef {{status: string, selected: Identity|null, candidates: Identity[]}} DeviceIdentity
+ * @typedef {{support: string, driver?: string, hardware_qualified?: boolean}} Capabilities
+ * @typedef {{address: number, register: number, value: number|null, status: string}} I2cObservation
+ * @typedef {{address?: undefined, method?: 'manual', protocol?: string,
+ *   valid_reports?: number, window_ms?: number, receive_errors?: number,
+ *   discarded_bytes?: number}} ManualOrUartObservation
+ * @typedef {{identity: DeviceIdentity, capabilities: Capabilities,
+ *   recommendation: Recommendation, cautions?: string[], source_queues?: string[],
+ *   confirmation_text?: string}} DeviceDetails
+ * @typedef {DeviceDetails & {observation: I2cObservation}} I2cDevice
+ * @typedef {DeviceDetails & {observation: ManualOrUartObservation}} ManualOrUartDevice
+ * @typedef {I2cDevice|ManualOrUartDevice} DiscoveryDevice
  * @typedef {{discovery_id?: string|null, preset_id: string, preset_version: string,
  *   capture: {result: string, active_revision: number, request_id?: number,
  *   started_ms?: number, elapsed_ms?: number, build_sha256?: string},
@@ -76,20 +83,7 @@ export function renderDiscovery(report, add, message = 'Connect a board and conf
     const value = observation.value === null ? 'no chip ID' : 'chip ID 0x' + observation.value.toString(16).padStart(2, '0');
     details.append(text('p', `${value} · register 0x${observation.register.toString(16).padStart(2, '0')} · ${device.identity.status} catalogue match`, 'hint'));
     if (selected) details.append(text('p', `Descriptor ${selected.id} v${selected.version} · driver ${device.capabilities.driver} · hardware qualification ${device.capabilities.hardware_qualified ? 'recorded' : 'pending'}`, 'hint'));
-    const recommendation = device.recommendation;
-    if (recommendation.status === 'awaiting_review' && recommendation.instance) {
-      const list = text('dl', '', 'discovery-settings');
-      for (const setting of recommendation.settings) {
-        list.append(text('dt', setting.label), text('dd', `${setting.value} — ${setting.reason} (${setting.source.replaceAll('_', ' ')})`));
-      }
-      details.append(list);
-      const button = text('button', 'Add to profile', 'btn');
-      button.type = 'button';
-      button.setAttribute('aria-label', `Add ${selected.id} at ${address} to profile`);
-      button.disabled = true; button.dataset.ready = typeof add === 'function' ? 'yes' : 'no';
-      button.onclick = () => { if (!button.disabled) add(index); };
-      item.append(details, button);
-    } else {
+    if (!appendRecommendation(item, details, device, index, add, `${selected?.id} at ${address}`)) {
       details.append(text('p', 'No settings to add. A unique identity and a supported driver are required.', 'hint'));
       item.append(details);
     }
@@ -116,18 +110,11 @@ function renderManualOrUartDevice(container, report, device, index, add, confirm
   details.append(text('p', manual ? 'No readback is available for this selection. User confirmation is not proof that the device operates.' :
     `${device.observation.valid_reports ?? 0} complete reports; ${device.observation.window_ms ?? 0} ms window; ${device.observation.receive_errors ?? 0} receive errors; ${device.observation.discarded_bytes ?? 0} discarded bytes. Silence does not prove disconnection; reports with zero targets still count.`, 'hint'));
   for (const caution of device.cautions || []) details.append(text('p', caution, 'hint'));
-  const recommendation = device.recommendation;
   if (selected) {
     details.append(text('p', `Descriptor ${selected.id} v${selected.version} · driver ${device.capabilities.support} · hardware qualification ${device.capabilities.hardware_qualified ? 'recorded' : 'pending'}`, 'hint'));
-    if (recommendation.status === 'awaiting_review' && recommendation.instance) {
-      const list = text('dl', '', 'discovery-settings');
-      for (const setting of recommendation.settings) list.append(text('dt', setting.label), text('dd', `${Array.isArray(setting.value) ? setting.value.join(', ') : setting.value} — ${setting.reason} (${setting.source.replaceAll('_', ' ')})`));
-      details.append(list);
-      const button = text('button', 'Add to profile', 'btn'); button.type = 'button';
-      button.disabled = true; button.dataset.ready = typeof add === 'function' ? 'yes' : 'no'; button.onclick = () => { if (!button.disabled) add(index); };
-      item.append(details, button);
-    } else {
-      details.append(text('p', 'This firmware has no available driver for the selection.', 'hint')); item.append(details);
+    if (!appendRecommendation(item, details, device, index, add, selected.id)) {
+      details.append(text('p', 'This firmware has no available driver for the selection.', 'hint'));
+      item.append(details);
     }
   } else if (candidates.length === 1 && (manual || device.identity.status === 'candidate')) {
     item.append(details);
@@ -156,6 +143,38 @@ function renderManualOrUartDevice(container, report, device, index, add, confirm
     item.append(details);
   }
   container.append(item);
+}
+
+/** Render the same reviewed settings and guarded action for every protocol.
+ * @param {HTMLElement} item
+ * @param {HTMLElement} details
+ * @param {DiscoveryDevice} device
+ * @param {number} index
+ * @param {AddDevice|null|undefined} add
+ * @param {string} label
+ * @returns {boolean} Whether an actionable recommendation was appended.
+ */
+function appendRecommendation(item, details, device, index, add, label) {
+  const recommendation = device.recommendation;
+  if (!device.identity.selected || recommendation.status !== 'awaiting_review' || !recommendation.instance) {
+    return false;
+  }
+  const list = text('dl', '', 'discovery-settings');
+  for (const setting of recommendation.settings) {
+    const value = Array.isArray(setting.value) ? setting.value.join(', ') : setting.value;
+    list.append(text('dt', setting.label), text('dd', `${value} — ${setting.reason} (${setting.source.replaceAll('_', ' ')})`));
+  }
+  details.append(list);
+  const button = text('button', 'Add to profile', 'btn');
+  button.type = 'button';
+  button.setAttribute('aria-label', `Add ${label} to profile`);
+  button.disabled = true;
+  button.dataset.ready = typeof add === 'function' ? 'yes' : 'no';
+  button.onclick = () => {
+    if (!button.disabled) add(index);
+  };
+  item.append(details, button);
+  return true;
 }
 
 /** The controller supplies connection/busy/token readiness; local inputs supply

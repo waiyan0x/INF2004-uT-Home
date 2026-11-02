@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch
 import zlib
 from tools.configurator.workflow import Workflow
-from tools.configurator.drafts import prepare_i2c_draft
+from tools.configurator.drafts import i2c_builder_options, prepare_i2c_draft
 from tools.configurator.web import make_server, ASSETS
 from tools.config_transfer.capabilities import Capabilities, decode_capabilities
 from tools.config_transfer.client import TransferError, Client
@@ -51,6 +51,33 @@ class ConfiguratorTests(unittest.TestCase):
         self.text=json.dumps(load_document(ROOT/"configs/nodes/distance-only.json"))
     def connect(self):return self.flow.dispatch("connect",{"port":"fake"})
     def review(self):return self.flow.dispatch("review",{"profile":self.text})
+
+    def test_datasheet_match_exposes_builder_requirements_without_client_catalogue(self):
+        for name, addresses, needs_enable in (
+                ('bmp388', ['0x76', '0x77'], False), ('sen0390', ['0x4a'], True)):
+            with self.subTest(name=name):
+                match = self.flow.dispatch('datasheet_match', {'device_name': name})['matches'][0]
+                self.assertEqual({'eligible': True, 'addresses': addresses,
+                                  'needs_enable': needs_enable}, match['draft_builder'])
+                self.assertIsNone(match['driver_available'])
+        for name in ('hlk_ld2450', 'ssd1306_spi', 'hc_sr04'):
+            with self.subTest(name=name):
+                match = self.flow.dispatch('datasheet_match', {'device_name': name})['matches'][0]
+                self.assertEqual({'eligible': False, 'addresses': [], 'needs_enable': False},
+                                 match['draft_builder'])
+
+    def test_builder_options_are_copied_and_share_the_preparation_gate(self):
+        descriptor = deepcopy(self.flow.catalogue.descriptors[('bmp388', '1.0.0')])
+        options = i2c_builder_options(descriptor)
+        options['addresses'].clear()
+        self.assertTrue(i2c_builder_options(descriptor)['addresses'])
+        for invalid in (None, descriptor | {'protocol': 'uart'},
+                        descriptor | {'execution': {'kind': 'stream'}},
+                        descriptor | {'defaults': {'behaviour': {'profile': 'display'}}}):
+            with self.subTest(descriptor=invalid):
+                self.assertFalse(i2c_builder_options(invalid)['eligible'])
+        descriptor['instance_schema']['properties']['interface']['properties']['address'].pop('enum')
+        self.assertFalse(i2c_builder_options(descriptor)['eligible'])
 
     def test_named_operations_share_lock_token_and_uncertain_io_cleanup(self):
         with patch.object(self.flow, 'dispatch', side_effect=AssertionError('No internal HTTP dispatch')):

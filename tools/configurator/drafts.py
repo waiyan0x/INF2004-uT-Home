@@ -4,6 +4,24 @@ from copy import deepcopy
 from tools.config_validator.planner import require
 
 
+def i2c_builder_options(descriptor):
+    """Expose the reviewed builder's form contract without leaking schema policy.
+
+    Driver availability and physical identity remain separate checks. The same
+    eligibility gate applies when the server receives the eventual draft request.
+    """
+    if (descriptor is None or descriptor['protocol'] != 'i2c'
+            or descriptor['execution']['kind'] != 'periodic'
+            or descriptor['defaults']['behaviour'].get('profile') != 'periodic_sensor'):
+        return {'eligible': False, 'addresses': [], 'needs_enable': False}
+    interface = descriptor['instance_schema']['properties']['interface']
+    addresses = interface['properties']['address'].get('enum')
+    if not isinstance(addresses, list) or not addresses:
+        return {'eligible': False, 'addresses': [], 'needs_enable': False}
+    return {'eligible': True, 'addresses': list(addresses),
+            'needs_enable': 'enable_gpio' in interface.get('required', [])}
+
+
 def descriptor_instance(descriptor, reference, *, device_id, task_name, interface):
     """Copy reviewed defaults into a new instance, without retaining input aliases."""
     defaults = descriptor['defaults']

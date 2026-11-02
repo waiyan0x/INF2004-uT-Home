@@ -189,5 +189,14 @@ Edge walkthroughs cover themes and desktop/mobile flows. These are not physical
 device detection. Evidence: [UI/rules](../../firmware/qualification/esp32c3-ui-rules-20260928.json)
 and [D4](../../firmware/qualification/esp32c3-discovery-d4-20261012.json).
 
+`npm run test:browser` exercises the actual HTML and ES modules with local HTTP
+fixtures. It covers review/discovery races, delayed imports and catalogue loading,
+HTTP decoding failures, telemetry clearing, and the PDF analysis/download lifecycle.
+PDF fixtures never reach a provider. Local import/format/download failures preserve
+board review evidence; failed board requests invalidate it. Datasheet matching
+returns server-owned `draft_builder` requirements (eligibility, addresses and
+enable-pin requirement), so the form does not depend on startup catalogue timing.
+Preparing a draft rechecks eligibility, firmware, wiring and the complete profile.
+
 The incoming Member 5 toolkit remains under [legacy/member5](../../legacy/member5/README.md).
 Its schema-1.0/S3 bundle workflow is separate from the current C3 USB application.

@@ -110,7 +110,9 @@ mocked HTTP responses; it never opens serial devices or sends PDFs. Run
 `npx playwright install chromium`, then `npm run test:browser`. The suite covers
 confirmation/addition wiring, busy-state controls, review navigation, stale
 responses, discovery expiry, consumed apply tokens, delayed catalogue delivery
-and failed telemetry clearing. CI installs the same pinned Chromium revision.
+and failed telemetry clearing. Additional scenarios cover PDF rendering/download,
+stale success/failure after file changes, size/provider errors, asynchronous import
+races, local-failure isolation and HTTP decoding context. CI installs the same pinned Chromium revision.
 Artifacts stay under `build/browser-results`. To keep downloaded browser binaries
 local too, set `PLAYWRIGHT_BROWSERS_PATH` to `build/playwright-browsers` for both
 the install command and test run.
