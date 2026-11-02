@@ -5,6 +5,12 @@ patches. It checks clean kernel/SDK revisions and SDK submodules, compiler/tools
 source hashes and compiler profiles. The dependency checkouts stay unchanged.
 No build command opens serial, resets or flashes the board.
 
+Post-build policies live in named `verify_*` functions. In particular,
+`verify_wifi_probe` checks diagnostic settings, `verify_configuration_layout`
+checks the reviewed partition bytes, and `verify_managed_cjson` checks the lock
+version and host/target source identity. The build coordinator sequences these
+checks and retains their evidence; a successful compiler exit is insufficient.
+
 ## Build modes
 
 The CLI keeps the flags below. `build_modes.py` resolves them before any staging

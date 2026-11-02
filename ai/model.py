@@ -1,6 +1,7 @@
 """Small experimental decision tree; data-only export, no deployment or pickle."""
 import math
 import random
+from typing import Literal
 
 from ai.records import FEATURES, FEATURE_LIMITS, features, validate_dataset
 from ai.provenance import context_fingerprint
@@ -76,10 +77,17 @@ def score(model, vector):
     raise ValueError("Tree depth exceeded")
 
 
-def predict(model, vector):
+def predict(model, vector) -> Literal[-1, 0, 1]:
+    """Return -1 to abstain outside the domain, 0 to reject, or 1 to accept.
+
+    Compare with 1 to accept a candidate; -1 is truthy. Invalid model artifacts
+    or feature vectors raise ConfigurationError (a ValueError subclass).
+    """
     validate_model(model)
     value = score(model, vector)
-    return -1 if value is None else int(value >= model["threshold_per_mille"])
+    if value is None:
+        return -1
+    return 1 if value >= model["threshold_per_mille"] else 0
 
 
 def recommend(model, experiment, *, allow_simulated=False, catalogue=None):

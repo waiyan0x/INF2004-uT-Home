@@ -3,6 +3,7 @@ import argparse
 import math
 from pathlib import Path
 import sys
+from typing import Literal
 
 from ai.protocol_study import MAX_BYTES, dataset, validate_study
 from ai.recording import save_new
@@ -46,7 +47,13 @@ def validate_model(model):
     require(len(seen) == len(nodes), "Unreachable tree nodes")
 
 
-def predict(model, vector):
+def predict(model, vector) -> Literal[-1, 0, 1]:
+    """Return -1 to abstain outside the domain, 0 to reject, or 1 to accept.
+
+    Compare with 1 to accept a candidate; -1 is truthy. Invalid model values
+    or feature vectors raise ConfigurationError (a ValueError subclass).
+    Malformed mapping or sequence shapes can raise KeyError or TypeError.
+    """
     validate_model(model)
     require(len(vector) == len(workload.FEATURES) and all(type(v) is int for v in vector), "Invalid feature vector")
     if any(not low <= v <= high for v, (low, high) in zip(vector, model["domain"])):
@@ -55,7 +62,7 @@ def predict(model, vector):
     for _ in range(5):
         n = model["nodes"][index]
         if n["feature"] == -1:
-            return int(n["score"] >= 900)
+            return 1 if n["score"] >= 900 else 0
         index = n["left"] if vector[n["feature"]] <= n["threshold"] else n["right"]
     raise ValueError("Tree depth exceeded")
 

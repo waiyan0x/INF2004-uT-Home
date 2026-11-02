@@ -28,6 +28,57 @@ def setUpModule():
 
 
 class QualificationTests(unittest.TestCase):
+    def test_wifi_settings_reject_each_missing_isolation_requirement(self):
+        settings = ["CONFIG_FREERTOS_HZ=1000", "# CONFIG_BT_ENABLED is not set",
+                    "# CONFIG_ESP_WIFI_NVS_ENABLED is not set",
+                    "# CONFIG_ESP_WIFI_IRAM_OPT is not set",
+                    "# CONFIG_ESP_WIFI_RX_IRAM_OPT is not set",
+                    "# CONFIG_ESP_PHY_CALIBRATION_AND_DATA_STORAGE is not set"]
+        with tempfile.TemporaryDirectory() as folder:
+            work = Path(folder)
+            (work / "sdkconfig").write_text("\n".join(settings))
+            self.assertIn("diagnostic only", qualification.verify_wifi_probe(work))
+            for missing in settings:
+                with self.subTest(missing=missing):
+                    (work / "sdkconfig").write_text("\n".join(s for s in settings if s != missing))
+                    with self.assertRaisesRegex(qualification.QualificationError, "isolation settings"):
+                        qualification.verify_wifi_probe(work)
+
+    def test_configuration_layout_requires_the_reviewed_digest(self):
+        with patch.object(qualification, "sha256", return_value=qualification.CONFIGURATION_TABLE_SHA256) as digest:
+            qualification.verify_configuration_layout(Path("isolated"))
+            digest.assert_called_once_with(Path("isolated/build/partition_table/partition-table.bin"))
+        with patch.object(qualification, "sha256", return_value="0" * 64):
+            with self.assertRaisesRegex(qualification.QualificationError, "partition table differs"):
+                qualification.verify_configuration_layout(Path("isolated"))
+
+    def test_managed_cjson_requires_lock_version_and_all_source_bytes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            project = Path(folder)
+            with self.assertRaisesRegex(qualification.QualificationError, "Missing managed-component"):
+                qualification.verify_managed_cjson(project)
+            lock = project / "dependencies.lock"
+            lock.write_text("dependencies: {espressif/cjson: {version: wrong}}")
+            with self.assertRaisesRegex(qualification.QualificationError, "version"):
+                qualification.verify_managed_cjson(project)
+            lock.write_text("dependencies: {espressif/cjson: {version: 1.7.19~2, component_hash: retained}}")
+            managed = project / "managed_components/espressif__cjson/cJSON"
+            managed.mkdir(parents=True)
+            for name in ("cJSON.c", "cJSON.h", "LICENSE"):
+                (managed / name).write_bytes((ROOT / "firmware/third_party/cjson" / name).read_bytes())
+            result = qualification.verify_managed_cjson(project)
+            self.assertEqual("retained", result["component_hash"])
+            self.assertEqual(qualification.sha256(lock), result["lock_sha256"])
+            self.assertEqual({"cJSON.c", "cJSON.h", "LICENSE"}, set(result["source_sha256"]))
+            for name in result["source_sha256"]:
+                with self.subTest(name=name):
+                    path = managed / name
+                    original = path.read_bytes()
+                    path.write_bytes(original + b"changed")
+                    with self.assertRaisesRegex(qualification.QualificationError, "bytes differ"):
+                        qualification.verify_managed_cjson(project)
+                    path.write_bytes(original)
+
     def test_diagnostic_mode_rejects_paths_and_application_before_side_effects(self):
         cases = ({"static_net_queues": True},
                  {"static_net_queues": True, "runtime_port": True, "native_uart_fixture": True},

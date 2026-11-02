@@ -398,6 +398,47 @@ def check_audit_symbols(symbols):
     return retained
 
 
+def verify_wifi_probe(work):
+    """Require the diagnostic-only Wi-Fi storage and tick settings."""
+    config_lines = set((work / "sdkconfig").read_text().splitlines())
+    required = {"CONFIG_FREERTOS_HZ=1000", "# CONFIG_BT_ENABLED is not set",
+                "# CONFIG_ESP_WIFI_NVS_ENABLED is not set",
+                "# CONFIG_ESP_WIFI_IRAM_OPT is not set",
+                "# CONFIG_ESP_WIFI_RX_IRAM_OPT is not set",
+                "# CONFIG_ESP_PHY_CALIBRATION_AND_DATA_STORAGE is not set"}
+    if not required <= config_lines:
+        raise QualificationError("Wi-Fi probe storage/tick isolation settings differ")
+    return "Noncompliant diagnostic only: scan/stop/restart; no association/AP/IP/NVS; USB application state retained but not running"
+
+
+def verify_configuration_layout(work):
+    """Require the exact partition bytes reviewed by the write guard."""
+    table = work / "build/partition_table/partition-table.bin"
+    if sha256(table) != CONFIGURATION_TABLE_SHA256:
+        raise QualificationError("Generated partition table differs from the reviewed static layout")
+
+
+def verify_managed_cjson(project):
+    """Require pinned component metadata and byte-identical host/target sources."""
+    dependency_lock = project / "dependencies.lock"
+    if not dependency_lock.is_file():
+        raise QualificationError("Missing managed-component dependency lock")
+    import yaml
+    lock = yaml.safe_load(dependency_lock.read_text(encoding="utf-8"))
+    dependency = lock.get("dependencies", {}).get("espressif/cjson", {})
+    if dependency.get("version") != "1.7.19~2":
+        raise QualificationError("Unexpected cJSON managed-component version")
+    managed = project / "managed_components/espressif__cjson/cJSON"
+    hashes = {}
+    for name in ("cJSON.c", "cJSON.h", "LICENSE"):
+        if sha256(managed / name) != sha256(ROOT / "firmware/third_party/cjson" / name):
+            raise QualificationError(f"Host/target cJSON bytes differ: {name}")
+        hashes[name] = sha256(managed / name)
+    return {
+        "version": dependency["version"], "component_hash": dependency.get("component_hash"),
+        "source_sha256": hashes, "lock_sha256": sha256(dependency_lock)}
+
+
 def verify_ble_probe(work, gatt=False, static_host=False):
     """Check real roles and linked radio paths, not an unwritable SDK capability."""
     config_lines = set((work / "sdkconfig").read_text().splitlines())
@@ -902,40 +943,14 @@ def build(kernel, sdk, work, *, selection=BuildSelection(), compat_patch=None, r
             evidence["model_isolation"] = verify_model_probe(work, selection.mode is BuildMode.MODEL)
             evidence["model_load_isolation"] = verify_model_load_probe(work, selection.mode is BuildMode.MODEL_LOAD)
             if selection.mode is BuildMode.WIFI:
-                config_lines = set((work / "sdkconfig").read_text().splitlines())
-                required = {"CONFIG_FREERTOS_HZ=1000", "# CONFIG_BT_ENABLED is not set",
-                            "# CONFIG_ESP_WIFI_NVS_ENABLED is not set",
-                            "# CONFIG_ESP_WIFI_IRAM_OPT is not set",
-                            "# CONFIG_ESP_WIFI_RX_IRAM_OPT is not set",
-                            "# CONFIG_ESP_PHY_CALIBRATION_AND_DATA_STORAGE is not set"}
-                if not required <= config_lines:
-                    raise QualificationError("Wi-Fi probe storage/tick isolation settings differ")
-                evidence["radio_scope"] = "Noncompliant diagnostic only: scan/stop/restart; no association/AP/IP/NVS; USB application state retained but not running"
+                evidence["radio_scope"] = verify_wifi_probe(work)
             if selection.mode is BuildMode.BLE:
                 evidence["ble_isolation"] = verify_ble_probe(work, selection.ble_gatt_probe, selection.ble_static_host)
                 evidence["radio_scope"] = ("Noncompliant diagnostic only: read-only GATT reconnect/read window; no configuration writes, pairing, NVS or Wi-Fi; USB core inactive; SDK heap remains unqualified" if selection.ble_gatt_probe else "Noncompliant diagnostic only: nonconnectable advertising/stop/restart; no GATT, pairing, NVS or Wi-Fi; SDK flash controller without legacy ROM patch; USB core inactive; flash writes during BLE are unqualified")
             if selection.configuration_app:
-                table = work / "build/partition_table/partition-table.bin"
-                if sha256(table) != CONFIGURATION_TABLE_SHA256:
-                    raise QualificationError("Generated partition table differs from the reviewed static layout")
+                verify_configuration_layout(work)
 
-            dependency_lock = project / "dependencies.lock"
-            if not dependency_lock.is_file():
-                raise QualificationError("Missing managed-component dependency lock")
-            import yaml
-            lock = yaml.safe_load(dependency_lock.read_text(encoding="utf-8"))
-            dependency = lock.get("dependencies", {}).get("espressif/cjson", {})
-            if dependency.get("version") != "1.7.19~2":
-                raise QualificationError("Unexpected cJSON managed-component version")
-            managed = project / "managed_components/espressif__cjson/cJSON"
-            hashes = {}
-            for name in ("cJSON.c", "cJSON.h", "LICENSE"):
-                if sha256(managed / name) != sha256(ROOT / "firmware/third_party/cjson" / name):
-                    raise QualificationError(f"Host/target cJSON bytes differ: {name}")
-                hashes[name] = sha256(managed / name)
-            evidence["managed_cjson"] = {
-                "version": dependency["version"], "component_hash": dependency.get("component_hash"),
-                "source_sha256": hashes, "lock_sha256": sha256(dependency_lock)}
+            evidence["managed_cjson"] = verify_managed_cjson(project)
         # A successful process with incomplete artifacts is not build evidence.
         for relative in (f"build/{image_name}.bin", f"build/{image_name}.elf",
                          f"build/{image_name}.map", "build/compile_commands.json",
