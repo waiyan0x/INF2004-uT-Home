@@ -52,6 +52,16 @@ faults; `c3uart` wraps the pinned kernel UART1. Protocol parsing remains in the
 driver. See [UART integration](../drivers/hlk_ld2450/INTEGRATION.md).
 Native UART hardware qualification remains pending.
 
+`c3ukern` contains native handle creation, attributes, counts and error-code
+conversion. `c3uart` owns boot-once initialization, lock/claim transitions,
+bounded discard and terminal unlock failure. Host tests execute `c3uart` and
+`uartio` with recorded synchronous boundary calls, including failed initialization,
+retained open/close claims, RX faults and partial TX. Native ABI and wire behavior
+remain target checks. The native fault-injection fixture intercepts reads in
+`c3ukern`, where those calls now reside.
+The RV32 objects reserve five bytes for UART lifecycle flags and two four-byte
+native handles. Each GPIO adapter's shared startup state remains two bytes.
+
 ## GPIO capture and PWM
 
 `digiin` complements `digiout` for borrowed level callbacks. `pulseio` owns a
@@ -60,3 +70,18 @@ with zero-duty setup/cleanup. `gpiofake` provides host faults and shared pin
 claims. `c3pulse` uses RMT; `c3pwm` uses independently timed LEDC outputs.
 See [limits and review](../drivers/hc_sr04/INTEGRATION.md). Physical acceptance
 and generic GPIO interrupt delivery remain pending.
+
+The shared two-Boolean `bootonce` state provisions each adapter's fixed mutex
+set in order. Each partial failure stays unavailable until reboot and retains
+the resources already created. Host tests inject failure at every creation
+index and prove repeated startup never retries or publishes partial readiness.
+
+Manual BARR-C review of this boundary: C99, ordinary named functions and paired
+headers; unchanged synchronous native ABI and no added kernel objects or heap.
+UART handles and GPIO startup state retain boot lifetime. Only the serialized
+owner starts resources; workers are stopped for lifecycle changes. Native count
+conversions remain bounded to 64 bytes, discard terminates at the ring/snapshot
+bound, and unlock failure stops communication while retaining ownership. GPIO
+creation indices are bounded by each fixed array's capacity. The host double
+uses bounded logs and exact signatures through symbol redirection; it introduces
+no vendor-name exemption. IRQ/register effects still require physical acceptance.

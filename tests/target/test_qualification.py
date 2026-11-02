@@ -538,7 +538,7 @@ class QualificationTests(unittest.TestCase):
             defaults.parent.mkdir(parents=True)
             defaults.write_bytes(b"CONFIG_IDF_TARGET=\"esp32c3\"\n")
             project, sources = qualification.stage_runtime_port(work)
-            self.assertEqual(len(sources), 213)
+            self.assertEqual(len(sources), 217)
             for name in ('stackmon', 'workcost', 'workmeter'):
                 self.assertIn(f'firmware/src/runtime/{name}.c', sources)
                 self.assertIn(f'firmware/src/runtime/{name}.h', sources)

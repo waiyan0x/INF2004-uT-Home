@@ -5,6 +5,7 @@
 #include "c3pwm.h"
 #include <tk/tkernel.h>
 #include "workport.h"
+#include "bootonce.h"
 #include "c3pin.h"
 #include "esp_private/esp_clk.h"
 #include "esp_private/periph_ctrl.h"
@@ -20,6 +21,7 @@ typedef struct
     bool           b_clock;
 } c3pwm_state_t;
 
+static int create_mutex (void * p_context, size_t index);
 static int open_port (void * p_context, const pwmio_config_t * p_config);
 static int close_port (void * p_context);
 static int set_duty (void * p_context, uint16_t duty_permille);
@@ -37,9 +39,8 @@ static pwmio_t g_ports[4] = {
     {.p_operations = &g_operations, .p_context = &g_states[2]},
     {.p_operations = &g_operations, .p_context = &g_states[3]}};
 
-static uint8_t g_users      = 0U;
-static bool    gb_attempted = false;
-static bool    gb_ready     = false;
+static uint8_t    g_users   = 0U;
+static bootonce_t g_startup = {0};
 
 /** @brief Create the fixed mutex set once before normal operation begins.
  * A partial failure retains created objects and fails closed until reboot. */
@@ -49,23 +50,8 @@ int c3pwm_startup (void)
     {
         return PWMIO_STATE;
     }
-    if (gb_attempted)
-    {
-        return gb_ready ? 0 : PWMIO_IO;
-    }
-    gb_attempted       = true;
-    const T_CMTX mutex = {.mtxatr = TA_INHERIT};
-    for (size_t index = 0U; index < 4U; ++index)
-    {
-        const ID h_mutex = tk_cre_mtx(&mutex);
-        if (h_mutex <= 0)
-        {
-            return PWMIO_IO;
-        }
-        g_states[index].h_mutex = h_mutex;
-    }
-    gb_ready = true;
-    return 0;
+    return (0 == bootonce_run(&g_startup, 4U, create_mutex, NULL)) ? 0
+                                                                   : PWMIO_IO;
 }
 
 /** @brief Borrow static storage without enabling a clock or changing a pin. */
@@ -74,13 +60,27 @@ pwmio_t * c3pwm_port (uint8_t channel)
     return (channel < 4U) ? &g_ports[channel] : NULL;
 }
 
+/** @brief Retain each successfully created native mutex until reboot. */
+static int create_mutex (void * p_context, size_t index)
+{
+    (void)p_context; /* The fixed port array owns the permanent handles. */
+    const T_CMTX mutex   = {.mtxatr = TA_INHERIT};
+    const ID     h_mutex = tk_cre_mtx(&mutex);
+    if (h_mutex <= 0)
+    {
+        return -1;
+    }
+    g_states[index].h_mutex = h_mutex;
+    return 0;
+}
+
 /** @brief Pair each channel with its own timer; setup leaves output low. */
 static int open_port (void * p_context, const pwmio_config_t * p_config)
 {
     c3pwm_state_t * p_state = p_context;
-    if ((!rt_port_is_owner()) || (!gb_ready) || (p_state->b_clock) ||
-        (p_state->output.b_open) || (p_config->frequency_hz < 100U) ||
-        (p_config->frequency_hz > 20000U))
+    if ((!rt_port_is_owner()) || (!bootonce_ready(&g_startup)) ||
+        (p_state->b_clock) || (p_state->output.b_open) ||
+        (p_config->frequency_hz < 100U) || (p_config->frequency_hz > 20000U))
     {
         return PWMIO_INVALID;
     }

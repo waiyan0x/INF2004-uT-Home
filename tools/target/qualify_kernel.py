@@ -219,6 +219,10 @@ RUNTIME_SOURCE_FILES = {
     "firmware/hal/i2cown.c": "hal/i2cown.c",
     "firmware/hal/include/buslife.h": "hal/include/buslife.h",
     "firmware/hal/buslife.c": "hal/buslife.c",
+    "firmware/hal/bootonce.c": "hal/bootonce.c",
+    "firmware/hal/include/bootonce.h": "hal/include/bootonce.h",
+    "firmware/hal/ports/esp32c3/c3ukern.c": "hal/c3ukern.c",
+    "firmware/hal/ports/esp32c3/c3ukern.h": "hal/c3ukern.h",
     "firmware/hal/include/pinpool.h": "hal/include/pinpool.h",
     "firmware/hal/pinpool.c": "hal/pinpool.c",
     "firmware/hal/include/digiout.h": "hal/include/digiout.h",
@@ -308,10 +312,14 @@ def verify_uart_fault_hook(commands, project):
     native_uart = selections[0] == "1"
     if application and native_uart:
         raise QualificationError("Application cannot include native UART fixture")
-    uart = commands.get((project / "hal/c3uart.c").resolve(), "")
+    native_source = (project / "hal/c3ukern.c").resolve()
+    uart = commands.get(native_source, "")
     hooks = re.findall(r'(?:^|\s)-D\s*"?tk_srea_dev=([A-Za-z_]\w*)"?', uart)
     if hooks != (["uartcheck_read"] if native_uart else []):
         raise QualificationError("Invalid UART fault-injection build scope")
+    for source, command in commands.items():
+        if source != native_source and re.search(r'(?:^|\s)-D\s*"?tk_srea_dev=', command):
+            raise QualificationError("UART read hook escaped its native boundary")
     test_present = (project / "main/uartcheck.c").resolve() in commands
     if test_present != native_uart:
         raise QualificationError("UART acceptance source does not match build mode")

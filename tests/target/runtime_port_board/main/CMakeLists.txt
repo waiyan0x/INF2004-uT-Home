@@ -5,7 +5,7 @@ idf_component_register(SRCS "../discovery/discuart.c" "../discovery/disci2c.c" "
                        "../runtime/activate.c" "../runtime/shared.c" "../services/sampcache.c" "../services/statusmon.c" "../services/telemetry.c" "../services/oledview.c"
                        "../runtime/component.c" "../messaging/msgbus.c"
                        "../health/health.c" "../health/watchdog.c"
-                       "../config/drvreg.c" "../hal/i2cbus.c" "../hal/i2cown.c" "../hal/buslife.c" "../hal/c3i2c.c"
+                       "../config/drvreg.c" "../hal/i2cbus.c" "../hal/i2cown.c" "../hal/buslife.c" "../hal/bootonce.c" "../hal/c3ukern.c" "../hal/c3i2c.c"
                        "../drivers/bmp388.c" "../drivers/bmpinst.c"
                        "../drivers/geni2c.c"
                        "../drivers/senlux.c"
@@ -56,7 +56,7 @@ set_source_files_properties("../discovery/discuart.c" "../discovery/disci2c.c" "
     "../hal/c3usb.c" "../app/c3app.c" "../config/jsonscan.c" "../config/cfgjson.c" "../config/cfgplan.c" "../config/cfgdev.c" "../config/cfgrule.c" "../automation/rulecalc.c" "../config/cfgbind.c" "../hal/c3bind.c"
     "../runtime/activate.c" "../runtime/shared.c" "../services/sampcache.c" "../services/statusmon.c" "../services/telemetry.c" "../services/oledview.c"
     "../runtime/component.c" "../messaging/msgbus.c" "../health/health.c"
-    "../health/watchdog.c" "../config/drvreg.c" "../hal/i2cbus.c" "../hal/i2cown.c" "../hal/buslife.c"
+    "../health/watchdog.c" "../config/drvreg.c" "../hal/i2cbus.c" "../hal/i2cown.c" "../hal/buslife.c" "../hal/bootonce.c" "../hal/c3ukern.c"
     "../drivers/bmp388.c" "../drivers/bmpinst.c"
     "../drivers/geni2c.c"
     "../drivers/senlux.c"
@@ -180,7 +180,7 @@ if(UTHOME_NATIVE_UART_FIXTURE)
     target_sources(${COMPONENT_LIB} PRIVATE "uartcheck.c")
     set_source_files_properties("uartcheck.c"
         PROPERTIES COMPILE_OPTIONS "-std=c99;${UTHOME_WARNINGS};-fno-inline")
-    set_property(SOURCE "../hal/c3uart.c" APPEND PROPERTY COMPILE_DEFINITIONS
+    set_property(SOURCE "../hal/c3ukern.c" APPEND PROPERTY COMPILE_DEFINITIONS
         tk_srea_dev=uartcheck_read)
 endif()
 

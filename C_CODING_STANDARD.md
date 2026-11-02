@@ -239,6 +239,12 @@ gate as certification of complete BARR-C conformance or approval of deviations.
 
 ## UART module vocabulary
 
+`c3ukern` contains the pinned native UART calls and permanent handles beneath
+`c3uart`; `ufake` records that owned boundary in host lifecycle tests. `bootonce`
+publishes GPIO startup readiness only after the fixed resource set succeeds.
+All use C99 with paired headers and no new exception. Host object-symbol
+redirection substitutes only owned interfaces, preserving vendor declarations.
+
 Public prefixes `uartio_`, `c3uart_`, `uartfake_`, `ldparse_`, `ld2450_` and
 `ldinst_` belong to matching headers. UART = universal asynchronous
 receiver/transmitter; RX/TX = receive/transmit; LD2450 identifies Hi-Link's

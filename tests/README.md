@@ -47,6 +47,13 @@ check complete table coverage, internal scratch chunking, overflow rejection and
 peer-slot isolation; SDK execution and physical flash behavior require target
 qualification separately.
 
+UART lifecycle tests compile the real `c3uart` and `uartio` against the owned
+`ufake` native-call boundary. They record calls and inject failures without
+vendor header doubles. Each case loads fresh boot state; repeated startup and
+50 open/close cycles check permanent resource ownership. GPIO startup tests run
+the shared `bootonce` core for both fixed capacities and every partial failure.
+Text checks remain only for structural restrictions and application boot order.
+
 These suites are a regression baseline, not proof that arbitrary refactoring is
 safe. Review affected contracts and add focused tests before changing behavior.
 Hardware timing, electrical effects, combined radio/static operation and
