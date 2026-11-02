@@ -55,14 +55,23 @@ extraction evaluation and SEN0390 integration remain unfinished. The reviewed
 SEN0390 descriptor, GPIO-enable control and light worker are provisional. A
 [short diagnostic application capture](firmware/qualification/sen0390-combined-app-20261031.json)
 showed fresh light and BMP388 readings, but the radar timed out before, during and
-after that capture. Normal firmware does not advertise the driver while combined
-reliability and acceptance remain open.
+after that capture. A [two-hour diagnostic capture](firmware/qualification/sen0390-two-hour-combined-20261101.json)
+later recorded intermittent light and radar faults, followed by a long period of
+fresh radar snapshots. Causes remain unresolved. Normal firmware does not advertise
+the light driver while combined reliability and acceptance remain open.
+
+The user later found and fully seated a radar connection. After reconnection,
+[monitoring](firmware/qualification/esp32c3-radar-reconnected-20261102.json)
+recorded 599/600 fresh radar snapshots across two windows; the user associated
+the one observed interruption with connecting the HLK radar tool. Earlier
+timeouts and full physical acceptance remain open.
 
 Do not assume a previous COM port, firmware image, wiring or free serial port.
 Identify the board, query capabilities/state and close competing Desk/serial
 clients before bench work. Keep reviewed wiring intact unless a test requires
 isolation. The [hardware guide](CONTRIBUTING.md) owns electrical procedures.
-The user deferred the radar zero-target test; do not restart it without a request.
+The [two-minute zero-target observation](firmware/qualification/esp32c3-radar-zero-target-20261102.json)
+passed for the tested setup; controlled movement and full acceptance remain open.
 
 Use the [remaining-work plan](#overall-delivery-plan) below. Dated results and
 restoration identities are in the [evidence index](firmware/qualification/README.md)
@@ -167,8 +176,8 @@ for useful measured embedded inference.
 
 User-assisted items remain: visual acceptance of the chosen release image,
 review of proposed Desk controls, network setup/phone checks, additional output
-wiring and controlled electrical/power-loss tests. The radar zero-target test is
-explicitly deferred. LED/PWM tests do not qualify an untested motor or relay load.
+wiring and controlled electrical/power-loss tests. LED/PWM tests do not qualify
+an untested motor or relay load.
 
 ## Documentation convention
 

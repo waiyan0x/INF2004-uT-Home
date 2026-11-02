@@ -1,0 +1,109 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-11-02T13:38:22.828886+00:00",
+  "scope": "Read-only ESP follow-up after TX-jumper and ground reconnection; no Pico signal capture",
+  "paired_comparison": "esp32c3-pico-radar-comparison-20261102.json",
+  "user_reported_unpowered_checks": {
+    "tx_jumper_ohms": 0.6,
+    "meter_probes_ohms": 0,
+    "jumper_flex_stable": true,
+    "installed_tx_path_ohms": 2.4,
+    "installed_path_flex_stability": "not established",
+    "resistor": "10 kOhm in Board A a24 to a29, with no other connection at row 24 as reported; a29 is the GPIO5 side in the visualiser, not j29 5V",
+    "ground_reconnected": "Radar GND to Board A right blue rail, ESP GND j30 to same rail as reported; no fresh resistance measurement requested"
+  },
+  "user_observed_oled": "readable and updating",
+  "esp_identity": "303a:1001 D4:05:92:E6:C3:BC",
+  "profile": {
+    "active_revision": 922,
+    "saved_revision": 922,
+    "active_crc": 3623560383,
+    "saved_crc": 3623560383
+  },
+  "telemetry": {
+    "journal": {
+      "path": "build\\pico-radar-listener-20261102\\esp-reseat-20261102-213525.jsonl",
+      "sha256": "dba4ee811c5728259cabe51d0c43ed9021c03ef83948569ce33426923086202b"
+    },
+    "first_utc": "2026-11-02T13:35:25.270491+00:00",
+    "last_utc": "2026-11-02T13:37:24.271571+00:00",
+    "snapshots": 120,
+    "serial_errors": 0,
+    "quality_status_counts": [
+      {
+        "name": "environment_sensor",
+        "quality": "fresh",
+        "status": 1,
+        "count": 120
+      },
+      {
+        "name": "health",
+        "quality": "fresh",
+        "status": 1,
+        "count": 120
+      },
+      {
+        "name": "presence_sensor",
+        "quality": "fault",
+        "status": 2,
+        "count": 120
+      }
+    ],
+    "health_event_deltas": [
+      0,
+      0,
+      476,
+      1,
+      834,
+      0,
+      0,
+      0
+    ]
+  },
+  "workcost": {
+    "journal": {
+      "path": "build\\pico-radar-listener-20261102\\esp-reseat-workcost.json",
+      "sha256": "8d76865afa5847390d78fb3c4b6c613c960ce669dc5c794b51fd7133b1b579dd"
+    },
+    "first_utc": "2026-11-02T13:37:40.609366+00:00",
+    "last_utc": "2026-11-02T13:37:55.878318+00:00",
+    "worker_deltas": [
+      {
+        "source_index": 0,
+        "delta": {
+          "steps": 31,
+          "transfers": 62,
+          "transfer_bytes": 279,
+          "timeouts": 0,
+          "errors": 0
+        }
+      },
+      {
+        "source_index": 1,
+        "delta": {
+          "steps": 61,
+          "transfers": 122,
+          "transfer_bytes": 62830,
+          "timeouts": 0,
+          "errors": 0
+        }
+      },
+      {
+        "source_index": 2,
+        "delta": {
+          "steps": 1527,
+          "transfers": 1466,
+          "transfer_bytes": 0,
+          "timeouts": 0,
+          "errors": 0
+        }
+      }
+    ]
+  },
+  "limitations": [
+    "No independent radar signal capture occurred during the workcost interval; zero ESP payload does not prove whether the sensor transmitted.",
+    "Unpowered low-resistance results do not establish high-speed waveform quality or eliminate intermittent contacts.",
+    "OLED observation was user-reported, and no movement or zero-target acceptance was performed.",
+    "Power cycling, temporary connection changes and elapsed time mean the comparison does not isolate the effect of reseating."
+  ]
+}

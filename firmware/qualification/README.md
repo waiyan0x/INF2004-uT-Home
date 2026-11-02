@@ -6,17 +6,33 @@ Use the [root plan](../../README.md#remaining-work) for outstanding tasks and
 the [completed-work log](../../docs/COMPLETED_WORK_LOG.md) for the consolidated
 checkpoint narrative. Keep exact hashes, failed runs and source identities.
 
+At the user's request, the temporary Pico diagnostic programs, failed build
+and downloaded MicroPython image were removed from the local build folder after
+the tests. Their recorded paths and hashes remain historical identifiers, but
+the referenced `listener.py`, `sender.py` and MicroPython UF2 are no longer
+available locally. Raw capture logs and original Pico flash backups/readbacks
+remain in place; those removed files cannot be independently rechecked from the
+retained local artifacts.
+
 ## Evidence index
 
 | Scope | Record | Boundary |
 |---|---|---|
+| Radar zero-target observation | [capture](esp32c3-radar-zero-target-20261102.json) | 120/120 fresh snapshots with three absent slots in a user-confirmed clear field; movement and full hardware acceptance remain open. |
+| Real radar after reconnection | [capture](esp32c3-radar-reconnected-20261102.json) | 599/600 radar snapshots fresh across two windows; one fault coincided with a user-reported HLK-tool connection, not independently verified. Earlier timeouts and full acceptance remain open. |
+| Simulated radar UART input | [capture](esp32c3-pico-simulated-radar-20261102.json), [Pico restoration](pico-simulator-restoration-20261102.json) | ESP decoded Pico-generated reports with expected values; this does not establish the real radar's waveform at the ESP pin. Pico's original flash was restored and read back. |
+| Radar reconnection follow-up | [capture](esp32c3-radar-reseat-20261102.json) | Radar timed out throughout two minutes after reconnection; BMP stayed fresh and OLED was readable. Zero ESP UART payload during a later interval does not establish sensor output. |
+| Paired Pico / ESP radar observation | [capture](esp32c3-pico-radar-comparison-20261102.json), [Pico restoration](pico-radar-listener-restoration-20261102.json) | Pico observed radar-format reports while ESP timed out, followed by a no-byte interval and recovery; ESP-pin signal and cause remain unverified. Pico's original flash was restored and read back. |
+| Three-device cleanup regression | [hardware test](esp32c3-three-device-regression-20261102.json) | BMP, OLED observation, discovery, rollback, profile cycles and restore checks recorded; radar remains intermittently faulted on both images. |
 | Cleanup software regression | [Desloppify verification](desloppify-software-20261102.json) | Host, Node and browser regressions; native application build and unchanged aggregate fixed-memory budgets pass. No board actions; wireless/stack/runtime qualification remains open. |
 | Consolidated overnight handoff | [handoff](system-overnight-handoff-20261027.json) | Core stability and AI collection; not a full release |
 | Core lifecycle/scheduler | [core](esp32c3-scheduler-20261027.json) | USB image, rollback/capacity/reboot; combined radio load separate |
 | Radar app-state comparison | [captures](esp32c3-radar-app-comparison-20261027.json) | Initial silence, then healthy connected/disconnected windows; cause unresolved |
 | Radar readout on restored firmware | [capture](esp32c3-radar-readout-20261031.json) | No payload in a 60-s interval; requested phone-app attempts not timestamp-confirmed; cause unresolved |
+| Radar read-only follow-up | [capture](esp32c3-radar-readonly-20261101.json) | Fresh snapshots and received bytes over two minutes; no fault window; cause unresolved |
 | SEN0390 sensor and application | [isolated light response](sen0390-isolated-light-response-20261031.json), [longer wait](sen0390-startup-wait-20261031.json), [BMP388 first](sen0390-bmp-first-20261031.json), [combined application](sen0390-combined-app-20261031.json) | Clear light response and short combined capture; radar timed out before, during and after; full acceptance remains open |
 | SEN0390 Desk rehearsal | [user-operated flow](sen0390-desk-rehearsal-20261031.json), [restoration](sen0390-desk-rehearsal-restore-20261031.json) | Diagnostic firmware, user-reported light response and one live snapshot; full acceptance remains open |
+| SEN0390 two-hour combined capture | [record](sen0390-two-hour-combined-20261101.json) | Software resets and two-hour snapshots show light and radar faults; original firmware/profile restored; cause and full acceptance remain open |
 | SPI polling correction | [comparison](esp32c3-spi-polling-20261027.json) | Tested clocks/deadlines; preserve old negative data |
 | Wi-Fi/BLE diagnostics | [radio](esp32c3-radio-diagnostics-20261027.json), [GATT](esp32c3-gatt-settle-20261027.json) | Scan/restart and read/reconnect; SDK allocations remain |
 | Remaining SDK semantics | [source audit](esp32c3-wireless-source-audit-20261027.json) | Source findings, not proof every path executed |
@@ -58,7 +74,7 @@ Retain these lessons when interpreting current readings:
   not a pin-order authority. Keep modules off conductive supports.
 - Fresh zero-target radar reports are valid data. Moving hardware, uncontrolled
   occupancy or interrupted USB captures cannot establish an empty-scene pass.
-  The radar zero-target test is deferred at the user's request.
+  The 2 November 2026 observation passed for the stated setup and two-minute window.
 - SPI success does not prove an OLED is attached or readable. The six-pin panel's
   exact controller/internal CS wiring remains unconfirmed; preserve the reviewed
   layout and unused CS reservation until separately qualified.
@@ -79,9 +95,10 @@ Original raw and any normalized logs have separate hashes; never replace them.
 
 Follow [hardware acceptance](../../CONTRIBUTING.md) for remaining external UART,
 HC-SR04, PWM/load, controlled power-loss and combined wireless/peripheral tests.
-Independent UART observation and module-side supply/contact checks remain open
-for diagnosing the earlier intermittent radar silence. Scheduling latency and
-counter-report contention also need measurement under combined load.
+The paired Pico observation establishes a receive mismatch in one capture;
+signal checks at the actual ESP pin, controlled input and module-side
+supply/contact checks remain open. Scheduling latency and counter-report
+contention also need measurement under combined load.
 Repeat lifecycle/resource checks on the changed integrated image and keep scoped
 PASS / FAIL / NOT TESTED results. Hardware-qualified remains false until reviewed
-sign-off. Do not turn the deferred radar absence test into an automatic next step.
+sign-off; the zero-target observation alone does not complete acceptance.

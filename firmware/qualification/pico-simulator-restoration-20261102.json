@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-11-02T13:52:42.244287+00:00",
+  "scope": "Restore Pico W full flash after simulated radar UART test",
+  "simulated_capture": "esp32c3-pico-simulated-radar-20261102.json",
+  "user_reported_setup": "Pico signal and ground jumpers removed, real radar TX reconnected to ESP GPIO20/B35; ESP and radar powered off during Pico restoration.",
+  "files": [
+    {
+      "path": "build\\pico-radar-listener-20261102\\pico-before-simulator.bin",
+      "bytes": 2097152,
+      "sha256": "ed81eb7c23e737be47925e5533b49d129f117bdfa4b6d6d8f60e7c698dc7bfc2"
+    },
+    {
+      "path": "build\\pico-radar-listener-20261102\\pico-after-simulator.bin",
+      "bytes": 2097152,
+      "sha256": "ed81eb7c23e737be47925e5533b49d129f117bdfa4b6d6d8f60e7c698dc7bfc2"
+    }
+  ],
+  "readback_before_reboot_byte_for_byte_match": true,
+  "picotool_load_verify": "passed",
+  "pre_reboot_program": "uart_exercise; Pico SDK 1.5.1; pico_w",
+  "post_reboot_usb_identity": "2e8a:000a E6626005A74D2129 on COM3",
+  "limitations": [
+    "USB re-enumeration is not a complete functional test of uart_exercise.",
+    "Restored firmware pin roles are not established.",
+    "Real radar wiring was reported by the user and has not been re-tested after reconnection."
+  ]
+}
