@@ -112,7 +112,10 @@ confirmation/addition wiring, busy-state controls, review navigation, stale
 responses, discovery expiry, consumed apply tokens, delayed catalogue delivery
 and failed telemetry clearing. Additional scenarios cover PDF rendering/download,
 stale success/failure after file changes, size/provider errors, asynchronous import
-races, local-failure isolation and HTTP decoding context. CI installs the same pinned Chromium revision.
+races, local-failure isolation, network/HTTP error context, datasheet generation
+payloads and stale results, and telemetry/mutation serialization. The wiring-guide
+tests exercise every setup, responsive focus views and saved-progress recovery.
+CI installs the same pinned Chromium revision.
 Artifacts stay under `build/browser-results`. To keep downloaded browser binaries
 local too, set `PLAYWRIGHT_BROWSERS_PATH` to `build/playwright-browsers` for both
 the install command and test run.

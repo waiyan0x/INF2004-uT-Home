@@ -20,9 +20,11 @@ import { tile } from './dashboard.js';
  *   capture: {result: string, active_revision: number, request_id?: number,
  *   started_ms?: number, elapsed_ms?: number, build_sha256?: string},
  *   devices: DiscoveryDevice[]}} DiscoveryReport
+ * Callbacks own error presentation and must catch asynchronous failures.
  * @callback AddDevice
  * @param {number} index
  * @returns {void|Promise<void>}
+ * Confirm callbacks also handle errors before their returned promise settles.
  * @callback ConfirmDevice
  * @param {number} index
  * @param {boolean} identityConfirmed
@@ -39,6 +41,7 @@ function text(tag, value, className = '') {
 
 /** Omitted action callbacks leave their controls disabled. The application
  * supplies onReadinessChange to recompute connection/busy availability.
+ * Action callbacks present and handle their own failures; returned promises must not reject.
  * @param {DiscoveryReport|null} report
  * @param {AddDevice|null} [add]
  * @param {string} [message]
@@ -83,9 +86,9 @@ export function renderDiscovery(report, add, message = 'Connect a board and conf
     const value = observation.value === null ? 'no chip ID' : 'chip ID 0x' + observation.value.toString(16).padStart(2, '0');
     details.append(text('p', `${value} · register 0x${observation.register.toString(16).padStart(2, '0')} · ${device.identity.status} catalogue match`, 'hint'));
     if (selected) details.append(text('p', `Descriptor ${selected.id} v${selected.version} · driver ${device.capabilities.driver} · hardware qualification ${device.capabilities.hardware_qualified ? 'recorded' : 'pending'}`, 'hint'));
+    item.append(details);
     if (!appendRecommendation(item, details, device, index, add, `${selected?.id} at ${address}`)) {
       details.append(text('p', 'No settings to add. A unique identity and a supported driver are required.', 'hint'));
-      item.append(details);
     }
     container.append(item);
   }
@@ -110,14 +113,13 @@ function renderManualOrUartDevice(container, report, device, index, add, confirm
   details.append(text('p', manual ? 'No readback is available for this selection. User confirmation is not proof that the device operates.' :
     `${device.observation.valid_reports ?? 0} complete reports; ${device.observation.window_ms ?? 0} ms window; ${device.observation.receive_errors ?? 0} receive errors; ${device.observation.discarded_bytes ?? 0} discarded bytes. Silence does not prove disconnection; reports with zero targets still count.`, 'hint'));
   for (const caution of device.cautions || []) details.append(text('p', caution, 'hint'));
+  item.append(details);
   if (selected) {
     details.append(text('p', `Descriptor ${selected.id} v${selected.version} · driver ${device.capabilities.support} · hardware qualification ${device.capabilities.hardware_qualified ? 'recorded' : 'pending'}`, 'hint'));
     if (!appendRecommendation(item, details, device, index, add, selected.id)) {
       details.append(text('p', 'This firmware has no available driver for the selection.', 'hint'));
-      item.append(details);
     }
   } else if (candidates.length === 1 && (manual || device.identity.status === 'candidate')) {
-    item.append(details);
     let sources = null;
     if (device.source_queues) {
       const sourceLabel = text('label', 'Existing readings queue', 'field__label');
@@ -140,7 +142,6 @@ function renderManualOrUartDevice(container, report, device, index, add, confirm
     item.append(labelNode, button);
   } else {
     details.append(text('p', 'No settings to add. Check the confirmed connection and retry; do not infer a device from an incomplete or noisy stream.', 'hint'));
-    item.append(details);
   }
   container.append(item);
 }
@@ -173,7 +174,7 @@ function appendRecommendation(item, details, device, index, add, label) {
   button.onclick = () => {
     if (!button.disabled) add(index);
   };
-  item.append(details, button);
+  item.append(button);
   return true;
 }
 

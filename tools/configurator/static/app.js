@@ -1,5 +1,5 @@
 "use strict";
-import { renderProfile, renderTelemetry, renderBoardState, renderTable, setupWorkspace } from './dashboard.js';
+import { renderProfile, renderTelemetry, renderBoardState, renderReviewPlan, setupWorkspace } from './dashboard.js';
 import { renderDiscovery, updateDiscoveryControls } from './discovery.js';
 import { renderDatasheet } from './datasheet.js';
 const el = id => document.getElementById(id);
@@ -44,11 +44,12 @@ function updateControls() {
   updateDiscoveryControls(connected && !busy && !!discovered?.discovery_id);
   el('connect').disabled = connected || busy;
   el('review').disabled = busy;
+  el('file').disabled = busy;
   el('apply').disabled = !connected || !reviewId || busy;
   el('datasheet-analyse').disabled = datasheetBusy || !el('datasheet-file').files.length;
   el('datasheet-generate').disabled = datasheetBusy || busy || !connected || !datasheetSelection || !el('datasheet-confirm').checked;
 }
-function invalidate() {
+function invalidateReviewAndDiscovery() {
   clearDiscovery();
   reviewId = null;
   el('review-summary').textContent = 'Profile changed. Validate and review again.';
@@ -61,7 +62,7 @@ function invalidate() {
 function markDraftChanged() {
   draftEdited = true;
   draftGeneration++;
-  invalidate();
+  invalidateReviewAndDiscovery();
 }
 async function decodeResponse(response, action) {
   let data;
@@ -76,8 +77,15 @@ async function decodeResponse(response, action) {
   }
   return data;
 }
+async function fetchResponse(url, action, options) {
+  try {
+    return await fetch(url, options);
+  } catch (cause) {
+    throw new Error(`${action} failed: ${cause.message}`, {cause});
+  }
+}
 async function rpc(action, body = {}) {
-  const response = await fetch('/api/' + action, {
+  const response = await fetchResponse('/api/' + action, action, {
     method: 'POST',
     headers: {'Content-Type': 'application/json', 'X-Session': token},
     body: JSON.stringify(body),
@@ -224,25 +232,39 @@ el('datasheet-match').onclick = () => runBoardAction(async () => {
   el('datasheet-driver').textContent = `Candidate ${match.descriptor_id} · ${match.driver_id} is installed. Confirm the physical module and connections.`;
   updateControls();
 });
-el('datasheet-generate').onclick = () => runBoardAction(async () => {
-  if (!datasheetSelection || !el('datasheet-confirm').checked) throw new Error('Check the device and wiring first.');
+el('datasheet-generate').onclick = () => {
+  let validationError;
   const sda = el('datasheet-sda').value, scl = el('datasheet-scl').value;
-  if (sda === '' || scl === '') throw new Error('Select SDA and SCL GPIO pins.');
   const enable = el('datasheet-enable').value;
-  if (datasheetSelection.needsEnable && enable === '') throw new Error('Select the enable GPIO pin.');
-  const profile = el('profile').value;
-  const result = await rpc('datasheet_prepare_i2c', {profile, descriptor_id: datasheetSelection.descriptor_id,
+  if (!datasheetSelection || !el('datasheet-confirm').checked) {
+    validationError = 'Check the device and wiring first.';
+  } else if (sda === '' || scl === '') {
+    validationError = 'Select SDA and SCL GPIO pins.';
+  } else if (datasheetSelection.needsEnable && enable === '') {
+    validationError = 'Select the enable GPIO pin.';
+  }
+  if (validationError) {
+    notice(validationError, true);
+    el('datasheet-generate-status').textContent = validationError;
+    return;
+  }
+  const generation = draftGeneration;
+  const request = {profile: el('profile').value, descriptor_id: datasheetSelection.descriptor_id,
     descriptor_version: datasheetSelection.descriptor_version, device_id: el('datasheet-device-id').value,
     address: el('datasheet-address').value, sda_gpio: Number(sda), scl_gpio: Number(scl),
     ...(datasheetSelection.needsEnable ? {enable_gpio: Number(enable)} : {}),
-    wiring_confirmed: true, identity_confirmed: true});
-  if (profile !== el('profile').value) throw new Error('The profile changed; prepare the draft again.');
-  el('profile').value = JSON.stringify(result.profile, null, 2);
-  markDraftChanged();
-  const message = 'Device added to the draft. Validate and review the whole profile before applying.';
-  el('datasheet-generate-status').textContent = message;
-  notice(message);
-}, error => { el('datasheet-generate-status').textContent = error.message; });
+    wiring_confirmed: true, identity_confirmed: true};
+  return runBoardAction(async () => {
+    if (generation !== draftGeneration) throw new Error('The profile changed; prepare the draft again.');
+    const result = await rpc('datasheet_prepare_i2c', request);
+    if (generation !== draftGeneration) throw new Error('The profile changed; prepare the draft again.');
+    el('profile').value = JSON.stringify(result.profile, null, 2);
+    markDraftChanged();
+    const message = 'Device added to the draft. Validate and review the whole profile before applying.';
+    el('datasheet-generate-status').textContent = message;
+    notice(message);
+  }, error => { el('datasheet-generate-status').textContent = error.message; });
+};
 el('detect').onclick = () => runBoardAction(async () => {
   reviewId = null;
   clearDiscovery('Checking the reviewed connection…');
@@ -329,7 +351,7 @@ el('connect').onclick = () => runBoardAction(async () => {
   resetDatasheetMatch();
   discoveryFeatures = data.capabilities.features;
   el('wiring-confirmed').checked = false;
-  invalidate();
+  invalidateReviewAndDiscovery();
   updateBoardState(data.state);
   if (!(discoveryFeatures & 6)) {
     clearDiscovery('This firmware cannot detect devices. Manual selections are available; update firmware for detection.');
@@ -342,7 +364,7 @@ el('disconnect').onclick = () => runBoardAction(async () => {
   await rpc('disconnect');
   connected = false;
   resetDatasheetMatch();
-  invalidate();
+  invalidateReviewAndDiscovery();
   renderTelemetry(null);
   el('capabilities').textContent = '';
   notice('Disconnected. The board keeps its active configuration.');
@@ -352,25 +374,11 @@ el('review').onclick = () => runBoardAction(async () => {
   const profile = el('profile').value;
   const data = await rpc('review', {profile});
   if (el('profile').value !== profile) {
-    invalidate();
+    invalidateReviewAndDiscovery();
     return;
   }
   reviewId = data.review_id;
-  const resources = data.plan.resources;
-  el('review-summary').textContent = `${resources.active_tasks} active workers · ${resources.device_stack_bytes} bytes peripheral stacks · ${data.connected ? 'reviewed against connected firmware' : 'offline review; connect and review again to deploy'}`;
-  renderTable(el('plan'), ['Instance', 'Driver', 'Enabled', 'Period'], data.plan.devices.map(device => [
-    device.device_id, device.driver_id, device.enabled ? 'Yes' : 'No',
-    device.period_ms ? device.period_ms + ' ms' : 'stream',
-  ]));
-  if (data.plan.rules.length) {
-    renderTable(el('rule-plan'), ['Source / condition', 'Output', 'Policy'], data.plan.rules.map(rule => [
-      `${rule.source}: ${rule.metric} ${rule.comparison} ${rule.threshold}`,
-      `${rule.target}: ${rule.duty_permille / 10}%`,
-      `hysteresis ${rule.hysteresis}; cooldown ${rule.cooldown_ms} ms; max age ${rule.max_age_ms} ms`,
-    ]));
-  } else {
-    el('rule-plan').replaceChildren();
-  }
+  renderReviewPlan(data.plan, data.connected);
   if (data.state) updateBoardState(data.state);
   notice('Profile validated. Check the wiring, device list and rules before applying.');
   showWorkspace('review', true);
@@ -420,7 +428,7 @@ async function poll() {
 
 async function loadCatalogue() {
   try {
-    const response = await fetch('/api/catalogue');
+    const response = await fetchResponse('/api/catalogue', 'Catalogue');
     const data = await decodeResponse(response, 'Catalogue');
     connections = data.connections;
     for (const preset of connections) {

@@ -46,6 +46,13 @@ function icon(name, small = false) {
   return badge;
 }
 
+/** Display values are converted to text; object/null values render as invalid.
+ * @param {unknown} title
+ * @param {unknown} detail
+ * @param {string} glyph
+ * @param {string} accent
+ * @returns {HTMLElement}
+ */
 export function tile(title, detail, glyph, accent) {
   const result = node('div', 'tile tile--wrap');
   result.dataset.accent = accent;
@@ -113,7 +120,7 @@ function pill(sample, label, value, glyph, accent) {
 /** Render shared controller metadata for commands and live observations.
  * @param {BoardState} data */
 export function renderBoardState(data) {
-  el('state').textContent = `${data.message || 'Observed state'} ? active revision ${data.active_revision} ? saved revision ${data.saved_revision} ? ${data.flags & 16 ? 'saved state known' : 'saved state unknown'}${data.flags & 32 ? ' ? recovery required' : ''}`;
+  el('state').textContent = `${data.message || 'Observed state'} · active revision ${data.active_revision} · saved revision ${data.saved_revision} · ${data.flags & 16 ? 'saved state known' : 'saved state unknown'}${data.flags & 32 ? ' · recovery required' : ''}`;
 }
 
 /** @param {HTMLElement} container
@@ -135,17 +142,43 @@ export function renderTable(container, headings, records) {
   container.replaceChildren(table);
 }
 
+/** Render an already validated resource plan; the controller owns review freshness.
+ * @param {{resources: {active_tasks: number, device_stack_bytes: number},
+ *   devices: {device_id: string, driver_id: string, enabled: boolean, period_ms: number|null}[],
+ *   rules: {source: string, metric: string, comparison: string, threshold: number,
+ *     target: string, duty_permille: number, hysteresis: number, cooldown_ms: number,
+ *     max_age_ms: number}[]}} plan
+ * @param {boolean} connected
+ */
+export function renderReviewPlan(plan, connected) {
+  const resources = plan.resources;
+  el('review-summary').textContent = `${resources.active_tasks} active workers · ${resources.device_stack_bytes} bytes peripheral stacks · ${connected ? 'reviewed against connected firmware' : 'offline review; connect and review again to deploy'}`;
+  renderTable(el('plan'), ['Instance', 'Driver', 'Enabled', 'Period'], plan.devices.map(device => [
+    device.device_id, device.driver_id, device.enabled ? 'Yes' : 'No',
+    device.period_ms ? device.period_ms + ' ms' : 'stream',
+  ]));
+  if (plan.rules.length) {
+    renderTable(el('rule-plan'), ['Source / condition', 'Output', 'Policy'], plan.rules.map(rule => [
+      `${rule.source}: ${rule.metric} ${rule.comparison} ${rule.threshold}`,
+      `${rule.target}: ${rule.duty_permille / 10}%`,
+      `hysteresis ${rule.hysteresis}; cooldown ${rule.cooldown_ms} ms; max age ${rule.max_age_ms} ms`,
+    ]));
+  } else {
+    el('rule-plan').replaceChildren();
+  }
+}
+
 /** @param {Sample} sample */
 function formatSampleValue(sample) {
   const value = sample.value;
   if (!value) return 'Unavailable';
-  if (sample.type === 1) return `${value.temperature_c.toFixed(2)} ?C ? ${value.pressure_pa.toFixed(0)} Pa`;
-  if (sample.type === 3) return `${value.distance_mm} mm ? echo ${value.echo_us} ?s`;
+  if (sample.type === 1) return `${value.temperature_c.toFixed(2)} °C · ${value.pressure_pa.toFixed(0)} Pa`;
+  if (sample.type === 3) return `${value.distance_mm} mm · echo ${value.echo_us} µs`;
   if (sample.type === 2) return value.targets.map((target, index) => target.present
     ? `${index + 1}: (${target.x_mm}, ${target.y_mm}) mm, ${target.speed_cm_s} cm/s`
     : `${index + 1}: absent`).join('; ');
   if (sample.type === 5) return `${(value.millilux / 1000).toFixed(3)} lux`;
-  return `Last event ${value.event} ? count ${value.occurrences}`;
+  return `Last event ${value.event} · count ${value.occurrences}`;
 }
 
 /** Render all observation surfaces; null means disconnected, nonzero result unavailable.
@@ -165,9 +198,9 @@ export function renderTelemetry(snapshot) {
   }
   el('timestamp').textContent = `Board uptime ${(snapshot.timestamp_ms / 1000).toFixed(1)} s`;
   renderBoardState(snapshot.configuration);
-  el('health').textContent = `${snapshot.health.total_events} recorded health events ? ${snapshot.runtime.failed_workers} failed workers ? service status ${snapshot.runtime.service_error}`;
+  el('health').textContent = `${snapshot.health.total_events} recorded health events · ${snapshot.runtime.failed_workers} failed workers · service status ${snapshot.runtime.service_error}`;
   renderTable(el('readings'), ['Source', 'Quality', 'Value', 'Age'], snapshot.samples.map(sample => [
-    sample.name, sample.quality, formatSampleValue(sample), sample.age_ms === null ? '?' : sample.age_ms + ' ms',
+    sample.name, sample.quality, formatSampleValue(sample), sample.age_ms === null ? '—' : sample.age_ms + ' ms',
   ]));
   el('diagnostics').textContent = JSON.stringify({runtime: snapshot.runtime, queues: snapshot.queues}, null, 2);
   const pills = [];
@@ -195,7 +228,9 @@ export function renderTelemetry(snapshot) {
   ], '');
 }
 
-/** Switch views without changing the draft, board state or pending review. */
+/** Switch views without changing the draft, board state or pending review.
+ * @returns {(view: string, focus?: boolean) => void} Unknown views leave selection unchanged.
+ */
 export function setupWorkspace() {
   const tabs = [...document.querySelectorAll('[data-workspace-tab]')];
   function select(view, focus = false) {

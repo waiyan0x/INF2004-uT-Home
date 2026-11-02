@@ -274,6 +274,7 @@ for (const failure of ['network', 'json', 'unavailable']) {
     await page.clock.runFor(1000);
     await expect(page.locator('#pills')).toContainText('120 mm');
     await expect(page.locator('#readings')).toContainText('120 mm');
+    await expect(page.locator('#readings')).toContainText('echo 700 µs');
     await expect(page.locator('#recover')).toBeEnabled();
     desk.handlers.telemetry = async (_body, route) => {
       if (failure === 'network') await route.abort('failed');
@@ -288,9 +289,116 @@ for (const failure of ['network', 'json', 'unavailable']) {
     await expect(page.locator('#diagnostics')).toBeEmpty();
     await expect(page.locator('#state')).toContainText('Board state unavailable');
     await expect(page.locator('#recover')).toBeDisabled();
+    if (failure === 'network') await expect(page.locator('#notice')).toContainText('telemetry failed:');
     expect(desk.errors).toEqual([]);
   });
 }
+
+const i2cMatch = needsEnable => ({connected: true, matches: [{
+  descriptor_id: 'sen0390', descriptor_version: '1.0.0', driver_id: 'sen0390', driver_available: true,
+  draft_builder: {eligible: true, addresses: ['0x4a'], needs_enable: needsEnable},
+}]});
+
+async function selectI2cDraft(page, needsEnable = true) {
+  await page.locator('#connect').click();
+  await page.getByText('Driver availability and configuration', {exact: true}).click();
+  await page.locator('#datasheet-name').fill('sen0390');
+  await page.locator('#datasheet-match').click();
+  await expect(page.locator('#datasheet-address')).toHaveValue('0x4a');
+  await page.locator('#datasheet-sda').fill('4');
+  await page.locator('#datasheet-scl').fill('5');
+  if (needsEnable) await page.locator('#datasheet-enable').fill('6');
+  await page.locator('#datasheet-confirm').check();
+}
+
+for (const needsEnable of [true, false]) {
+  test(`datasheet draft sends reviewed inputs and consumes review, enable=${needsEnable}`, async ({page}) => {
+    const prepared = {...draft, node_id: 'prepared'};
+    const desk = await openDesk(page, {datasheet_match: () => i2cMatch(needsEnable),
+      datasheet_prepare_i2c: () => ({profile: prepared})});
+    await selectI2cDraft(page, needsEnable);
+    await page.locator('#review').click();
+    await expect(page.locator('#apply')).toBeEnabled();
+    await page.locator('#tab-profile').click();
+    await page.locator('#datasheet-generate').click();
+    await expect(page.locator('#profile')).toHaveValue(JSON.stringify(prepared, null, 2));
+    await expect(page.locator('#apply')).toBeDisabled();
+    expect(desk.requests.find(row => row.action === 'datasheet_prepare_i2c').body).toEqual({
+      profile: JSON.stringify(draft, null, 2), descriptor_id: 'sen0390', descriptor_version: '1.0.0',
+      device_id: 'i2c_sensor', address: '0x4a', sda_gpio: 4, scl_gpio: 5,
+      ...(needsEnable ? {enable_gpio: 6} : {}), wiring_confirmed: true, identity_confirmed: true,
+    });
+    expect(desk.errors).toEqual([]);
+  });
+}
+
+for (const missing of ['sda', 'enable']) {
+  test(`missing local ${missing} preserves a valid review without sending a draft request`, async ({page}) => {
+    const desk = await openDesk(page, {datasheet_match: () => i2cMatch(true)});
+    await selectI2cDraft(page);
+    await page.locator('#review').click();
+    await expect(page.locator('#apply')).toBeEnabled();
+    await page.locator('#tab-profile').click();
+    await page.locator(`#datasheet-${missing}`).fill('');
+    await page.locator(`#datasheet-${missing}`).blur();
+    await page.locator('#datasheet-confirm').check();
+    await page.locator('#datasheet-generate').click();
+    await expect(page.locator('#datasheet-generate-status')).toContainText('Select');
+    await expect(page.locator('#apply')).toBeEnabled();
+    expect(desk.requests.filter(row => row.action === 'datasheet_prepare_i2c')).toEqual([]);
+    expect(desk.errors).toEqual([]);
+  });
+}
+
+test('a delayed datasheet draft cannot replace a profile edited and then restored', async ({page}) => {
+  const pending = deferred();
+  const desk = await openDesk(page, {datasheet_match: () => i2cMatch(true),
+    datasheet_prepare_i2c: () => pending.promise});
+  await selectI2cDraft(page);
+  await page.locator('#datasheet-generate').click();
+  await expect.poll(() => desk.requests.filter(row => row.action === 'datasheet_prepare_i2c').length).toBe(1);
+  const original = await page.locator('#profile').inputValue();
+  await page.locator('#profile').fill('{"node_id":"newer"}');
+  await page.locator('#profile').fill(original);
+  pending.resolve({profile: {...draft, node_id: 'stale'}});
+  await expect(page.locator('#notice')).toContainText('profile changed');
+  await expect(page.locator('#profile')).toHaveValue(original);
+  expect(desk.errors).toEqual([]);
+});
+
+for (const success of [true, false]) {
+  test(`apply waits for outstanding telemetry and follows its result, success=${success}`, async ({page}) => {
+    const pending = deferred();
+    const desk = await openDesk(page, {telemetry: async (_body, route) => {
+      await pending.promise;
+      if (success) return snapshot();
+      await route.abort('failed');
+    }});
+    await page.locator('#connect').click();
+    await page.locator('#review').click();
+    await expect(page.locator('#apply')).toBeEnabled();
+    await page.clock.runFor(1000);
+    await expect.poll(() => desk.requests.filter(row => row.action === 'telemetry').length).toBe(1);
+    await page.locator('#apply').click();
+    await expect(page.locator('#review')).toBeDisabled();
+    await expect(page.locator('#file')).toBeDisabled();
+    expect(desk.requests.filter(row => row.action === 'apply')).toEqual([]);
+    pending.resolve();
+    await expect(page.locator('#review')).toBeEnabled();
+    await expect(page.locator('#file')).toBeEnabled();
+    expect(desk.requests.filter(row => row.action === 'apply').map(row => row.body))
+      .toEqual(success ? [{review_id: 'review-token'}] : []);
+    if (!success) await expect(page.locator('#notice')).toContainText('telemetry failed:');
+    await expect(page.locator('#apply')).toBeDisabled();
+    expect(desk.errors).toEqual([]);
+  });
+}
+
+test('catalogue network failure identifies its operation', async ({page}) => {
+  const desk = await openDesk(page, {catalogue: async (_body, route) => { await route.abort('failed'); }});
+  await expect(page.locator('#notice')).toContainText('Catalogue failed:');
+  expect(desk.errors).toEqual([]);
+});
 
 for (const action of ['discover', 'review']) {
   test(`editing while ${action} is pending rejects its stale response`, async ({page}) => {
