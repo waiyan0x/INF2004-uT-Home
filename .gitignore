@@ -21,6 +21,7 @@ dependencies.lock
 __pycache__/
 *.pyc
 .venv/
+.desloppify/
 
 # Secrets
 secrets/

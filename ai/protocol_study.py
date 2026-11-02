@@ -9,7 +9,7 @@ import sys
 from ai import workload
 from ai.recording import load_recording, save_new
 from ai.records import assess_run
-from ai.timing import canonical, digest, prepare, validate
+from ai.timing import canonical, digest, prepare
 from tools.config_validator.planner import Catalogue, ROOT, ConfigurationError, load_document, require
 
 MAX_BYTES = 64 * 1024 * 1024

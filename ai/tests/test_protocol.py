@@ -10,15 +10,14 @@ import zlib
 
 from ai import workload
 from ai.export import export_c
-from ai.model import context
 from ai.protocol_model import predict, recommend, train, validate_model
 from ai.protocol_capture import collect
 from ai.protocol_study import dataset, observe_peers, prepare_study, validate_study
 from ai.provenance import make_identity, make_receipt
 from ai.recording import load_recording, record_run
 from ai.tests.test_recording import Board, Clock
-from ai.timing import canonical, digest, export_profile, prepare
-from tools.config_validator.planner import Catalogue, ConfigurationError, ROOT, build_plan, load_document
+from ai.timing import export_profile, prepare
+from tools.config_validator.planner import ConfigurationError, ROOT, build_plan, load_document
 
 
 class ProtocolTests(unittest.TestCase):

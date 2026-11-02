@@ -1,6 +1,5 @@
 """Recording contracts exercised with fake telemetry and clocks, never hardware."""
 from copy import deepcopy
-from dataclasses import asdict
 import hashlib
 import json
 from pathlib import Path
@@ -12,8 +11,8 @@ import zlib
 from ai.provenance import (check_receipt, make_identity, make_receipt, retained_build)
 from ai.recorder import apply_trial, bundle_recordings, main
 from ai.recording import load_recording, record_run
-from ai.records import assess_run, build_dataset
-from ai.timing import canonical, digest, export_profile, prepare
+from ai.records import build_dataset
+from ai.timing import export_profile, prepare
 from tools.config_transfer.capabilities import Capabilities
 from tools.config_transfer.discovery import Discovery
 from tools.config_transfer.telemetry import Snapshot
