@@ -58,14 +58,40 @@ void disctest_run (const cfgbind_io_t * p_io, cfgstore_t * p_store)
     i2cfake_init(&g_fake);
     i2cfake_sensor(&g_fake, 0U, 12500U);
     i2cfake_sensor(&g_fake, 1U, 12500U);
-    g_fake.registers[1][0] = 0x60U;
-    g_io                   = *p_io;
-    g_io.p_i2c_open        = open_bus;
-    g_io.p_i2c_close       = close_bus;
+    g_fake.registers[1][0]          = 0x60U;
+    g_io                            = *p_io;
+    g_io.p_i2c_open                 = open_bus;
+    g_io.p_i2c_close                = close_bus;
+    const unsigned     opens        = g_opens;
+    const unsigned     closes       = g_closes;
+    uint8_t            hash[32]     = {1U};
+    const cfgdisc_io_t discovery_io = {.p_open  = open_bus,
+                                       .p_close = close_bus,
+                                       .p_uart  = g_io.p_uart(),
+                                       .p_wait  = uartdisc_wait};
+    assert(-1 ==
+           cfgdisc_init(
+               &g_discovery, &g_control, &g_binding, hash, &discovery_io));
+    assert(NULL == g_discovery.p_control);
     assert(0 == cfgbind_init(&g_binding, &g_io));
-    uint8_t hash[32] = {1U};
+    cfgdisc_io_t incomplete[4] = {
+        discovery_io, discovery_io, discovery_io, discovery_io};
+    incomplete[0].p_open  = NULL;
+    incomplete[1].p_close = NULL;
+    incomplete[2].p_uart  = NULL;
+    incomplete[3].p_wait  = NULL;
+    for (size_t index = 0U; index < 4U; ++index)
+    {
+        assert(-1 == cfgdisc_init(&g_discovery,
+                                  &g_control,
+                                  &g_binding,
+                                  hash,
+                                  &incomplete[index]));
+        assert(NULL == g_discovery.p_control);
+    }
+    assert((opens == g_opens) && (closes == g_closes));
     assert(0 == cfgdisc_init(
-                    &g_discovery, &g_control, &g_binding, hash, uartdisc_wait));
+                    &g_discovery, &g_control, &g_binding, hash, &discovery_io));
     g_discovery.probe.p_now = now_ms;
     assert(0 == cfgctrl_init(
                     &g_control, p_store, cfgdisc_operations(), &g_discovery));

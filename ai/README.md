@@ -176,7 +176,7 @@ cross-device accuracy.
 
 ### Implemented bounded controller preparation
 
-`firmware/src/services/adviser.c/.h` now provides a portable, caller-owned
+`firmware/src/services/advice/adviser.c/.h` now provides a portable, caller-owned
 432-byte state machine with at most four copied eighteen-input candidates.
 It evaluates one candidate per step and returns the longest passing interval.
 Every step and reply checks the profile CRC/revision, session, build and execution

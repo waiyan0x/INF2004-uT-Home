@@ -8,14 +8,16 @@
 #error "Bus fault tests require assertions."
 #endif
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 #include "pinpool.h"
 #include "c3i2c.h"
 
 enum
 {
-    BUSFAKE_NONE   = 0,
-    BUSFAKE_I_NACK = 1,
+    BUSFAKE_DELAY_CLOCK = -1,
+    BUSFAKE_NONE        = 0,
+    BUSFAKE_I_NACK      = 1,
     BUSFAKE_I_ARBITRATION,
     BUSFAKE_I_TIMEOUT,
     BUSFAKE_I_DEADLINE,
@@ -28,6 +30,7 @@ enum
     BUSFAKE_I_PAUSE_OK,
     BUSFAKE_I_ONE_BYTE,
     BUSFAKE_I_FULL_FIFO,
+    BUSFAKE_I_DELAY,
     BUSFAKE_S_CONFIG_TIMEOUT = 20,
     BUSFAKE_S_UPDATE_TIMEOUT,
     BUSFAKE_S_TRANSFER_TIMEOUT,
@@ -35,7 +38,8 @@ enum
     BUSFAKE_S_CLOCK,
     BUSFAKE_S_YIELD,
     BUSFAKE_S_CHUNKS,
-    BUSFAKE_S_LOCK
+    BUSFAKE_S_LOCK,
+    BUSFAKE_S_DELAY
 };
 
 typedef struct
@@ -69,12 +73,14 @@ static uint8_t           g_fifo[64]         = {0};
 static size_t            g_fifo_size        = 0U;
 static size_t            g_recorded_bytes   = 0U;
 static bool              gb_recorded_error  = false;
+static bool              gb_delay_failure   = false;
 
 static void verify_i2c (int scenario);
 static void verify_spi (int scenario);
 static int i2c_error (int scenario);
 static int spi_error (int scenario);
 static uint32_t requested_read (void);
+static void verify_delay_result (int expected, int actual);
 
 /** @brief A fresh process has exactly one permanent mutex for its selected bus.
  */
@@ -136,7 +142,8 @@ int busfake_now (uint64_t * p_now)
 {
     ++g_clocks;
     assert(g_clocks < 10000U);
-    if (((BUSFAKE_I_CLOCK == g_fault) && (4U == g_clocks)) ||
+    if ((BUSFAKE_DELAY_CLOCK == g_fault) ||
+        ((BUSFAKE_I_CLOCK == g_fault) && (4U == g_clocks)) ||
         ((BUSFAKE_S_CLOCK == g_fault) && (3U == g_clocks)))
     {
         return -1;
@@ -470,7 +477,7 @@ void busfake_s_read (uint8_t * p_bytes, size_t size)
 }
 
 /** @brief Run one fresh-process fault or protocol-boundary scenario. */
-void busfake_verify (int scenario)
+int busfake_verify (int scenario)
 {
     if (scenario < BUSFAKE_S_CONFIG_TIMEOUT)
     {
@@ -486,6 +493,7 @@ void busfake_verify (int scenario)
     {
         assert(NULL == g_pins.p_owners[index]);
     }
+    return gb_delay_failure ? 1 : 0;
 }
 
 /** @brief Sum bounded READ commands and require a final-byte NACK. */
@@ -529,7 +537,7 @@ static int i2c_error (int scenario)
 /** @brief Prove bounded reset/unlock and a successful next I2C transaction. */
 static void verify_i2c (int scenario)
 {
-    assert((scenario >= BUSFAKE_I_NACK) && (scenario <= BUSFAKE_I_FULL_FIFO));
+    assert((scenario >= BUSFAKE_I_NACK) && (scenario <= BUSFAKE_I_DELAY));
     const i2cbus_config_t config = {
         .sda_gpio = 0U, .scl_gpio = 1U, .clock_hz = 100000U};
     i2cbus_t * p_bus       = NULL;
@@ -539,6 +547,20 @@ static void verify_i2c (int scenario)
     assert(0 == c3i2c_init());
     assert(0 == c3i2c_init());
     assert(0 == c3i2c_open(&config, &p_bus));
+    if (BUSFAKE_I_DELAY == scenario)
+    {
+        g_fault = BUSFAKE_DELAY_CLOCK;
+        verify_delay_result(I2CBUS_IO, i2cbus_delay_us(p_bus, 1000U, 10U));
+        g_fault = BUSFAKE_NONE;
+        verify_delay_result(I2CBUS_TIMEOUT,
+                            i2cbus_delay_us(p_bus, 10000U, 10U));
+        verify_delay_result(0, i2cbus_delay_us(p_bus, 0U, 10U));
+        assert(0 == c3i2c_close(p_bus));
+        const unsigned clocks = g_clocks;
+        verify_delay_result(I2CBUS_STATE, i2cbus_delay_us(p_bus, 1000U, 10U));
+        assert(clocks == g_clocks);
+        return;
+    }
     i2cbus_request_t request = {.address     = 0x76U,
                                 .p_write     = written,
                                 .write_size  = 1U,
@@ -619,7 +641,7 @@ static int spi_error (int scenario)
 static void verify_spi (int scenario)
 {
     assert((scenario >= BUSFAKE_S_CONFIG_TIMEOUT) &&
-           (scenario <= BUSFAKE_S_LOCK));
+           (scenario <= BUSFAKE_S_DELAY));
     const c3spi_config_t config = {
         .host = 2U, .sclk_gpio = 4U, .mosi_gpio = 6U, .miso_gpio = 5U};
     const spibus_config_t device_config = {.cs_gpio = 7U, .clock_hz = 1000000U};
@@ -636,6 +658,19 @@ static void verify_spi (int scenario)
     assert(0 == c3spi_init());
     assert(0 == c3spi_init());
     assert(0 == c3spi_open(&config, &p_bus));
+    if (BUSFAKE_S_DELAY == scenario)
+    {
+        g_fault = BUSFAKE_DELAY_CLOCK;
+        verify_delay_result(SPIBUS_IO, spibus_delay_ms(p_bus, 1U, 10U));
+        g_fault = BUSFAKE_NONE;
+        verify_delay_result(SPIBUS_TIMEOUT, spibus_delay_ms(p_bus, 10U, 10U));
+        verify_delay_result(0, spibus_delay_ms(p_bus, 0U, 10U));
+        assert(0 == c3spi_close(p_bus));
+        const unsigned clocks = g_clocks;
+        verify_delay_result(SPIBUS_STATE, spibus_delay_ms(p_bus, 1U, 10U));
+        assert(clocks == g_clocks);
+        return;
+    }
     assert(0 == spibus_attach(p_bus, &device, &device_config));
     spibus_request_t request = {.p_write     = written,
                                 .p_read      = received,
@@ -669,6 +704,20 @@ static void verify_spi (int scenario)
     assert(0 == memcmp(written, received, sizeof(written)));
     assert(0 == spibus_detach(&device));
     assert(0 == c3spi_close(p_bus));
+}
+
+/** @brief Report deliberate regression mismatches without an OS abort dialog.
+ */
+static void verify_delay_result (int expected, int actual)
+{
+    if (expected != actual)
+    {
+        fprintf(stderr,
+                "Delay result: expected %d, received %d\n",
+                expected,
+                actual);
+        gb_delay_failure = true;
+    }
 }
 
 /* End of file. */

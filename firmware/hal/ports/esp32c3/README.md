@@ -207,6 +207,14 @@ changes; the unsigned counter resets at 100 and the existing finite deadline
 and error propagation remain. Real target builds and loaded peer checks are
 required because host simulations cannot establish FIFO/tick timing.
 
+The I2C/SPI delay callbacks preserve the initial clock/status error before
+checking the remaining deadline: a clock failure is IO, a closed session is
+STATE, and an exhausted budget is TIMEOUT. Regression cases exercise all three
+and a successful subsequent delay. Manual BARR-C review: this change adds no
+storage, cast, API or hardware operation; checked subtraction and existing delay
+bounds remain intact. Native compilation and physical timing remain separate
+checks.
+
 ## Allocation observation
 
 `c3audit` counts SDK successful heap events and calls into the kernel's separate

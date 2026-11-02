@@ -671,7 +671,7 @@ static int update (runtime_entry_t * p_entry, const runtime_device_t * p_device)
         {
             return 0;
         }
-        result = b_prepared ? prepare(p_entry) : 0;
+        result = prepare(p_entry);
         if (0 != result)
         {
             return result;

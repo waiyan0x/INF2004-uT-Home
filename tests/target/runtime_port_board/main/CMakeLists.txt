@@ -1,8 +1,8 @@
 idf_component_register(SRCS "../discovery/discuart.c" "../discovery/disci2c.c" "../discovery/cfgdisc.c" "../config/cfgpump.c" "../hal/c3usb.c"
                        "../hal/c3store.c" "../hal/storage/cfgpart.c" "../hal/storage/cfgslot.c" "../app/c3app.c" "../config/jsonscan.c" "../config/cfgjson.c" "../config/cfgplan.c" "../config/cfgdev.c" "../config/cfgrule.c" "../automation/rulecalc.c" "../config/cfgbind.c" "../hal/c3bind.c"
-                       "../network/netring.c" "../network/netwait.c" "../network/netpool.c" "../network/netevent.c" "../hal/c3event.c" "../hal/c3boot.c" "../hal/c3nq.c" "../hal/c3wifi.c" "../hal/c3bport.c"
+                       "../network/netring.c" "../network/netwait.c" "../network/netpool.c" "../network/netevent.c" "../hal/c3event.c" "../hal/c3ewait.c" "../hal/c3boot.c" "../hal/c3nq.c" "../hal/c3wifi.c" "../hal/c3bport.c"
                        "main.c" "nqcheck.c" "../runtime/tkport.c" "../runtime/stackmon.c" "../runtime/workcost.c" "../runtime/workmeter.c" "../hal/c3clock.c" "../hal/c3cost.c" "../services/costview.c" "../runtime/memaudit.c" "../hal/c3audit.c"
-                       "../runtime/activate.c" "../runtime/shared.c" "../services/sampcache.c" "../services/statusmon.c" "../services/telemetry.c" "../services/oledview.c" "../services/oledwork.c" "../services/pwmwork.c"
+                       "../runtime/activate.c" "../runtime/shared.c" "../runtime/sampcache.c" "../services/statusmon.c" "../services/telemetry.c" "../services/oledview.c" "../services/oledwork.c" "../services/pwmwork.c"
                        "../runtime/component.c" "../messaging/msgbus.c"
                        "../health/health.c" "../health/watchdog.c"
                        "../config/drvreg.c" "../hal/i2cbus.c" "../hal/i2cown.c" "../hal/buslife.c" "../hal/bootonce.c" "../hal/c3ukern.c" "../hal/c3bwait.c" "../hal/c3ihw.c" "../hal/c3shw.c" "../hal/c3i2c.c"
@@ -54,7 +54,7 @@ set_source_files_properties("main.c" "../runtime/tkport.c"
 set_source_files_properties("../discovery/discuart.c" "../discovery/disci2c.c" "../discovery/cfgdisc.c" "../config/cfgpump.c" "../hal/c3store.c" "../hal/storage/cfgpart.c" "../hal/storage/cfgslot.c"
     "../runtime/stackmon.c" "../runtime/workcost.c" "../runtime/workmeter.c" "../hal/c3clock.c" "../hal/c3cost.c" "../services/costview.c" "../runtime/memaudit.c" "../hal/c3audit.c"
     "../hal/c3usb.c" "../app/c3app.c" "../config/jsonscan.c" "../config/cfgjson.c" "../config/cfgplan.c" "../config/cfgdev.c" "../config/cfgrule.c" "../automation/rulecalc.c" "../config/cfgbind.c" "../hal/c3bind.c"
-    "../runtime/activate.c" "../runtime/shared.c" "../services/sampcache.c" "../services/statusmon.c" "../services/telemetry.c" "../services/oledview.c" "../services/oledwork.c" "../services/pwmwork.c"
+    "../runtime/activate.c" "../runtime/shared.c" "../runtime/sampcache.c" "../services/statusmon.c" "../services/telemetry.c" "../services/oledview.c" "../services/oledwork.c" "../services/pwmwork.c"
     "../runtime/component.c" "../messaging/msgbus.c" "../health/health.c"
     "../health/watchdog.c" "../config/drvreg.c" "../hal/i2cbus.c" "../hal/i2cown.c" "../hal/buslife.c" "../hal/bootonce.c" "../hal/c3ukern.c"
     "../drivers/bmp388.c" "../drivers/bmpinst.c"
@@ -188,7 +188,7 @@ endif()
 # Compile the owned adapter in every build; enable its startup hook and link
 # substitutions only for the explicit experimental queue mode.
 set_source_files_properties("nqcheck.c" "../network/netring.c" "../network/netwait.c"
-    "../network/netpool.c" "../network/netevent.c" "../hal/c3event.c" "../hal/c3boot.c" "../hal/c3nq.c" "../hal/c3wifi.c" "../hal/c3bport.c"
+    "../network/netpool.c" "../network/netevent.c" "../hal/c3event.c" "../hal/c3ewait.c" "../hal/c3boot.c" "../hal/c3nq.c" "../hal/c3wifi.c" "../hal/c3bport.c"
     PROPERTIES COMPILE_OPTIONS "-std=c99;${UTHOME_WARNINGS}")
 include("${CMAKE_CURRENT_LIST_DIR}/netqueue.cmake")
 

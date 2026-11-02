@@ -43,6 +43,12 @@ workers to be stopped before opening it. A busy request performs no bus I/O and
 does not stop an existing setup. Use the normal reviewed APPLY path to select an
 empty hardware profile if needed; RECOVER is only accepted in recovery state.
 
+The composition caller supplies the I2C open/close callbacks, borrowed UART
+context and wait callback explicitly at initialization. Discovery uses the
+binder's public readiness and lifecycle operations without inspecting its driver
+storage. Initialization requires an idle binding and complete backends, performs
+no probe I/O, and copies callback pointers without adding permanent storage.
+
 The core allows up to eight unique, nonreserved addresses. This preset uses two.
 Each transfer has at most 100 ms within a 200 ms acquisition/read budget.
 Mandatory bounded cleanup follows even after that budget expires; reported
@@ -199,6 +205,15 @@ C3 builds and their artifact/source hashes. Target/discovery tests were rerun
 after the SDK include boundary fix. No board operation was performed.
 
 ## Manual BARR-C review
+
+The explicit probe-I/O boundary was additionally reviewed against rules 1-8:
+callbacks retain their named C99 signatures, copied pointers and borrowed UART
+lifetime are documented, and initialization rejects missing dependencies before
+mutating state. No cast, allocation, task, ISR access or persistent field was
+added. Composition supplies the same permanent backends, and the binder's public
+readiness query owns its internal-state checks. The host fixture verifies failure
+leaves prior bus-call counts unchanged. Native build and hardware acceptance are
+separate checks.
 
 Reviewed 2026-10-12: `disci2c`, `cfgdisc`, `disctest`, and changed `cfgwire`,
 `cfgpump`, `cfgbind`, `c3app`, board `main` and `bindtest` integration. This is an implementation

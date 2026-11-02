@@ -26,12 +26,12 @@ def main():
         raise SystemExit("GCC or a compatible C99 compiler is required; set CC.")
     includes = ["firmware/hal/include", "firmware/include",
                 "firmware/drivers/relayctl", "firmware/drivers/signalout",
-                "firmware/src/services", "firmware/src/automation"]
+                "firmware/src/runtime", "firmware/src/services/actuator", "firmware/src/automation"]
     sources = ["firmware/drivers/relayctl/relayctl.c",
                "firmware/drivers/signalout/signalout.c",
-               "firmware/src/services/fanctrl.c",
+               "firmware/src/services/actuator/fanctrl.c",
                "firmware/src/automation/rulecalc.c",
-               "firmware/src/services/sampcache.c",
+               "firmware/src/runtime/sampcache.c",
                "firmware/hal/pinpool.c", "tests/unit/outputs_main.c"]
     with tempfile.TemporaryDirectory(prefix="uthome-outputs-") as folder:
         binary = str(Path(folder) / ("outputs.exe" if os.name == "nt" else "outputs"))

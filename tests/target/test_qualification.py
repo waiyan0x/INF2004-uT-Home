@@ -566,7 +566,7 @@ class QualificationTests(unittest.TestCase):
         path = ROOT/'tests/target/runtime_port_board/main/netqueue.cmake'
         import re
         pairs = re.findall(r'^\s*(\w+)=(c3event_\w+)\s*$', path.read_text(), re.MULTILINE)
-        symbols = {}
+        symbols = {'c3ewait_available': 0x40381000}
         for original, owned in pairs:
             symbols.setdefault(owned, 0x40382000 + len(symbols) * 32)
             symbols['__wrap_' + original] = symbols[owned]
@@ -577,6 +577,9 @@ class QualificationTests(unittest.TestCase):
         for original, owned in startup:
             symbols[original] = symbols[owned] = 0x42040000 + len(symbols) * 32
         self.assertEqual(len(qualification.check_event_symbols(symbols, path)), 11)
+        for value in (0, 0x42010000):
+            with self.subTest(cache_check=value), self.assertRaises(qualification.QualificationError):
+                qualification.check_event_symbols(dict(symbols, c3ewait_available=value), path)
         for name in ['c3event_set_isr', '__wrap_xEventGroupWaitBits', *[pair[1] for pair in startup]]:
             for value in (0, 0x42010000, 0x40380100):
                 with self.subTest(name=name, value=value), self.assertRaises(qualification.QualificationError):
@@ -589,7 +592,7 @@ class QualificationTests(unittest.TestCase):
             defaults.parent.mkdir(parents=True)
             defaults.write_bytes(b"CONFIG_IDF_TARGET=\"esp32c3\"\n")
             project, sources = qualification.stage_runtime_port(work)
-            self.assertEqual(len(sources), 227)
+            self.assertEqual(len(sources), 229)
             for name in ('stackmon', 'workcost', 'workmeter'):
                 self.assertIn(f'firmware/src/runtime/{name}.c', sources)
                 self.assertIn(f'firmware/src/runtime/{name}.h', sources)

@@ -77,6 +77,9 @@ class BusRecoveryTests(unittest.TestCase):
     def test_spi_multichunk_transfer_keeps_single_cs_window(self):
         self.run_scenarios({26: '130-byte transfer'})
 
+    def test_delays_distinguish_clock_closed_session_and_deadline_failures(self):
+        self.run_scenarios({14: 'I2C delay errors', 28: 'SPI delay errors'})
+
 
 if __name__ == '__main__':
     unittest.main()

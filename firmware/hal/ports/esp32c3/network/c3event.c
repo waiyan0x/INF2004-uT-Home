@@ -7,14 +7,10 @@
 
 #include "netevent.h"
 #include "netwait.h"
-#include "esp_timer.h"
-#include "esp_private/cache_utils.h"
-#include "sdkconfig.h"
-#include <tk/tkernel.h>
-#include <tk/syslib.h>
+#include "c3ewait.h"
 
 static netevent_t g_pool                             = {0};
-static ID         gh_notifications[NETEVENT_WAITERS] = {0};
+static int        gh_notifications[NETEVENT_WAITERS] = {0};
 static bool       gb_attempted                       = false;
 static bool       gb_ready                           = false;
 
@@ -30,7 +26,6 @@ static uint32_t await_result (uint32_t token, netwait_t const * p_deadline);
 /** @brief Reserve notification slots once, before SDK clients run. */
 int c3event_init (void)
 {
-    const T_CSEM semaphore = {.sematr = TA_TFIFO, .isemcnt = 0, .maxsem = 1};
     if (gb_attempted)
     {
         return gb_ready ? 0 : -1;
@@ -38,7 +33,7 @@ int c3event_init (void)
     gb_attempted = true;
     for (uint32_t index = 0U; index < NETEVENT_WAITERS; ++index)
     {
-        gh_notifications[index] = tk_cre_sem(&semaphore);
+        gh_notifications[index] = c3ewait_create();
         if (0 >= gh_notifications[index])
         {
             /* Failed startup retains its partial resources until reset. */
@@ -54,11 +49,11 @@ void * c3event_create (void)
 {
     uint32_t saved    = 0U;
     void *   p_handle = NULL;
-    if (gb_ready && (spi_flash_cache_enabled()))
+    if (gb_ready && (c3ewait_available()))
     {
-        saved    = disint();
+        saved    = c3ewait_enter();
         p_handle = netevent_create(&g_pool, NULL);
-        enaint(saved);
+        c3ewait_leave(saved);
     }
     return p_handle;
 }
@@ -68,11 +63,11 @@ void * c3event_static (void * p_key)
 {
     uint32_t saved    = 0U;
     void *   p_handle = NULL;
-    if (gb_ready && (NULL != p_key) && (spi_flash_cache_enabled()))
+    if (gb_ready && (NULL != p_key) && (c3ewait_available()))
     {
-        saved    = disint();
+        saved    = c3ewait_enter();
         p_handle = netevent_create(&g_pool, p_key);
-        enaint(saved);
+        c3ewait_leave(saved);
     }
     return p_handle;
 }
@@ -83,14 +78,14 @@ void c3event_delete (void * p_handle)
 {
     uint32_t saved = 0U;
     uint32_t wake  = 0U;
-    if (gb_ready && (spi_flash_cache_enabled()))
+    if (gb_ready && (c3ewait_available()))
     {
-        saved = disint();
+        saved = c3ewait_enter();
         if (0 == netevent_release(&g_pool, p_handle, &wake))
         {
             notify(wake);
         }
-        enaint(saved);
+        c3ewait_leave(saved);
     }
 }
 
@@ -100,14 +95,14 @@ uint32_t c3event_set (void * p_handle, uint32_t bits)
     uint32_t saved  = 0U;
     uint32_t result = 0U;
     uint32_t wake   = 0U;
-    if (gb_ready && (spi_flash_cache_enabled()))
+    if (gb_ready && (c3ewait_available()))
     {
-        saved = disint();
+        saved = c3ewait_enter();
         if (0 == netevent_set(&g_pool, p_handle, bits, &result, &wake))
         {
             notify(wake);
         }
-        enaint(saved);
+        c3ewait_leave(saved);
     }
     return result;
 }
@@ -119,9 +114,9 @@ int32_t c3event_set_isr (void * p_handle, uint32_t bits, int32_t * p_woken)
     uint32_t result = 0U;
     uint32_t wake   = 0U;
     int      status = -1;
-    if (gb_ready && (spi_flash_cache_enabled()))
+    if (gb_ready && (c3ewait_available()))
     {
-        saved  = disint();
+        saved  = c3ewait_enter();
         status = netevent_set(&g_pool, p_handle, bits, &result, &wake);
         if (0 == status)
         {
@@ -131,7 +126,7 @@ int32_t c3event_set_isr (void * p_handle, uint32_t bits, int32_t * p_woken)
                 *p_woken = 1;
             }
         }
-        enaint(saved);
+        c3ewait_leave(saved);
     }
     return (0 == status) ? 1 : 0;
 }
@@ -141,14 +136,14 @@ uint32_t c3event_clear (void * p_handle, uint32_t bits)
 {
     uint32_t saved  = 0U;
     uint32_t result = 0U;
-    if (gb_ready && (spi_flash_cache_enabled()))
+    if (gb_ready && (c3ewait_available()))
     {
-        saved = disint();
+        saved = c3ewait_enter();
         if (0 != netevent_clear(&g_pool, p_handle, bits, &result))
         {
             result = 0U;
         }
-        enaint(saved);
+        c3ewait_leave(saved);
     }
     return result;
 }
@@ -160,11 +155,11 @@ int32_t c3event_clear_isr (void * p_handle, uint32_t bits)
     uint32_t saved  = 0U;
     uint32_t result = 0U;
     int      status = -1;
-    if (gb_ready && (spi_flash_cache_enabled()))
+    if (gb_ready && (c3ewait_available()))
     {
-        saved  = disint();
+        saved  = c3ewait_enter();
         status = netevent_clear(&g_pool, p_handle, bits, &result);
-        enaint(saved);
+        c3ewait_leave(saved);
     }
     return (0 == status) ? 1 : 0;
 }
@@ -200,10 +195,10 @@ static void notify (uint32_t mask)
     {
         if (0U != (mask & (UINT32_C(1) << index)))
         {
-            const ER status = tk_sig_sem(gh_notifications[index], 1);
+            const int status = c3ewait_signal(gh_notifications[index]);
             /* A full hint is already sufficient; state remains authoritative.
              */
-            if ((E_OK != status) && (E_QOVR != status))
+            if ((0 != status) && (C3EWAIT_FULL != status))
             {
                 gb_ready = false;
             }
@@ -224,24 +219,23 @@ static uint32_t wait_bits (void *   p_handle,
     uint32_t  token    = NETEVENT_WAITERS;
     uint32_t  wake     = 0U;
     netwait_t deadline = {0};
-    T_RSYS    state    = {0};
     int       status   = -1;
-    if ((!gb_ready) || (!spi_flash_cache_enabled()) ||
-        (E_OK != tk_ref_sys(&state)) || (0U != (state.sysstat & TSS_INDP)))
+    if ((!gb_ready) || (!c3ewait_available()) ||
+        (0 != c3ewait_context(0U != ticks)))
     {
         return 0U;
     }
     if (0U != ticks)
     {
-        const int64_t now = esp_timer_get_time();
-        if ((0 > now) || (TSS_TSK != state.sysstat) ||
+        const int64_t now = c3ewait_now();
+        if ((0 > now) ||
             (0 !=
-             netwait_init(&deadline, (uint64_t)now, ticks, CONFIG_FREERTOS_HZ)))
+             netwait_init(&deadline, (uint64_t)now, ticks, c3ewait_tick_hz())))
         {
             return 0U;
         }
     }
-    saved  = disint();
+    saved  = c3ewait_enter();
     status = netevent_begin(&g_pool,
                             p_handle,
                             bits,
@@ -253,7 +247,7 @@ static uint32_t wait_bits (void *   p_handle,
                             &result,
                             &wake);
     notify(wake);
-    enaint(saved);
+    c3ewait_leave(saved);
     if (0 == status)
     {
         result = await_result(token, &deadline);
@@ -270,26 +264,23 @@ static uint32_t await_result (uint32_t token, netwait_t const * p_deadline)
         uint32_t      saved     = 0U;
         uint32_t      result    = 0U;
         uint32_t      remaining = 0U;
-        const int64_t now       = esp_timer_get_time();
+        const int64_t now       = c3ewait_now();
         int           status    = -1;
         if ((0 > now) ||
             (0 != netwait_remaining(p_deadline, (uint64_t)now, &remaining)))
         {
             b_failed = true;
         }
-        saved  = disint();
+        saved  = c3ewait_enter();
         status = netevent_finish(
             &g_pool, token, b_failed || (0U == remaining), &result);
-        enaint(saved);
+        c3ewait_leave(saved);
         if (0 != status)
         {
             return (0 < status) ? result : 0U;
         }
-        /* netwait bounds finite values to the signed native timeout range. */
-        const TMO timeout =
-            (UINT32_MAX == remaining) ? TMO_FEVR : (TMO)remaining;
-        const ER error = tk_wai_sem(gh_notifications[token], 1, timeout);
-        b_failed       = (E_OK != error) && (E_TMOUT != error);
+        const int error = c3ewait_wait(gh_notifications[token], remaining);
+        b_failed        = (0 != error) && (C3EWAIT_TIMEOUT != error);
     }
 }
 

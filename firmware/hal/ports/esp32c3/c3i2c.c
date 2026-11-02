@@ -152,9 +152,10 @@ delay_us (void * p_context, uint32_t duration_us, uint64_t deadline_ms)
 {
     uint64_t       now         = 0U;
     const uint64_t duration_ms = ((uint64_t)duration_us + 999U) / 1000U;
-    if (0 != now_ms(p_context, &now))
+    const int      result      = now_ms(p_context, &now);
+    if (0 != result)
     {
-        return I2CBUS_STATE;
+        return result;
     }
     if ((now >= deadline_ms) || (duration_ms >= (deadline_ms - now)))
     {

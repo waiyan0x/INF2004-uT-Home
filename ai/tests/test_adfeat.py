@@ -26,11 +26,12 @@ class FeatureTests(unittest.TestCase):
         cls.temp = tempfile.TemporaryDirectory(prefix='uthome-adfeat-')
         cls.addClassCleanup(cls.temp.cleanup)
         dll = Path(cls.temp.name) / ('adfeat.dll' if sys.platform == 'win32' else 'adfeat.so')
-        includes = ['firmware/src/config', 'firmware/src/services', 'firmware/src/automation',
+        includes = ['firmware/src/config', 'firmware/src/services/advice',
+                    'firmware/src/runtime', 'firmware/src/automation',
                     'firmware/third_party/cjson', 'firmware/include']
         sources = ['firmware/src/config/' + name + '.c' for name in
                    ('jsonscan', 'cfgjson', 'cfgplan', 'cfgdev', 'cfgrule')]
-        sources += ['firmware/third_party/cjson/cJSON.c', 'firmware/src/services/adfeat.c',
+        sources += ['firmware/third_party/cjson/cJSON.c', 'firmware/src/services/advice/adfeat.c',
                     'tests/ai/adfmain.c']
         command = [gcc, '-std=c99', '-Wall', '-Wextra', '-Werror', '-pedantic', '-O2',
                    '-DCJSON_NESTING_LIMIT=8', '-shared']

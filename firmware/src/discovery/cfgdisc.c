@@ -3,6 +3,7 @@
  * @brief Keep detection separate from identity, activation and durable state.
  */
 #include "cfgdisc.h"
+#include "cfgbind.h"
 #include "cfgjson.h"
 #include <string.h>
 static int validate (void * p_context, const uint8_t * p_data, size_t size);
@@ -39,32 +40,28 @@ static const uartio_config_t g_uart_connection = {.baud            = 256000U,
 
 /** @brief Bind the existing I2C backend and controller without opening a bus.
  */
-int cfgdisc_init (cfgdisc_t *       p_context,
-                  cfgctrl_t *       p_control,
-                  cfgbind_state_t * p_binding,
-                  const uint8_t *   p_build_hash,
-                  discuart_wait_t * p_wait)
+int cfgdisc_init (cfgdisc_t *          p_context,
+                  cfgctrl_t *          p_control,
+                  cfgbind_state_t *    p_binding,
+                  const uint8_t *      p_build_hash,
+                  const cfgdisc_io_t * p_io)
 {
     if ((NULL == p_context) || (NULL == p_control) || (NULL == p_binding) ||
-        (NULL == p_build_hash) || (!p_binding->b_initialized) ||
-        (NULL == p_binding->p_io) || (NULL == p_wait) ||
+        (NULL == p_build_hash) || (NULL == p_io) || (NULL == p_io->p_open) ||
+        (NULL == p_io->p_close) || (NULL == p_io->p_uart) ||
+        (NULL == p_io->p_wait) || (!cfgbind_discovery_ready(p_binding)) ||
         (NULL != p_context->p_control))
-    {
-        return -1;
-    }
-    uartio_t * p_port = p_binding->p_io->p_uart();
-    if (NULL == p_port)
     {
         return -1;
     }
     p_context->p_control         = p_control;
     p_context->p_binding         = p_binding;
-    p_context->probe.p_open      = p_binding->p_io->p_i2c_open;
-    p_context->probe.p_close     = p_binding->p_io->p_i2c_close;
+    p_context->probe.p_open      = p_io->p_open;
+    p_context->probe.p_close     = p_io->p_close;
     p_context->probe.p_now       = rt_port_now_ms;
-    p_context->uart_probe.p_port = p_port;
+    p_context->uart_probe.p_port = p_io->p_uart;
     p_context->uart_probe.p_now  = rt_port_now_ms;
-    p_context->uart_probe.p_wait = p_wait;
+    p_context->uart_probe.p_wait = p_io->p_wait;
     memcpy(p_context->build_hash, p_build_hash, sizeof(p_context->build_hash));
     return 0;
 }

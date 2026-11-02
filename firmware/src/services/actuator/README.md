@@ -1,5 +1,9 @@
 # Actuator services
 
+`fanctrl.c/h` implements the separate relay-output rule service. It consumes
+runtime sample snapshots and the same rule evaluator; `pwmwork` owns the
+independent PWM worker contract below.
+
 `pwmwork.c/h` owns recurring source sampling, rule state, duty changes and the
 zero-duty fallback. `cfgbind` supplies admitted settings, opens the PWM instance
 and wires its worker and cleanup callbacks. The service reuses the

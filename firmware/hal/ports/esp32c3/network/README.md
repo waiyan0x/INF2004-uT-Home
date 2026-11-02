@@ -9,6 +9,7 @@ resource limits, build instructions, manual reviews and qualification evidence.
 |---|---|
 | `c3boot` | Bounded native startup pool for selected static-network builds |
 | `c3nq`, `c3event` | Native queue/event synchronization and fixed resource bindings |
+| `c3ewait` | Stateless native notification, clock and context boundary for events |
 | `c3wifi` | Isolated Wi-Fi scan diagnostic |
 | `c3ble`, `c3gatt` | Isolated BLE advertising and read-only GATT diagnostics |
 | `c3bport` | Typed kernel boundary that keeps kernel headers out of NimBLE units |

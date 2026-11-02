@@ -49,13 +49,17 @@ int c3app_run (const uint8_t *       p_build_hash,
     }
     /* Missing storage is reported by restore/requests without silencing USB. */
     (void)c3store_open();
-    g_store.p_operations = c3store_operations();
-    g_store.slot_bytes   = UTHOME_C3STORE_SLOT;
+    g_store.p_operations            = c3store_operations();
+    g_store.slot_bytes              = UTHOME_C3STORE_SLOT;
+    const cfgdisc_io_t discovery_io = {.p_open  = c3i2c_open,
+                                       .p_close = c3i2c_close,
+                                       .p_uart  = c3uart_port(),
+                                       .p_wait  = discovery_wait};
     if ((0 != cfgdisc_init(&g_discovery,
                            &g_control,
                            &g_binding,
                            p_build_hash,
-                           discovery_wait)) ||
+                           &discovery_io)) ||
         (0 != cfgctrl_init(
                   &g_control, &g_store, cfgdisc_operations(), &g_discovery)) ||
         (0 != c3usb_open()) ||

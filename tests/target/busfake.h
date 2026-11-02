@@ -57,7 +57,7 @@ void busfake_cost_end (const c3cost_t * p_state,
                        size_t           bytes,
                        bool             b_timeout,
                        bool             b_error);
-void busfake_verify (int scenario);
+int busfake_verify (int scenario);
 
 #endif
 

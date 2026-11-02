@@ -60,6 +60,8 @@ RUNTIME_SOURCE_FILES = {
     "tests/target/runtime_port_board/ble.defaults": "ble.defaults",
     "firmware/hal/ports/esp32c3/network/c3boot.c": "hal/c3boot.c",
     "firmware/hal/ports/esp32c3/network/c3boot.h": "hal/c3boot.h",
+    "firmware/hal/ports/esp32c3/network/c3ewait.c": "hal/c3ewait.c",
+    "firmware/hal/ports/esp32c3/network/c3ewait.h": "hal/c3ewait.h",
     "firmware/hal/ports/esp32c3/network/c3event.c": "hal/c3event.c",
     "firmware/hal/ports/esp32c3/network/c3event.h": "hal/c3event.h",
     "firmware/src/network/netevent.c": "network/netevent.c",
@@ -111,20 +113,20 @@ RUNTIME_SOURCE_FILES = {
     "firmware/src/discovery/disci2c.h": "discovery/disci2c.h",
     "firmware/src/discovery/cfgdisc.c": "discovery/cfgdisc.c",
     "firmware/src/discovery/cfgdisc.h": "discovery/cfgdisc.h",
-    "firmware/src/services/oledview.c": "services/oledview.c",
-    "firmware/src/services/oledview.h": "services/oledview.h",
-    "firmware/src/services/oledwork.c": "services/oledwork.c",
-    "firmware/src/services/oledwork.h": "services/oledwork.h",
-    "firmware/src/services/pwmwork.c": "services/pwmwork.c",
-    "firmware/src/services/pwmwork.h": "services/pwmwork.h",
+    "firmware/src/services/display/oledview.c": "services/oledview.c",
+    "firmware/src/services/display/oledview.h": "services/oledview.h",
+    "firmware/src/services/display/oledwork.c": "services/oledwork.c",
+    "firmware/src/services/display/oledwork.h": "services/oledwork.h",
+    "firmware/src/services/actuator/pwmwork.c": "services/pwmwork.c",
+    "firmware/src/services/actuator/pwmwork.h": "services/pwmwork.h",
     "firmware/src/services/telemetry.c": "services/telemetry.c",
     "firmware/src/services/telemetry.h": "services/telemetry.h",
 
     "firmware/src/services/statusmon.c": "services/statusmon.c",
     "firmware/src/services/statusmon.h": "services/statusmon.h",
 
-    "firmware/src/services/sampcache.c": "services/sampcache.c",
-    "firmware/src/services/sampcache.h": "services/sampcache.h",
+    "firmware/src/runtime/sampcache.c": "runtime/sampcache.c",
+    "firmware/src/runtime/sampcache.h": "runtime/sampcache.h",
 
     "firmware/src/config/cfgpump.c": "config/cfgpump.c",
     "firmware/src/config/cfgpump.h": "config/cfgpump.h",
@@ -531,6 +533,8 @@ def check_queue_symbols(symbols, aliases):
 
 
 def check_event_symbols(symbols, path):
+    if not 0x40380000 <= symbols.get("c3ewait_available", 0) < 0x403e0000:
+        raise QualificationError("Event cache-availability check is missing or outside IRAM")
     content = Path(path).read_text(encoding="utf-8")
     table = re.search(r"set\(UTHOME_EVENT_ALIASES\s+(.*?)\n\)", content, re.DOTALL)
     pairs = [] if table is None else re.findall(r"^\s*(\w+)=(c3event_\w+)\s*$", table[1], re.MULTILINE)
@@ -593,7 +597,8 @@ def verify_queue_adapter(work, enabled):
         if definition != (Path(entry["file"]).name == "tkinit.c"):
             raise QualificationError("Native initialization rename escaped its source")
     return dict(enabled=True, status="linked_abi_verified", aliases=retained, event_aliases=events,
-                resources=dict(queue_slots=8,queue_bytes_each=1024,semaphore_slots=16,mutex_slots=32,
+                resources=dict(queue_slots=8, queue_bytes_by_slot=[512, 512, 1024, 1024, 1024, 1024, 1024, 2048],
+                               queue_payload_bytes=8192, semaphore_slots=16, mutex_slots=32,
                                startup_native_semaphores=48,startup_native_mutexes=32,
                                event_groups=8,event_waiters=16,native_startup_pool_bytes=12288),
                 qualification="Experimental queue/event/startup scope; cache-off I/O rejects, radio/task/timer paths remain unqualified")

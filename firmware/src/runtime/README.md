@@ -1,6 +1,19 @@
 # Generic runtime
 
+`sampcache.c/h` owns fixed sample storage beside `shared.c/h`, which owns its
+serialization. Production publishers and observers use the shared guard; moving
+the cache here changes neither its storage layout nor its lifetime. Services
+consume snapshots without owning the cache. The service and native source lists
+use the new path; historical evidence retains the original source identity.
+
 ## Workload measurement handoff
+
+The runtime update now calls preparation directly after the branches that
+establish it is required. Manual BARR-C review found no ABI, storage, arithmetic,
+cast, synchronization or lifecycle change; existing error propagation remains.
+The sample-cache module moved beside runtime ownership without changing its C/H
+bytes. Host and target source lists use the new location; historical records keep
+their original paths and hashes.
 
 `workcost.c/.h` supplies caller-owned saturating counters. `workmeter`, the C3
 clock/transfer adapters and command 9 integrate them into the USB measurement

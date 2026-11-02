@@ -231,6 +231,11 @@ counted once; the kernel's internal pool already includes stacks carved from it.
 RAM-resident code is a separate category. A passed fixed-map check never sets
 runtime heap, stack high-water or whole-system qualification to true.
 
+The UART boundary extraction transfers eight bytes of the existing 64-byte
+UART allowance to `c3ukern` for its two native handles; `c3uart` retains 56 bytes.
+All three budget variants keep their aggregate reservations unchanged. Each
+object remains independently bounded, and unlisted writable objects still fail.
+
 Unassigned linker space is not measured free heap or stack headroom. Keep
 per-module limits and actual sizes in the generated budget record. Wireless/AI
 reservations and complete stack evidence are required before combined release.

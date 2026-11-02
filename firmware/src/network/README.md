@@ -251,6 +251,23 @@ currently reject. These are explicit port limits, not a claim of unrestricted
 SDK/radio compatibility. Kernel notification errors stop new event operations;
 there is no dynamic recovery allocation.
 
+`c3ewait` isolates the pinned native calls without retaining state. Event policy,
+the sixteen handles and their boot lifetime remain in `c3event`. Host tests run
+the real adapter with controlled native-boundary results, including partial
+creation, full/broken hints, stale/early wakeups, failed/reversed clocks, wait
+errors, deletion and registration reuse. They do not emulate native scheduling.
+The cache-availability function is explicitly mapped to IRAM because it executes
+before cache-off rejection; target qualification rejects a missing/flash mapping.
+
+Manual BARR-C review of this boundary: native IDs remain target-width signed
+integers, finite timeout conversions are range-checked, and infinite waits keep
+their separate native spelling. Saved interrupt masks restore exactly once on
+each path; hints publish inside exclusion and waits occur outside it. No heap,
+new permanent field, object, exception or vendor change is introduced. The
+flattened pool lease loop preserves collision termination, bounded partition
+search and protected publication; its early duplicate-key exit restores the
+same saved mask. Source moves preserve module bytes and historical identities.
+
 `c3boot` supplies a 12,288-byte, eight-byte-aligned native startup pool. This is
 separate from the four 8 KiB worker stacks. Scoped USB-core evidence covers this
 variant; changes still require boot, stack-margin and allocation verification.

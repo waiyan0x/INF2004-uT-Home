@@ -61,10 +61,17 @@ the shared `bootonce` core for both fixed capacities and every partial failure.
 Text checks remain only for structural restrictions and application boot order.
 
 I2C/SPI recovery tests similarly execute the real transfer adapters, with only
-owned register/wait interfaces redirected. Twenty-one isolated scenarios check
+owned register/wait interfaces redirected. Twenty-three isolated scenarios check
 wire and timing failures, held-clock reads, final-byte NACK, FIFO bounds,
 multi-chunk chip select, partial receive data and successful next transfers.
+Delay cases distinguish clock errors, closed sessions and exhausted budgets.
 The native target build separately checks the extracted SDK boundaries.
+
+Event-adapter tests compile the real `c3event`, `netevent` and `netwait` modules.
+Controlled `c3ewait` responses cover partial startup, full/broken notifications,
+stale wakes, early timeouts, clock/wait errors, waiter reuse, deletion and context
+rejection. Python checks observable results and call budgets; native SDK mapping
+and cache-check IRAM placement are separate real-target build gates.
 
 These suites are a regression baseline, not proof that arbitrary refactoring is
 safe. Review affected contracts and add focused tests before changing behavior.

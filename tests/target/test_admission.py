@@ -32,6 +32,9 @@ class AdmissionTests(unittest.TestCase):
                    "-DCJSON_NESTING_LIMIT=8", "-I", str(ROOT / "firmware/src/config"),
                    "-I", str(ROOT / "firmware/third_party/cjson"),
                    "-I", str(ROOT / "firmware/src/automation"), "-I", str(ROOT / "firmware/src/services"),
+                   "-I", str(ROOT / "firmware/src/services/display"),
+                   "-I", str(ROOT / "firmware/src/services/actuator"),
+                   "-I", str(ROOT / "firmware/src/runtime"),
                    "-I", str(ROOT / "firmware/include")]
         objcopy = shutil.which("objcopy")
         if objcopy is None:
