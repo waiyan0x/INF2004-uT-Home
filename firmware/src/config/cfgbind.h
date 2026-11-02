@@ -113,6 +113,10 @@ const cfgctrl_ops_t * cfgbind_operations (void);
 uint32_t cfgbind_mask (void);
 /* Owner loop: service the active copied settings, including after rollback. */
 int cfgbind_service (cfgbind_state_t * p_state, uint64_t now_ms);
+/* Serialized owner only: no workers, retained buses or UART owner. Checks
+ * readiness without opening hardware; false for NULL/uninitialized/busy state.
+ * The backend UART getter must return its borrowed context without I/O. */
+bool cfgbind_discovery_ready (const cfgbind_state_t * p_state);
 /* Read-only capability payload: compiled bindings, never physical discovery.
  * Uses no context; matches the pump observer callback. See configurator README.
  */

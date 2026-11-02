@@ -87,6 +87,12 @@ Callbacks map status explicitly: activation success, rejection with old plan
 restored, or uncertain/recovery state. `activate_clear` releases to safe EMPTY;
 `activate_recover` restores the preceding plan. Neither silently discards retained
 resources. The controller's RECOVER does not erase the saved startup profile.
+Discovery requests recovery through the controller, which invalidates the active
+revision, CRC and byte count as soon as resource ownership becomes uncertain.
+Successful RECOVER leaves those fields empty. Applying the saved revision again
+therefore rebuilds runtime resources instead of taking the already-active path.
+Read-only discovery borrows a controller view and asks the binder whether its
+resources are idle; it does not mutate their lifecycle fields directly.
 
 APPLY establishes durable state, validates, activates, then saves. Rejection
 preserves active/saved state; uncertain activation blocks APPLY/SAVE until
@@ -234,12 +240,26 @@ before narrowing; explicit serialization, no raw C structures; stable borrowed
 buffers with aliasing prohibited; reentry and bounded loops; initialized metadata;
 checked backend/activation outcomes and preservation of old data on failure.
 
+The controller recovery/view boundary retains C99 and the existing controller
+layout. Views borrow const bytes until the next serialized mutation; they add no
+heap, task, lock or persistent RAM. Recovery clears active identity while keeping
+durable metadata and exact-request caching separate. The discovery regression
+checks an applied empty-hardware profile, retained cleanup, recovery and queue
+reconstruction when the same saved revision is applied again.
+
 ### Admission C review
 
 Copied scalar settings without pointers; alignment and bounded allocation;
 complete tree release; bounded recursion/loops; callback serialization/lifetime;
 explicit status mapping; stopped-worker resource release and retained failures.
 Vendor spelling stays inside existing exceptions.
+
+Selected-driver binding shares descriptor/name/capacity validation with registry
+lookup and publishes the component only after every check succeeds. Callback and
+context lifetimes are unchanged. Routing uses named sample constants and the
+shared sample-size lookup; the admitted IDs fit the existing uint16 queue field.
+Resource counters remain bounded by admission, include disabled reservations and
+advance explicitly. These changes need no ABI, wire-value or deviation changes.
 
 The light diagnostic uses the same bounded plan, copied settings and static
 instance slots; its compile-time flag adds one capability bit only in the

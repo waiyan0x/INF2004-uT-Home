@@ -3,6 +3,7 @@
  * @brief Translate reviewed descriptor versions and enforce route resources.
  */
 #include "cfgdev.h"
+#include "uthome/sample.h"
 #include <string.h>
 static bool connection (const cfgjson_value_t * p_value,
                         const cfgplan_t *       p_plan,
@@ -290,7 +291,11 @@ static bool destination (const cfgjson_value_t * p_value,
                          const cfgplan_t *       p_plan,
                          cfgplan_device_t *      p_device)
 {
-    const uint32_t types[] = {1U, 0U, 2U, 3U, 0U, 5U};
+    static const uint32_t types[CFGPLAN_DRIVER_COUNT] = {
+        [CFGPLAN_ENV]      = UTHOME_SAMPLE_ENVIRONMENT,
+        [CFGPLAN_RADAR]    = UTHOME_SAMPLE_TARGETS,
+        [CFGPLAN_DISTANCE] = UTHOME_SAMPLE_DISTANCE,
+        [CFGPLAN_LIGHT]    = UTHOME_SAMPLE_LIGHT};
     for (size_t index = 0U; index < p_plan->queue_count; ++index)
     {
         if ((cfgjson_is(p_value, p_plan->queues[index].name)))

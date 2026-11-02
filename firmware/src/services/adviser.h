@@ -38,6 +38,14 @@ typedef struct
     uint32_t session;
 } adviser_identity_t;
 
+/**
+ * @brief Classify one borrowed feature vector synchronously.
+ *
+ * Return -1 for an unsupported candidate, 0 for a supported candidate that
+ * fails the freshness goal, or 1 for a passing candidate. Any other result
+ * ends the request with ADVISER_ERROR and discards its recommendation.
+ * The callback must finish bounded work without retaining p_features.
+ */
 typedef int adviser_predict_t (uint32_t const * p_features, size_t count);
 
 typedef struct
@@ -105,7 +113,14 @@ adviser_status_t adviser_step (adviser_t *                p_state,
                                adviser_identity_t const * p_current,
                                uint64_t                   now_us);
 
-/** @brief Return no interval while busy, invalid, expired or stale. */
+/**
+ * @brief Copy the current result after rechecking its identity and lifetime.
+ *
+ * Return 0 when p_reply is filled, including non-ready statuses. Return -1
+ * for a NULL argument without changing the output. A caller must inspect
+ * p_reply->status for ADVISER_READY before using interval_ms; every other
+ * status has a zero interval. A successful copy does not authorize Apply.
+ */
 int adviser_reply (adviser_t *                p_state,
                    adviser_identity_t const * p_current,
                    uint64_t                   now_us,

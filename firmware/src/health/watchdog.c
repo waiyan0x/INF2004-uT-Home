@@ -29,8 +29,7 @@ static int find_watchdog_task (const char * p_task_name);
 
 /**
  * @brief Clear all heartbeat registrations and previous missed-event state.
- * @return Health success, rate-limit indication, or validation error as
- * applicable.
+ * @return UTHOME_HEALTH_OK.
  */
 int watchdog_init (void)
 {
@@ -45,8 +44,8 @@ int watchdog_init (void)
  * @param timeout_ms Maximum permitted heartbeat interval in milliseconds.
  * @param now_ms Monotonic time in milliseconds with unsigned wraparound
  * semantics.
- * @return Health success, rate-limit indication, or validation error as
- * applicable.
+ * @return UTHOME_HEALTH_OK, or UTHOME_HEALTH_ERR_INVALID for an invalid name,
+ * zero timeout, duplicate name or full watch table.
  */
 int watchdog_watch_task (const char * p_task_name,
                          uint32_t     timeout_ms,
@@ -95,8 +94,8 @@ int watchdog_watch_task (const char * p_task_name,
  * @param p_task_name Null-terminated name of the heartbeat source.
  * @param now_ms Monotonic time in milliseconds with unsigned wraparound
  * semantics.
- * @return Health success, rate-limit indication, or validation error as
- * applicable.
+ * @return UTHOME_HEALTH_OK, or UTHOME_HEALTH_ERR_INVALID for an unknown name
+ * (including NULL).
  */
 int watchdog_heartbeat (const char * p_task_name, uint32_t now_ms)
 {
@@ -123,8 +122,8 @@ int watchdog_heartbeat (const char * p_task_name, uint32_t now_ms)
  * @brief Report each overdue source once until its next heartbeat.
  * @param now_ms Monotonic time in milliseconds with unsigned wraparound
  * semantics.
- * @return Health success, rate-limit indication, or validation error as
- * applicable.
+ * @return UTHOME_HEALTH_RATE_LIMITED if any new missed-heartbeat event was
+ * suppressed; otherwise UTHOME_HEALTH_OK, including when no watch is overdue.
  */
 int watchdog_check (uint32_t now_ms)
 {

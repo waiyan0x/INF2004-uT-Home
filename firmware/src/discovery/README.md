@@ -55,6 +55,9 @@ Every acquired handle is closed, including handles returned alongside an open
 failure. A failed close retains ownership, reports a fault and puts the
 configuration controller into recovery. APPLY/SAVE remain blocked; the existing
 explicit RECOVER command retries discovery cleanup before binding recovery.
+The controller invalidates active profile identity on this transition, so the
+fault reply reports actual active revision zero. Recovery preserves the saved
+profile but leaves runtime resources empty; a later APPLY must rebuild them.
 USB disconnect does not interrupt the synchronous probe: its deadline and
 cleanup still run. There is no cancellation command or automatic retry.
 

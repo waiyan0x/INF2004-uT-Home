@@ -13,9 +13,12 @@ outputs share one pin ledger. UART, digital input, pulse capture and PWM now
 have software implementations. Storage and USB configuration transfer live in
 [configuration](../src/config/README.md); full hardware acceptance remains open.
 
-Peripheral HAL backends live in `ports/esp32c3/`; USB/storage adapters live in
-`src/config/`. They select pins from validated profiles. Device drivers remain
-independent of board pin assignments and SDK APIs.
+Peripheral, USB and flash backends live in `ports/esp32c3/`, including
+[`c3usb`](ports/esp32c3/c3usb.c) and [`c3store`](ports/esp32c3/c3store.c).
+Generic framing, transport pumping and persistence policy live in
+[`src/config`](../src/config/README.md). Peripheral backends select pins from
+validated profiles. Device drivers remain independent of board pin assignments
+and SDK APIs.
 
 `ports/host_sim/i2cfake.c` provides a deterministic I2C register/time fake;
 `spifake.c` captures SPI transactions and injects output/transport failures.

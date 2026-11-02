@@ -18,6 +18,7 @@ static cfgctrl_status_t dispatch (cfgctrl_t *               p_control,
                                   const cfgwire_request_t * p_request,
                                   uint32_t *                p_flags);
 static bool valid_request (const cfgwire_request_t * p_request);
+static void clear_active (cfgctrl_t * p_control);
 static void make_reply (const cfgctrl_t * p_control,
                         cfgctrl_status_t  status,
                         uint32_t          flags,
@@ -141,6 +142,38 @@ int cfgctrl_handle (cfgctrl_t *               p_control,
     return 0;
 }
 
+/** @brief Expose active bytes without transferring mutable controller state. */
+cfgctrl_view_t cfgctrl_view (const cfgctrl_t * p_control)
+{
+    cfgctrl_view_t view = {0};
+    if ((NULL != p_control) && (p_control->b_initialized))
+    {
+        view.p_data      = p_control->active;
+        view.size        = p_control->active_size;
+        view.revision    = p_control->active_revision;
+        view.b_available = (!p_control->b_busy) && (!p_control->b_recovery);
+    }
+    return view;
+}
+
+/** @brief Retained or uncertain resources require explicit owner recovery. */
+void cfgctrl_require_recovery (cfgctrl_t * p_control)
+{
+    if ((NULL != p_control) && (p_control->b_initialized))
+    {
+        p_control->b_recovery = true;
+        clear_active(p_control);
+    }
+}
+
+/** @brief Empty or uncertain runtime resources have no known active profile. */
+static void clear_active (cfgctrl_t * p_control)
+{
+    p_control->active_revision = 0U;
+    p_control->active_crc      = 0U;
+    p_control->active_size     = 0U;
+}
+
 /** @brief Unknown durability is explicit until a synchronized load succeeds. */
 static int refresh_saved (cfgctrl_t * p_control, cfgstore_record_t * p_record)
 {
@@ -224,10 +257,7 @@ static cfgctrl_status_t activate_candidate (cfgctrl_t *     p_control,
     }
     if (0 != result)
     {
-        p_control->b_recovery      = true;
-        p_control->active_revision = 0U;
-        p_control->active_crc      = 0U;
-        p_control->active_size     = 0U;
+        cfgctrl_require_recovery(p_control);
         return CFGCTRL_RECOVERY;
     }
     memcpy(p_control->active, p_data, size);
@@ -286,6 +316,7 @@ static cfgctrl_status_t dispatch (cfgctrl_t *               p_control,
         {
             return CFGCTRL_RECOVERY;
         }
+        clear_active(p_control);
         p_control->b_recovery = false;
         return CFGCTRL_EMPTY;
     }
