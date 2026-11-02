@@ -131,6 +131,26 @@ def _request(raw, key, model):
         raise ValueError("AI response was malformed") from error
 
 
+def _valid_pages(references, page_count):
+    return len(references) <= 20 and all(1 <= page <= page_count for page in references)
+
+
+def _validate_fact(fact, page_count):
+    message = "AI draft contains invalid fact evidence; check page references and missing values, then retry"
+    if not fact['name'] or len(fact['name']) > 120 or len(fact['note']) > 1000:
+        raise ValueError(message)
+    if fact['value'] is not None and len(fact['value']) > 1000:
+        raise ValueError(message)
+    if not _valid_pages(fact['pages'], page_count):
+        raise ValueError(message)
+    if fact['status'] == 'stated' and (not fact['pages'] or fact['value'] is None):
+        raise ValueError(message)
+    if fact['status'] == 'inferred' and fact['value'] is None:
+        raise ValueError(message)
+    if fact['status'] == 'missing' and fact['value'] is not None:
+        raise ValueError(message)
+
+
 def analyse(body, *, request=_request):
     """Return a draft only; no bus access, device approval or profile mutation."""
     if not isinstance(body, dict) or set(body) != {"pdf_base64"}:
@@ -155,20 +175,12 @@ def analyse(body, *, request=_request):
     if draft["device_name"] is not None and len(draft["device_name"]) > 160:
         raise ValueError("AI device name is too long")
     for fact in draft["facts"]:
-        if (not fact["name"] or len(fact["name"]) > 120 or
-            len(fact["note"]) > 1000 or
-            (fact["value"] is not None and len(fact["value"]) > 1000) or
-            len(fact["pages"]) > 20 or
-            any(p < 1 or p > pages for p in fact["pages"]) or
-            (fact["status"] == "stated" and (not fact["pages"] or fact["value"] is None)) or
-            (fact["status"] == "inferred" and fact["value"] is None) or
-            (fact["status"] == "missing" and fact["value"] is not None)):
-            raise ValueError("AI draft contains invalid fact evidence; check page references and missing values, then retry")
+        _validate_fact(fact, pages)
     if any(len(item) > 1000 for item in draft["unresolved"]):
         raise ValueError("AI draft contains an oversized unresolved item")
     address = draft["i2c_address"]
     values = [address["address_7bit"], address["write_byte"], address["read_byte"]]
-    if (len(address["pages"]) > 20 or any(p < 1 or p > pages for p in address["pages"]) or
+    if (not _valid_pages(address["pages"], pages) or
         (any(value is not None for value in values) and not address["pages"]) or
         any(v is not None and not 0 <= v <= 255 for v in values)):
         raise ValueError("AI draft contains invalid I2C address evidence")
