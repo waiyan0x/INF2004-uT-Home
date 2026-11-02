@@ -130,6 +130,11 @@ catalogue, and the HC-SR04 divider. They validate the proposed plan, not the
 physical circuit. After changing layout or controls, inspect both overview and
 focus views in a browser, including a narrow viewport.
 
+Server tests launch an isolated loopback process on a temporary available port.
+They check the asset allowlist, GET/HEAD responses, security headers, rejected
+methods and paths, invalid configured ports, and continued service after malformed
+request URLs. They never connect to the ESP.
+
 From the repository root, `npm run test:browser -- visualiser.spec.mjs` runs
 the actual browser modules through every setup, endpoint rendering, overview
 and narrow focus views, navigation, persisted progress, invalid saved state
