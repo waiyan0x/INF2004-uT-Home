@@ -13,6 +13,7 @@ import zlib
 from ai.timing import canonical, digest, export_profile
 from tools.config_transfer.capabilities import Capabilities
 from tools.config_transfer.discovery import Discovery
+from tools.config_transfer.identity import configuration_key, capability_key as caps_key
 from tools.config_validator.planner import ROOT, load_document, require
 from tools.device_discovery import identify_i2c
 
@@ -36,12 +37,9 @@ def context_fingerprint(experiment):
                        build=provenance["build_manifest_sha256"]))
 
 
-def caps_key(caps):
-    return {k: v for k, v in caps.items() if k != "request_id"}
-
-
 def config_key(config):
-    return [config[k] for k in ("active_revision", "saved_revision", "active_crc", "saved_crc")] + [config["flags"] & 0x70]
+    """Keep the persisted evidence list shape at the serialization boundary."""
+    return list(configuration_key(config))
 
 
 def usb_identity(port):

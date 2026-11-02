@@ -146,22 +146,22 @@ def record_run(client, experiment, interval, repetition, identity, receipt, fold
                 previous = snapshot
                 if elapsed >= end_ms:
                     require(elapsed <= end_ms + 2 * cadence_ms, "terminal_overshoot")
-                    firmware = check_firmware(client, identity, active_only=True)
-                    require(firmware["active_revision"] == expected[0], "configuration_changed_during_build_check")
-                    run["evidence"]["firmware_after"] = firmware
-                    after = asdict(client.telemetry())
-                    journal(dict(type="postflight", snapshot=after, firmware=run["evidence"]["firmware_after"]))
-                    sample_from_snapshot(experiment, after, elapsed, session, profile_hash, expected, generation, previous)
-                    if collect_costs:
-                        cost_capture.check_audit(after)
-                        cost_summary = cost_capture.summarize(costs, **cost_context)
-                    # Faults after the measured window are retained in raw evidence;
-                    # the last measured snapshot remains the endpoint for labels.
-                    run["capture"].update(status="complete", reason=None)
                     break
                 due = max(origin + (len(run["samples"]) * cadence_ms / 1000), received)
             else:
                 raise ValueError("sample_limit")
+            firmware = check_firmware(client, identity, active_only=True)
+            require(firmware["active_revision"] == expected[0], "configuration_changed_during_build_check")
+            run["evidence"]["firmware_after"] = firmware
+            after = asdict(client.telemetry())
+            journal(dict(type="postflight", snapshot=after, firmware=run["evidence"]["firmware_after"]))
+            sample_from_snapshot(experiment, after, elapsed, session, profile_hash, expected, generation, previous)
+            if collect_costs:
+                cost_capture.check_audit(after)
+                cost_summary = cost_capture.summarize(costs, **cost_context)
+            # Faults after the measured window are retained in raw evidence;
+            # the last measured snapshot remains the endpoint for labels.
+            run["capture"].update(status="complete", reason=None)
         except (Exception, KeyboardInterrupt) as error:
             run["capture"].update(status="interrupted", reason=(str(error) or type(error).__name__)[:250])
             if isinstance(error, (TransferError, OSError)):

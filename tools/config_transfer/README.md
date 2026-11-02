@@ -10,6 +10,10 @@ The borrowed `SerialStream` protocol and command-specific `Client.exchange`
 overloads expose concrete replies. `payloads.py` describes the decoded JSON
 records, including nullable measurements and empty objects on failed captures.
 These annotations preserve the wire/JSON format; decoders validate incoming data.
+`identity.py` supplies shared configuration/capability comparison keys for the
+configurator and capture tools. Request correlation fields do not establish
+board state; active/saved identity and recovery flags remain significant.
+Persisted evidence retains its existing list/object formats.
 Check these contracts from the repository root with Python 3.11 or newer:
 
 ```console

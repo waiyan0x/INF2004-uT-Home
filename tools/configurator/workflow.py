@@ -10,6 +10,7 @@ from time import monotonic
 from tools.config_validator.planner import Catalogue, ROOT, build_plan, load_document, parse_document, require
 from tools.config_transfer.client import Client, TransferError
 from tools.config_transfer.protocol import Command
+from tools.config_transfer.identity import configuration_key, capability_key
 from tools.device_discovery import identify_i2c, identify_uart, identity_result, confirm_identity
 from .discovery import connection_preset, recommend, add_to_draft, source_queues
 from .drafts import prepare_i2c_draft
@@ -44,7 +45,7 @@ def _close_stream(stream, *, primary_error=None):
 
 def identity(reply):
     data = reply if isinstance(reply, dict) else asdict(reply)
-    return tuple(data[key] for key in ("active_revision", "saved_revision", "active_crc", "saved_crc")) + (data["flags"] & 0x70,)
+    return configuration_key(data)
 
 def reply_data(reply):
     return dict(asdict(reply), message=STATUS[reply.status])
@@ -118,7 +119,7 @@ class Workflow:
                 current = self.client.query()
                 require(identity(current) == identity(base), "Board state changed; review again")
                 observed = self.client.capabilities()
-                require(asdict(observed) | {"request_id": 0} == asdict(caps) | {"request_id": 0},
+                require(capability_key(asdict(observed)) == capability_key(asdict(caps)),
                         "Firmware capabilities changed; reconnect and review")
                 revision = max(current.active_revision, current.saved_revision) + 1
                 require(revision <= 0xFFFFFFFF and current.request_id < 0xFFFFFFFF,
@@ -175,7 +176,7 @@ class Workflow:
                 descriptor["defaults"]["behaviour"].get("profile") == "periodic_sensor",
                 "No reviewed periodic I2C driver for this device")
         current_caps = self.client.capabilities()
-        require(asdict(current_caps) | {"request_id": 0} == asdict(self.caps) | {"request_id": 0},
+        require(capability_key(asdict(current_caps)) == capability_key(asdict(self.caps)),
                 "Firmware capabilities changed; reconnect")
         require(descriptor["driver_id"] in current_caps.drivers, "Connected firmware has no compatible driver")
         before = self.client.query()
@@ -268,7 +269,7 @@ class Workflow:
             capture, caps = (self.client.discover_i2c if preset['wire_code'] == 1 else self.client.discover_uart)(wiring_confirmed=True)
             report = (identify_i2c(capture, caps, catalogue=self.catalogue) if preset['wire_code'] == 1 else
                       identify_uart(capture, caps, preset, catalogue=self.catalogue))
-        require(asdict(caps) | {"request_id": 0} == asdict(self.caps) | {"request_id": 0},
+        require(capability_key(asdict(caps)) == capability_key(asdict(self.caps)),
                 "Firmware capabilities changed; reconnect and detect again")
         report = recommend(report, self.catalogue, preset)
         current = self.client.query()
@@ -311,7 +312,7 @@ class Workflow:
         require(body.get('preset_id') == pending['preset']['preset_id'] and body.get('wiring_confirmed') is True,
                 'Connection confirmation changed; detect again')
         caps = self.client.capabilities()
-        require(asdict(caps) | {'request_id': 0} == asdict(self.caps) | {'request_id': 0},
+        require(capability_key(asdict(caps)) == capability_key(asdict(self.caps)),
                 'Firmware capabilities changed; reconnect and detect again')
         require(identity(self.client.query()) == pending['base'], 'Board state changed; detect again')
         index = body.get('index')

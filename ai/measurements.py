@@ -53,22 +53,22 @@ def summarize_window(before, after):
     require(all(before[k] == after[k] for k in ("firmware_elf_sha256", "profile_sha256", "generation")),
             "Measurement context changed")
     require(after["timestamp_us"] > before["timestamp_us"], "Measurement time did not advance")
-    old = {r["slot"]: r for r in before["workers"]}
-    new = {r["slot"]: r for r in after["workers"]}
-    require(old.keys() == new.keys(), "Worker bindings changed")
+    before_workers = {r["slot"]: r for r in before["workers"]}
+    after_workers = {r["slot"]: r for r in after["workers"]}
+    require(before_workers.keys() == after_workers.keys(), "Worker bindings changed")
     results = []
-    for slot in sorted(old):
-        a, b = old[slot], new[slot]
-        require(a["source_index"] == b["source_index"], "Worker source changed")
-        require(a["available"] and b["available"], "Workload counters unavailable")
-        x, y = a["stats"], b["stats"]
-        require(x["flags"] == y["flags"] == 0, "Saturated counters cannot label a calibration window")
-        require(all(y[f] >= x[f] for f in FIELDS), "Measurement counter reset")
-        row = {f: y[f] - x[f] for f in SUMS}
+    for slot in sorted(before_workers):
+        before_worker, after_worker = before_workers[slot], after_workers[slot]
+        require(before_worker["source_index"] == after_worker["source_index"], "Worker source changed")
+        require(before_worker["available"] and after_worker["available"], "Workload counters unavailable")
+        before_stats, after_stats = before_worker["stats"], after_worker["stats"]
+        require(before_stats["flags"] == after_stats["flags"] == 0, "Saturated counters cannot label a calibration window")
+        require(all(after_stats[f] >= before_stats[f] for f in FIELDS), "Measurement counter reset")
+        row = {f: after_stats[f] - before_stats[f] for f in SUMS}
         require(row["steps"] > 0, "No completed worker steps")
-        row.update(slot=slot, source_index=b["source_index"],
-                   max_elapsed_us_since_reset=y["max_elapsed_us"],
-                   max_lateness_us_since_reset=y["max_lateness_us"])
+        row.update(slot=slot, source_index=after_worker["source_index"],
+                   max_elapsed_us_since_reset=after_stats["max_elapsed_us"],
+                   max_lateness_us_since_reset=after_stats["max_lateness_us"])
         results.append(row)
     return dict(contract="uthome.workload-window", version="0.1.0", before_sha256=digest(before),
                 after_sha256=digest(after), duration_us=after["timestamp_us"] - before["timestamp_us"], workers=results,
