@@ -1,5 +1,4 @@
 """Failure-path checks for the kernel qualification tool; no SDK or board required."""
-import importlib.util
 import json
 from pathlib import Path, PureWindowsPath
 import stat
@@ -11,9 +10,13 @@ from unittest.mock import patch
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
-spec = importlib.util.spec_from_file_location("qualify_kernel", ROOT / "tools/target/qualify_kernel.py")
-qualification = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(qualification)
+from tools.target import qualify_kernel as qualification
+
+
+def build_with_flags(kernel, sdk, work, *, compat_patch=None, resource_patch=None, **flags):
+    """Exercise the CLI flag resolver and resolved build API together."""
+    return qualification.build(kernel, sdk, work, selection=qualification.resolve_mode(**flags),
+                               compat_patch=compat_patch, resource_patch=resource_patch)
 
 
 def setUpModule():
@@ -36,7 +39,7 @@ class QualificationTests(unittest.TestCase):
                 work = Path(folder) / "fresh"
                 with patch.object(qualification, "inspect") as inspect:
                     with self.assertRaises(qualification.QualificationError):
-                        qualification.build(Path("kernel"), Path("sdk"), work, **options)
+                        build_with_flags(Path("kernel"), Path("sdk"), work, **options)
                     inspect.assert_not_called()
                 self.assertFalse(work.exists())
 
@@ -46,7 +49,7 @@ class QualificationTests(unittest.TestCase):
             with patch.object(qualification, "inspect", return_value={}), \
                  patch.object(qualification, "run", side_effect=qualification.QualificationError("archive failed")):
                 with self.assertRaisesRegex(qualification.QualificationError, "archive failed"):
-                    qualification.build(Path("kernel"), Path("sdk"), work, upstream_example="ble_gatt")
+                    build_with_flags(Path("kernel"), Path("sdk"), work, upstream_example="ble_gatt")
             evidence = json.loads((work / "evidence.json").read_text())
             self.assertEqual(evidence["example"], "examples/ble_gatt")
             self.assertTrue(evidence["diagnostic_only"])
@@ -79,7 +82,7 @@ class QualificationTests(unittest.TestCase):
             work = Path(folder) / "uncreated"
             with patch.object(qualification, "check_c_standard") as gate:
                 with self.assertRaisesRegex(qualification.QualificationError, "requires --runtime-port"):
-                    qualification.build(Path("kernel"), Path("sdk"), work,
+                    build_with_flags(Path("kernel"), Path("sdk"), work,
                                         configuration_app=True)
                 gate.assert_not_called()
             self.assertFalse(work.exists())
@@ -104,7 +107,7 @@ class QualificationTests(unittest.TestCase):
                  patch.object(qualification, "unpack_source"), \
                  patch.object(qualification.subprocess, "Popen") as compiler:
                 with self.assertRaisesRegex(qualification.QualificationError, "resource patch rejected"):
-                    qualification.build(root / "kernel", root / "sdk", work,
+                    build_with_flags(root / "kernel", root / "sdk", work,
                                         resource_patch=resource)
                 compiler.assert_not_called()
             evidence = json.loads((work / "evidence.json").read_text())
@@ -149,7 +152,7 @@ class QualificationTests(unittest.TestCase):
             self.check_standard.side_effect = qualification.QualificationError("standard failed")
             with patch.object(qualification, "inspect") as inspect:
                 with self.assertRaisesRegex(qualification.QualificationError, "standard failed"):
-                    qualification.build(Path("kernel"), Path("sdk"), work)
+                    build_with_flags(Path("kernel"), Path("sdk"), work)
                 inspect.assert_not_called()
             self.assertFalse(work.exists())
 
@@ -168,7 +171,7 @@ class QualificationTests(unittest.TestCase):
             marker.write_text("keep")
             with patch.object(qualification, "inspect") as inspect:
                 with self.assertRaisesRegex(qualification.QualificationError, "already exists"):
-                    qualification.build(Path("kernel"), Path("sdk"), work)
+                    build_with_flags(Path("kernel"), Path("sdk"), work)
                 inspect.assert_not_called()
             self.assertEqual(marker.read_text(), "keep")
 
@@ -182,7 +185,7 @@ class QualificationTests(unittest.TestCase):
             root = Path(folder)
             for base in (root / "kernel", root / "sdk"):
                 with self.subTest(base=base), self.assertRaisesRegex(qualification.QualificationError, "outside"):
-                    qualification.build(root / "kernel", root / "sdk", base / "build")
+                    build_with_flags(root / "kernel", root / "sdk", base / "build")
             self.assertEqual(list(root.iterdir()), [])
 
     def test_windows_sdk_path_is_cmake_safe_without_mutating_parent_environment(self):
@@ -220,7 +223,7 @@ class QualificationTests(unittest.TestCase):
             with patch.object(qualification, "inspect", return_value={"kernel_revision": "fixture"}), \
                  patch.object(qualification, "run", side_effect=qualification.QualificationError("archive failed")):
                 with self.assertRaisesRegex(qualification.QualificationError, "archive failed"):
-                    qualification.build(Path("kernel"), Path("sdk"), work)
+                    build_with_flags(Path("kernel"), Path("sdk"), work)
             evidence = json.loads((work / "evidence.json").read_text())
             self.assertEqual(evidence["build_status"], "failed")
             self.assertEqual(evidence["board_status"], "not_tested")
@@ -284,7 +287,7 @@ class QualificationTests(unittest.TestCase):
                         {"runtime_port": True, "static_net_queues": True, "native_uart_fixture": True}):
             with self.subTest(options=options), patch.object(qualification, "inspect") as inspect:
                 with self.assertRaisesRegex(qualification.QualificationError, "Wi-Fi probe"):
-                    qualification.build(Path("kernel"), Path("sdk"), Path("unused"), wifi_probe=True, **options)
+                    build_with_flags(Path("kernel"), Path("sdk"), Path("unused"), wifi_probe=True, **options)
                 inspect.assert_not_called()
 
     def test_senlux_probe_requires_isolation_before_any_build_work(self):
@@ -294,7 +297,7 @@ class QualificationTests(unittest.TestCase):
                         {"runtime_port": True, "static_net_queues": True, "model_probe": True}):
             with self.subTest(options=options), patch.object(qualification, "inspect") as inspect:
                 with self.assertRaisesRegex(qualification.QualificationError, "SEN0390 probe"):
-                    qualification.build(Path("kernel"), Path("sdk"), Path("unused"), senlux_probe=True, **options)
+                    build_with_flags(Path("kernel"), Path("sdk"), Path("unused"), senlux_probe=True, **options)
                 inspect.assert_not_called()
 
     def test_senlux_application_probe_requires_explicit_isolated_mode(self):
@@ -306,7 +309,7 @@ class QualificationTests(unittest.TestCase):
                          "model_load_probe": True}):
             with self.subTest(options=options), patch.object(qualification, "inspect") as inspect:
                 with self.assertRaisesRegex(qualification.QualificationError, "SEN0390 application probe"):
-                    qualification.build(Path("kernel"), Path("sdk"), Path("unused"),
+                    build_with_flags(Path("kernel"), Path("sdk"), Path("unused"),
                                         senlux_app_probe=True, **options)
                 inspect.assert_not_called()
 
@@ -336,7 +339,7 @@ class QualificationTests(unittest.TestCase):
                         {'runtime_port': True, 'configuration_app': True, 'static_net_queues': True, 'wifi_probe': True}):
             with self.subTest(options=options), patch.object(qualification, 'inspect') as inspect:
                 with self.assertRaisesRegex(qualification.QualificationError, 'Loaded model probe'):
-                    qualification.build(Path('kernel'), Path('sdk'), Path('unused'), model_load_probe=True, **options)
+                    build_with_flags(Path('kernel'), Path('sdk'), Path('unused'), model_load_probe=True, **options)
                 inspect.assert_not_called()
 
     def test_loaded_symbols_cannot_leak_or_initialize_radios(self):
@@ -360,7 +363,7 @@ class QualificationTests(unittest.TestCase):
                         {'runtime_port': True, 'static_net_queues': True, 'native_uart_fixture': True}):
             with self.subTest(options=options), patch.object(qualification, 'inspect') as inspect:
                 with self.assertRaisesRegex(qualification.QualificationError, 'Model probe'):
-                    qualification.build(Path('kernel'),Path('sdk'),Path('unused'),model_probe=True,**options)
+                    build_with_flags(Path('kernel'),Path('sdk'),Path('unused'),model_probe=True,**options)
                 inspect.assert_not_called()
 
     def test_model_symbols_cannot_leak_into_normal_images_or_activate_radios(self):
@@ -398,7 +401,7 @@ class QualificationTests(unittest.TestCase):
                         {"runtime_port": True, "static_net_queues": True, "wifi_probe": True}):
             with self.subTest(options=options), patch.object(qualification, "inspect") as inspect:
                 with self.assertRaises(qualification.QualificationError):
-                    qualification.build(Path("kernel"), Path("sdk"), Path("unused"), ble_probe=True, **options)
+                    build_with_flags(Path("kernel"), Path("sdk"), Path("unused"), ble_probe=True, **options)
                 inspect.assert_not_called()
 
     def test_ble_probe_checks_linked_activation_and_real_settings(self):
@@ -448,7 +451,7 @@ class QualificationTests(unittest.TestCase):
                          "configuration_app": True}):
             with self.subTest(options=options), patch.object(qualification, "inspect") as inspect:
                 with self.assertRaises(qualification.QualificationError):
-                    qualification.build(Path("kernel"), Path("sdk"), Path("unused"), ble_gatt_probe=True, **options)
+                    build_with_flags(Path("kernel"), Path("sdk"), Path("unused"), ble_gatt_probe=True, **options)
                 inspect.assert_not_called()
 
     def test_gatt_probe_requires_one_connection_and_linked_service(self):
@@ -505,7 +508,7 @@ class QualificationTests(unittest.TestCase):
                          'configuration_app':True}):
             with self.subTest(options=options), patch.object(qualification, 'inspect') as inspect:
                 with self.assertRaises(qualification.QualificationError):
-                    qualification.build(Path('kernel'),Path('sdk'),Path('unused'),ble_static_host=True,**options)
+                    build_with_flags(Path('kernel'),Path('sdk'),Path('unused'),ble_static_host=True,**options)
                 inspect.assert_not_called()
 
     def test_event_and_startup_link_proof_rejects_misdirection(self):

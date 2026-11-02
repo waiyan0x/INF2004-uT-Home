@@ -7,6 +7,12 @@ No build command opens serial, resets or flashes the board.
 
 ## Build modes
 
+The CLI keeps the flags below. `build_modes.py` resolves them before any staging
+into one immutable `BuildSelection`, with independent static-queue and BLE
+options. Its mode table owns prerequisites; the selection emits both CMake
+settings and evidence flags. Python callers pass `selection=resolve_mode(...)`
+to `build()`, with compatibility/resource patches supplied by keyword.
+
 Activate the pinned [firmware environment](../../firmware/README.md#pinned-target),
 then run `python tools/target/qualify_kernel.py inspect` from the repository root.
 Use a fresh, nonexistent output directory without spaces. Existing destinations

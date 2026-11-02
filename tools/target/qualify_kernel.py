@@ -25,12 +25,11 @@ COMPILER_PACKAGE = "esp-15.2.0_20251204"
 # cfgpart's independent host tests match this digest and attack every byte.
 CONFIGURATION_TABLE_SHA256 = "7f7b089b96a3f7c3d7c431bd974909909e60a2bb8bdf4bb6802e9edbb6d9167e"
 
-# Read-only diagnostic builds of pinned examples, never application acceptance.
-UPSTREAM_EXAMPLES = {
-    "tasks": "mtk3c3_tasks",
-    "ble_gatt": "mtk3c3_ble_gatt",
-    "udp_pingpong_c3": "udp_pingpong_c3",
-}
+# Support both the documented script command and package imports in host tests.
+if __package__:
+    from .build_modes import BuildMode, BuildSelection, QualificationError, UPSTREAM_EXAMPLES, resolve_mode
+else:
+    from build_modes import BuildMode, BuildSelection, QualificationError, UPSTREAM_EXAMPLES, resolve_mode
 
 RUNTIME_SOURCE_FILES = {
     "tests/target/runtime_port_board/loadmodel/ailite.c": "loadmodel/ailite.c",
@@ -247,10 +246,6 @@ RUNTIME_SOURCE_FILES = {
     "firmware/third_party/bmp3/bmp3.c": "third_party/bmp3/bmp3.c",
     "firmware/third_party/bmp3/bmp3_defs.h": "third_party/bmp3/bmp3_defs.h",
 }
-
-
-class QualificationError(RuntimeError):
-    pass
 
 
 def check_compiler_flags(command, expected_standard):
@@ -819,47 +814,9 @@ def verify_senlux_app_probe(work, enabled):
     return {"enabled": enabled, "diagnostic_only": enabled}
 
 
-def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_patch=None,
-          configuration_app=False, upstream_example=None, native_uart_fixture=False, static_net_queues=False,
-          wifi_probe=False, ble_probe=False, model_probe=False, ble_gatt_probe=False,
-          ble_static_host=False, model_load_probe=False, senlux_probe=False, senlux_app_probe=False):
-    if senlux_app_probe and (not runtime_port or not configuration_app or not static_net_queues
-                             or senlux_probe or model_load_probe or model_probe or wifi_probe or ble_probe
-                             or native_uart_fixture or upstream_example is not None):
-        raise QualificationError("SEN0390 application probe requires configuration app and static queues only")
-    if senlux_probe and (not runtime_port or not static_net_queues or configuration_app
-                         or native_uart_fixture or upstream_example is not None or wifi_probe
-                         or ble_probe or model_probe or model_load_probe):
-        raise QualificationError("SEN0390 probe requires the isolated runtime fixture and static queues")
-    if model_load_probe and (not runtime_port or not configuration_app or not static_net_queues
-                             or model_probe or wifi_probe or ble_probe or native_uart_fixture
-                             or upstream_example is not None):
-        raise QualificationError('Loaded model probe requires the configuration application and static queues only')
-    if ble_gatt_probe and not ble_probe:
-        raise QualificationError("GATT probe requires the isolated BLE diagnostic")
-    if ble_static_host and not ble_probe:
-        raise QualificationError("Static host experiment requires the isolated BLE diagnostic")
-    if model_probe and (not runtime_port or not static_net_queues or configuration_app
-                        or native_uart_fixture or upstream_example is not None or wifi_probe or ble_probe):
-        raise QualificationError('Model probe requires the isolated runtime fixture and static queues')
-    if wifi_probe and (not runtime_port or not static_net_queues or configuration_app
-                       or native_uart_fixture or upstream_example is not None or ble_probe):
-        raise QualificationError("Wi-Fi probe requires the isolated runtime fixture and static queues")
-    if ble_probe and (not runtime_port or not static_net_queues or configuration_app
-                      or native_uart_fixture or upstream_example is not None or wifi_probe):
-        raise QualificationError("BLE probe requires the isolated runtime fixture and static queues")
-    if static_net_queues and (not runtime_port or native_uart_fixture or upstream_example is not None):
-        raise QualificationError("Static network queues require ordinary runtime/application mode")
-    if native_uart_fixture and (not runtime_port or configuration_app or upstream_example is not None):
-        raise QualificationError("native UART fixture requires runtime-port without application/example")
-    if upstream_example is not None:
-        if upstream_example not in UPSTREAM_EXAMPLES:
-            raise QualificationError("Unsupported upstream diagnostic example")
-        if runtime_port or configuration_app:
-            raise QualificationError("upstream example cannot be combined with application/runtime mode")
-    if configuration_app and not runtime_port:
-        raise QualificationError("configuration application requires --runtime-port")
-    example = upstream_example or "tasks"
+def build(kernel, sdk, work, *, selection=BuildSelection(), compat_patch=None, resource_patch=None):
+    """Build one resolved mode; CLI compatibility belongs to resolve_mode."""
+    example = selection.upstream_example
     no_spaces(work)
     if kernel == work or kernel in work.parents or sdk == work or sdk in work.parents:
         raise QualificationError("Build output must be outside the kernel and SDK checkouts")
@@ -870,19 +827,7 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
     versions = inspect(kernel, sdk)
     work.mkdir(parents=True, exist_ok=False)
     evidence = {"schema_version": "1.0.0", "created_utc": datetime.now(timezone.utc).isoformat(),
-                "example": "tests/target/runtime_port_board" if runtime_port else f"examples/{example}",
-                "diagnostic_only": (not runtime_port) or wifi_probe or ble_probe or model_probe or model_load_probe or senlux_probe or senlux_app_probe,
-                "configuration_application": configuration_app,
-                "native_uart_fixture": native_uart_fixture,
-                "static_network_queues": static_net_queues,
-                "wifi_probe": wifi_probe,
-                "ble_probe": ble_probe,
-                "ble_gatt_probe": ble_gatt_probe,
-                "ble_static_host": ble_static_host,
-                "model_probe": model_probe,
-                "model_load_probe": model_load_probe,
-                "senlux_probe": senlux_probe,
-                "senlux_app_probe": senlux_app_probe,
+                **selection.evidence(),
                 "board_kit": "iote_esp32c3_mini", "target": "esp32c3",
                 "versions": versions, "build_status": "in_progress", "board_status": "not_tested",
                 "application_runtime_status": "not_tested", "artifacts": {},
@@ -908,7 +853,7 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
             apply_patch(staged_patch, work / "source")
         project = work / "source/examples" / example
         image_name = UPSTREAM_EXAMPLES[example]
-        if runtime_port:
+        if selection.runtime_port:
             project, evidence["project_sources"] = stage_runtime_port(work)
             manifest = verify_runtime_snapshot(project)
             evidence["source_manifest_sha256"] = sha256(manifest)
@@ -916,22 +861,12 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
         command = [sys.executable, str(sdk / "tools/idf.py"), "-C", str(project), "-B", str(work / "build"),
                    "-DIDF_TARGET=esp32c3", "-DMTK_BOARD=iote_esp32c3_mini",
                    f"-DSDKCONFIG={work / 'sdkconfig'}", "build"]
-        if runtime_port:
+        if selection.runtime_port:
             # Every direct rebuild also checks the source repository. Paths are
             # separate arguments, including the source checkout with spaces.
-            command[-1:-1] = [f"-DUTHOME_CONFIGURATION_APP={int(configuration_app)}",
-                              f"-DUTHOME_NATIVE_UART_FIXTURE={int(native_uart_fixture)}",
-                              f"-DUTHOME_STATIC_NET_QUEUES={int(static_net_queues)}",
-                              f"-DUTHOME_WIFI_PROBE={int(wifi_probe)}",
-                              f"-DUTHOME_BLE_PROBE={int(ble_probe)}",
-                              f"-DUTHOME_BLE_GATT_PROBE={int(ble_gatt_probe)}",
-                              f"-DUTHOME_BLE_STATIC_HOST={int(ble_static_host)}",
-                              f"-DUTHOME_MODEL_PROBE={int(model_probe)}",
-                              f"-DUTHOME_MODEL_LOAD_PROBE={int(model_load_probe)}",
-                              f"-DUTHOME_SENLUX_PROBE={int(senlux_probe)}",
-                              f"-DUTHOME_SENLUX_APP_PROBE={int(senlux_app_probe)}",
-                              f"-DUTHOME_SOURCE_ROOT={ROOT.as_posix()}",
-                              f"-DUTHOME_CHECK_PYTHON={Path(sys.executable).as_posix()}"]
+            command[-1:-1] = selection.cmake_settings() + [
+                f"-DUTHOME_SOURCE_ROOT={ROOT.as_posix()}",
+                f"-DUTHOME_CHECK_PYTHON={Path(sys.executable).as_posix()}"]
         evidence["command"] = command
         environment = build_environment(sdk)
         evidence["environment_overrides"] = {name: environment[name] for name in
@@ -947,14 +882,14 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
         evidence["build_exit_code"] = result
         if result:
             raise QualificationError(f"Kernel build failed ({result}); inspect {work / 'build.log'}")
-        if runtime_port:
+        if selection.runtime_port:
             evidence["compiler_profiles"] = verify_compile_profiles(work)
-            evidence["senlux_app_isolation"] = verify_senlux_app_probe(work, senlux_app_probe)
+            evidence["senlux_app_isolation"] = verify_senlux_app_probe(work, selection.mode is BuildMode.SENLUX_APP)
             evidence["memory_audit_link"] = verify_audit_link(work)
-            evidence["network_queue_adapter"] = verify_queue_adapter(work, static_net_queues)
-            evidence["model_isolation"] = verify_model_probe(work, model_probe)
-            evidence["model_load_isolation"] = verify_model_load_probe(work, model_load_probe)
-            if wifi_probe:
+            evidence["network_queue_adapter"] = verify_queue_adapter(work, selection.static_net_queues)
+            evidence["model_isolation"] = verify_model_probe(work, selection.mode is BuildMode.MODEL)
+            evidence["model_load_isolation"] = verify_model_load_probe(work, selection.mode is BuildMode.MODEL_LOAD)
+            if selection.mode is BuildMode.WIFI:
                 config_lines = set((work / "sdkconfig").read_text().splitlines())
                 required = {"CONFIG_FREERTOS_HZ=1000", "# CONFIG_BT_ENABLED is not set",
                             "# CONFIG_ESP_WIFI_NVS_ENABLED is not set",
@@ -964,10 +899,10 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
                 if not required <= config_lines:
                     raise QualificationError("Wi-Fi probe storage/tick isolation settings differ")
                 evidence["radio_scope"] = "Noncompliant diagnostic only: scan/stop/restart; no association/AP/IP/NVS; USB application state retained but not running"
-            if ble_probe:
-                evidence["ble_isolation"] = verify_ble_probe(work, ble_gatt_probe, ble_static_host)
-                evidence["radio_scope"] = ("Noncompliant diagnostic only: read-only GATT reconnect/read window; no configuration writes, pairing, NVS or Wi-Fi; USB core inactive; SDK heap remains unqualified" if ble_gatt_probe else "Noncompliant diagnostic only: nonconnectable advertising/stop/restart; no GATT, pairing, NVS or Wi-Fi; SDK flash controller without legacy ROM patch; USB core inactive; flash writes during BLE are unqualified")
-            if configuration_app:
+            if selection.mode is BuildMode.BLE:
+                evidence["ble_isolation"] = verify_ble_probe(work, selection.ble_gatt_probe, selection.ble_static_host)
+                evidence["radio_scope"] = ("Noncompliant diagnostic only: read-only GATT reconnect/read window; no configuration writes, pairing, NVS or Wi-Fi; USB core inactive; SDK heap remains unqualified" if selection.ble_gatt_probe else "Noncompliant diagnostic only: nonconnectable advertising/stop/restart; no GATT, pairing, NVS or Wi-Fi; SDK flash controller without legacy ROM patch; USB core inactive; flash writes during BLE are unqualified")
+            if selection.configuration_app:
                 table = work / "build/partition_table/partition-table.bin"
                 if sha256(table) != CONFIGURATION_TABLE_SHA256:
                     raise QualificationError("Generated partition table differs from the reviewed static layout")
@@ -999,7 +934,7 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
                 raise QualificationError(f"Missing build artifact: {relative}")
             evidence["artifacts"][relative] = {"sha256": sha256(artifact), "size_bytes": artifact.stat().st_size}
 
-        if runtime_port:
+        if selection.runtime_port:
             for relative in ("project/dependencies.lock", "project/sdkconfig.defaults"):
                 artifact = work / relative
                 evidence["artifacts"][relative] = {
@@ -1069,12 +1004,17 @@ def main(argv=None):
         if args.action == "inspect":
             print(json.dumps(inspect(kernel, sdk), indent=2))
         else:
-            report = build(kernel, sdk, args.work_dir.resolve(),
-                           args.compat_patch.resolve() if args.compat_patch else None, args.runtime_port,
-                           args.resource_patch.resolve() if args.resource_patch else None, args.configuration_app,
-                           args.upstream_example, args.native_uart_fixture, args.static_net_queues,
-                           args.wifi_probe, args.ble_probe, args.model_probe, args.ble_gatt_probe,
-                           args.ble_static_host, args.model_load_probe, args.senlux_probe, args.senlux_app_probe)
+            selection = resolve_mode(
+                runtime_port=args.runtime_port, configuration_app=args.configuration_app,
+                upstream_example=args.upstream_example, native_uart_fixture=args.native_uart_fixture,
+                static_net_queues=args.static_net_queues, wifi_probe=args.wifi_probe,
+                ble_probe=args.ble_probe, model_probe=args.model_probe,
+                ble_gatt_probe=args.ble_gatt_probe, ble_static_host=args.ble_static_host,
+                model_load_probe=args.model_load_probe, senlux_probe=args.senlux_probe,
+                senlux_app_probe=args.senlux_app_probe)
+            report = build(kernel, sdk, args.work_dir.resolve(), selection=selection,
+                           compat_patch=args.compat_patch.resolve() if args.compat_patch else None,
+                           resource_patch=args.resource_patch.resolve() if args.resource_patch else None)
             print(f"Build evidence: {report}\nPhysical board and application runtime remain untested.")
     except (QualificationError, OSError) as exc:
         print(str(exc), file=sys.stderr)
