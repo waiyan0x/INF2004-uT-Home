@@ -6,6 +6,17 @@ explicitly selected serial port. It sets DTR/RTS inactive before opening,
 performs no explicit reset and never flashes. Some host drivers can still pulse
 control lines during open; verify actual board behavior during acceptance.
 
+The borrowed `SerialStream` protocol and command-specific `Client.exchange`
+overloads expose concrete replies. `payloads.py` describes the decoded JSON
+records, including nullable measurements and empty objects on failed captures.
+These annotations preserve the wire/JSON format; decoders validate incoming data.
+Check these contracts from the repository root with Python 3.11 or newer:
+
+```console
+python -m pip install -r tools/config_transfer/requirements-dev.txt
+python -m mypy --config-file tools/config_transfer/mypy.ini
+```
+
 The board must run the **configuration application image**, not the acceptance
 fixture. Query its identity and capabilities before use. Scoped discovery/core
 acceptance is indexed in [qualification](../../firmware/qualification/README.md);

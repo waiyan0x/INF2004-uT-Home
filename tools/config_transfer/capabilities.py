@@ -16,9 +16,9 @@ class Capabilities:
     features: int
     board: str
     node_schema: str
-    drivers: tuple
+    drivers: tuple[str, ...]
 
-def decode_capabilities(frame, *, request_id):
+def decode_capabilities(frame: bytes, *, request_id: int) -> Capabilities:
     if not 120 <= len(frame) <= 376:
         raise ValueError("invalid capability length")
     fields = HEADER.unpack(frame[:24])
@@ -32,7 +32,7 @@ def decode_capabilities(frame, *, request_id):
     if (version != 1 or qualified > 1 or not 1 <= limit <= 8192 or count > 8 or
         not 1 <= workers <= devices <= 8 or features & ~7 or len(data) != 96 + count * 32):
         raise ValueError("unsupported capability fields")
-    def name(offset, pattern):
+    def name(offset: int, pattern: bytes) -> str:
         text, separator, padding = data[offset:offset+32].partition(b"\0")
         if not separator or any(padding) or not re.fullmatch(pattern, text):
             raise ValueError("invalid capability name")

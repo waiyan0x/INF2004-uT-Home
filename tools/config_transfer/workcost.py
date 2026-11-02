@@ -1,9 +1,14 @@
 """Strict command-9 decoder; unavailable timings never become zero features."""
 from dataclasses import dataclass
+from typing import cast
 import struct
 import zlib
 
 from .protocol import HEADER, Command
+from .payloads import (
+    SchedulerObservation, SchedulerWindow, StackObservation, Unavailable,
+    WorkerObservation, WorkloadMeasurement, WorkStats,
+)
 
 FIELDS = ('steps', 'elapsed_us', 'max_elapsed_us', 'max_lateness_us',
           'bus_wait_us', 'bus_active_us', 'transfer_bytes', 'transfers',
@@ -18,12 +23,12 @@ class WorkcostReply:
     active_crc: int
     timestamp_us: int
     capture_us: int
-    controller_stack: dict
-    idle_stack: dict
-    workers: tuple
-    scheduler: dict | None = None
+    controller_stack: StackObservation | Unavailable
+    idle_stack: StackObservation | Unavailable
+    workers: tuple[WorkerObservation, ...]
+    scheduler: SchedulerObservation | None = None
 
-    def scheduler_window(self, previous):
+    def scheduler_window(self, previous: "WorkcostReply") -> SchedulerWindow:
         """Derive sampled non-idle time only for a short coherent same-profile window.
 
         Callers must bind both observations to the same verified connection and
@@ -46,7 +51,7 @@ class WorkcostReply:
                     sampled_non_idle_percent=100 * (elapsed-idle) / elapsed,
                     tick_ms=tick, method='native_tick_attribution', cpu_cycles_measured=False)
 
-    def measurement(self, *, firmware_elf_sha256, profile_sha256):
+    def measurement(self, *, firmware_elf_sha256: str, profile_sha256: str) -> WorkloadMeasurement:
         """Bind separately verified image/profile identities, without guessing."""
         if self.result:
             raise ValueError('Workload capture unavailable')
@@ -54,11 +59,12 @@ class WorkcostReply:
                     firmware_elf_sha256=firmware_elf_sha256,
                     profile_sha256=profile_sha256, generation=self.generation,
                     timestamp_us=self.timestamp_us,
-                    workers=[{key: row[key] for key in ('slot', 'source_index', 'available', 'stats')}
+                    workers=[dict(slot=row['slot'], source_index=row['source_index'],
+                                  available=row['available'], stats=row['stats'])
                              for row in self.workers if row['bound']])
 
 
-def _stack(words, expected):
+def _stack(words: tuple[int, ...], expected: int) -> StackObservation:
     size, unused, available = words
     if size != expected or available not in (0, 1) or unused > size or (not available and unused):
         raise ValueError('Invalid stack observation')
@@ -66,7 +72,7 @@ def _stack(words, expected):
                 measured=bool(available), empirical=True)
 
 
-def decode_workcost(frame, *, request_id):
+def decode_workcost(frame: bytes, *, request_id: int) -> WorkcostReply:
     if len(frame) not in (120, 408):
         raise ValueError('Invalid workload frame length')
     magic, version, command, reserved, rid, revision, size, checksum = HEADER.unpack(frame[:24])
@@ -86,7 +92,7 @@ def decode_workcost(frame, *, request_id):
         return WorkcostReply(header[1], 0, 0, 0, 0, 0, {}, {}, ())
     if size != 384 or header[5] != 4 or any(header[20:]):
         raise ValueError('Invalid workload header')
-    scheduler = None
+    scheduler: SchedulerObservation | None = None
     if header[0] == 1:
         if any(header[15:20]):
             raise ValueError('Legacy workload header carries scheduler data')
@@ -99,7 +105,8 @@ def decode_workcost(frame, *, request_id):
                          tick_ms=header[19], method='native_tick_attribution')
     controller = _stack(header[8:11], 8448)
     idle = _stack(header[11:14], 1024)
-    rows, sources, handles = [], set(), set()
+    rows: list[WorkerObservation] = []
+    sources, handles = set(), set()
     for index in range(4):
         words = struct.unpack_from('<18I', payload, 96 + index * 72)
         slot, source, handle, flags, stack_bytes, unused = words[:6]
@@ -114,7 +121,8 @@ def decode_workcost(frame, *, request_id):
             handles.add(handle)
         elif source or handle or available:
             raise ValueError('Unbound slot carries a binding')
-        stats = dict(zip(FIELDS, words[6:17])) if available else None
+        # FIELDS is the fixed, complete eleven-counter wire layout checked below.
+        stats = cast(WorkStats, dict(zip(FIELDS, words[6:17]))) if available else None
         if stats is None:
             if any(words[6:17]):
                 raise ValueError('Unavailable costs carry counters')
