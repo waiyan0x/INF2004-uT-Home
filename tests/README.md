@@ -60,6 +60,12 @@ vendor header doubles. Each case loads fresh boot state; repeated startup and
 the shared `bootonce` core for both fixed capacities and every partial failure.
 Text checks remain only for structural restrictions and application boot order.
 
+I2C/SPI recovery tests similarly execute the real transfer adapters, with only
+owned register/wait interfaces redirected. Twenty-one isolated scenarios check
+wire and timing failures, held-clock reads, final-byte NACK, FIFO bounds,
+multi-chunk chip select, partial receive data and successful next transfers.
+The native target build separately checks the extracted SDK boundaries.
+
 These suites are a regression baseline, not proof that arbitrary refactoring is
 safe. Review affected contracts and add focused tests before changing behavior.
 Hardware timing, electrical effects, combined radio/static operation and

@@ -5,7 +5,7 @@ idf_component_register(SRCS "../discovery/discuart.c" "../discovery/disci2c.c" "
                        "../runtime/activate.c" "../runtime/shared.c" "../services/sampcache.c" "../services/statusmon.c" "../services/telemetry.c" "../services/oledview.c" "../services/oledwork.c" "../services/pwmwork.c"
                        "../runtime/component.c" "../messaging/msgbus.c"
                        "../health/health.c" "../health/watchdog.c"
-                       "../config/drvreg.c" "../hal/i2cbus.c" "../hal/i2cown.c" "../hal/buslife.c" "../hal/bootonce.c" "../hal/c3ukern.c" "../hal/c3i2c.c"
+                       "../config/drvreg.c" "../hal/i2cbus.c" "../hal/i2cown.c" "../hal/buslife.c" "../hal/bootonce.c" "../hal/c3ukern.c" "../hal/c3bwait.c" "../hal/c3ihw.c" "../hal/c3shw.c" "../hal/c3i2c.c"
                        "../drivers/bmp388.c" "../drivers/bmpinst.c"
                        "../drivers/geni2c.c"
                        "../drivers/senlux.c"
@@ -69,10 +69,11 @@ set_source_files_properties("../discovery/discuart.c" "../discovery/disci2c.c" "
     "../drivers/hc_sr04.c" "../drivers/hcinst.c" "../drivers/pwminst.c"
     "../config/cfgbytes.c" "../config/cfgwire.c"
     "../config/cfgstore.c" "../config/cfgctrl.c"
+    "../hal/c3bwait.c" "../hal/c3i2c.c" "../hal/c3spi.c"
     PROPERTIES COMPILE_OPTIONS "-std=c99;${UTHOME_WARNINGS}")
 # Pinned external LL headers use GNU typeof. The adapter's owned source is C99;
 # these exact translation units need the vendor header's GNU99 dialect.
-set_source_files_properties("../hal/c3i2c.c" "../hal/c3pin.c" "../hal/c3spi.c"
+set_source_files_properties("../hal/c3ihw.c" "../hal/c3pin.c" "../hal/c3shw.c"
     "../hal/c3pulse.c" "../hal/c3pwm.c"
     PROPERTIES COMPILE_OPTIONS "-std=gnu99;${UTHOME_WARNINGS}")
 

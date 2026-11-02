@@ -244,6 +244,12 @@ RUNTIME_SOURCE_FILES = {
     "firmware/drivers/ssd1306_spi/oledinst.c": "drivers/oledinst.c",
     "firmware/hal/ports/esp32c3/c3i2c.h": "hal/c3i2c.h",
     "firmware/hal/ports/esp32c3/c3i2c.c": "hal/c3i2c.c",
+    "firmware/hal/ports/esp32c3/c3bwait.c": "hal/c3bwait.c",
+    "firmware/hal/ports/esp32c3/c3bwait.h": "hal/c3bwait.h",
+    "firmware/hal/ports/esp32c3/c3ihw.c": "hal/c3ihw.c",
+    "firmware/hal/ports/esp32c3/c3ihw.h": "hal/c3ihw.h",
+    "firmware/hal/ports/esp32c3/c3shw.c": "hal/c3shw.c",
+    "firmware/hal/ports/esp32c3/c3shw.h": "hal/c3shw.h",
     "firmware/drivers/generic_i2c/geni2c.h": "drivers/geni2c.h",
     "firmware/drivers/generic_i2c/geni2c.c": "drivers/geni2c.c",
     "firmware/drivers/generic_i2c/senlux.h": "drivers/senlux.h",
@@ -606,9 +612,9 @@ def verify_compile_profiles(work):
             continue
         expected = "c11" if source in policy["atomic_profile_paths"] else "c99"
         # Pinned SDK LL headers require GNU typeof; owned adapter syntax is C99.
-        if source in {"firmware/hal/ports/esp32c3/c3i2c.c",
+        if source in {"firmware/hal/ports/esp32c3/c3ihw.c",
                       "firmware/hal/ports/esp32c3/c3pin.c",
-                      "firmware/hal/ports/esp32c3/c3spi.c",
+                      "firmware/hal/ports/esp32c3/c3shw.c",
                       "firmware/hal/ports/esp32c3/c3pulse.c",
                       "firmware/hal/ports/esp32c3/c3pwm.c"}:
             expected = "gnu99"

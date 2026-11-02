@@ -41,9 +41,12 @@ append its own language/warning flags after target settings, so owned source
 options enforce C99 or the approved C11 profile last. Enabled warnings remain
 errors, including classes the SDK otherwise relaxes. The build helper rejects
 an effective language mismatch or remaining warning-error relaxation.
-The C3 `c3i2c.c`, `c3spi.c`, `c3pin.c`, `c3pulse.c` and `c3pwm.c` adapters
+The C3 `c3ihw.c`, `c3shw.c`, `c3pin.c`, `c3pulse.c` and `c3pwm.c` SDK boundaries
 use the GNU99 compiler dialect
-because the pinned external SDK LL headers contain GNU `typeof`. Their owned
+because the pinned external SDK LL headers contain GNU `typeof`. The I2C/SPI
+register calls moved from `c3i2c`/`c3spi` into `c3ihw`/`c3shw`; the transfer
+algorithms now compile as ordinary C99. This relocates the same vendor-header
+compatibility requirement without permitting owned GNU syntax. Their owned
 source remains C99;
 this does not authorize GNU constructs in project code. Vendor headers remain
 outside the owned-code audit. The exact path/profile is recorded by qualification;
@@ -174,6 +177,11 @@ Protocol wrappers retain typed open arguments, device/claim checks and distinct
 result codes. Its start callback receives borrowed settings through `const void *`;
 the matching adapter recovers the type guaranteed by its wrapper, without a
 function-pointer cast. State and callback storage layouts remain unchanged.
+`c3bwait` contains native bus waits and clock access; `c3ihw` and `c3shw`
+contain I2C/SPI hardware register operations. `busfake` injects faults at those
+owned boundaries and `busmain` starts each host scenario with fresh state.
+The transfer algorithms remain in `c3i2c`/`c3spi`; only the two hardware
+boundaries require the existing SDK GNU99 dialect. No deviation is added.
 SPI = Serial Peripheral Interface; CS = chip select; D/C = data/command line;
 OLED = organic light-emitting diode; oledinst identifies its instance adapter;
 MOSI/MISO identify controller-out/controller-in SPI data; FIFO = first in, first

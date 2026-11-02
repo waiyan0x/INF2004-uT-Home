@@ -113,9 +113,47 @@ Stuck external lines still require correcting the wiring/device; this is not a
 general bus-unwedge service.
 
 Basic I2C/SPI operation has scoped bench evidence. Broader bus, output and
-combined-system acceptance remain open; consult the qualification index. The five LL-based C3 adapters use C99 syntax; compilation needs
+combined-system acceptance remain open; consult the qualification index.
+The five LL boundaries (`c3ihw`, `c3shw`, `c3pin`, `c3pulse`, `c3pwm`) use C99 syntax; compilation needs
 GNU99 because pinned external LL headers use GNU `typeof`. Other ordinary owned
 modules compile as C99.
+
+### Transfer fault boundary and review
+
+`c3i2c` and `c3spi` retain transfer sequencing, deadlines, retry eligibility,
+locking and reset decisions. Their nonpolling native register operations live
+in `c3ihw` and `c3shw`; `c3bwait` contains the kernel waits and crystal clock.
+The hardware modules retain the SDK's volatile MMIO accessors and exact register
+ordering. No extra retained bus state, task, mutex, queue or allocation is added.
+
+`test_bus_recovery.py` compiles the real transfer adapters and portable bus,
+ownership and pin-ledger modules as C99 with warnings as errors. Object-level
+aliases substitute owned interfaces, leaving vendor declarations untouched.
+Twenty-one fresh-process scenarios cover I2C NACK/arbitration, hardware and
+deadline timeouts, clock/yield failures, held-SCL failure/success, short FIFO,
+one-byte/final-NACK and full-FIFO reads; SPI covers configuration/update/transfer
+stalls, partial second-chunk failure, clock/yield/lock faults and a three-chunk
+CS window. Every failure is followed by a successful transfer and clean close.
+
+Manual BARR-C review covered rules 1-8: paired headers and ordinary public names;
+unchanged permanent handle and session layouts; native ID is pinned signed int;
+finite waits fit signed TMO; command/FIFO counts are bounded before narrowing;
+the saved timeout structure is automatic, with the same three fields as before;
+no callback cast, heap, pointer lifetime extension or concurrency relaxation.
+Polling loops retain caller deadlines and kernel yields. Tests keep assertions,
+verify untouched receive tails, and bound clock calls to expose infinite loops.
+Host faults establish software recovery contracts; physical waveforms, scheduler
+timing and combined hardware acceptance still require the bench procedure.
+
+Fresh software evidence on 2 November 2026: all 21 fault scenarios and 38 target
+qualification checks passed; the full pinned C gate checked 323 files. The
+configuration-app native build in
+`%TEMP%/uthome-desloppify-bus-boundaries-20261102` passed with a 231040-byte image
+(432 bytes above the preceding service/storage build). Its ELF retains the
+12832-byte binding, 16464-byte controller and four-byte bus mutex handles.
+Local logs are `build/desloppify-bus-recovery-r3.log`,
+`build/desloppify-bus-qualification-r1.log` and
+`build/desloppify-bus-native-r1.log`. No board was flashed or exercised.
 
 No driver or service may directly include ESP32-C3 SDK headers. Kernel-specific
 worker calls belong in the runtime adapter. HAL synchronization uses the pinned
