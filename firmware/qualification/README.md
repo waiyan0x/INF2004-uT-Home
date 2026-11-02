@@ -10,6 +10,7 @@ checkpoint narrative. Keep exact hashes, failed runs and source identities.
 
 | Scope | Record | Boundary |
 |---|---|---|
+| Cleanup software regression | [Desloppify verification](desloppify-software-20261102.json) | Host, Node and browser regressions; native application build and unchanged aggregate fixed-memory budgets pass. No board actions; wireless/stack/runtime qualification remains open. |
 | Consolidated overnight handoff | [handoff](system-overnight-handoff-20261027.json) | Core stability and AI collection; not a full release |
 | Core lifecycle/scheduler | [core](esp32c3-scheduler-20261027.json) | USB image, rollback/capacity/reboot; combined radio load separate |
 | Radar app-state comparison | [captures](esp32c3-radar-app-comparison-20261027.json) | Initial silence, then healthy connected/disconnected windows; cause unresolved |
