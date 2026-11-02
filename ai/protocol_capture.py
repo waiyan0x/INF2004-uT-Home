@@ -66,7 +66,7 @@ def collect(workflow, port, study, identity, original, output, families, *, exec
                        previously_completed_runs=continuation['completed_runs'])
     changed = False
     try:
-        connection = workflow.dispatch("connect", {"port": port})
+        connection = workflow.connect(port=port)
         summary["before"] = connection
         state = connection["state"]
         require(state["active_crc"] == state["saved_crc"] == original_crc and state["flags"] & 0x70 == 0x50,
@@ -120,10 +120,10 @@ def collect(workflow, port, study, identity, original, output, families, *, exec
         if changed:
             try:
                 if workflow.client is None:
-                    workflow.dispatch("connect", {"port": port})
-                review = workflow.dispatch("review", {"profile": raw.decode("ascii")})
+                    workflow.connect(port=port)
+                review = workflow.review(profile=raw.decode("ascii"))
                 save_new(output / "restore-review.json", review)
-                reply = workflow.dispatch("apply", {"review_id": review["review_id"]})
+                reply = workflow.apply(review_id=review["review_id"])
                 summary["restore_reply"] = reply
                 require(reply["status"] == 1 and reply["active_crc"] == reply["saved_crc"] == original_crc,
                         "Original profile restoration not confirmed")

@@ -254,7 +254,9 @@ class RecordingTests(unittest.TestCase):
         workflow.client = self.board
         reply = deepcopy(self.receipt["reply"])
         reply["status"] = 0
-        workflow.dispatch.side_effect = [dict(sha256=hashlib.sha256(raw).hexdigest(), review_id="test"), reply]
+        workflow.review.return_value = dict(sha256=hashlib.sha256(raw).hexdigest(), review_id="test")
+        workflow.apply.return_value = reply
+        workflow.dispatch.side_effect = AssertionError("Use named operations")
         with self.assertRaisesRegex(ConfigurationError, "not acknowledged"):
             apply_trial(workflow, self.experiment, 500, self.identity, folder)
         self.assertTrue((folder / "request.json").exists())

@@ -1,5 +1,6 @@
 """One local controller and one reviewed candidate; no automatic mutation retry."""
 from dataclasses import asdict
+from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
@@ -14,6 +15,7 @@ from tools.config_transfer.identity import configuration_key, capability_key
 from tools.device_discovery import identify_i2c, identify_uart, identity_result, confirm_identity
 from .discovery import connection_preset, recommend, add_to_draft, source_queues
 from .drafts import prepare_i2c_draft
+from .contracts import ConnectionResult, ReplyData, ReviewResult
 
 STATUS = ("Active", "Active and saved", "Active; saving failed", "Rejected", "Recovery required",
           "Stale revision", "Request conflict", "Storage error", "Empty")
@@ -47,7 +49,7 @@ def identity(reply):
     data = reply if isinstance(reply, dict) else asdict(reply)
     return configuration_key(data)
 
-def reply_data(reply):
+def reply_data(reply) -> ReplyData:
     return dict(asdict(reply), message=STATUS[reply.status])
 
 class Workflow:
@@ -71,25 +73,67 @@ class Workflow:
         if stream is not None:
             _close_stream(stream, primary_error=primary_error)
 
-    def dispatch(self, action, body):
+    @contextmanager
+    def _operation(self, *, close_on_error=False):
+        """Serialize one operation and invalidate failed serial connections."""
         require(self.lock.acquire(blocking=False), "Another request is in progress")
         try:
+            yield
+        except (TransferError, OSError) as error:
+            self.close(primary_error=error)
+            raise
+        except Exception as error:
+            if close_on_error:
+                self.close(primary_error=error)
+            raise
+        finally:
+            self.lock.release()
+
+    def connect(self, *, port: str) -> ConnectionResult:
+        """Open and validate one explicit port; failures discard the connection."""
+        with self._operation(close_on_error=True):
+            require(self.client is None, "Disconnect the current port first")
+            self.stream = self.opener(port)
+            self.client = self.client_factory(self.stream)
+            self.caps = self.client.capabilities()
+            require(self.caps.board == "esp32-c3-supermini" and self.caps.node_schema in ("2.0.0", "2.1.0"),
+                    "Unsupported connected firmware")
+            self.pending = None
+            return {"connected": True, "capabilities": asdict(self.caps),
+                    "state": reply_data(self.client.query())}
+
+    def apply(self, *, review_id: str) -> ReplyData:
+        """Consume one review token and apply its exact bytes without retrying."""
+        with self._operation():
+            require(self.client is not None, "Connect to the board first")
+            self.discovery = None
+            pending, self.pending = self.pending, None
+            require(pending is not None and review_id == pending[0],
+                    "Review the current profile again before applying")
+            _, raw, base, caps = pending
+            require(base is not None, "Connect and review against the board before applying")
+            current = self.client.query()
+            require(identity(current) == identity(base), "Board state changed; review again")
+            observed = self.client.capabilities()
+            require(capability_key(asdict(observed)) == capability_key(asdict(caps)),
+                    "Firmware capabilities changed; reconnect and review")
+            revision = max(current.active_revision, current.saved_revision) + 1
+            require(revision <= 0xFFFFFFFF and current.request_id < 0xFFFFFFFF,
+                    "Revision or request sequence exhausted")
+            return reply_data(self.client.exchange(Command.APPLY, current.request_id + 1, revision, raw))
+
+    def dispatch(self, action, body):
+        """Decode HTTP actions; internal capture callers use named operations."""
+        if action == "connect":
+            return self.connect(port=body.get("port"))
+        if action == "review":
+            return self.review(profile=body.get("profile"))
+        if action == "apply":
+            return self.apply(review_id=body.get("review_id"))
+        with self._operation():
             if action == "disconnect":
                 self.close()
                 return {"connected": False}
-            if action == "connect":
-                require(self.client is None, "Disconnect the current port first")
-                self.stream = self.opener(body.get("port"))
-                self.client = self.client_factory(self.stream)
-                self.caps = self.client.capabilities()
-                require(self.caps.board == "esp32-c3-supermini" and self.caps.node_schema in ("2.0.0", "2.1.0"),
-                        "Unsupported connected firmware")
-                self.pending = None
-                return {"connected": True, "capabilities": asdict(self.caps),
-                        "state": reply_data(self.client.query())}
-            if action == "review":
-                self.discovery = None
-                return self.review(body.get("profile"))
             if action == "datasheet_match":
                 return self.datasheet_match(body)
             require(self.client is not None, "Connect to the board first")
@@ -109,22 +153,6 @@ class Workflow:
                 if self.discovery and identity(current) != self.discovery["base"]:
                     self.discovery = None
                 return reply_data(current)
-            if action == "apply":
-                self.discovery = None
-                pending, self.pending = self.pending, None
-                require(pending is not None and body.get("review_id") == pending[0],
-                        "Review the current profile again before applying")
-                _, raw, base, caps = pending
-                require(base is not None, "Connect and review against the board before applying")
-                current = self.client.query()
-                require(identity(current) == identity(base), "Board state changed; review again")
-                observed = self.client.capabilities()
-                require(capability_key(asdict(observed)) == capability_key(asdict(caps)),
-                        "Firmware capabilities changed; reconnect and review")
-                revision = max(current.active_revision, current.saved_revision) + 1
-                require(revision <= 0xFFFFFFFF and current.request_id < 0xFFFFFFFF,
-                        "Revision or request sequence exhausted")
-                return reply_data(self.client.exchange(Command.APPLY, current.request_id + 1, revision, raw))
             if action in ("save", "recover"):
                 self.pending = self.discovery = None
                 current = self.client.query()
@@ -135,15 +163,6 @@ class Workflow:
                 require(action != "save" or revision > 0, "There is no active configuration to save")
                 return reply_data(self.client.exchange(Command[action.upper()], current.request_id + 1, revision))
             raise ValueError("Unknown operation")
-        except (TransferError, OSError) as error:
-            self.close(primary_error=error)
-            raise
-        except Exception as error:
-            if action == "connect":
-                self.close(primary_error=error)
-            raise
-        finally:
-            self.lock.release()
 
     def datasheet_match(self, body):
         """Suggest exact catalogue identities; AI names are not device proof."""
@@ -228,16 +247,19 @@ class Workflow:
 
         return document, raw, plan
 
-    def review(self, text):
-        self.pending = None
-        document, raw, plan = self.validate(text)
-        base = self.client.query() if self.client else None
-        token = secrets.token_urlsafe(24)
-        self.pending = (token, raw, base, self.caps)
-        return {"review_id": token, "sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw),
-                "profile": document, "plan": plan, "connected": self.client is not None,
-                "hardware_qualified": bool(self.caps and self.caps.hardware_qualified),
-                "state": reply_data(base) if base else None}
+    def review(self, *, profile: str) -> ReviewResult:
+        """Validate exact profile bytes and replace the single pending review."""
+        with self._operation():
+            self.discovery = None
+            self.pending = None
+            document, raw, plan = self.validate(profile)
+            base = self.client.query() if self.client else None
+            token = secrets.token_urlsafe(24)
+            self.pending = (token, raw, base, self.caps)
+            return {"review_id": token, "sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw),
+                    "profile": document, "plan": plan, "connected": self.client is not None,
+                    "hardware_qualified": bool(self.caps and self.caps.hardware_qualified),
+                    "state": reply_data(base) if base else None}
 
     def observe(self):
         snapshot = self.client.telemetry()

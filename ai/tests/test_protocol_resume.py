@@ -68,7 +68,9 @@ class ProtocolResumeTests(unittest.TestCase):
         with self.assertRaisesRegex(ConfigurationError, 'failed or restoration'):
             collect(workflow, 'TEST-ONLY', self.study, self.identity, self.fixture.profile,
                     self.root / 'next', ['all-current'], previous_captures=[self.capture])
-        workflow.dispatch.assert_not_called()
+        workflow.connect.assert_not_called()
+        workflow.review.assert_not_called()
+        workflow.apply.assert_not_called()
         self.assertFalse((self.root / 'next').exists())
 
     def test_duplicate_and_unlisted_attempts_are_rejected(self):
@@ -100,15 +102,12 @@ class ProtocolResumeTests(unittest.TestCase):
         crc = zlib.crc32(json.dumps(profile, ensure_ascii=True, separators=(',', ':')).encode('ascii'))
         workflow = Mock()
         workflow.client = Board(Clock())
-        def dispatch(action, body):
-            if action == 'connect':
-                return dict(state=dict(active_crc=crc, saved_crc=crc, flags=80))
-            if action == 'review':
-                return dict(review_id='restore')
-            if action == 'apply':
-                return dict(status=1, active_crc=crc, saved_crc=crc)
-            raise AssertionError(action)
-        workflow.dispatch.side_effect = dispatch
+        def connect(*, port):
+            return dict(state=dict(active_crc=crc, saved_crc=crc, flags=80))
+        workflow.connect.side_effect = connect
+        workflow.review.return_value = dict(review_id='restore')
+        workflow.apply.return_value = dict(status=1, active_crc=crc, saved_crc=crc)
+        workflow.dispatch.side_effect = AssertionError('Capture must use named operations')
         with patch('ai.protocol_capture.apply_trial', return_value={}) as apply_mock, \
                 patch('ai.protocol_capture.record_run', return_value=dict(usable=True, reason=None)) as record_mock:
             result = collect(workflow, 'TEST-ONLY', self.study, self.identity, profile,
@@ -133,7 +132,9 @@ class ProtocolResumeTests(unittest.TestCase):
         with self.assertRaisesRegex(ConfigurationError, 'already complete'):
             collect(workflow, 'TEST-ONLY', self.study, self.identity, self.fixture.profile,
                     self.root / 'next', ['all-current'], previous_captures=[self.capture])
-        workflow.dispatch.assert_not_called()
+        workflow.connect.assert_not_called()
+        workflow.review.assert_not_called()
+        workflow.apply.assert_not_called()
         self.assertFalse((self.root / 'next').exists())
 
 

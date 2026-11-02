@@ -52,6 +52,28 @@ class ConfiguratorTests(unittest.TestCase):
     def connect(self):return self.flow.dispatch("connect",{"port":"fake"})
     def review(self):return self.flow.dispatch("review",{"profile":self.text})
 
+    def test_named_operations_share_lock_token_and_uncertain_io_cleanup(self):
+        with patch.object(self.flow, 'dispatch', side_effect=AssertionError('No internal HTTP dispatch')):
+            self.assertTrue(self.flow.connect(port='fake')['connected'])
+            reviewed = self.flow.review(profile=self.text)
+            client, stream = self.flow.client, self.flow.stream
+            self.flow.lock.acquire()
+            try:
+                with self.assertRaisesRegex(ValueError, 'Another request'):
+                    self.flow.apply(review_id=reviewed['review_id'])
+                self.assertIsNotNone(self.flow.pending)
+                self.assertEqual([], client.calls)
+            finally:
+                self.flow.lock.release()
+            client.fail = True
+            with self.assertRaisesRegex(TransferError, 'outcome unknown'):
+                self.flow.apply(review_id=reviewed['review_id'])
+            self.assertEqual(1, len(client.calls))
+            self.assertIsNone(self.flow.pending)
+            self.assertIsNone(self.flow.client)
+            self.assertTrue(stream.closed)
+            self.assertFalse(self.flow.lock.locked())
+
     def test_datasheet_draft_uses_reviewed_device_and_confirmed_pins(self):
         self.connect()
         request = dict(profile=self.text, descriptor_id="bmp388", descriptor_version="1.0.0",

@@ -19,6 +19,12 @@ Both discovery and manually selected I2C drafts use the same instance builder.
 Their wiring policies remain explicit: discovery requires its reviewed preset,
 while manual selection reuses a matching bus's existing speed.
 
+Python capture callers use `Workflow.connect(port=...)`, `review(profile=...)`
+and `apply(review_id=...)`. Each operation owns the same nonblocking lock,
+connection-error cleanup and single-use review checks as the HTTP entry point.
+`contracts.py` defines their JSON-compatible result fields; recorded receipts
+retain their existing shape. `dispatch` decodes browser actions only.
+
 **Datasheet assistant** under **Add a device** sends the selected PDF to Google Gemini
 after the user selects Analyse; it shows unreviewed facts, page references and
 uncertainties. Set the API key as described in the
