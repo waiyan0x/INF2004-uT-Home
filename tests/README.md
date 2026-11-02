@@ -98,3 +98,13 @@ For real kernel execution, use the [board fixture](target/runtime_port_board/REA
 Build and captured board outcomes live in the [evidence index](../firmware/qualification/README.md).
 Physical timing, USB interruption, flash power loss, pin voltages, output safety,
 concurrency and RAM/stack measurements require the [hardware procedure](../CONTRIBUTING.md).
+
+Browser integration uses the real Configuration Desk HTML and ES modules with
+mocked HTTP responses; it never opens serial devices or sends PDFs. Run
+`npx playwright install chromium`, then `npm run test:browser`. The suite covers
+confirmation/addition wiring, busy-state controls, review navigation, stale
+responses, discovery expiry, consumed apply tokens, delayed catalogue delivery
+and failed telemetry clearing. CI installs the same pinned Chromium revision.
+Artifacts stay under `build/browser-results`. To keep downloaded browser binaries
+local too, set `PLAYWRIGHT_BROWSERS_PATH` to `build/playwright-browsers` for both
+the install command and test run.

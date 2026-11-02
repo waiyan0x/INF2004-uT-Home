@@ -7,7 +7,15 @@ function line(container, value) {
   container.append(item);
 }
 
-// These strings come from an untrusted model and are never interpreted as HTML.
+/** @typedef {{draft: {facts: Array<{name: string, value: string|null,
+ *   status: string, pages: number[], note?: string}>, unresolved: string[]},
+ *   i2c_address_review: {derived_7bit: number|null, conflicting: boolean}} DatasheetResult
+ */
+/** These model strings are rendered as text, never HTML.
+ * @param {DatasheetResult} result
+ * @param {HTMLElement} facts
+ * @param {HTMLElement} uncertainties
+ */
 export function renderDatasheet(result, facts, uncertainties) {
   facts.replaceChildren(); uncertainties.replaceChildren();
   for (const fact of result.draft.facts) {

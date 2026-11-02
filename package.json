@@ -2,11 +2,13 @@
   "name": "uthome-host-checks",
   "private": true,
   "scripts": {
-    "lint": "eslint tools/configurator/static visualiser tests/target --max-warnings 0",
-    "test": "node --test tests/target/test_*.mjs visualiser/tests/*.test.mjs"
+    "lint": "eslint tools/configurator/static visualiser tests/target tests/browser --max-warnings 0",
+    "test": "node --test tests/target/test_*.mjs visualiser/tests/*.test.mjs",
+    "test:browser": "playwright test --config tests/browser/playwright.config.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
     "eslint": "10.14.0",
     "globals": "17.14.0"
   }

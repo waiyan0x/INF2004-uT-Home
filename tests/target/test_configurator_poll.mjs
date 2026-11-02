@@ -50,7 +50,8 @@ test('a user review waits for an active observation without disabling the button
   const source = (await readFile(new URL('../../tools/configurator/static/app.js', import.meta.url), 'utf8'))
     .replace(/^import .*;\r?\n/gm, '');
   const context = vm.createContext({ document, fetch, setTimeout: fn => timers.push(fn), clearTimeout() {},
-    renderProfile() {}, renderTelemetry() {}, renderDiscovery() {}, renderDatasheet() {},
+    renderProfile() {}, renderTelemetry() {}, renderBoardState() {}, renderTable() {},
+    updateDiscoveryControls() {}, renderDiscovery() {}, renderDatasheet() {},
     setupWorkspace: () => () => {}, console });
   vm.runInContext(source, context);
   await new Promise(resolve => setImmediate(resolve));

@@ -57,6 +57,11 @@ jobs:
           node --test tests/target/test_*.mjs
           node --test visualiser/tests/*.test.mjs
 
+      - name: Verify real browser composition and asynchronous transitions
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:browser
+
       - name: Run standalone UART/GPIO and optional-output regressions
         run: |
           python tools/test_uart_gpio.py

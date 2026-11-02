@@ -1,5 +1,27 @@
 /** Present observations separately from configured devices; never invent live state. */
 import { tile } from './dashboard.js';
+/** @typedef {{id: string, version: string}} Identity
+ * @typedef {{label: string, value: unknown, reason: string, source: string}} Setting
+ * @typedef {{observation: {address?: number, register?: number, value?: number|null,
+ *   status?: string, method?: string, protocol?: string, valid_reports?: number,
+ *   window_ms?: number, receive_errors?: number, discarded_bytes?: number},
+ *   identity: {status: string, selected: Identity|null, candidates?: Identity[]},
+ *   capabilities: {support: string, driver?: string, hardware_qualified?: boolean},
+ *   recommendation: {status: string, instance?: object, settings?: Setting[]},
+ *   cautions?: string[], source_queues?: string[], confirmation_text?: string}} DiscoveryDevice
+ * @typedef {{discovery_id?: string|null, preset_id: string, preset_version: string,
+ *   capture: {result: string, active_revision: number, request_id?: number,
+ *   started_ms?: number, elapsed_ms?: number, build_sha256?: string},
+ *   devices: DiscoveryDevice[]}} DiscoveryReport
+ * @callback AddDevice
+ * @param {number} index
+ * @returns {void|Promise<void>}
+ * @callback ConfirmDevice
+ * @param {number} index
+ * @param {boolean} identityConfirmed
+ * @param {string|undefined} sourceQueue
+ * @returns {void|Promise<void>}
+ */
 const el = id => document.getElementById(id);
 function text(tag, value, className = '') {
   const node = document.createElement(tag);
@@ -8,11 +30,20 @@ function text(tag, value, className = '') {
   return node;
 }
 
-export function renderDiscovery(report, add, message = 'Connect a board and confirm the wiring, then detect.', confirm = null) {
+/** Omitted action callbacks leave their controls disabled. The application
+ * supplies onReadinessChange to recompute connection/busy availability.
+ * @param {DiscoveryReport|null} report
+ * @param {AddDevice|null} [add]
+ * @param {string} [message]
+ * @param {ConfirmDevice|null} [confirm]
+ * @param {(()=>void)|null} [onReadinessChange]
+ */
+export function renderDiscovery(report, add, message = 'Connect a board and confirm the wiring, then detect.', confirm = null, onReadinessChange = null) {
   const container = el('discovery-results');
   container.replaceChildren();
   el('discovery-status').textContent = message;
   if (!report) return;
+  const readinessChanged = onReadinessChange || (() => updateDiscoveryControls(!!report.discovery_id));
   const result = report.capture.result;
   const outcomes = {
     complete: 'Check the results below. Adding changes only your draft; validate and review before applying. Results expire after 60 seconds.',
@@ -30,7 +61,7 @@ export function renderDiscovery(report, add, message = 'Connect a board and conf
     const observation = device.observation;
     const selected = device.identity.selected;
     if (observation.address === undefined) {
-      renderConfirmed(container, report, device, index, add, confirm);
+      renderManualOrUartDevice(container, report, device, index, add, confirm, readinessChanged);
       continue;
     }
     const address = '0x' + observation.address.toString(16).padStart(2, '0');
@@ -55,8 +86,8 @@ export function renderDiscovery(report, add, message = 'Connect a board and conf
       const button = text('button', 'Add to profile', 'btn');
       button.type = 'button';
       button.setAttribute('aria-label', `Add ${selected.id} at ${address} to profile`);
-      button.disabled = !report.discovery_id;
-      button.onclick = () => add(index);
+      button.disabled = true; button.dataset.ready = typeof add === 'function' ? 'yes' : 'no';
+      button.onclick = () => { if (!button.disabled) add(index); };
       item.append(details, button);
     } else {
       details.append(text('p', 'No settings to add. A unique identity and a supported driver are required.', 'hint'));
@@ -69,9 +100,10 @@ export function renderDiscovery(report, add, message = 'Connect a board and conf
     result === 'manual' ? `Preset ${report.preset_id} v${report.preset_version}; board revision ${report.capture.active_revision}; user confirmation only, no measured identity.` :
       `Preset ${report.preset_id} v${report.preset_version}; request ${report.capture.request_id}; board revision ${report.capture.active_revision}; board time ${report.capture.started_ms} ms; elapsed ${report.capture.elapsed_ms} ms; firmware ${report.capture.build_sha256}.`, 'hint'));
   container.append(evidence);
+  readinessChanged();
 }
 
-function renderConfirmed(container, report, device, index, add, confirm) {
+function renderManualOrUartDevice(container, report, device, index, add, confirm, readinessChanged) {
   const manual = device.observation.method === 'manual';
   const selected = device.identity.selected, candidates = device.identity.candidates;
   const name = selected?.id || (candidates.length === 1 ? candidates[0].id : 'UART connection');
@@ -92,7 +124,7 @@ function renderConfirmed(container, report, device, index, add, confirm) {
       for (const setting of recommendation.settings) list.append(text('dt', setting.label), text('dd', `${Array.isArray(setting.value) ? setting.value.join(', ') : setting.value} — ${setting.reason} (${setting.source.replaceAll('_', ' ')})`));
       details.append(list);
       const button = text('button', 'Add to profile', 'btn'); button.type = 'button';
-      button.disabled = !report.discovery_id; button.onclick = () => add(index);
+      button.disabled = true; button.dataset.ready = typeof add === 'function' ? 'yes' : 'no'; button.onclick = () => { if (!button.disabled) add(index); };
       item.append(details, button);
     } else {
       details.append(text('p', 'This firmware has no available driver for the selection.', 'hint')); item.append(details);
@@ -113,14 +145,24 @@ function renderConfirmed(container, report, device, index, add, confirm) {
     const button = text('button', 'Confirm module', 'btn'); button.type = 'button'; button.disabled = true;
     button.dataset.ready = 'no';
     check.onchange = () => {
-      button.dataset.ready = check.checked && (!sources || sources.value) ? 'yes' : 'no';
-      button.disabled = !report.discovery_id || button.dataset.ready !== 'yes';
+      button.dataset.ready = typeof confirm === 'function' && check.checked && (!sources || sources.value) ? 'yes' : 'no';
+      readinessChanged();
     };
-    button.onclick = () => confirm?.(index, check.checked, sources?.value);
+    if (sources) sources.onchange = check.onchange;
+    button.onclick = () => { if (!button.disabled) confirm(index, check.checked, sources?.value); };
     item.append(labelNode, button);
   } else {
     details.append(text('p', 'No settings to add. Check the confirmed connection and retry; do not infer a device from an incomplete or noisy stream.', 'hint'));
     item.append(details);
   }
   container.append(item);
+}
+
+/** The controller supplies connection/busy/token readiness; local inputs supply
+ * dataset.ready. Only this function changes rendered action availability. */
+/** @param {boolean} available */
+export function updateDiscoveryControls(available) {
+  for (const button of el('discovery-results').querySelectorAll('button')) {
+    button.disabled = !available || button.dataset.ready !== 'yes';
+  }
 }

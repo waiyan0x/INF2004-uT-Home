@@ -6,6 +6,12 @@ import { renderDatasheet } from '../../tools/configurator/static/datasheet.js';
 
 // Minimal DOM contract for presentation-only tests; no browser or USB access.
 class Element {
+  constructor(tagName = "div") { this.tagName = tagName; }
+  querySelectorAll(tag) { return this.children.flatMap(child => [child, ...child.querySelectorAll(tag)]).filter(child => child.tagName === tag); }
+  createTHead() { const item = new Element("thead"); this.append(item); return item; }
+  createTBody() { const item = new Element("tbody"); this.append(item); return item; }
+  insertRow() { const item = new Element("tr"); this.append(item); return item; }
+  insertCell() { const item = new Element("td"); this.append(item); return item; }
   children = [];
   dataset = {};
   attributes = {};
@@ -22,7 +28,7 @@ const document = {
     if (!elements.has(id)) elements.set(id, new Element());
     return elements.get(id);
   },
-  createElement: () => new Element(),
+  createElement: tag => new Element(tag),
   createElementNS: () => new Element(),
 };
 globalThis.document = document;
@@ -171,4 +177,20 @@ test('live pills retain source identity and freshness, then clear on disconnect'
   assert.equal(text('healthTiles'), '');
   renderTelemetry({ result: 1 });
   assert.match(text('pills'), /Snapshot unavailable/);
+});
+
+
+test('missing discovery callbacks stay disabled after local confirmation changes', () => {
+  const report = discoveryReport();
+  report.devices[0] = {observation: {method: 'manual', protocol: 'gpio'},
+    identity: {status: 'candidate', selected: null, candidates: [{id: 'hc_sr04', version: '1'}]},
+    capabilities: {support: 'unchecked'}, recommendation: {status: 'awaiting_identity'}};
+  renderDiscovery(report, null);
+  const checkbox = descendants(document.getElementById('discovery-results')).find(node => node.type === 'checkbox');
+  checkbox.checked = true;
+  checkbox.onchange();
+  assert.equal(addButtons()[0].disabled, true);
+  assert.doesNotThrow(() => addButtons()[0].onclick());
+  renderDiscovery(discoveryReport(), null);
+  assert.equal(addButtons()[0].disabled, true);
 });
