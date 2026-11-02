@@ -1,5 +1,6 @@
 """Local UI workflow, HTTP isolation, capabilities and uncertain deployment tests."""
 from dataclasses import replace
+from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor
 import http.client
 import json
@@ -9,6 +10,7 @@ import unittest
 from unittest.mock import patch
 import zlib
 from tools.configurator.workflow import Workflow
+from tools.configurator.drafts import prepare_i2c_draft
 from tools.configurator.web import make_server, ASSETS
 from tools.config_transfer.capabilities import Capabilities, decode_capabilities
 from tools.config_transfer.client import TransferError, Client
@@ -75,6 +77,25 @@ class ConfiguratorTests(unittest.TestCase):
             with self.subTest(updates=updates), self.assertRaises(ValueError):
                 self.flow.dispatch("datasheet_prepare_i2c", request | updates)
         self.assertEqual(self.flow.client.calls, [])
+
+    def test_selected_i2c_draft_preserves_bus_speed_and_does_not_alias_inputs(self):
+        document = json.loads(self.text)
+        document['interfaces'].append(dict(id='shared_i2c', protocol='i2c', port=0,
+                                           sda_gpio=0, scl_gpio=1, clock_hz=400000))
+        descriptor = self.flow.catalogue.descriptors[('bmp388', '1.0.0')]
+        original, defaults = deepcopy(document), deepcopy(descriptor)
+        reference = dict(id='bmp388', version='1.0.0')
+        draft = prepare_i2c_draft(document, descriptor, reference, device_id='room',
+                                 address='0x77', sda_gpio=0, scl_gpio=1)
+        self.assertEqual(draft['devices'][-1]['interface']['ref'], 'shared_i2c')
+        self.assertEqual(draft['interfaces'][-1]['clock_hz'], 400000)
+        self.assertEqual(len(draft['interfaces']), len(document['interfaces']))
+        draft['devices'][-1]['behaviour']['interval_ms'] = 1000
+        draft['devices'][-1]['descriptor']['id'] = 'changed'
+        draft['interfaces'][-1]['clock_hz'] = 100000
+        self.assertEqual(document, original)
+        self.assertEqual(descriptor, defaults)
+        self.assertEqual(reference['id'], 'bmp388')
 
     def test_datasheet_draft_reports_a_device_already_in_the_profile(self):
         self.connect()

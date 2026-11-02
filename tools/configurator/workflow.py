@@ -12,6 +12,7 @@ from tools.config_transfer.client import Client, TransferError
 from tools.config_transfer.protocol import Command
 from tools.device_discovery import identify_i2c, identify_uart, identity_result, confirm_identity
 from .discovery import connection_preset, recommend, add_to_draft, source_queues
+from .drafts import prepare_i2c_draft
 
 STATUS = ("Active", "Active and saved", "Active; saving failed", "Rejected", "Recovery required",
           "Stale revision", "Request conflict", "Storage error", "Empty")
@@ -179,45 +180,11 @@ class Workflow:
         require(descriptor["driver_id"] in current_caps.drivers, "Connected firmware has no compatible driver")
         before = self.client.query()
         document, _, _ = self.validate(body.get("profile"))
-        name = body.get("device_id")
-        address = body.get("address")
-        sda, scl = body.get("sda_gpio"), body.get("scl_gpio")
-        require(isinstance(name, str) and 1 <= len(name) <= 22 and
-                isinstance(address, str) and type(sda) is int and type(scl) is int and
-                0 <= sda <= 21 and 0 <= scl <= 21 and sda != scl,
-                "Choose a device name, address and distinct GPIO pins")
-        require(all(device["device_id"] != name for device in document["devices"]),
-                "This device name is already in the profile")
-        interface_schema = descriptor["instance_schema"]["properties"]["interface"]
-        needs_enable = "enable_gpio" in interface_schema.get("required", [])
-        enable = body.get("enable_gpio")
-        if needs_enable:
-            require(type(enable) is int and 0 <= enable <= 21 and enable not in (sda, scl),
-                    "Choose a distinct enable GPIO")
-        else:
-            require(enable is None, "This reviewed device does not use an enable GPIO")
-        buses = [bus for bus in document["interfaces"] if bus["protocol"] == "i2c" and bus["port"] == 0]
-        if buses:
-            bus = buses[0]
-            require((bus["sda_gpio"], bus["scl_gpio"]) == (sda, scl),
-                    "The existing I2C controller uses different pins")
-        else:
-            bus = dict(id="i2c0", protocol="i2c", port=0, sda_gpio=sda, scl_gpio=scl, clock_hz=100000)
-            document["interfaces"].append(bus)
-        defaults = descriptor["defaults"]
-        behaviour = deepcopy(defaults["behaviour"])
-        behaviour["destination"] = "readings." + name
-        connection = dict(ref=bus["id"], address=address)
-        if needs_enable:
-            connection["enable_gpio"] = enable
-        document["devices"].append(dict(device_id=name, driver=descriptor["driver_id"],
-            descriptor=dict(id=descriptor_id, version=version), enabled=True,
-            interface=connection, behaviour=behaviour,
-            task=dict(name="read_" + name, priority=defaults["priority"],
-                      stack_size_bytes=defaults["stack_size_bytes"])))
-        document["queues"].append(dict(id=behaviour["destination"],
-            item_type=descriptor["routing"]["output_type"], depth=document["runtime"]["queue_depth"],
-            overflow_policy="drop_oldest"))
+        document = prepare_i2c_draft(
+            document, descriptor, dict(id=descriptor_id, version=version),
+            device_id=body.get("device_id"), address=body.get("address"),
+            sda_gpio=body.get("sda_gpio"), scl_gpio=body.get("scl_gpio"),
+            enable_gpio=body.get("enable_gpio"))
         self.validate(json.dumps(document))
         require(identity(self.client.query()) == identity(before), "Board state changed; prepare again")
         return {"profile": document, "identity_verified": False,

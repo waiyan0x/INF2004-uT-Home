@@ -12,6 +12,13 @@ standard HTTP server and local HTML/CSS/JavaScript; no Node build or new web
 framework is required. Offline review needs only the planner dependencies.
 The interface uses one fixed colour palette.
 
+`workflow.py` owns connection state, confirmations and final admission checks.
+`drafts.py` constructs catalogue instances and output queues without serial I/O;
+`discovery.py` adds observation-specific recommendations and connection policy.
+Both discovery and manually selected I2C drafts use the same instance builder.
+Their wiring policies remain explicit: discovery requires its reviewed preset,
+while manual selection reuses a matching bus's existing speed.
+
 **Datasheet assistant** under **Add a device** sends the selected PDF to Google Gemini
 after the user selects Analyse; it shows unreviewed facts, page references and
 uncertainties. Set the API key as described in the
