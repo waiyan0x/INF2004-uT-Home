@@ -13,10 +13,21 @@ try {
     state.allWires = saved.allWires === true;
     if (saved.done && typeof saved.done === "object" && !Array.isArray(saved.done)) state.done = saved.done;
   }
-} catch { /* Private browser mode or corrupt notes: start clean. */ }
+} catch (error) {
+  // A fresh view remains usable when saved notes are corrupt or inaccessible.
+  console.warn("Saved wiring progress could not be loaded.", error);
+}
 let selectedHole = null;
+let saveErrorReported = false;
 function save() {
-  try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch { /* Viewing still works without persistence. */ }
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(state));
+    saveErrorReported = false;
+  } catch (error) {
+    // Keep navigation usable and report once until storage recovers.
+    if (!saveErrorReported) console.warn("Wiring progress could not be saved.", error);
+    saveErrorReported = true;
+  }
 }
 function doneKey(step) { return `${state.plan}:${step.id}`; }
 function node(tag, className, text) {

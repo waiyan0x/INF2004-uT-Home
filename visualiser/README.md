@@ -129,3 +129,9 @@ power-net isolation, reserved pins, driver signal mappings against the
 catalogue, and the HC-SR04 divider. They validate the proposed plan, not the
 physical circuit. After changing layout or controls, inspect both overview and
 focus views in a browser, including a narrow viewport.
+
+From the repository root, `npm run test:browser -- visualiser.spec.mjs` runs
+the actual browser modules through every setup, endpoint rendering, overview
+and narrow focus views, navigation, persisted progress, invalid saved state
+and unavailable browser storage. These checks require the Playwright Chromium
+installation described in the [test guide](../tests/README.md).
