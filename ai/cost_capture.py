@@ -46,15 +46,20 @@ def decode_record(response, *, identity, profile_hash, expected, generation, sou
                 controller_unused=reply.controller_stack['unused_min'], idle_unused=reply.idle_stack['unused_min'])
 
 
-def observe(client, **context):
+def observe(client, *, identity, profile_hash, expected, generation, sources):
+    """Read one cost snapshot using complete, explicitly named capture context."""
     response = asdict(client.workcost())
-    decode_record(response, **context)
+    decode_record(response, identity=identity, profile_hash=profile_hash,
+                  expected=expected, generation=generation, sources=sources)
     return response
 
 
-def summarize(records, **context):
+def summarize(records, *, identity, profile_hash, expected, generation, sources):
+    """Validate retained observations against one capture before summarizing."""
     require(len(records) >= 2, 'insufficient_workcost_observations')
-    values = [decode_record(row['response'], **context) for row in records]
+    values = [decode_record(row['response'], identity=identity, profile_hash=profile_hash,
+                            expected=expected, generation=generation, sources=sources)
+              for row in records]
     for before, after in zip(values, values[1:]):
         require(before['handles'] == after['handles'], 'workcost_binding_changed')
         # A window may contain no slow worker completion at an intermediate

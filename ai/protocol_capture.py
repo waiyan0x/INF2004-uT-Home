@@ -143,9 +143,8 @@ def main(argv=None):
         require(usb_identity(args.port) == identity["usb"], "Selected board differs from identity evidence")
         families = ([c["experiment"]["scenario"]["family_id"] for c in study["cases"]]
                     if args.families == ["all"] else args.families)
-        require((args.execution_context is None) == (args.qualification_folder is None), "Supply both static-context arguments")
         result = collect(Workflow(), args.port, study, identity, load_document(args.restore_profile), args.output, families,
-                         execution_context=load_document(args.execution_context) if args.execution_context else None,
+                         execution_context=load_document(args.execution_context),
                          qualification_folder=args.qualification_folder, collect_costs=args.measure_costs,
                          previous_captures=args.resume_from)
         print(json.dumps(dict(output=str(args.output), completed_runs=len(result["runs"]),

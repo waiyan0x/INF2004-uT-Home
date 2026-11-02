@@ -6,18 +6,18 @@ import random
 import shutil
 import subprocess
 
-from ai.model import predict, validate_model
 from ai.timing import digest
 from tools.config_validator.planner import ROOT, require
 from tools.c_standard.check import canonical_format, check_format, check_modules, check_source
 
 
 def export_c(model, folder):
+    from ai.model import validate_model
     validate_model(model)
-    return _export_c(model, folder, "timtree")
+    return render_module(model, folder, "timtree")
 
 
-def _export_c(model, folder, module):
+def render_module(model, folder, module):
     """Render a prevalidated contract using its own maintained C template."""
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=False)
@@ -51,11 +51,13 @@ def _export_c(model, folder, module):
 
 
 def verify_c(model, folder, extra_vectors=()):
+    from ai.model import predict, validate_model
     validate_model(model)
-    return _verify_c(model, folder, "timtree", "tim_main.c", predict, extra_vectors)
+    return verify_module(model, folder, "timtree", "tim_main.c", predict, extra_vectors)
 
 
-def _verify_c(model, folder, module, harness, predictor, extra_vectors):
+def verify_module(model, folder, module, harness, predictor, extra_vectors):
+    """Compare a prevalidated model's predictor with its generated C module."""
     folder = Path(folder)
     compiler = shutil.which("gcc")
     require(compiler is not None, "GCC is required for host C parity")
@@ -91,10 +93,11 @@ def _verify_c(model, folder, module, harness, predictor, extra_vectors):
 
 def cross_check(folder, compiler):
     """Compile only the exported module for C3; no firmware link or board access."""
-    return _cross_check(folder, compiler, "timtree")
+    return compile_module(folder, compiler, "timtree")
 
 
-def _cross_check(folder, compiler, module):
+def compile_module(folder, compiler, module):
+    """Compile a rendered module without linking firmware or accessing a board."""
     folder, compiler = Path(folder).resolve(), Path(compiler).resolve()
     require(compiler.name in ("riscv32-esp-elf-gcc", "riscv32-esp-elf-gcc.exe"), "Select the ESP RISC-V compiler")
     command = [str(compiler), "-std=c99", "-Wall", "-Wextra", "-Werror", "-pedantic", "-Os",

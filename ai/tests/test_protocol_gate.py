@@ -53,7 +53,7 @@ class ProtocolGateTests(unittest.TestCase):
         # Deliberately small helper-only vectors: interval index 1, goal index 2.
         rows = [dict(interval_ms=n, features=[0, n, 800, 0, 100], label=label)
                 for n, label in zip((200, 500, 1000), labels)]
-        with patch("ai.protocol_gate.workload.compatibility", return_value="fixture"), \
+        with patch("ai.protocol_gate.workload.workload_fingerprint", return_value="fixture"), \
                 patch("ai.protocol_gate.predict", side_effect=lambda _, vector: int(vector[1] in accepted)):
             return choices({"contexts": ["fixture"]}, {}, rows)
 

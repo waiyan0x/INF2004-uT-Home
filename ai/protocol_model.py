@@ -65,7 +65,7 @@ def recommend(model, experiment):
     if model is None:
         return workload.fallback(experiment, "no_validated_protocol_model")
     validate_model(model)
-    if workload.compatibility(experiment) not in model["contexts"]:
+    if workload.workload_fingerprint(experiment) not in model["contexts"]:
         return workload.fallback(experiment, "unseen_catalogue_or_build_context")
     candidates = []
     for trial in experiment["trials"]:
@@ -91,7 +91,7 @@ def evaluate(model, data, study, partition):
             experiment = cases[family]
             oracle = max((r["interval_ms"] for r in rows if r["label"]), default=None)
             if method == "tree":
-                accepted = [r["interval_ms"] for r in rows if workload.compatibility(experiment) in model["contexts"] and predict(model, r["features"]) == 1]
+                accepted = [r["interval_ms"] for r in rows if workload.workload_fingerprint(experiment) in model["contexts"] and predict(model, r["features"]) == 1]
                 chosen = max(accepted, default=None)
             elif method == "simple_rule":
                 chosen = max((r["interval_ms"] for r in rows if r["features"][1] + r["features"][4] <= r["features"][2]), default=None)
@@ -126,7 +126,7 @@ def train(study, folders):
                           score=math.floor(float(fraction[1] / sum(fraction)) * 1000)))
     model = dict(contract="uthome.protocol-tree", version="0.2.0", origin="hardware", deployment_allowed=False,
                  feature_names=workload.FEATURES, domain=[[min(c), max(c)] for c in zip(*x)], nodes=nodes, threshold_per_mille=900,
-                 contexts=sorted({workload.compatibility(c["experiment"]) for c in study["cases"]
+                 contexts=sorted({workload.workload_fingerprint(c["experiment"]) for c in study["cases"]
                                   if c["experiment"]["scenario"]["family_id"] in study["split"]["train"]}),
                  study_sha256=digest(study), dataset_sha256=digest(data),
                  training=dict(library="scikit-learn", version="1.8.0", seed=42, max_depth=4, min_samples_leaf=3))

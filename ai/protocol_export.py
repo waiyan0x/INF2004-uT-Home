@@ -3,7 +3,7 @@ import argparse
 import json
 from pathlib import Path
 
-from ai.export import _cross_check, _export_c, _verify_c
+from ai.export import compile_module, render_module, verify_module
 from ai.protocol_model import predict, validate_model
 from ai.recording import save_new
 from ai.timing import digest
@@ -13,7 +13,7 @@ from tools.config_validator.planner import load_document
 
 def export_c(model, folder):
     validate_model(model)
-    report = _export_c(model, folder, "protree")
+    report = render_module(model, folder, "protree")
     report.update(contract="uthome.protocol-c-export", version="0.1.0",
                   input_contract=dict(name=model["contract"], version=model["version"],
                                       features=FEATURES, storage="uint32_t[18]"),
@@ -30,11 +30,11 @@ def verify_c(model, folder, extra_vectors=()):
     manifest = load_document(Path(folder) / "manifest.json")
     if manifest["model_sha256"] != digest(model):
         raise ValueError("Generated export belongs to another model")
-    return _verify_c(model, folder, "protree", "pro_main.c", predict, extra_vectors)
+    return verify_module(model, folder, "protree", "pro_main.c", predict, extra_vectors)
 
 
 def cross_check(folder, compiler):
-    return _cross_check(folder, compiler, "protree")
+    return compile_module(folder, compiler, "protree")
 
 
 def main(argv=None):

@@ -3,20 +3,9 @@ import math
 import random
 
 from ai.records import FEATURES, FEATURE_LIMITS, features, validate_dataset
+from ai.provenance import context_fingerprint
 from ai.timing import digest, validate, variant
 from tools.config_validator.planner import Catalogue, build_plan, require
-
-
-def context(experiment):
-    provenance = experiment["provenance"]
-    reference = experiment["target"]["descriptor"]
-    descriptor = next(item for item in provenance["descriptors"]
-                      if (item["id"], item["version"]) == (reference["id"], reference["version"]))
-    return digest(dict(board=provenance["board"], descriptor=descriptor,
-                       node_schema=provenance["node_schema_sha256"],
-                       descriptor_schema=provenance["descriptor_schema_sha256"],
-                       admission=provenance["implementation_sha256"]["tools/config_validator/planner.py"],
-                       discovery=provenance["discovery_policy"], build=provenance["build_manifest_sha256"]))
 
 
 def validate_model(model):
@@ -70,7 +59,10 @@ def validate_model(model):
 
 
 def score(model, vector):
-    """Return empirical leaf pass fraction (not calibrated confidence), or None."""
+    """Return an empirical pass score in integer per-mille units (0..1000).
+
+    Return None outside the feature domain. This is not calibrated confidence.
+    """
     require(isinstance(vector, list) and len(vector) == len(FEATURES)
             and all(type(value) is int for value in vector), "Invalid feature vector")
     if any(not low <= value <= high for value, (low, high) in zip(vector, model["domain"])):
@@ -98,7 +90,7 @@ def recommend(model, experiment, *, allow_simulated=False, catalogue=None):
                   interval_ms=None, origin=model["origin"], deployment_allowed=False, profile=None)
     if model["origin"] == "simulated" and not allow_simulated:
         return dict(result, reason="simulated_model_requires_explicit_offline_use")
-    if context(experiment) not in model["contexts"]:
+    if context_fingerprint(experiment) not in model["contexts"]:
         return dict(result, reason="unseen_catalogue_or_build_context")
     candidates = [row["interval_ms"] for row in experiment["trials"]
                   if predict(model, features(experiment, row["interval_ms"], catalogue)) == 1]
@@ -138,7 +130,7 @@ def evaluate(model, rows, cases, majority):
                 accepted = []
                 for row in trials:
                     if method == "tree":
-                        prediction = predict(model, row["features"]) if context(case) in model["contexts"] else -1
+                        prediction = predict(model, row["features"]) if context_fingerprint(case) in model["contexts"] else -1
                     elif method == "simple_rule":
                         f = row["features"]
                         prediction = int(f[1] + f[4] <= f[2])
@@ -187,7 +179,7 @@ def train(dataset, bundle, *, seed=42, catalogue=None):
                           score=math.floor(float(fraction[1] / sum(fraction)) * 1000)))
     model = dict(contract="uthome.timing-tree", version="0.1.0", origin=dataset["origin"], deployment_allowed=False,
                  feature_names=FEATURES, domain=[[min(col), max(col)] for col in zip(*x)],
-                 contexts=sorted({context(case) for case in dataset["cases"] if case["scenario"]["family_id"] in split["train"]}),
+                 contexts=sorted({context_fingerprint(case) for case in dataset["cases"] if case["scenario"]["family_id"] in split["train"]}),
                  nodes=nodes, threshold_per_mille=900, dataset_sha256=digest(dataset), bundle_sha256=digest(bundle),
                  training=dict(library="scikit-learn", version=sklearn.__version__, seed=seed, max_depth=4, min_samples_leaf=3))
     validate_model(model)

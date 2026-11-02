@@ -18,7 +18,7 @@ from tools.config_validator.planner import load_document, require
 
 def choices(model, experiment, rows):
     """Compare decisions for one complete family, keeping abstention distinct."""
-    compatible = workload.compatibility(experiment) in model["contexts"]
+    compatible = workload.workload_fingerprint(experiment) in model["contexts"]
     passing = {row["interval_ms"] for row in rows if row["label"] == 1}
     tree = max((row["interval_ms"] for row in rows
                 if compatible and predict(model, row["features"]) == 1), default=None)

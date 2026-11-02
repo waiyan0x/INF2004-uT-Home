@@ -52,6 +52,17 @@ class CostCaptureTests(unittest.TestCase):
                             clock=f.clock.time, sleep=f.clock.sleep, collect_costs=True)
         return folder, result
 
+    def test_invalid_capture_arguments_fail_before_device_io(self):
+        context = dict(identity=None, profile_hash=None, expected=None,
+                       generation=None, sources=None)
+        cases = [{key: value for key, value in context.items() if key != missing}
+                 for missing in context]
+        cases.append(dict(context, source=None))
+        for arguments in cases:
+            with self.subTest(arguments=tuple(arguments)), self.assertRaises(TypeError):
+                cost_capture.observe(self.fixture.board, **arguments)
+            self.assertEqual(self.cost_calls, 0)
+
     def test_journal_and_summary_replay_without_changing_labels(self):
         folder, result = self.record('costs')
         self.assertTrue(result['usable'] and result['passes'])
