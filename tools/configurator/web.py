@@ -1,5 +1,6 @@
 """Small localhost configurator, adapted from Member 5's stdlib server design."""
 import json
+import logging
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import secrets
@@ -11,6 +12,7 @@ from .discovery import connection_presets
 from .datasheet import analyse, MAX_PDF_BYTES
 
 STATIC = Path(__file__).with_name("static")
+LOGGER = logging.getLogger(__name__)
 ASSETS = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
           "/style.css": ("style.css", "text/css"), "/dashboard.js": ("dashboard.js", "text/javascript"),
           "/discovery.js": ("discovery.js", "text/javascript"), "/datasheet.js": ("datasheet.js", "text/javascript")}
@@ -53,18 +55,30 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self.local_request():
             self.send(403, {"error": "Local origin required"})
-        elif self.path in ASSETS:
+            return
+        try:
+            status, content, kind = self.get_content()
+        except (OSError, ValueError) as error:
+            LOGGER.exception("Cannot prepare GET response for %s: %s", self.path, error)
+            self.send(500, {"error": "Unable to load requested content"})
+            return
+        # Content preparation finishes before headers are sent. A socket write
+        # failure must not trigger a second response on the same connection.
+        self.send(status, content, kind)
+
+    def get_content(self):
+        if self.path in ASSETS:
             name, kind = ASSETS[self.path]
             content = (STATIC / name).read_bytes()
             if kind == "text/html":
                 content = content.replace(b"{{TOKEN}}", self.server.token.encode())
-            self.send(200, content, kind)
-        elif self.path == "/api/catalogue":
-            self.send(200, {"examples": {p.stem: load_document(p) for p in sorted((ROOT / "configs/nodes").glob("*.json"))},
-                            "descriptors": list(self.server.workflow.catalogue.descriptors.values()),
-                            "connections": connection_presets()})
-        else:
-            self.send(404, {"error": "Not found"})
+            return 200, content, kind
+        if self.path == "/api/catalogue":
+            content = {"examples": {p.stem: load_document(p) for p in sorted((ROOT / "configs/nodes").glob("*.json"))},
+                       "descriptors": list(self.server.workflow.catalogue.descriptors.values()),
+                       "connections": connection_presets()}
+            return 200, content, "application/json"
+        return 404, {"error": "Not found"}, "application/json"
 
     def do_POST(self):
         authorized = (self.local_request() and

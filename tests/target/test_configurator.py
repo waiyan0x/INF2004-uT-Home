@@ -237,6 +237,40 @@ class ConfiguratorTests(unittest.TestCase):
                 connection.close()
         self.assertEqual(self.ports, [])
 
+    def test_get_preparation_failures_return_json_and_leave_server_usable(self):
+        server = make_server(0, self.flow)
+        Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+
+        def get(path):
+            connection = http.client.HTTPConnection('127.0.0.1', server.server_port, timeout=3)
+            try:
+                connection.request('GET', path)
+                response = connection.getresponse()
+                content = response.read()
+                self.assertEqual(len(content), int(response.getheader('Content-Length')))
+                return response.status, content, response.getheader('Content-Type')
+            finally:
+                connection.close()
+
+        cases = (
+            ('/', 'tools.configurator.web.Path.read_bytes', FileNotFoundError('missing asset')),
+            ('/api/catalogue', 'tools.configurator.web.load_document', OSError('unreadable example')),
+            ('/api/catalogue', 'tools.configurator.web.load_document', ValueError('invalid example JSON')),
+            ('/api/catalogue', 'tools.configurator.web.connection_presets', ValueError('invalid preset')),
+        )
+        for path, target, error in cases:
+            with self.subTest(path=path, error=error):
+                with patch(target, side_effect=error), self.assertLogs('tools.configurator.web') as logged:
+                    status, content, kind = get(path)
+                self.assertEqual(500, status)
+                self.assertEqual({'error': 'Unable to load requested content'}, json.loads(content))
+                self.assertTrue(kind.startswith('application/json'))
+                self.assertIn(str(error), '\n'.join(logged.output))
+                self.assertEqual(200, get(path)[0])
+        self.assertEqual(self.ports, [])
+
     def test_bad_body_lengths_are_rejected_without_waiting_for_payload(self):
         server = make_server(0, self.flow)
         Thread(target=server.serve_forever, daemon=True).start()
