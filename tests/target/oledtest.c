@@ -69,6 +69,24 @@ static void verify_pins (void)
 static void verify_bus (void)
 {
     spifake_init(&g_fake);
+    uint64_t deadline = 123U;
+    assert(SPIBUS_INVALID == spibus_deadline(NULL, 1U, &deadline));
+    assert(SPIBUS_INVALID == spibus_deadline(&g_fake.bus, 0U, &deadline));
+    assert(SPIBUS_INVALID ==
+           spibus_deadline(&g_fake.bus, UINT32_MAX, &deadline));
+    assert(SPIBUS_INVALID == spibus_deadline(&g_fake.bus, 1U, NULL));
+    assert(123U == deadline);
+    g_fake.b_clock_fail = true;
+    assert(SPIBUS_IO == spibus_deadline(&g_fake.bus, 1U, &deadline));
+    assert(123U == deadline);
+    g_fake.b_clock_fail = false;
+    g_fake.now_ms       = UINT64_MAX;
+    assert(SPIBUS_INVALID == spibus_deadline(&g_fake.bus, 1U, &deadline));
+    assert(123U == deadline);
+    g_fake.now_ms = UINT64_MAX - 1U;
+    assert(0 == spibus_deadline(&g_fake.bus, 1U, &deadline));
+    assert(UINT64_MAX == deadline);
+    spifake_init(&g_fake);
     const spibus_config_t config = {.cs_gpio = 3U, .clock_hz = 1000000U};
     assert(0 == spibus_attach(&g_fake.bus, &g_devices[0], &config));
     assert(SPIBUS_STATE == spibus_attach(&g_fake.bus, &g_devices[1], &config));

@@ -9,6 +9,9 @@ and USB serial transport. Use the SuperMini board kit from the pinned
 Experimental SDK network adapters and radio diagnostics are grouped in
 [`network/`](network/README.md), separate from the peripheral and storage ports.
 
+Board-specific configuration partition checks and bounded slot access live in
+[`storage/`](storage/README.md), beneath the SDK-facing `c3store` adapter.
+
 Load the resource map from the validated node profile and board capabilities.
 An example allocation and module checks are in
 [configs/README.md](../../../../configs/README.md).

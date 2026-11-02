@@ -5,8 +5,8 @@
 #ifndef UTHOME_C3STORE_H
 #define UTHOME_C3STORE_H
 #include "cfgstore.h"
-#include "cfgpart.h"
-#include "cfgslot.h"
+#include "storage/cfgpart.h"
+#include "storage/cfgslot.h"
 #define UTHOME_C3STORE_SLOT UTHOME_CFGSLOT_BYTES
 /* One controller task; partition descriptor and 256-byte scratch are static.
  * Probe never erases. Missing/wrong partition returns error, with callbacks

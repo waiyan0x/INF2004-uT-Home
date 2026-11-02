@@ -2,6 +2,13 @@
 
 `include/i2cbus.h` defines the implemented I2C transport and timing contract.
 One absolute deadline covers each complete operation, including bus-lock waiting.
+Delay units are explicit in `i2cbus_delay_us` and `spibus_delay_ms`; neither
+changes the shared absolute deadline in milliseconds. Deadline construction
+rejects invalid arguments or overflow with the bus `INVALID` result, reports
+backend clock failure with `IO`, and leaves the caller's output untouched on
+failure. Host faults exercise both error classes and the exact overflow boundary.
+The C99 review confirms unchanged callback ABI, no added target state or casts,
+bounded unsigned arithmetic, and complete output initialization on success.
 The backend owns the controller while drivers claim their device addresses.
 `include/i2cown.h` separates the permanent bus lock, created once at startup,
 from repeatable open/close sessions; see the

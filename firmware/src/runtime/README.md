@@ -94,6 +94,23 @@ Its ticks increment simulated run counts and perform no driver operations.
 Neither API parses JSON or activates hardware. The tests project normalized
 plan fields into these APIs; production JSON admission and binding use the separate target path below.
 
+The public header documents every host operation's error outcomes. Named
+constants retain the existing numbers: state and capacity errors both use -2;
+duplicate names and failed preparation both use -3. Interpret these aliases in
+the documented operation context. Transactions retain the previous plan unless
+restoration itself fails; resource snapshots remain readable during recovery.
+
+Target activation retains the precise startup query or worker error in
+`apply_error`; a dormant worker with no reported cause uses the generic -1.
+One-shot host faults exercise both query failures, worker failure and dormancy,
+including successful restoration and retained instance counts.
+
+Manual BARR-C review: error naming preserves numeric ABI and state transitions.
+Startup checks initialize both outputs and propagate errors sequentially before
+opening the worker gate. No target storage, casts or concurrency primitives were
+added. The host-only `actfault` boundary redirects ordinary owned functions for
+one translation unit; it adds no vendor spelling or policy exception.
+
 ## Host-model lifecycle and recovery
 
 Prepare reserves a dormant resource; start starts it; stop releases it only

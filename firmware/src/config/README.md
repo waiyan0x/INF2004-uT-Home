@@ -11,8 +11,6 @@ Runtime, framing and storage do not dispatch on prototype device names.
 |---|---|
 | `cfgbytes`, `cfgwire` | Explicit little-endian fields, CRC and bounded framing |
 | `cfgstore`, `cfgctrl` | Durable records, request identity, activation/save ordering |
-| `cfgpart` | Exact reviewed partition-table bytes and overflow-safe write window |
-| `cfgslot` | Fixed-slot bounds, complete table verification and bounded read scratch |
 | `jsonscan`, `cfgjson` | Bounded JSON parsing and exclusive cJSON allocation |
 | `cfgplan`, `cfgdev`, `cfgrule` | Board/resources, driver/settings and typed-rule admission |
 | `cfgbind`, `c3bind`, `cfgdisc` | Copied instance settings, actual transports and discovery/controller coordination |
@@ -297,6 +295,8 @@ approval remain unchanged. No new ISR/task entry ABI or exception was added.
 
 ## Static partition access
 
+`cfgpart` and `cfgslot` live in the [C3 storage port](../../hal/ports/esp32c3/storage/README.md); generic `cfgstore` retains the record/commit policy.
+
 `cfgpart` recognizes exactly the four entries in the maintained
 `tests/target/runtime_port_board/configuration.csv`, their MD5 record and the
 entire erased tail. A different valid layout is also rejected. Changing the
@@ -351,3 +351,18 @@ Host tests compile the actual C99 validator with warnings as errors, compare it
 with independently encoded SDK-format bytes, flip every table byte, recompute
 checksums for unreviewed layouts, and exercise size/address wrap boundaries.
 The generated real-target table is checked against the same reviewed digest.
+
+The binder constructs device/output settings and owns resource lifecycle;
+recurring display and PWM policy lives in the fixed-storage `oledwork` and
+`pwmwork` services. See [display](../services/display/README.md) and
+[actuator contracts](../services/actuator/README.md). This extraction preserves
+context field order, fixed union storage, driver configuration and cleanup order.
+
+The 2026-11-02 isolated `uthome-desloppify-services-storage-app-20261102`
+application build passes the pinned target/compiler checks. Its RV32 symbols
+retain 12,832 bytes for `g_binding` and 16,464 bytes for the controller, matching
+the preceding application build. The shared metadata view is automatic call
+storage, not another retained controller. The image is 230,608 bytes. This is
+software build evidence; physical behavior and measured stack headroom remain
+separate acceptance work. Host fault, storage and build-tool tests cover the
+extraction and metadata reply/telemetry equivalence.

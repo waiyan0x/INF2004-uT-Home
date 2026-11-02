@@ -11,8 +11,8 @@
 #include "ldinst.h"
 #include "hcinst.h"
 #include "statusmon.h"
-#include "oledinst.h"
-#include "pwminst.h"
+#include "oledwork.h"
+#include "pwmwork.h"
 #include "seninst.h"
 typedef int cfgbind_i2c_open_t (const i2cbus_config_t * p_config,
                                 i2cbus_t **             pp_bus);
@@ -47,32 +47,18 @@ typedef struct
 
 typedef struct
 {
-    oledinst_t      instance;
-    spibus_device_t device;
-    uint8_t         sources;
-} cfgbind_display_t;
-
-typedef struct
-{
-    pwminst_t         instance;
-    rulecalc_config_t rule;
-    rulecalc_state_t  state;
-} cfgbind_output_t;
-
-typedef struct
-{
     seninst_t instance;
     digiout_t enable;
 } cfgbind_light_t;
 
 typedef union
 {
-    bmpinst_t         environment;
-    ldinst_t          radar;
-    hcinst_t          distance;
-    cfgbind_display_t display;
-    cfgbind_output_t  output;
-    cfgbind_light_t   light;
+    bmpinst_t       environment;
+    ldinst_t        radar;
+    hcinst_t        distance;
+    oledwork_t      display;
+    pwmwork_t       output;
+    cfgbind_light_t light;
 } cfgbind_context_t;
 typedef struct cfgbind_state cfgbind_state_t;
 

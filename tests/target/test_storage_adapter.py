@@ -113,8 +113,8 @@ class StorageAdapterTests(unittest.TestCase):
         cls.addClassCleanup(cls.folder.cleanup)
         target = Path(cls.folder.name) / 'cfgslot.dll'
         subprocess.run([compiler, '-std=c99', '-Wall', '-Wextra', '-Werror', '-pedantic',
-                        '-shared', '-O2', str(ROOT / 'firmware/src/config/cfgslot.c'),
-                        str(ROOT / 'firmware/src/config/cfgpart.c'), '-o', str(target)],
+                        '-shared', '-O2', str(ROOT / 'firmware/hal/ports/esp32c3/storage/cfgslot.c'),
+                        str(ROOT / 'firmware/hal/ports/esp32c3/storage/cfgpart.c'), '-o', str(target)],
                        check=True, capture_output=True)
         cls.lib = ct.CDLL(str(target))
         signatures = {

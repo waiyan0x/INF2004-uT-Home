@@ -99,6 +99,8 @@ class RuntimePortFailureTests(unittest.TestCase):
                        str(ROOT / "firmware/src/services/statusmon.c"),
                        str(ROOT / "firmware/src/services/telemetry.c"),
                        str(ROOT / "firmware/src/services/oledview.c"),
+                       str(ROOT / "firmware/src/services/oledwork.c"),
+                       str(ROOT / "firmware/src/services/pwmwork.c"),
                        str(ROOT / "firmware/src/runtime/component.c"),
                        str(ROOT / "firmware/src/messaging/msgbus.c"),
                        str(ROOT / "firmware/src/health/health.c"),
@@ -117,6 +119,19 @@ class RuntimePortFailureTests(unittest.TestCase):
                        str(ROOT / "firmware/third_party/cjson/cJSON.c"),
                        "-lm",
                        "-o", str(binary)]
+            # Redirect only the activator's owned status-query boundary. The
+            # adapter and fault wrappers still call the unmodified port API.
+            source = str(ROOT / "firmware/src/runtime/activate.c")
+            activate_object = Path(folder) / "activate.o"
+            first_source = command.index(str(ROOT / "tests/target/tkfake_main.c"))
+            subprocess.run([
+                *command[:first_source],
+                "-Drt_port_task_is_running=actfault_running",
+                "-Drt_port_task_result=actfault_result",
+                "-c", source, "-o", str(activate_object),
+            ], check=True, capture_output=True, text=True, timeout=30)
+            command[command.index(source)] = str(activate_object)
+            command.insert(-2, str(ROOT / "tests/target/actfault.c"))
             result = subprocess.run(command, capture_output=True, text=True, timeout=30)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             profile = json.loads((ROOT / "configs/nodes/distance-only.json").read_bytes())

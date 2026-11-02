@@ -15,6 +15,7 @@ typedef struct
     bool     b_present[2];
     uint8_t  light_data[4];
     bool     b_light_present;
+    bool     b_clock_fail;
     uint64_t now_ms;
     uint32_t transfer_ms;
     uint32_t transfers;

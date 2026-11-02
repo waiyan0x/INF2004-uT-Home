@@ -434,7 +434,7 @@ static void verify_display_binding (void)
     assert(0 == hcinst_step(&g_binding.slots[0].context.distance));
     const rt_port_worker_t * p_worker = &g_binding.plan.devices[1].worker;
     assert(0 == p_worker->p_step(p_worker->p_context));
-    cfgbind_display_t * p_display = &g_binding.slots[1].context.display;
+    oledwork_t * p_display = &g_binding.slots[1].context.display;
     assert((1U == p_display->sources) &&
            (!p_display->instance.display.b_dirty));
     assert(0U != p_display->instance.display.frame[256]);

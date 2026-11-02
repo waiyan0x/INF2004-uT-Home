@@ -148,9 +148,16 @@ cfgctrl_view_t cfgctrl_view (const cfgctrl_t * p_control)
     cfgctrl_view_t view = {0};
     if ((NULL != p_control) && (p_control->b_initialized))
     {
-        view.p_data      = p_control->active;
-        view.size        = p_control->active_size;
-        view.revision    = p_control->active_revision;
+        view.p_data         = p_control->active;
+        view.size           = p_control->active_size;
+        view.revision       = p_control->active_revision;
+        view.active_crc     = p_control->active_crc;
+        view.saved_revision = p_control->saved_revision;
+        view.saved_crc      = p_control->saved_crc;
+        view.flags =
+            (p_control->b_saved_known ? UTHOME_CFG_DURABLE_KNOWN : 0U) |
+            (p_control->b_recovery ? UTHOME_CFG_RECOVERY : 0U) |
+            ((0U != p_control->active_revision) ? UTHOME_CFG_ACTIVE_KNOWN : 0U);
         view.b_available = (!p_control->b_busy) && (!p_control->b_recovery);
     }
     return view;
@@ -363,16 +370,14 @@ static void make_reply (const cfgctrl_t * p_control,
                         uint32_t          flags,
                         uint32_t *        p_reply)
 {
+    const cfgctrl_view_t view = cfgctrl_view(p_control);
     /* Public statuses are the nonnegative wire values 0..8. */
     p_reply[0] = (uint32_t)status;
-    p_reply[1] = p_control->active_revision;
-    p_reply[2] = p_control->saved_revision;
-    p_reply[3] = p_control->active_crc;
-    p_reply[4] = p_control->saved_crc;
-    p_reply[5] =
-        flags | (p_control->b_saved_known ? UTHOME_CFG_DURABLE_KNOWN : 0U) |
-        (p_control->b_recovery ? UTHOME_CFG_RECOVERY : 0U) |
-        ((0U != p_control->active_revision) ? UTHOME_CFG_ACTIVE_KNOWN : 0U);
+    p_reply[1] = view.revision;
+    p_reply[2] = view.saved_revision;
+    p_reply[3] = view.active_crc;
+    p_reply[4] = view.saved_crc;
+    p_reply[5] = flags | view.flags;
 }
 
 /* End of file. */

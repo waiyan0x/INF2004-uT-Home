@@ -68,6 +68,10 @@ typedef struct
     const uint8_t * p_data;
     size_t          size;
     uint32_t        revision;
+    uint32_t        active_crc;
+    uint32_t        saved_revision;
+    uint32_t        saved_crc;
+    uint32_t        flags;
     bool            b_available;
 } cfgctrl_view_t;
 
@@ -96,7 +100,9 @@ int cfgctrl_handle (cfgctrl_t *               p_control,
                     uint32_t *                p_reply);
 /* Read-only borrowed view, valid until the next controller mutation. Use only
  * from the serialized owner. NULL/uninitialized contexts return an empty,
- * unavailable view; busy/recovery contexts also report unavailable. No I/O. */
+ * unavailable view; busy/recovery contexts also report unavailable. Metadata
+ * and persistent-state flags remain readable while busy or recovering; flags
+ * contain no per-command milestones. No I/O. */
 cfgctrl_view_t cfgctrl_view (const cfgctrl_t * p_control);
 /* Serialized owner: block activation and invalidate active identity after an
  * uncertain resource operation. Preserve durable metadata and the retry cache.

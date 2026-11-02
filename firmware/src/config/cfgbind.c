@@ -5,7 +5,6 @@
 #include "cfgbind.h"
 #include "cfgdev.h"
 #include "shared.h"
-#include "oledview.h"
 #include "uthome/sample.h"
 #include <string.h>
 
@@ -58,8 +57,6 @@ static int open_display (cfgbind_slot_t *          p_slot,
                          const cfgbind_setting_t * p_config);
 static int close_display (cfgbind_slot_t * p_slot);
 static int close_light (cfgbind_slot_t * p_slot);
-static int display_step (cfgbind_display_t * p_display);
-static int output_step (cfgbind_slot_t * p_slot);
 static int validate (void * p_context, const uint8_t * p_data, size_t size);
 static int apply (void * p_context);
 static int recover (void * p_context);
@@ -71,17 +68,17 @@ static int start_device (cfgbind_slot_t *            p_slot,
                          void *                      p_driver,
                          const void *                p_config,
                          size_t                      config_size);
-static void output_settings (const cfgplan_t *   p_plan,
-                             size_t              index,
-                             cfgbind_setting_t * p_settings);
+static void build_output_settings (const cfgplan_t *   p_plan,
+                                   size_t              index,
+                                   cfgbind_setting_t * p_settings);
 static int configure (void * p_context, const void * p_data, size_t size);
 static int step (void * p_context);
 static int cleanup (void * p_context);
 static bool make_plan (cfgbind_state_t * p_state);
-static void settings (const cfgplan_t *   p_plan,
-                      size_t              index,
-                      uint8_t             pair,
-                      cfgbind_setting_t * p_settings);
+static void build_device_settings (const cfgplan_t *   p_plan,
+                                   size_t              index,
+                                   uint8_t             pair,
+                                   cfgbind_setting_t * p_settings);
 static const cfgctrl_ops_t          g_control      = {validate, apply, recover};
 static const component_operations_t g_resource_ops = {.p_configure =
                                                           open_resources};
@@ -475,9 +472,9 @@ static int step (void * p_context)
     }
     if (p_slot->b_output)
     {
-        return output_step(p_slot);
+        return pwmwork_step(&p_slot->context.output, &p_slot->component);
     }
-    return p_slot->b_display ? display_step(&p_slot->context.display)
+    return p_slot->b_display ? oledwork_step(&p_slot->context.display)
                              : p_slot->p_step(p_slot->component.p_context);
 }
 
@@ -511,10 +508,10 @@ static int cleanup (void * p_context)
 
 /** @brief Copy admitted scalar fields into the existing driver configuration.
  */
-static void settings (const cfgplan_t *   p_plan,
-                      size_t              index,
-                      uint8_t             pair,
-                      cfgbind_setting_t * p_settings)
+static void build_device_settings (const cfgplan_t *   p_plan,
+                                   size_t              index,
+                                   uint8_t             pair,
+                                   cfgbind_setting_t * p_settings)
 {
     const cfgplan_device_t * p_device = &p_plan->devices[index];
     memcpy(p_settings->source.name,
@@ -545,7 +542,7 @@ static void settings (const cfgplan_t *   p_plan,
     p_settings->pair   = pair;
     if ((CFGPLAN_OLED == p_device->driver) || (CFGPLAN_PWM == p_device->driver))
     {
-        output_settings(p_plan, index, p_settings);
+        build_output_settings(p_plan, index, p_settings);
         return;
     }
     /* Admission proved source/queue/pin fields fit these concrete APIs. */
@@ -594,9 +591,9 @@ static void settings (const cfgplan_t *   p_plan,
 
 /** @brief Copy output-only settings without assigning sensor queue ownership.
  */
-static void output_settings (const cfgplan_t *   p_plan,
-                             size_t              index,
-                             cfgbind_setting_t * p_settings)
+static void build_output_settings (const cfgplan_t *   p_plan,
+                                   size_t              index,
+                                   cfgbind_setting_t * p_settings)
 {
     const cfgplan_device_t * p_device = &p_plan->devices[index];
     if (CFGPLAN_OLED == p_device->driver)
@@ -690,7 +687,7 @@ static bool make_plan (cfgbind_state_t * p_state)
         {
             /* Other drivers do not allocate a pair or output channel. */
         }
-        settings(p_candidate, index, resource_index, &config);
+        build_device_settings(p_candidate, index, resource_index, &config);
         if ((CFGPLAN_OLED == p_device->driver) ||
             (CFGPLAN_LIGHT == p_device->driver))
         {
@@ -754,7 +751,7 @@ static bool make_plan (cfgbind_state_t * p_state)
 static int open_display (cfgbind_slot_t *          p_slot,
                          const cfgbind_setting_t * p_config)
 {
-    cfgbind_display_t *     p_display = &p_slot->context.display;
+    oledwork_t *            p_display = &p_slot->context.display;
     const cfgbind_panel_t * p_panel   = &p_config->settings.display;
     const cfgbind_io_t *    p_io      = p_slot->p_owner->p_io;
     p_display->instance.p_spi         = &p_display->device;
@@ -792,7 +789,7 @@ static int close_light (cfgbind_slot_t * p_slot)
 /** @brief Called only after display-off succeeded or no display was claimed. */
 static int close_display (cfgbind_slot_t * p_slot)
 {
-    cfgbind_display_t *  p_display = &p_slot->context.display;
+    oledwork_t *         p_display = &p_slot->context.display;
     const cfgbind_io_t * p_io      = p_slot->p_owner->p_io;
     int                  result    = 0;
     if (NULL != p_display->instance.reset.p_set)
@@ -808,61 +805,6 @@ static int close_display (cfgbind_slot_t * p_slot)
         result = spibus_detach(&p_display->device);
     }
     return result;
-}
-
-/** @brief Render one copied observation, releasing the guard before SPI I/O. */
-static int display_step (cfgbind_display_t * p_display)
-{
-    sampcache_entry_t entry  = {0};
-    uint64_t          now_ms = 0U;
-    const int result = shared_sample(p_display->sources, &entry, &now_ms);
-    /* Contention shows unavailable data and retries on the next worker period;
-     * a previous FRESH label must not remain indefinitely on a blocked reader.
-     */
-    if (0 != oledview_render(&p_display->instance.display,
-                             (0 == result) ? &entry : NULL,
-                             now_ms))
-    {
-        return SPIBUS_STATE;
-    }
-    return oledinst_step(&p_display->instance);
-}
-
-/** @brief One worker evaluates its rule and writes one typed output command. */
-static int output_step (cfgbind_slot_t * p_slot)
-{
-    cfgbind_output_t * p_output = &p_slot->context.output;
-    sampcache_entry_t  entry    = {0};
-    uint64_t           now_ms   = 0U;
-    const int          sampled =
-        shared_source(p_output->rule.source_index, &entry, &now_ms);
-    if ((0 != sampled) && (0 != rt_port_now_ms(&now_ms)))
-    {
-        now_ms =
-            0U; /* Regression/unavailable sample forces the zero command. */
-    }
-    pwminst_command_t command   = {0};
-    const int         evaluated = rulecalc_step(&p_output->rule,
-                                        &p_output->state,
-                                        (0 == sampled) ? &entry : NULL,
-                                        now_ms,
-                                        &command.duty_permille);
-    int               result    = 0;
-    if (command.duty_permille != p_output->instance.p_port->duty_permille)
-    {
-        result = component_write(&p_slot->component, &command, sizeof(command));
-    }
-    if ((0 != evaluated) || (0 != result))
-    {
-        command.duty_permille = 0U;
-        const int stopped =
-            component_write(&p_slot->component, &command, sizeof(command));
-        /* The worker's failure and retained ownership remain observable even
-         * if concurrent health accounting is busy. Cleanup must still retry. */
-        (void)shared_report(UTHOME_HEALTH_DEVICE_IO);
-        return (0 != stopped) ? stopped : -1;
-    }
-    return 0;
 }
 
 /* End of file. */

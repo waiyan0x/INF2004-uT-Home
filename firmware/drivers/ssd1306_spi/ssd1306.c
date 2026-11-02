@@ -229,7 +229,7 @@ static int reset_panel (ssd1306_t * p_display, uint64_t deadline_ms)
     int result = line_set(p_display, p_display->reset, true, deadline_ms);
     if (0 == result)
     {
-        result = spibus_delay(p_display->p_spi->p_bus, 1U, deadline_ms);
+        result = spibus_delay_ms(p_display->p_spi->p_bus, 1U, deadline_ms);
     }
     if (0 == result)
     {
@@ -237,7 +237,7 @@ static int reset_panel (ssd1306_t * p_display, uint64_t deadline_ms)
     }
     if (0 == result)
     {
-        result = spibus_delay(p_display->p_spi->p_bus, 10U, deadline_ms);
+        result = spibus_delay_ms(p_display->p_spi->p_bus, 10U, deadline_ms);
     }
     if (0 == result)
     {
@@ -245,7 +245,7 @@ static int reset_panel (ssd1306_t * p_display, uint64_t deadline_ms)
     }
     if (0 == result)
     {
-        result = spibus_delay(p_display->p_spi->p_bus, 1U, deadline_ms);
+        result = spibus_delay_ms(p_display->p_spi->p_bus, 1U, deadline_ms);
     }
     return result;
 }

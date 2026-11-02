@@ -28,6 +28,7 @@ static void verify_rule_metrics (void);
 static int check_contention (void * p_context);
 static int capture_audit (memaudit_t * p_state);
 static void verify_cost (void);
+static void verify_control_view (void);
 static int cost_clock (uint64_t * p_now);
 static int cost_stack (uint32_t * p_unused);
 static int cost_cpu (costview_cpu_t * p_sample);
@@ -39,6 +40,7 @@ void servtest_run (uint64_t * p_clock)
 {
     assert(NULL != p_clock);
     assert(0 == activate_clear());
+    verify_control_view();
     verify_cost();
     verify_rule();
     verify_rule_metrics();
@@ -55,6 +57,41 @@ void servtest_run (uint64_t * p_clock)
     assert(0 == rt_port_shared_call(check_contention, NULL));
     puts("Services: independent sources, freshness, health, reset and wire "
          "parity passed.");
+}
+
+/** @brief Reply and telemetry preserve every persistent-state flag combination.
+ */
+static void verify_control_view (void)
+{
+    const cfgwire_request_t request = {.command    = CFGWIRE_PROBE,
+                                       .request_id = 1U};
+    for (uint32_t bits = 0U; bits < 8U; ++bits)
+    {
+        g_control.active_revision     = (0U != (bits & 4U)) ? 17U : 0U;
+        g_control.active_crc          = 123U;
+        g_control.saved_revision      = 11U;
+        g_control.saved_crc           = 456U;
+        g_control.b_saved_known       = 0U != (bits & 1U);
+        g_control.b_recovery          = 0U != (bits & 2U);
+        const cfgctrl_view_t view     = cfgctrl_view(&g_control);
+        uint32_t             reply[6] = {0};
+        size_t               size     = 0U;
+        assert((bits << 4U) == view.flags);
+        assert(0 == cfgctrl_handle(&g_control, &request, reply));
+        assert(0 == telemetry_observe(
+                        &g_telemetry, g_frame, sizeof(g_frame), &size));
+        for (size_t index = 1U; index < 5U; ++index)
+        {
+            assert(reply[index] == cfgbytes_get(&g_frame[12U + (index * 4U)]));
+        }
+        assert(view.flags == cfgbytes_get(&g_frame[32]));
+        assert((view.flags | UTHOME_CFG_RECEIVED) == reply[5]);
+        g_control.b_busy = true;
+        assert(!cfgctrl_view(&g_control).b_available);
+        assert(view.flags == cfgctrl_view(&g_control).flags);
+        g_control.b_busy = false;
+    }
+    g_control = (cfgctrl_t){.b_initialized = true, .active_revision = 17U};
 }
 
 /** @brief Encode a valid zero light value and reject out-of-range data. */
