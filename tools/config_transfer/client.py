@@ -13,6 +13,19 @@ class TransferError(RuntimeError):
     """The operation may have completed; reconnect and query before deciding."""
 
 
+def _valid_payload_size(command: Command, size: int) -> bool:
+    """Bound frame retention before interpreting a command-specific payload."""
+    if command == Command.TELEMETRY:
+        return 160 <= size <= 2016 and size % 32 == 0
+    if command == Command.CAPABILITIES:
+        return 96 <= size <= 352 and size % 32 == 0
+    if command == Command.DISCOVER:
+        return 80 <= size <= 208 and size % 16 == 0
+    if command == Command.WORKCOST:
+        return size in (96, 384)
+    return size == 24
+
+
 class Client:
     """Exclusive borrowed serial stream. Caller configures finite read/write waits.
 
@@ -44,6 +57,7 @@ class Client:
                 raise TransferError("invalid/zero write count; outcome unknown, reconnect and query")
             sent += count
         pending = bytearray()
+        last_rejection = None
         while self.clock() < deadline:
             try:
                 chunk = self.stream.read(64)
@@ -60,12 +74,9 @@ class Client:
                 capabilities = command == Command.CAPABILITIES
                 discovery = command == Command.DISCOVER
                 workcost = command == Command.WORKCOST
-                valid_size = ((160 <= size <= 2016 and size % 32 == 0) if telemetry else
-                              (96 <= size <= 352 and size % 32 == 0) if capabilities else
-                              (80 <= size <= 208 and size % 16 == 0) if discovery else
-                              size in (96, 384) if workcost else size == 24)
                 if ((magic, version, received, reserved, rid, rev) !=
-                    (b"UTH1", 1, int(command) | 0x80, 0, request_id, revision) or not valid_size):
+                    (b"UTH1", 1, int(command) | 0x80, 0, request_id, revision) or
+                    not _valid_payload_size(command, size)):
                     del pending[0]
                     continue
                 length = HEADER.size + size
@@ -84,10 +95,15 @@ class Client:
                     else:
                         reply = decode_reply(bytes(pending[:length]), command=command,
                                              request_id=request_id, revision=revision)
-                except ValueError:
+                except ValueError as error:
+                    last_rejection = error
                     del pending[0]
                 else:
                     return reply
+        if last_rejection is not None:
+            raise TransferError(
+                "matching reply rejected; outcome unknown, reconnect and query"
+            ) from last_rejection
         raise TransferError("reply timed out; outcome unknown, reconnect and query")
 
     def telemetry(self):

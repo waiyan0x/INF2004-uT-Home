@@ -153,7 +153,13 @@ class RecordingTests(unittest.TestCase):
         for field, reason in (("failure_at", "test_disconnect"), ("delay_at", "sampling_gap")):
             self.board.calls = 0
             setattr(self.board, field, 6)
-            folder, result = self.record(field)
+            if field == "failure_at":
+                with self.assertRaisesRegex(OSError, "test_disconnect"):
+                    self.record(field)
+                folder = self.root / field
+                result = json.loads((folder / "assessment.json").read_text())
+            else:
+                folder, result = self.record(field)
             self.assertFalse(result["usable"])
             self.assertIn(reason, result["reason"])
             self.assertTrue((folder / "raw.jsonl").exists())
@@ -188,10 +194,23 @@ class RecordingTests(unittest.TestCase):
         for call, count in ((2, 0), (3, 1)):
             self.board.calls = 0
             self.board.failure_at = call
-            folder, result = self.record("early-" + str(call))
+            name = "early-" + str(call)
+            with self.assertRaisesRegex(OSError, "test_disconnect"):
+                self.record(name)
+            folder = self.root / name
+            result = json.loads((folder / "assessment.json").read_text())
             self.assertFalse(result["usable"])
             _, run = load_recording(folder)
             self.assertEqual(len(run["samples"]), count)
+
+    def test_preflight_disconnect_is_retained_before_propagation(self):
+        self.board.failure_at = 1
+        with self.assertRaisesRegex(OSError, "test_disconnect"):
+            self.record("preflight")
+        folder = self.root / "preflight"
+        self.assertEqual(json.loads((folder / "failure.json").read_text())["reason"], "test_disconnect")
+        self.assertTrue((folder / "raw.jsonl").exists())
+        self.assertFalse((folder / "run.json").exists())
 
     def test_profile_race_during_build_checks_is_retained(self):
         original = self.board.discover_i2c

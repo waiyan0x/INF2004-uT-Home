@@ -44,6 +44,10 @@ may already be active or durable. Reconnect and QUERY before deciding. Never
 open a serial monitor or second controller concurrently. IDs increase per boot
 and cannot wrap; PROBE still works at UINT32_MAX. The low-level client takes a
 borrowed stream with finite timeouts, making its behavior testable without USB.
+If matching replies fail decoding and no valid reply follows before the deadline,
+the client reports a rejected reply and retains the decoder error as its cause.
+Silence or unrelated bytes remain a timeout. Both outcomes require the same
+reconnect/query decision; neither triggers a mutation retry.
 
 ## One read-only telemetry snapshot
 

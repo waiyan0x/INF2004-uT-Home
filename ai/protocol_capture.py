@@ -13,12 +13,22 @@ from ai.recorder import apply_trial
 from ai.recording import record_run, save_new
 from ai.timing import canonical, digest
 from tools.configurator.workflow import Workflow
+from tools.config_transfer.client import TransferError
 from tools.config_validator.planner import ConfigurationError, load_document, require
 
 
 def collect(workflow, port, study, identity, original, output, families, *, execution_context=None, qualification_folder=None,
             collect_costs=False, previous_captures=()):
-    """Caller supplies an explicitly selected study subset. Never retry a run."""
+    """Collect an explicit study subset, without automatically retrying any run.
+
+    Validation/setup failures propagate before collection. Operational failures
+    and interruption become summary.error; transport failures also invalidate
+    the client. If a trial may have changed the board, attempt restoration once,
+    reconnecting first when disconnected. Restoration and final close failures
+    are recorded separately as restore_error and close_error. Summary filesystem
+    failures still propagate; successful return does not imply successful runs
+    or restoration, so inspect error, restored and the secondary error fields.
+    """
     validate_study(study)
     known = {c["experiment"]["scenario"]["family_id"]: c["experiment"] for c in study["cases"]}
     require(families and len(families) == len(set(families)) and set(families) <= set(known), "Invalid selected families")
@@ -99,6 +109,11 @@ def collect(workflow, port, study, identity, original, output, families, *, exec
                     print(json.dumps(dict(event="captured", family=family, completed_runs=len(summary["runs"]),
                                           usable=result["usable"])), flush=True)
                     require(result["usable"], "Interrupted capture; retained partial evidence without automatic retry")
+    except (TransferError, OSError) as error:
+        workflow.close(primary_error=error)
+        summary["error"] = str(error) or type(error).__name__
+        if getattr(error, "__notes__", None):
+            summary["error_notes"] = list(error.__notes__)
     except (Exception, KeyboardInterrupt) as error:
         summary["error"] = str(error) or type(error).__name__
     finally:
@@ -116,7 +131,10 @@ def collect(workflow, port, study, identity, original, output, families, *, exec
                 summary["restored"] = True
             except (Exception, KeyboardInterrupt) as error:
                 summary["restore_error"] = str(error) or type(error).__name__
-        workflow.close()
+        try:
+            workflow.close()
+        except (Exception, KeyboardInterrupt) as error:
+            summary["close_error"] = str(error) or type(error).__name__
         summary["finished_utc"] = utc_now()
         save_new(output / "summary.json", summary)
     return summary
@@ -148,8 +166,9 @@ def main(argv=None):
                          qualification_folder=args.qualification_folder, collect_costs=args.measure_costs,
                          previous_captures=args.resume_from)
         print(json.dumps(dict(output=str(args.output), completed_runs=len(result["runs"]),
-                              restored=result["restored"], error=result["error"], restore_error=result.get("restore_error"))), flush=True)
-        return 0 if result["error"] is None and result["restored"] else 2
+                              restored=result["restored"], error=result["error"], restore_error=result.get("restore_error"),
+                              close_error=result.get("close_error"))), flush=True)
+        return 0 if result["error"] is None and result["restored"] and not result.get("close_error") else 2
     except (ConfigurationError, OSError, ValueError, KeyError) as error:
         print(str(error), file=sys.stderr)
         return 1

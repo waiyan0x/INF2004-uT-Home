@@ -2,11 +2,12 @@
 from dataclasses import replace
 import json
 import unittest
+from unittest.mock import Mock, patch
 
 from test_configurator import FakeClient, Port
 from tools.config_transfer.client import TransferError
 from tools.config_transfer.protocol import Command
-from tools.configurator.workflow import Workflow
+from tools.configurator.workflow import Workflow, open_serial
 from tools.config_validator.planner import ROOT, load_document
 
 
@@ -68,6 +69,39 @@ class MutationBoundaryTests(unittest.TestCase):
                 self.assertTrue(port.closed)
                 self.assertIsNone(flow.client)
                 self.assertIsNone(flow.pending)
+
+    def test_cleanup_failure_preserves_primary_error_and_invalidates_state(self):
+        self.client.current = replace(self.client.current, active_revision=1)
+        primary = TransferError("save_reply_lost")
+        with patch.object(self.client, "exchange", side_effect=primary), \
+                patch.object(self.port, "close", side_effect=OSError("close_failed")):
+            with self.assertRaises(TransferError) as caught:
+                self.flow.dispatch("save", {})
+        self.assertIs(caught.exception, primary)
+        self.assertIn("close_failed", primary.__notes__[0])
+        self.assertIsNone(self.flow.client)
+        self.assertIsNone(self.flow.stream)
+        self.assertIsNone(self.flow.pending)
+        self.assertFalse(self.flow.lock.locked())
+
+    def test_standalone_close_failure_stays_visible_after_invalidation(self):
+        with patch.object(self.port, "close", side_effect=OSError("close_failed")):
+            with self.assertRaisesRegex(OSError, "close_failed"):
+                self.flow.dispatch("disconnect", {})
+        self.assertIsNone(self.flow.client)
+        self.assertIsNone(self.flow.stream)
+        self.assertFalse(self.flow.lock.locked())
+
+    def test_failed_serial_open_is_not_replaced_by_failed_cleanup(self):
+        stream = Mock()
+        primary = OSError("open_failed")
+        stream.open.side_effect = primary
+        stream.close.side_effect = OSError("close_failed")
+        with patch("serial.Serial", return_value=stream), self.assertRaises(OSError) as caught:
+            open_serial("TEST-ONLY")
+        self.assertIs(caught.exception, primary)
+        self.assertIn("close_failed", primary.__notes__[0])
+        stream.close.assert_called_once()
 
 
 if __name__ == "__main__":

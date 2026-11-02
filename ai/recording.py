@@ -9,6 +9,7 @@ import time
 from ai.provenance import check_firmware, check_receipt, config_key
 from ai.records import assess_run
 from ai.timing import canonical, digest, validate
+from tools.config_transfer.client import TransferError
 from tools.config_validator.planner import load_document, require
 
 
@@ -58,6 +59,12 @@ def record_run(client, experiment, interval, repetition, identity, receipt, fold
     Pre/post discovery must return BUSY on the active profile; this supplies
     the running ELF hash without borrowing its I2C bus. Wiring was confirmed
     separately when producing identity evidence.
+
+    Setup and finalization failures propagate. Acquisition validation failures
+    and KeyboardInterrupt produce retained, unusable results; a preflight
+    failure writes failure.json rather than a correlated run. Transport errors
+    (TransferError/OSError) are re-raised after journal/result persistence so
+    the connection owner can discard the failed client before restoration.
     """
     experiment = validate(experiment)
     expected = check_receipt(experiment, interval, identity, receipt)
@@ -79,6 +86,7 @@ def record_run(client, experiment, interval, repetition, identity, receipt, fold
     end_ms = experiment["scenario"]["warmup_ms"] + experiment["scenario"]["duration_ms"]
     hasher, raw_size = hashlib.sha256(), 0
     costs, cost_summary = [], None
+    transport_error = None
     cost_due_ms = experiment['scenario']['warmup_ms']
     with (folder / "raw.jsonl").open("xb") as output:
         def journal(value):
@@ -156,17 +164,23 @@ def record_run(client, experiment, interval, repetition, identity, receipt, fold
                 raise ValueError("sample_limit")
         except (Exception, KeyboardInterrupt) as error:
             run["capture"].update(status="interrupted", reason=(str(error) or type(error).__name__)[:250])
+            if isinstance(error, (TransferError, OSError)):
+                transport_error = error
         journal(dict(type="footer", capture={k: v for k, v in run["capture"].items() if k != "raw_sha256"}))
     run["capture"]["raw_sha256"] = hasher.hexdigest()
     # Preflight failures cannot claim a correlated hardware run.
     if run["evidence"]["firmware_before"] is None:
         save_new(folder / "failure.json", dict(reason=run["capture"]["reason"], raw_sha256=hasher.hexdigest()))
+        if transport_error is not None:
+            raise transport_error
         return dict(usable=False, passes=None, reason=run["capture"]["reason"])
     save_new(folder / "run.json", run)
     assessment = assess_run(experiment, run)
     save_new(folder / "assessment.json", assessment)
     if cost_summary is not None:
         save_new(folder / 'workcost.json', dict(cost_summary, raw_sha256=hasher.hexdigest(), run_sha256=digest(run)))
+    if transport_error is not None:
+        raise transport_error
     return assessment
 
 

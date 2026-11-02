@@ -231,6 +231,7 @@ class ProtocolTests(unittest.TestCase):
         workflow.client = Board(Clock())
         def dispatch(action, body):
             if action == "connect":
+                workflow.client = Board(Clock())
                 return dict(state=dict(active_crc=crc, saved_crc=crc, flags=80))
             if action == "review":
                 return dict(review_id="restore")
@@ -238,6 +239,7 @@ class ProtocolTests(unittest.TestCase):
                 return dict(status=1, active_crc=crc, saved_crc=crc)
             raise AssertionError(action)
         workflow.dispatch.side_effect = dispatch
+        workflow.close.side_effect = lambda **kwargs: setattr(workflow, "client", None)
         with tempfile.TemporaryDirectory() as root:
             with patch("ai.protocol_capture.apply_trial", return_value={}) as apply_mock:
                 with patch("ai.protocol_capture.record_run", side_effect=OSError("test_disconnect")) as capture_mock:
@@ -246,7 +248,23 @@ class ProtocolTests(unittest.TestCase):
             self.assertTrue(result["restored"])
             self.assertEqual(apply_mock.call_count, 1)
             self.assertEqual(capture_mock.call_count, 1)
-            workflow.close.assert_called_once()
+            self.assertEqual(workflow.close.call_count, 2)
+            self.assertEqual([call.args[0] for call in workflow.dispatch.call_args_list],
+                             ["connect", "connect", "review", "apply"])
+
+    def test_cleanup_failure_does_not_lose_primary_error_or_summary(self):
+        workflow = Mock()
+        workflow.dispatch.return_value = dict(state=dict(active_crc=0, saved_crc=0, flags=80))
+        workflow.close.side_effect = OSError("close_failed")
+        with tempfile.TemporaryDirectory() as root:
+            folder = Path(root) / "capture"
+            result = collect(workflow, "TEST-ONLY", self.study, self.identity,
+                             self.profile, folder, ["all-current"])
+            self.assertIn("does not match", result["error"])
+            self.assertEqual(result["close_error"], "close_failed")
+            self.assertFalse(result["restored"])
+            self.assertEqual(json.loads((folder / "summary.json").read_text()), result)
+            self.assertIn("finished_utc", result)
 
     def test_changed_baseline_never_applies_a_trial(self):
         workflow = Mock()

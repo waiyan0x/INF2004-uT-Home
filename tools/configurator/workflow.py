@@ -27,9 +27,19 @@ def open_serial(port):
         stream.port = port
         stream.open()
         return stream
-    except Exception:
-        stream.close()
+    except Exception as error:
+        _close_stream(stream, primary_error=error)
         raise
+
+
+def _close_stream(stream, *, primary_error=None):
+    """Keep cleanup secondary to an existing failure; direct close still raises."""
+    try:
+        stream.close()
+    except Exception as close_error:
+        if primary_error is None:
+            raise
+        primary_error.add_note(f"Serial cleanup also failed: {close_error}")
 
 def identity(reply):
     data = reply if isinstance(reply, dict) else asdict(reply)
@@ -47,12 +57,17 @@ class Workflow:
         self.discovery = self.last_timestamp = None
         self.clock = clock
 
-    def close(self):
+    def close(self, *, primary_error=None):
+        """Invalidate connection state even if closing the borrowed stream fails.
+
+        A close failure raises unless a primary error is supplied; in that case
+        it is attached as a note to that error for the caller to propagate.
+        """
         stream, self.stream = self.stream, None
         self.client = self.caps = self.pending = None
         self.discovery = self.last_timestamp = None
         if stream is not None:
-            stream.close()
+            _close_stream(stream, primary_error=primary_error)
 
     def dispatch(self, action, body):
         require(self.lock.acquire(blocking=False), "Another request is in progress")
@@ -118,12 +133,12 @@ class Workflow:
                 require(action != "save" or revision > 0, "There is no active configuration to save")
                 return reply_data(self.client.exchange(Command[action.upper()], current.request_id + 1, revision))
             raise ValueError("Unknown operation")
-        except (TransferError, OSError):
-            self.close()
+        except (TransferError, OSError) as error:
+            self.close(primary_error=error)
             raise
-        except Exception:
+        except Exception as error:
             if action == "connect":
-                self.close()
+                self.close(primary_error=error)
             raise
         finally:
             self.lock.release()
