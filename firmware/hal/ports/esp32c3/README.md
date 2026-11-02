@@ -6,6 +6,9 @@ and USB serial transport. Use the SuperMini board kit from the pinned
 `../../../third_party/esp32c3-mtk3/` dependency; see
 [the setup guide](../../../README.md#pinned-target).
 
+Experimental SDK network adapters and radio diagnostics are grouped in
+[`network/`](network/README.md), separate from the peripheral and storage ports.
+
 Load the resource map from the validated node profile and board capabilities.
 An example allocation and module checks are in
 [configs/README.md](../../../../configs/README.md).

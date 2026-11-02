@@ -6,7 +6,8 @@
 #define UTHOME_C3STORE_H
 #include "cfgstore.h"
 #include "cfgpart.h"
-#define UTHOME_C3STORE_SLOT 12288U
+#include "cfgslot.h"
+#define UTHOME_C3STORE_SLOT UTHOME_CFGSLOT_BYTES
 /* One controller task; partition descriptor and 256-byte scratch are static.
  * Probe never erases. Missing/wrong partition returns error, with callbacks
  * remaining usable to report storage faults. Exact custom type/subtype 0x40/0,

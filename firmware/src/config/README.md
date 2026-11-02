@@ -12,6 +12,7 @@ Runtime, framing and storage do not dispatch on prototype device names.
 | `cfgbytes`, `cfgwire` | Explicit little-endian fields, CRC and bounded framing |
 | `cfgstore`, `cfgctrl` | Durable records, request identity, activation/save ordering |
 | `cfgpart` | Exact reviewed partition-table bytes and overflow-safe write window |
+| `cfgslot` | Fixed-slot bounds, complete table verification and bounded read scratch |
 | `jsonscan`, `cfgjson` | Bounded JSON parsing and exclusive cJSON allocation |
 | `cfgplan`, `cfgdev`, `cfgrule` | Board/resources, driver/settings and typed-rule admission |
 | `cfgbind`, `c3bind`, `cfgdisc` | Copied instance settings, actual transports and discovery/controller coordination |
@@ -312,6 +313,16 @@ missing, altered or unreadable table. Ordinary reads also use that scratch buffe
 to avoid the SDK's conditional heap-backed read buffer. The existing partition
 APIs retain their bounds and the two 12 KiB slot isolation checks.
 
+The portable `cfgslot` core owns these checks and scratch storage; `c3store`
+supplies synchronous SDK calls and preserves the controller's null-context API.
+Host fault tests execute that same core: every table/read chunk can fail, wrong
+flash sizes and overflowing ranges are rejected before I/O, and write/erase
+requests preserve the peer slot. Failed reads retain only previously completed
+chunks in the caller's buffer. No operation retries an I/O failure automatically.
+On RV32 the fixed state, including scratch, is 268 bytes: 11 bytes above the
+previous separate readiness flag and 256-byte buffer. The six callback pointers
+are immutable; the refactor adds no heap allocation or kernel object.
+
 The pinned SDK otherwise allocates during both flash-write protection queries:
 `esp_partition_is_flash_region_writable` iterates partitions, and
 `esp_partition_main_flash_region_safe` resolves the running application through
@@ -326,7 +337,7 @@ This current application does not support OTA or network persistence.
 Manual BARR-C review: `cfgpart` is C99 with an immutable byte table, no native
 layout casts, no writable globals and subtraction-first bounds. The descriptor's
 custom enum values use documented 8-bit SDK IDs. `c3store` owns its descriptor,
-ready flag and scratch for the whole boot; the controller serializes open/read/
+`cfgslot` state and scratch for the whole boot; the controller serializes open/read/
 write/erase. Private scratch cannot alias caller-owned output. Checked slot
 arithmetic bounds every translated offset below 24 KiB. The flash protection
 callback performs no kernel calls or logging and is called before cache-disabled

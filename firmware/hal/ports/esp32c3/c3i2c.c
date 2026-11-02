@@ -42,7 +42,7 @@ static int create_lock (void * p_context);
 static bool lifecycle_owner (void * p_context);
 static int lock_bus (void * p_context, uint32_t timeout_ms);
 static int unlock_bus (void * p_context);
-static int start_bus (void * p_context, const i2cbus_config_t * p_config);
+static int start_bus (void * p_context, const void * p_settings);
 static int stop_bus (void * p_context);
 static void setup_pin (uint8_t pin, uint32_t output, uint32_t input);
 static void release_pin (uint8_t pin);
@@ -242,8 +242,10 @@ static int unlock_bus (void * p_context)
 
 /** @brief Reserve validated pins, then configure the controller and signals.
  */
-static int start_bus (void * p_context, const i2cbus_config_t * p_config)
+static int start_bus (void * p_context, const void * p_settings)
 {
+    /* i2cown_open supplies a live, correctly aligned I2C configuration. */
+    const i2cbus_config_t * p_config = p_settings;
     (void)p_context; /* Session settings are the module's g_state. */
     const int source_hz = esp_clk_xtal_freq();
     if (source_hz <= 0)

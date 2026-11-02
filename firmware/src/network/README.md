@@ -5,6 +5,10 @@ for the pinned ESP32-C3 networking compatibility layer. It is **experimental**:
 the corrected SPI study includes the fixed core but does not activate radios.
 Wi-Fi/BLE/MQTT/HTTP services and combined radio qualification remain open.
 
+The SDK/kernel boundary modules live in the
+[C3 network adapter folder](../../hal/ports/esp32c3/network/README.md).
+The portable modules here contain no board-register or radio SDK dependencies.
+
 ## Contract and limits
 
 `netring` uses caller-owned storage and an explicit count, so all configured

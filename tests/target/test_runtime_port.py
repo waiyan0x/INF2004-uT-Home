@@ -79,6 +79,7 @@ class RuntimePortFailureTests(unittest.TestCase):
                        str(ROOT / "firmware/drivers/ssd1306_spi/oledinst.c"),
                        str(ROOT / "firmware/hal/i2cbus.c"),
                        str(ROOT / "firmware/hal/i2cown.c"),
+                       str(ROOT / "firmware/hal/buslife.c"),
                        str(ROOT / "firmware/hal/ports/host_sim/i2cfake.c"),
                        str(ROOT / "firmware/drivers/bmp388/bmp388.c"),
                        str(ROOT / "firmware/drivers/bmp388/bmpinst.c"),

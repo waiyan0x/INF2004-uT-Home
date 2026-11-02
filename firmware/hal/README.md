@@ -13,6 +13,22 @@ outputs share one pin ledger. UART, digital input, pulse capture and PWM now
 have software implementations. Storage and USB configuration transfer live in
 [configuration](../src/config/README.md); full hardware acceptance remains open.
 
+`buslife` implements the shared lock creation, session phase and transfer-lock
+transitions. `i2cown` and `spiown` retain their protocol arguments, claims/device
+checks and error codes. Each owner still holds two pointers and two enums;
+constant callback/error tables live in flash, with no extra heap or kernel object.
+The wrappers check the lifecycle owner before reading protocol claims, then
+start/stop synchronously. Workers recheck the open phase after taking the lock.
+
+Manual BARR-C review: these C99 modules retain the synchronous callback ABI,
+permanent context lifetime and serialized lifecycle owner. I2C recovers its
+borrowed typed settings without a function-pointer cast. Status is initialized
+before workers run; session changes occur under the permanent mutex, including
+retained cleanup failures. Error domains remain protocol-specific. The shared
+helpers have bounded transitions, paired headers and no hardware access, new
+allocation or coding exception. The native object measurement is 16 bytes per
+owner; host fault tests and a real target build check the two boundaries.
+
 Peripheral, USB and flash backends live in `ports/esp32c3/`, including
 [`c3usb`](ports/esp32c3/c3usb.c) and [`c3store`](ports/esp32c3/c3store.c).
 Generic framing, transport pumping and persistence policy live in

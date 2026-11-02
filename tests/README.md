@@ -41,6 +41,11 @@ absent active configuration must not send a mutation. Dashboard and visualiser
 tests run in CI as well as locally.
 The target Node glob includes the configurator polling/review race regressions
 as well as dashboard presentation checks.
+Storage adapter tests compile the same `cfgslot` core used by the target and
+inject size/table/read/write/erase failures through synchronous callbacks. They
+check complete table coverage, internal scratch chunking, overflow rejection and
+peer-slot isolation; SDK execution and physical flash behavior require target
+qualification separately.
 
 These suites are a regression baseline, not proof that arbitrary refactoring is
 safe. Review affected contracts and add focused tests before changing behavior.
