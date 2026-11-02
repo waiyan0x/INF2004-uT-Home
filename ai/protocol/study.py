@@ -74,7 +74,7 @@ def prepare_study(profile, manifest, specification, catalogue=None):
         cases.append(dict(family_key=family_key, experiment=experiment, features=vectors))
     require(all(len(ids) >= 2 for ids in splits.values()), "Every evaluation partition requires at least two families")
     sources = {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
-               for name in ("ai/workload.py", "ai/protocol_study.py")}
+               for name in ("ai/workload.py", "ai/protocol/study.py")}
     return dict(contract="uthome.protocol-study", version=version, specification=deepcopy(specification),
                 base_profile=deepcopy(profile), build_manifest=deepcopy(manifest), split=splits,
                 feature_names=workload.FEATURES, source_sha256=sources, cases=cases, deployment_allowed=False)

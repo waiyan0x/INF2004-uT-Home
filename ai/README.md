@@ -9,6 +9,12 @@ has a comparison with active peripherals. These diagnostics do not enable advice
 Device identity, protocol and wiring stay in the reviewed
 [discovery/catalogue flow](../docs/README.md).
 
+The eighteen-input pipeline lives in [`protocol/`](protocol/README.md); its
+modules separate study preparation, capture/resume, training, export and benefit
+assessment. The six-input model and shared recording/provenance tools remain
+in this folder. The earlier `ai.protocol_capture` CLI forwards to
+`ai.protocol.capture` for retained local capture scripts.
+
 ## Datasheet-assisted device drafts
 
 `tools.configurator.datasheet` uses an online Gemini model on the PC to extract
@@ -102,7 +108,7 @@ needs the exact running ELF, twenty Apply cycles, all required checks and retain
 evidence whose hashes are verified before the collector opens serial. These
 checks validate a reviewed record; they do not manufacture a memory audit.
 
-New `ai.protocol_capture` CLI calls require `--execution-context` and
+New `ai.protocol.capture` CLI calls require `--execution-context` and
 `--qualification-folder`. The collector rechecks the running ELF before Apply
 and retains `static-bindings.json` alongside existing journals. Its legacy Python
 entry point remains readable for historical tests; it does not grant new static
@@ -152,7 +158,7 @@ diagnostic overhead, not model storage. The real build's classifier object uses
 To export an experimental protocol model without installing it:
 
 ```powershell
-python -B -m ai.protocol_export --model build/protocol-study-20261027-varied-r1/trained/model.json --output build/protocol-export-new --cross-compiler PATH_TO_PINNED_RISCV_GCC
+python -B -m ai.protocol.export --model build/protocol-study-20261027-varied-r1/trained/model.json --output build/protocol-export-new --cross-compiler PATH_TO_PINNED_RISCV_GCC
 ```
 
 Set `BARR_CLANG_FORMAT` to pinned 20.1.8 and put host GCC on PATH. The destination
@@ -456,11 +462,11 @@ The old pilot identity below is historical: replace its paths and use a newly
 frozen study with untouched evaluation groups before collecting:
 
 ```powershell
-& build/ai-venv/Scripts/python.exe -B -m ai.protocol_study prepare --profile build/hardware-acceptance-20261026/restore-combined.json --manifest build/ai-pilot-20261026-074410/manifest.json --specification ai/examples/protocol-study.json --output build/protocol-study.json
-& build/ai-venv/Scripts/python.exe -B -m ai.protocol_capture --study build/protocol-study.json --identity build/ai-pilot-20261026-074410/identity.json --restore-profile build/hardware-acceptance-20261026/restore-combined.json --port COMx --wiring-unchanged --families all --execution-context build/qualified-context.json --qualification-folder build/static-qualification --output build/protocol-capture
+& build/ai-venv/Scripts/python.exe -B -m ai.protocol.study prepare --profile build/hardware-acceptance-20261026/restore-combined.json --manifest build/ai-pilot-20261026-074410/manifest.json --specification ai/examples/protocol-study.json --output build/protocol-study.json
+& build/ai-venv/Scripts/python.exe -B -m ai.protocol.capture --study build/protocol-study.json --identity build/ai-pilot-20261026-074410/identity.json --restore-profile build/hardware-acceptance-20261026/restore-combined.json --port COMx --wiring-unchanged --families all --execution-context build/qualified-context.json --qualification-folder build/static-qualification --output build/protocol-capture
 $runs = (Get-ChildItem build/protocol-capture/*/run-* -Directory).FullName
-& build/ai-venv/Scripts/python.exe -B -m ai.protocol_study dataset --study build/protocol-study.json --output build/protocol-dataset.json @runs
-& build/ai-venv/Scripts/python.exe -B -m ai.protocol_model --study build/protocol-study.json --output build/protocol-trained @runs
+& build/ai-venv/Scripts/python.exe -B -m ai.protocol.study dataset --study build/protocol-study.json --output build/protocol-dataset.json @runs
+& build/ai-venv/Scripts/python.exe -B -m ai.protocol.model --study build/protocol-study.json --output build/protocol-trained @runs
 ```
 
 Enumerate the USB board afresh; `COMx` is a placeholder. Renew identity after
@@ -472,15 +478,15 @@ To stop after the current bounded run, create an empty `stop-requested` file in
 the capture output directory. Individual family IDs may replace `all` to collect
 separate batches; pass all their run directories when rebuilding the dataset.
 
-For a paused batch, `ai.protocol_resume` verifies retained journals and lists
+For a paused batch, `ai.protocol.resume` verifies retained journals and lists
 missing repetitions without accessing the board:
 
 ```powershell
-python -B -m ai.protocol_resume --study STUDY.json --identity IDENTITY.json --captures PREVIOUS_CAPTURE_FOLDER --families load-d --measure-costs --output NEW_RESUME_PLAN.json
+python -B -m ai.protocol.resume --study STUDY.json --identity IDENTITY.json --captures PREVIOUS_CAPTURE_FOLDER --families load-d --measure-costs --output NEW_RESUME_PLAN.json
 ```
 
 After renewing the board/wiring checks, add `--resume-from PREVIOUS_CAPTURE_FOLDER`
-to the normal `ai.protocol_capture` command and use a new output directory. Supply
+to the normal `ai.protocol.capture` command and use a new output directory. Supply
 every earlier batch in the continuation chain. The collector verifies study,
 identity, cadence, cost-observation mode and static bindings before opening serial.
 It skips complete repetitions regardless of their outcome, retains their hashes,
@@ -507,7 +513,7 @@ For the varied-goal study, also run the predeclared independent calibration gate
 after all runs and the frozen model are available:
 
 ```powershell
-python -B -m ai.protocol_baseline --study STUDY.json --model MODEL.json --calibration-root STUDY_FOLDER --baseline-sha256 FROZEN_BASELINE_HASH --output NEW_CALIBRATED_GATE.json RUN_FOLDER_1 RUN_FOLDER_2
+python -B -m ai.protocol.baseline --study STUDY.json --model MODEL.json --calibration-root STUDY_FOLDER --baseline-sha256 FROZEN_BASELINE_HASH --output NEW_CALIBRATED_GATE.json RUN_FOLDER_1 RUN_FOLDER_2
 ```
 
 Use the baseline hash retained before labelled collection, not a newly accepted
@@ -852,7 +858,7 @@ records under `qualification/`. Use these lessons for the next prospective study
 - Use supported exact clock divisors and admission preflight before freezing a
   study. An activation rejection is not a negative timing label.
 
-`ai.protocol_capture --measure-costs` requires command-9 observations every
+`ai.protocol.capture --measure-costs` requires command-9 observations every
 second, exact firmware/profile/generation identity, monotonic counters, valid
 source bindings and controller/idle stack headroom. Startup/normal allocation
 counters must stay zero. Missing, saturated, changed or reset measurements
@@ -860,7 +866,7 @@ interrupt the run without automatic retry. `load_recording` verifies retained
 work-cost data against raw journals and hashes. Complete goal failures remain
 negative data. Worker cost is wall time, not isolated CPU or electrical wire time.
 
-`ai.protocol_gate` rebuilds verified data and reports family-level violations,
+`ai.protocol.gate` rebuilds verified data and reports family-level violations,
 unnecessary abstentions and benefit against the simple rule. Its existing gain
 definition requires longer passing intervals or safe coverage where the rule
 has none, with no regression against passing rule choices. Both completed

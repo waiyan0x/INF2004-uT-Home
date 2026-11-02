@@ -3,7 +3,7 @@ import argparse
 import hashlib
 from pathlib import Path
 
-from ai.protocol_study import MAX_BYTES, validate_study
+from ai.protocol.study import MAX_BYTES, validate_study
 from ai.recording import load_recording, save_new
 from ai.records import assess_run
 from ai.timing import digest

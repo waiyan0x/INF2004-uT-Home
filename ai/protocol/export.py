@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from ai.export import compile_module, render_module, verify_module
-from ai.protocol_model import predict, validate_model
+from ai.protocol.model import predict, validate_model
 from ai.recording import save_new
 from ai.timing import digest
 from ai.workload import FEATURES

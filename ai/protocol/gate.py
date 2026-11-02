@@ -9,8 +9,8 @@ import argparse
 from pathlib import Path
 
 from ai import workload
-from ai.protocol_model import evaluate, predict, validate_model
-from ai.protocol_study import MAX_BYTES, dataset, validate_study
+from ai.protocol.model import evaluate, predict, validate_model
+from ai.protocol.study import MAX_BYTES, dataset, validate_study
 from ai.recording import save_new
 from ai.timing import digest
 from tools.config_validator.planner import load_document, require

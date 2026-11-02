@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 from typing import Literal
 
-from ai.protocol_study import MAX_BYTES, dataset, validate_study
+from ai.protocol.study import MAX_BYTES, dataset, validate_study
 from ai.recording import save_new
 from ai.timing import digest, export_profile, validate
 from ai import workload

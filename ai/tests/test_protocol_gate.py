@@ -3,8 +3,8 @@ from copy import deepcopy
 import unittest
 from unittest.mock import patch
 
-from ai.protocol_gate import assess, choices
-from ai.protocol_model import train
+from ai.protocol.gate import assess, choices
+from ai.protocol.model import train
 from ai.tests import test_protocol as fixtures
 from ai.timing import digest
 from tools.config_validator.planner import ConfigurationError
@@ -17,7 +17,7 @@ class ProtocolGateTests(unittest.TestCase):
         cls.fixture = fixtures.ProtocolTests()
         cls.study = cls.fixture.study
         cls.data = cls.fixture.fixture_dataset()
-        with patch("ai.protocol_model.dataset", return_value=cls.data):
+        with patch("ai.protocol.model.dataset", return_value=cls.data):
             cls.model, _, _ = train(cls.study, [])
 
     def test_equal_rule_does_not_become_benefit_or_deployment(self):
@@ -53,8 +53,8 @@ class ProtocolGateTests(unittest.TestCase):
         # Deliberately small helper-only vectors: interval index 1, goal index 2.
         rows = [dict(interval_ms=n, features=[0, n, 800, 0, 100], label=label)
                 for n, label in zip((200, 500, 1000), labels)]
-        with patch("ai.protocol_gate.workload.workload_fingerprint", return_value="fixture"), \
-                patch("ai.protocol_gate.predict", side_effect=lambda _, vector: int(vector[1] in accepted)):
+        with patch("ai.protocol.gate.workload.workload_fingerprint", return_value="fixture"), \
+                patch("ai.protocol.gate.predict", side_effect=lambda _, vector: int(vector[1] in accepted)):
             return choices({"contexts": ["fixture"]}, {}, rows)
 
     def test_unsafe_longer_interval_is_never_a_benefit(self):

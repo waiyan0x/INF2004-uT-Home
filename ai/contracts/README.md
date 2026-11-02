@@ -32,7 +32,7 @@ delta window. Command 9 exposes the bounded workload snapshots; they are
 auxiliary measurements, not new model inputs. Independent calibration and
 combined wireless-load qualification remain open.
 
-`ai/protocol_export.py` emits `uthome.protocol-c-export` 0.1.0 metadata and
+`ai/protocol/export.py` emits `uthome.protocol-c-export` 0.1.0 metadata and
 `protree.c/.h` for eighteen uint32 features. It retains the original model hash,
 required context hashes and disabled deployment status. The C classifier is
 bounded to five node visits with no heap/recursion/writable globals; context and
@@ -41,7 +41,7 @@ profile validation remain required in its future caller.
 The protocol workload study adds independently versioned 0.2.0 contracts:
 `uthome.protocol-study`, `uthome.protocol-dataset`, `uthome.protocol-tree` and
 `uthome.protocol-evaluation`. Their strict preparation/replay/model validators
-are in `ai/protocol_study.py` and `ai/protocol_model.py`; the example input is
+are in `ai/protocol/study.py` and `ai/protocol/model.py`; the example input is
 `ai/examples/protocol-study.json`. Eighteen input features are defined by
 `ai/workload.py`. The protocol model uses its own experimental C exporter and is
 intentionally incompatible with the old six-input exporter. See the

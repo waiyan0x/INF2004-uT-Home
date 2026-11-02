@@ -10,9 +10,9 @@ import zlib
 
 from ai import workload
 from ai.export import export_c
-from ai.protocol_model import predict, recommend, train, validate_model
-from ai.protocol_capture import collect
-from ai.protocol_study import dataset, observe_peers, prepare_study, validate_study
+from ai.protocol.model import predict, recommend, train, validate_model
+from ai.protocol.capture import collect
+from ai.protocol.study import dataset, observe_peers, prepare_study, validate_study
 from ai.provenance import make_identity, make_receipt
 from ai.recording import load_recording, record_run
 from ai.tests.test_recording import Board, Clock
@@ -188,13 +188,13 @@ class ProtocolTests(unittest.TestCase):
 
     def test_training_never_uses_test_labels_and_old_c_export_refuses_new_contract(self):
         data = self.fixture_dataset()
-        with patch("ai.protocol_model.dataset", return_value=data):
+        with patch("ai.protocol.model.dataset", return_value=data):
             model, report, _ = train(self.study, [])
         changed = deepcopy(data)
         for row in changed["rows"]:
             if row["family_id"] in self.study["split"]["test"]:
                 row["label"] = 1 - row["label"]
-        with patch("ai.protocol_model.dataset", return_value=changed):
+        with patch("ai.protocol.model.dataset", return_value=changed):
             other, _, _ = train(self.study, [])
         self.assertEqual(model["nodes"], other["nodes"])
         self.assertEqual(model["domain"], other["domain"])
@@ -206,7 +206,7 @@ class ProtocolTests(unittest.TestCase):
             self.assertFalse((Path(root) / "unsupported").exists())
 
     def test_model_abstains_on_context_or_domain_change_and_rejects_cycles(self):
-        with patch("ai.protocol_model.dataset", return_value=self.fixture_dataset()):
+        with patch("ai.protocol.model.dataset", return_value=self.fixture_dataset()):
             model, _, _ = train(self.study, [])
         experiment = self.experiment()
         self.assertEqual(recommend(model, experiment)["interval_ms"], 500)
@@ -238,8 +238,8 @@ class ProtocolTests(unittest.TestCase):
         workflow.dispatch.side_effect = AssertionError('Capture must use named operations')
         workflow.close.side_effect = lambda **kwargs: setattr(workflow, "client", None)
         with tempfile.TemporaryDirectory() as root:
-            with patch("ai.protocol_capture.apply_trial", return_value={}) as apply_mock:
-                with patch("ai.protocol_capture.record_run", side_effect=OSError("test_disconnect")) as capture_mock:
+            with patch("ai.protocol.capture.apply_trial", return_value={}) as apply_mock:
+                with patch("ai.protocol.capture.record_run", side_effect=OSError("test_disconnect")) as capture_mock:
                     result = collect(workflow, "TEST-ONLY", self.study, self.identity, self.profile, Path(root)/"capture", ["all-current"])
             self.assertEqual(result["error"], "test_disconnect")
             self.assertTrue(result["restored"])
@@ -267,7 +267,7 @@ class ProtocolTests(unittest.TestCase):
         workflow = Mock()
         workflow.connect.return_value = dict(state=dict(active_crc=0, saved_crc=0, flags=80))
         with tempfile.TemporaryDirectory() as root:
-            with patch("ai.protocol_capture.apply_trial") as apply_mock:
+            with patch("ai.protocol.capture.apply_trial") as apply_mock:
                 result = collect(workflow, "TEST-ONLY", self.study, self.identity, self.profile, Path(root)/"capture", ["all-current"])
             self.assertIn("does not match", result["error"])
             apply_mock.assert_not_called()

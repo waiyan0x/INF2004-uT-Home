@@ -7,8 +7,8 @@ import unittest
 from unittest.mock import Mock, patch
 import zlib
 
-from ai.protocol_capture import collect
-from ai.protocol_resume import resume_plan
+from ai.protocol.capture import collect
+from ai.protocol.resume import resume_plan
 from ai.recording import save_new
 from ai.tests import test_protocol as fixtures
 from ai.tests.test_recording import Board, Clock
@@ -108,8 +108,8 @@ class ProtocolResumeTests(unittest.TestCase):
         workflow.review.return_value = dict(review_id='restore')
         workflow.apply.return_value = dict(status=1, active_crc=crc, saved_crc=crc)
         workflow.dispatch.side_effect = AssertionError('Capture must use named operations')
-        with patch('ai.protocol_capture.apply_trial', return_value={}) as apply_mock, \
-                patch('ai.protocol_capture.record_run', return_value=dict(usable=True, reason=None)) as record_mock:
+        with patch('ai.protocol.capture.apply_trial', return_value={}) as apply_mock, \
+                patch('ai.protocol.capture.record_run', return_value=dict(usable=True, reason=None)) as record_mock:
             result = collect(workflow, 'TEST-ONLY', self.study, self.identity, profile,
                              self.root / 'next', ['all-current'], previous_captures=[self.capture])
         self.assertIsNone(result['error'])
