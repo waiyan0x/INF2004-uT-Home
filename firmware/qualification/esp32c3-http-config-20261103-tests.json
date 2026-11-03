@@ -1,0 +1,115 @@
+{
+  "date": "2026-11-03",
+  "builds": {
+    "wifi": {
+      "build_status": "passed",
+      "binary_files": {}
+    },
+    "ble": {
+      "build_status": "passed",
+      "binary_files": {}
+    }
+  },
+  "network_tests": 123,
+  "usb_regressions": 4,
+  "qualification_tests": 36,
+  "c_files": 321,
+  "protected_sources": {
+    "firmware/src/runtime/activate.c": true,
+    "firmware/src/runtime/activate.h": true,
+    "firmware/src/runtime/component.c": true,
+    "firmware/src/runtime/hostport.c": true,
+    "firmware/src/runtime/hostport.h": true,
+    "firmware/src/runtime/memaudit.c": true,
+    "firmware/src/runtime/memaudit.h": true,
+    "firmware/src/runtime/rt_port.h": true,
+    "firmware/src/runtime/runtime.c": true,
+    "firmware/src/runtime/shared.c": true,
+    "firmware/src/runtime/shared.h": true,
+    "firmware/src/runtime/stackmon.c": true,
+    "firmware/src/runtime/stackmon.h": true,
+    "firmware/src/runtime/tkport.c": true,
+    "firmware/src/runtime/tkport.h": true,
+    "firmware/src/runtime/workcost.c": true,
+    "firmware/src/runtime/workcost.h": true,
+    "firmware/src/runtime/workmeter.c": true,
+    "firmware/src/runtime/workmeter.h": true,
+    "firmware/src/runtime/workport.h": true,
+    "firmware/hal/ports/esp32c3/c3audit.c": true,
+    "firmware/hal/ports/esp32c3/c3audit.h": true,
+    "firmware/hal/ports/esp32c3/c3bind.c": true,
+    "firmware/hal/ports/esp32c3/c3bind.h": true,
+    "firmware/hal/ports/esp32c3/c3ble.c": true,
+    "firmware/hal/ports/esp32c3/c3ble.h": true,
+    "firmware/hal/ports/esp32c3/c3boot.c": true,
+    "firmware/hal/ports/esp32c3/c3boot.h": true,
+    "firmware/hal/ports/esp32c3/c3bport.c": true,
+    "firmware/hal/ports/esp32c3/c3bport.h": true,
+    "firmware/hal/ports/esp32c3/c3clock.c": true,
+    "firmware/hal/ports/esp32c3/c3clock.h": true,
+    "firmware/hal/ports/esp32c3/c3cost.c": true,
+    "firmware/hal/ports/esp32c3/c3cost.h": true,
+    "firmware/hal/ports/esp32c3/c3event.c": true,
+    "firmware/hal/ports/esp32c3/c3event.h": true,
+    "firmware/hal/ports/esp32c3/c3gatt.c": true,
+    "firmware/hal/ports/esp32c3/c3gatt.h": true,
+    "firmware/hal/ports/esp32c3/c3i2c.c": true,
+    "firmware/hal/ports/esp32c3/c3i2c.h": true,
+    "firmware/hal/ports/esp32c3/c3nq.c": true,
+    "firmware/hal/ports/esp32c3/c3nq.h": true,
+    "firmware/hal/ports/esp32c3/c3pin.c": true,
+    "firmware/hal/ports/esp32c3/c3pin.h": true,
+    "firmware/hal/ports/esp32c3/c3pulse.c": true,
+    "firmware/hal/ports/esp32c3/c3pulse.h": true,
+    "firmware/hal/ports/esp32c3/c3pwm.c": true,
+    "firmware/hal/ports/esp32c3/c3pwm.h": true,
+    "firmware/hal/ports/esp32c3/c3spi.c": true,
+    "firmware/hal/ports/esp32c3/c3spi.h": true,
+    "firmware/hal/ports/esp32c3/c3store.c": true,
+    "firmware/hal/ports/esp32c3/c3store.h": true,
+    "firmware/hal/ports/esp32c3/c3uart.c": true,
+    "firmware/hal/ports/esp32c3/c3uart.h": true,
+    "firmware/hal/ports/esp32c3/c3umem.c": true,
+    "firmware/hal/ports/esp32c3/c3umem.h": true,
+    "firmware/hal/ports/esp32c3/c3usb.c": true,
+    "firmware/hal/ports/esp32c3/c3usb.h": true,
+    "firmware/hal/ports/esp32c3/c3wifi.c": true,
+    "firmware/hal/ports/esp32c3/c3wifi.h": true,
+    "firmware/src/network/netevent.c": true,
+    "firmware/src/network/netevent.h": true,
+    "firmware/src/network/netpool.c": true,
+    "firmware/src/network/netpool.h": true,
+    "firmware/src/network/netring.c": true,
+    "firmware/src/network/netring.h": true,
+    "firmware/src/network/netwait.c": true,
+    "firmware/src/network/netwait.h": true
+  },
+  "unchanged_controller_sources": {
+    "cfgctrl.c": true,
+    "cfgctrl.h": true,
+    "cfgstore.c": true,
+    "cfgpump.c": true,
+    "cfgwire.c": true
+  },
+  "logs": {
+    "http-config-network-tests-06.log": {
+      "sha256": "4545c9a2e9f244bc2c97274cc2e95fe06aa978cce0e38893460d87e7259c1020",
+      "tail": "...........................................................................................................................\n----------------------------------------------------------------------\nRan 123 tests in 54.647s\n\nOK\n"
+    },
+    "http-config-usb-regression-02.log": {
+      "sha256": "6017c07c429002b33f93cba0f091a1dd90c818476d4e6fbb0ea2c18d240efcdc",
+      "tail": "C standard gate: 321 files, 0 findings, 0 tool/policy errors.\n....\n----------------------------------------------------------------------\nRan 4 tests in 61.694s\n\nOK\n"
+    },
+    "http-config-qualification-tests-final.log": {
+      "sha256": "6f63c5c8b7f41a7a0f183b6d6f8864f76a68e5c48bb6308a63ffdc981f24445b",
+      "tail": "C standard gate: 321 files, 0 findings, 0 tool/policy errors.\n....................................\n----------------------------------------------------------------------\nRan 36 tests in 91.439s\n\nOK\n"
+    },
+    "http-config-c-gate-03.log": {
+      "sha256": "c18435dd3f8080fa05659472938a5a103f93fed0b5be49bbba59f59ac2eea5d8",
+      "tail": "C standard gate: 321 files, 0 findings, 0 tool/policy errors.\n"
+    }
+  },
+  "hardware_accessed": false,
+  "flashed": false,
+  "whole_system_static_qualified": false
+}

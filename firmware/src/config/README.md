@@ -1,7 +1,7 @@
 # Configuration, USB and storage
 
 One controller owns the path from reviewed JSON to running devices:
-`cfgpump → cfgctrl → cfgbind/activate`, with `cfgstore → c3store` for persistence.
+`cfgpump ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ cfgctrl ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ cfgbind/activate`, with `cfgstore ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ c3store` for persistence.
 The board independently checks every profile; a host-valid plan is not enough.
 Runtime, framing and storage do not dispatch on prototype device names.
 
@@ -332,7 +332,8 @@ Before successful verification it denies every write; afterwards it permits only
 `0x110000..0x115fff`. Bootloader, table, application, NVS and PHY writes remain
 denied. This is stricter than the SDK's default window. Dependency source bytes
 are unchanged, and qualification checks both substitutions and their scope.
-This current application does not support OTA or network persistence.
+The current application does not support OTA. Authenticated HTTP Apply now uses
+the existing persistence path through cfgmux, as described below.
 
 Manual BARR-C review: `cfgpart` is C99 with an immutable byte table, no native
 layout casts, no writable globals and subtraction-first bounds. The descriptor's
@@ -366,3 +367,14 @@ storage, not another retained controller. The image is 230,608 bytes. This is
 software build evidence; physical behavior and measured stack headroom remain
 separate acceptance work. Host fault, storage and build-tool tests cover the
 extraction and metadata reply/telemetry equivalence.
+
+## Network Apply arbitration
+
+`cfgmux.c/.h` borrows an idle cfgpump receiver for one authenticated HTTP upload.
+The application pauses USB parsing only during this lease. Complete requests call
+the unchanged cfgctrl Apply path; no second validator, save or recovery path is
+introduced. USB/controller IDs share one sequence with optimistic boot/revision
+preconditions. Exact retained retries do not save again. See the
+[network contract](../network/README.md#authenticated-configuration-apply-and-usb-arbitration-2026-11-03)
+for limits, errors, cache eviction and uncertain outcomes. The original controller,
+pump, wire and store implementation files remain unchanged.

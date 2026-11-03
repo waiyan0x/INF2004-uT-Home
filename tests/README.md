@@ -126,3 +126,9 @@ CI installs the same pinned Chromium revision.
 Artifacts stay under `build/browser-results`. To keep downloaded browser binaries
 local too, set `PLAYWRIGHT_BROWSERS_PATH` to `build/playwright-browsers` for both
 the install command and test run.
+
+Networking-only software checks: `python -B -m unittest discover -s tests/target
+-p "test_network*.py"`. These include actual C protocol/diagnostic code and PC
+client/size-tool tests with explicit socket/BLE doubles. They contact no real
+broker or board and do not establish hardware acceptance. See the
+[network acceptance matrix](../firmware/src/network/README.md#reproducible-acceptance-matrix).

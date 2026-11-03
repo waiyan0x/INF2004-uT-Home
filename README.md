@@ -28,7 +28,8 @@ and [C policy](C_CODING_STANDARD.md) before changing implementation.
 The USB configuration system supports BMP388/I2C, six-pin OLED/SPI and
 LD2450/UART. Fixed workers, parsing/storage, discovery and timing/allocation
 telemetry are implemented. Wi-Fi scanning and read-only BLE have isolated
-diagnostics, but wireless services are not integrated or static-memory qualified.
+diagnostics, and optional onboard MQTT/HTTPS/BLE service bindings are now ported; they are not
+whole-system static-memory qualified. See the [network guide](firmware/src/network/README.md).
 The timing models remain experimental: none passed its deployment-benefit gate.
 
 The varied-goal AI study is trained and evaluated. Its model matched the simple
@@ -190,3 +191,10 @@ paths and records are explained in [the documentation index](docs/README.md#hist
 Root coding rules, the hardware guide, shared firmware contracts and signed
 audit records remain separate because they have distinct responsibilities.
 Vendor, license and preserved legacy documentation retain their original layout.
+
+Authenticated HTTPS full-profile Apply is now implemented through the existing
+configuration controller, with bounded USB/HTTP arbitration. See the
+[current transport contract](firmware/src/network/README.md#authenticated-configuration-apply-and-usb-arbitration-2026-11-03)
+and [explicit client](tools/target/README.md#authenticated-http-configuration-client).
+Separate Wi-Fi and BLE firmware builds passed without flashing. Resource approval
+and physical USB/network/flash-save acceptance remain outstanding.

@@ -52,6 +52,22 @@ class BuildModeTests(unittest.TestCase):
             with self.subTest(options=options), self.assertRaises(QualificationError):
                 BuildSelection(**options)
 
+    def test_network_modes_use_configuration_owner_and_explicit_cmake_flags(self):
+        for mode in ('ble','wifi','both'):
+            selection=resolve_mode(runtime_port=True,configuration_app=True,
+                                   static_net_queues=True,network_services=mode)
+            self.assertEqual(selection.mode,BuildMode.CONFIGURATION)
+            self.assertFalse(selection.evidence()['diagnostic_only'])
+            self.assertEqual(selection.evidence()['network_services'],mode)
+            self.assertFalse(selection.evidence()['whole_system_static_qualified'])
+            self.assertIn(f'-DUTHOME_NETWORK_WIFI={int(mode in ("wifi","both"))}',selection.cmake_settings())
+            self.assertIn(f'-DUTHOME_NETWORK_BLE={int(mode in ("ble","both"))}',selection.cmake_settings())
+        for changed in (dict(mode=BuildMode.RUNTIME),dict(static_net_queues=False),
+                        dict(network_services='unknown'),dict(ble_gatt_probe=True),dict(ble_static_host=True)):
+            options=dict(mode=BuildMode.CONFIGURATION,static_net_queues=True,network_services='ble')
+            with self.subTest(changed=changed),self.assertRaises(QualificationError):
+                BuildSelection(**{**options,**changed})
+
     def test_cli_forwards_one_resolved_selection_and_named_patch_paths(self):
         with patch.object(qualify_kernel, 'build', return_value=Path('evidence.json')) as build, \
                 patch('builtins.print'):

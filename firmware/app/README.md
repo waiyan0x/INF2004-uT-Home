@@ -21,3 +21,24 @@ capabilities and uses this endpoint. [Typed rules](../src/automation/README.md)
 route configured sources to the existing PWM component. Combined wireless/hardware acceptance and eligible AI advice integration remain
 open. AI preparation can proceed in parallel; final data must match its qualified
 execution context.
+
+Optional onboard monitoring networking is selected with `--network-services ble|wifi|both`
+and `--static-net-queues`. The `c3net` owner hooks run alongside the existing USB
+pump; configuration mutation stays disabled in the network layer. See the
+[network service guide](../src/network/README.md) for exact limits and security
+gaps. These services do not qualify SDK task/timer/allocation compatibility.
+
+An optional private MQTT setup enables the bounded `netbroker`/`c3mqtt` publisher.
+It shares copied sensor telemetry with HTTP/BLE, including light type 5, and
+remains independent of HTTPS listener startup. SDK compatibility/resource and
+physical acceptance remain open; see the network guide for the implemented
+MQTT wire contract and build-only verification limits.
+
+## HTTP configuration owner
+
+The optional Wi-Fi service initializes cfgmux against the existing cfgctrl/cfgpump.
+An unavailable mux leaves networking read-only. USB parsing pauses only during an
+admitted bounded upload; sensor/display workers retain their existing lifecycle.
+HTTPS Apply runs on the existing owner and refreshes metadata before later network
+captures. No shared runtime/kernel compatibility source is changed. See the
+[network guide](../src/network/README.md#authenticated-configuration-apply-and-usb-arbitration-2026-11-03).

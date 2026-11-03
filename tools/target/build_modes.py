@@ -54,6 +54,7 @@ class BuildSelection:
     ble_gatt_probe: bool = False
     ble_static_host: bool = False
     upstream_example: str = 'tasks'
+    network_services: str | None = None
 
     def __post_init__(self):
         if not isinstance(self.mode, BuildMode):
@@ -68,6 +69,11 @@ class BuildSelection:
             raise QualificationError('Static host experiment requires the isolated BLE diagnostic')
         if self.static_net_queues and self.mode in (BuildMode.UPSTREAM, BuildMode.NATIVE_UART):
             raise QualificationError('Static network queues require ordinary runtime/application mode')
+        if self.network_services is not None:
+            if (self.network_services not in ('ble', 'wifi', 'both') or
+                    self.mode is not BuildMode.CONFIGURATION or not self.static_net_queues or
+                    self.ble_gatt_probe or self.ble_static_host):
+                raise QualificationError('Network services require application + static queues, without diagnostics')
         spec = PROBES.get(self.mode)
         if spec and spec.requires_static_queues and not self.static_net_queues:
             raise QualificationError(spec.prerequisite)
@@ -96,13 +102,19 @@ class BuildSelection:
                     senlux_app_probe=self.mode is BuildMode.SENLUX_APP)
 
     def cmake_settings(self):
-        return [f'-DUTHOME_{name.upper()}={int(enabled)}' for name, enabled in self.flags().items()]
+        settings = [f'-DUTHOME_{name.upper()}={int(enabled)}' for name, enabled in self.flags().items()]
+        if self.network_services is None:
+            return settings
+        return settings + [f'-DUTHOME_NETWORK_WIFI={int(self.network_services in ("wifi", "both"))}',
+                           f'-DUTHOME_NETWORK_BLE={int(self.network_services in ("ble", "both"))}']
 
     def evidence(self):
         flags = self.flags()
         flags['configuration_application'] = flags.pop('configuration_app')
         flags['static_network_queues'] = flags.pop('static_net_queues')
-        return dict(flags,
+        return dict(flags, network_services=self.network_services,
+                    experimental_network_services=self.network_services is not None,
+                    whole_system_static_qualified=False,
                     example='tests/target/runtime_port_board' if self.runtime_port else f'examples/{self.upstream_example}',
                     diagnostic_only=self.mode not in (BuildMode.RUNTIME, BuildMode.CONFIGURATION, BuildMode.NATIVE_UART))
 
@@ -110,7 +122,7 @@ class BuildSelection:
 def resolve_mode(*, runtime_port=False, configuration_app=False, upstream_example=None,
                  native_uart_fixture=False, static_net_queues=False, wifi_probe=False,
                  ble_probe=False, model_probe=False, ble_gatt_probe=False, ble_static_host=False,
-                 model_load_probe=False, senlux_probe=False, senlux_app_probe=False):
+                 model_load_probe=False, senlux_probe=False, senlux_app_probe=False, network_services=None):
     """Accept the existing CLI vocabulary, rejecting mixed modes before I/O."""
     enabled = dict(native_uart_fixture=native_uart_fixture, wifi_probe=wifi_probe,
                    ble_probe=ble_probe, model_probe=model_probe, model_load_probe=model_load_probe,
@@ -137,4 +149,4 @@ def resolve_mode(*, runtime_port=False, configuration_app=False, upstream_exampl
         mode = BuildMode.RUNTIME if runtime_port else BuildMode.UPSTREAM
     return BuildSelection(mode=mode, static_net_queues=static_net_queues,
                           ble_gatt_probe=ble_gatt_probe, ble_static_host=ble_static_host,
-                          upstream_example=upstream_example or 'tasks')
+                          upstream_example=upstream_example or 'tasks', network_services=network_services)

@@ -102,3 +102,60 @@ contention also need measurement under combined load.
 Repeat lifecycle/resource checks on the changed integrated image and keep scoped
 PASS / FAIL / NOT TESTED results. Hardware-qualified remains false until reviewed
 sign-off; the zero-target observation alone does not complete acceptance.
+
+## Latest-checkout BLE/light service port (2026-11-01)
+
+- [Build](esp32c3-ble-light-services-20261101-build.json): passed BLE-only application build; no hardware access.
+- [Memory](esp32c3-ble-light-services-20261101-memory.json): aggregate limits fit; two module reservations need review.
+- [Tests and protected sources](esp32c3-ble-light-services-20261101-tests.json): 72 networking tests, 36 qualification tests and unchanged existing runtime/HAL/compatibility source hashes.
+
+## MQTT/HTTPS publisher (2026-11-02)
+
+- [Wi-Fi-only build](esp32c3-mqtt-wifi-20261102-build.json): target qualification passed, build-only fixture, no board access.
+- [Memory review](esp32c3-mqtt-wifi-20261102-memory.json): aggregate limits fit; four module reservations need approval.
+- [Tests/protected sources](esp32c3-mqtt-wifi-20261102-tests.json): 86 networking tests, 36 build-tool tests, C gate and symbol/hash checks.
+- [Combined trial](esp32c3-mqtt-both-20261102-build.json) and [preliminary map](esp32c3-mqtt-both-20261102-memory-analysis.json): failed partition-size check; optimized trial is not final-profile qualification.
+
+## Read-only networking diagnostics and client pack (2026-11-02)
+
+- [Wi-Fi build](esp32c3-network-diagnostics-wifi-20261102-build.json) and [memory](esp32c3-network-diagnostics-wifi-20261102-memory.json): target build passed; aggregate static limits fit, service module approvals open.
+- [BLE-only build](esp32c3-network-diagnostics-ble-20261102-build.json) and [memory](esp32c3-network-diagnostics-ble-20261102-memory.json): target build passed; module approvals open.
+- [Software/source checks](esp32c3-network-diagnostics-20261102-tests.json): 99 networking and 36 qualification tests, 319-file C gate, protected source/budget and artifact hash verification; no live endpoints.
+- [Wi-Fi size attribution](esp32c3-network-diagnostics-20261102-size-wifi.json) and [historical combined reference](esp32c3-network-diagnostics-20261102-size-combined-reference.json): mapped archive ranking; failed builds remain failed, not a controlled A/B comparison.
+
+## Authenticated HTTP Apply software evidence (2026-11-03)
+
+[Tests and protected-source checks](esp32c3-http-config-20261103-tests.json),
+[Wi-Fi build](esp32c3-http-config-20261103-wifi-build.json),
+[Wi-Fi memory](esp32c3-http-config-20261103-wifi-memory.json),
+[BLE build](esp32c3-http-config-20261103-ble-build.json), and
+[BLE memory](esp32c3-http-config-20261103-ble-memory.json) are immutable records.
+Builds passed; unchanged memory approval checks remain failed for unapproved
+service modules despite fitting aggregate ceilings. These are software/build
+results only, with no board, flash or live-client acceptance. Existing cfgctrl,
+cfgpump, cfgstore and cfgwire source implementations remain byte-identical to
+the preceding qualified diagnostics snapshot. See the network guide for the
+current contract and remaining physical/resource qualification.
+
+[Networking hardening checks](esp32c3-network-hardening-20261103-tests.json)
+record 127 passing offline networking tests, explicit client completion outcomes,
+three additional USB/upload/response-deadline regressions, and protected-source
+hashes. Both existing target snapshots still verify; no firmware C, reservations
+or build inputs changed in this follow-up. The RAM review preserves current
+contracts; 351 bytes fixed application headroom and module approvals remain open.
+The network guide now contains an unexecuted physical acceptance checklist.
+
+## Current-branch networking merge (2026-11-03)
+
+These records qualify the merge onto `cf94b46`, superseding ZIP-based results for
+this source context: [checks](esp32c3-network-merge-20261103-tests.json),
+[Wi-Fi build](esp32c3-network-merge-20261103-wifi-build.json),
+[Wi-Fi memory](esp32c3-network-merge-20261103-wifi-memory.json),
+[BLE build](esp32c3-network-merge-20261103-ble-build.json), and
+[BLE memory](esp32c3-network-merge-20261103-ble-memory.json).
+Both target builds passed, alongside 127 networking tests, 43 qualification/mode
+tests, 14 USB transfer/client regressions and the 351-file C gate. Aggregate RAM
+ceilings fit; unchanged module-approval checks remain failed. The merged Wi-Fi
+fixed application reservation is 155305/155648 bytes (343 bytes remaining).
+These checks accessed no board, serial port, live broker or BLE adapter. Linux CI
+and physical acceptance remain separate results. Historical records are retained.

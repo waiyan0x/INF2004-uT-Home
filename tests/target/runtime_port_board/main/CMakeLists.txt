@@ -1,5 +1,5 @@
 idf_component_register(SRCS "../discovery/discuart.c" "../discovery/disci2c.c" "../discovery/cfgdisc.c" "../config/cfgpump.c" "../hal/c3usb.c"
-                       "../hal/c3store.c" "../hal/storage/cfgpart.c" "../hal/storage/cfgslot.c" "../app/c3app.c" "../config/jsonscan.c" "../config/cfgjson.c" "../config/cfgplan.c" "../config/cfgdev.c" "../config/cfgrule.c" "../automation/rulecalc.c" "../config/cfgbind.c" "../hal/c3bind.c"
+                       "../hal/c3store.c" "../hal/storage/cfgpart.c" "../hal/storage/cfgslot.c" "../app/c3net.c" "../app/c3app.c" "../config/jsonscan.c" "../config/cfgjson.c" "../config/cfgplan.c" "../config/cfgdev.c" "../config/cfgrule.c" "../automation/rulecalc.c" "../config/cfgbind.c" "../hal/c3bind.c"
                        "../network/netring.c" "../network/netwait.c" "../network/netpool.c" "../network/netevent.c" "../hal/c3event.c" "../hal/c3ewait.c" "../hal/c3boot.c" "../hal/c3nq.c" "../hal/c3wifi.c" "../hal/c3bport.c"
                        "main.c" "nqcheck.c" "../runtime/tkport.c" "../runtime/stackmon.c" "../runtime/workcost.c" "../runtime/workmeter.c" "../hal/c3clock.c" "../hal/c3cost.c" "../services/costview.c" "../runtime/memaudit.c" "../hal/c3audit.c"
                        "../runtime/activate.c" "../runtime/shared.c" "../runtime/sampcache.c" "../services/statusmon.c" "../services/telemetry.c" "../services/oledview.c" "../services/oledwork.c" "../services/pwmwork.c"
@@ -19,7 +19,7 @@ idf_component_register(SRCS "../discovery/discuart.c" "../discovery/disci2c.c" "
                        "../drivers/hc_sr04.c" "../drivers/hcinst.c" "../drivers/pwminst.c"
                        "../hal/c3pulse.c" "../hal/c3pwm.c"
                        "../config/cfgbytes.c" "../config/cfgwire.c"
-                       "../config/cfgstore.c" "../config/cfgctrl.c"
+                       "../config/cfgstore.c" "../config/cfgmux.c" "../config/cfgctrl.c"
                        "../third_party/bmp3/bmp3.c"
                        INCLUDE_DIRS "../network" "../discovery" "../automation" "../services" "../app" "../config" "../runtime" "../include" "../hal/include"
                                     "../hal" "../drivers" "../third_party/bmp3"
@@ -30,6 +30,8 @@ idf_component_register(SRCS "../discovery/discuart.c" "../discovery/disci2c.c" "
 target_compile_definitions(${COMPONENT_LIB} PRIVATE UTHOME_RUNTIME_UTKERNEL=1
     UTHOME_CONFIGURATION_APP=$<BOOL:${UTHOME_CONFIGURATION_APP}>
     UTHOME_STATIC_NET_QUEUES=$<BOOL:${UTHOME_STATIC_NET_QUEUES}>
+    UTHOME_NETWORK_WIFI=$<BOOL:${UTHOME_NETWORK_WIFI}>
+    UTHOME_NETWORK_BLE=$<BOOL:${UTHOME_NETWORK_BLE}>
     UTHOME_WIFI_PROBE=$<BOOL:${UTHOME_WIFI_PROBE}>
     UTHOME_BLE_PROBE=$<BOOL:${UTHOME_BLE_PROBE}>
     UTHOME_BLE_GATT_PROBE=$<BOOL:${UTHOME_BLE_GATT_PROBE}>
@@ -51,6 +53,8 @@ set(UTHOME_WARNINGS -Wall -Wextra -Werror -Werror=extra
     -Werror=unused-but-set-variable -Werror=deprecated-declarations)
 set_source_files_properties("main.c" "../runtime/tkport.c"
     PROPERTIES COMPILE_OPTIONS "-std=c11;${UTHOME_WARNINGS}")
+set_source_files_properties("../app/c3net.c"
+    PROPERTIES COMPILE_OPTIONS "-std=c99;${UTHOME_WARNINGS}")
 set_source_files_properties("../discovery/discuart.c" "../discovery/disci2c.c" "../discovery/cfgdisc.c" "../config/cfgpump.c" "../hal/c3store.c" "../hal/storage/cfgpart.c" "../hal/storage/cfgslot.c"
     "../runtime/stackmon.c" "../runtime/workcost.c" "../runtime/workmeter.c" "../hal/c3clock.c" "../hal/c3cost.c" "../services/costview.c" "../runtime/memaudit.c" "../hal/c3audit.c"
     "../hal/c3usb.c" "../app/c3app.c" "../config/jsonscan.c" "../config/cfgjson.c" "../config/cfgplan.c" "../config/cfgdev.c" "../config/cfgrule.c" "../automation/rulecalc.c" "../config/cfgbind.c" "../hal/c3bind.c"
@@ -68,7 +72,7 @@ set_source_files_properties("../discovery/discuart.c" "../discovery/disci2c.c" "
     "../hal/pulseio.c" "../hal/pwmio.c"
     "../drivers/hc_sr04.c" "../drivers/hcinst.c" "../drivers/pwminst.c"
     "../config/cfgbytes.c" "../config/cfgwire.c"
-    "../config/cfgstore.c" "../config/cfgctrl.c"
+    "../config/cfgstore.c" "../config/cfgmux.c" "../config/cfgctrl.c"
     "../hal/c3bwait.c" "../hal/c3i2c.c" "../hal/c3spi.c"
     PROPERTIES COMPILE_OPTIONS "-std=c99;${UTHOME_WARNINGS}")
 # Pinned external LL headers use GNU typeof. The adapter's owned source is C99;
@@ -197,9 +201,12 @@ if(UTHOME_WIFI_PROBE OR UTHOME_BLE_PROBE OR UTHOME_MODEL_PROBE)
     # It is not run concurrently and this is not a combined-system acceptance.
     target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--undefined=c3app_run")
 endif()
-if(UTHOME_BLE_PROBE)
+# Both SDK-facing service archives borrow the existing native bridge.
+if(UTHOME_BLE_PROBE OR UTHOME_NETWORK_BLE OR UTHOME_NETWORK_WIFI)
     target_link_libraries(${COMPONENT_LIB} INTERFACE
         "-Wl,--undefined=c3bport_enter")
+endif()
+if(UTHOME_BLE_PROBE OR UTHOME_NETWORK_BLE)
     if(NOT CONFIG_BT_CTRL_RUN_IN_FLASH_ONLY)
         message(FATAL_ERROR "BLE diagnostic requires the SDK flash controller")
     endif()
@@ -248,4 +255,20 @@ set_source_files_properties("../loadmodel/ailite.c" "../loadmodel/aivects.c" "..
 if(UTHOME_MODEL_LOAD_PROBE)
     set_property(SOURCE "../app/c3app.c" APPEND PROPERTY COMPILE_DEFINITIONS
         costview_observe=aiload_observe)
+endif()
+
+# Guard experimental service capacity/security settings on every direct rebuild.
+if(UTHOME_NETWORK_BLE)
+    if(NOT CONFIG_BT_ENABLED OR NOT CONFIG_BT_NIMBLE_ENABLED OR
+       NOT CONFIG_BT_NIMBLE_ROLE_PERIPHERAL OR
+       NOT CONFIG_BT_NIMBLE_MAX_CONNECTIONS EQUAL 1 OR CONFIG_BT_NIMBLE_NVS_PERSIST)
+        message(FATAL_ERROR "Sensor GATT requires one peripheral connection and no NVS persistence")
+    endif()
+endif()
+if(UTHOME_NETWORK_WIFI)
+    if(NOT CONFIG_ESP_TLS_USING_MBEDTLS OR NOT CONFIG_MBEDTLS_TLS_SERVER OR
+       NOT CONFIG_MBEDTLS_SSL_PROTO_TLS1_2 OR CONFIG_ESP_WIFI_NVS_ENABLED OR
+       NOT CONFIG_LWIP_MAX_SOCKETS EQUAL 6 OR NOT CONFIG_LWIP_SO_REUSE)
+        message(FATAL_ERROR "HTTPS services require reviewed TLS/socket/RAM-only settings")
+    endif()
 endif()

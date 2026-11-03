@@ -91,10 +91,8 @@ jobs:
           echo "IDF_TOOLS_PATH=$RUNNER_TEMP/idf-tools" >> "$GITHUB_ENV"
           mkdir -p "$RUNNER_TEMP/uthome-ci"
           python - <<'PY'
-          import importlib.util, os
-          spec = importlib.util.spec_from_file_location("qualification", "tools/target/qualify_kernel.py")
-          module = importlib.util.module_from_spec(spec)
-          spec.loader.exec_module(module)
+          import os
+          from tools.target import qualify_kernel as module
           with open(os.environ["GITHUB_ENV"], "a") as output:
               output.write(f"UTHOME_SDK_REV={module.SDK_REVISION}\n")
               output.write(f"UTHOME_KERNEL_REV={module.KERNEL_REVISION}\n")

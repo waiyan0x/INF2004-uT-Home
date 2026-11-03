@@ -79,6 +79,19 @@ class QualificationTests(unittest.TestCase):
                         qualification.verify_managed_cjson(project)
                     path.write_bytes(original)
 
+    def test_services_reject_diagnostic_combinations_before_setup(self):
+        for diagnostic in ('model_load_probe', 'senlux_probe', 'senlux_app_probe',
+                           'wifi_probe', 'ble_probe', 'model_probe', 'native_uart_fixture'):
+            with self.subTest(diagnostic=diagnostic), tempfile.TemporaryDirectory() as folder:
+                work = Path(folder) / 'fresh'
+                with patch.object(qualification, 'inspect') as inspect:
+                    with self.assertRaises(qualification.QualificationError):
+                        build_with_flags(Path('kernel'), Path('sdk'), work,
+                            runtime_port=True, configuration_app=True, static_net_queues=True,
+                            network_services='ble', **{diagnostic: True})
+                    inspect.assert_not_called()
+                self.assertFalse(work.exists())
+
     def test_diagnostic_mode_rejects_paths_and_application_before_side_effects(self):
         cases = ({"static_net_queues": True},
                  {"static_net_queues": True, "runtime_port": True, "native_uart_fixture": True},
@@ -592,7 +605,7 @@ class QualificationTests(unittest.TestCase):
             defaults.parent.mkdir(parents=True)
             defaults.write_bytes(b"CONFIG_IDF_TARGET=\"esp32c3\"\n")
             project, sources = qualification.stage_runtime_port(work)
-            self.assertEqual(len(sources), 229)
+            self.assertEqual(len(sources), 255)
             for name in ('stackmon', 'workcost', 'workmeter'):
                 self.assertIn(f'firmware/src/runtime/{name}.c', sources)
                 self.assertIn(f'firmware/src/runtime/{name}.h', sources)

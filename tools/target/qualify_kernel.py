@@ -32,6 +32,34 @@ else:
     from build_modes import BuildMode, BuildSelection, QualificationError, UPSTREAM_EXAMPLES, resolve_mode
 
 RUNTIME_SOURCE_FILES = {
+    "firmware/src/config/cfgmux.c": "config/cfgmux.c",
+    "firmware/src/config/cfgmux.h": "config/cfgmux.h",
+    "firmware/src/network/netbroker.c": "network/netbroker.c",
+    "firmware/src/network/netbroker.h": "network/netbroker.h",
+    "firmware/hal/ports/esp32c3/c3mqtt.c": "hal/c3mqtt.c",
+    "firmware/hal/ports/esp32c3/c3mqtt.h": "hal/c3mqtt.h",
+    "firmware/src/network/netmqtt.c": "network/netmqtt.c",
+    "firmware/src/network/netmqtt.h": "network/netmqtt.h",
+    "firmware/src/network/netretry.c": "network/netretry.c",
+    "firmware/src/network/netretry.h": "network/netretry.h",
+    "firmware/src/network/nethttp.c": "network/nethttp.c",
+    "firmware/src/network/nethttp.h": "network/nethttp.h",
+    "firmware/src/network/netread.c": "network/netread.c",
+    "firmware/src/network/netread.h": "network/netread.h",
+    "firmware/src/network/netble.c": "network/netble.c",
+    "firmware/src/network/netble.h": "network/netble.h",
+    "firmware/hal/ports/esp32c3/c3wsta.c": "hal/c3wsta.c",
+    "firmware/hal/ports/esp32c3/c3wsta.h": "hal/c3wsta.h",
+    "firmware/hal/ports/esp32c3/c3https.c": "hal/c3https.c",
+    "firmware/hal/ports/esp32c3/c3https.h": "hal/c3https.h",
+    "firmware/hal/ports/esp32c3/c3gsvc.c": "hal/c3gsvc.c",
+    "firmware/hal/ports/esp32c3/c3gsvc.h": "hal/c3gsvc.h",
+    "firmware/app/c3net.c": "app/c3net.c",
+    "firmware/app/c3net.h": "app/c3net.h",
+    "tests/target/runtime_port_board/network.defaults": "network.defaults",
+    "tools/target/network_setup.py": "network_setup.py",
+
+
     "tests/target/runtime_port_board/loadmodel/ailite.c": "loadmodel/ailite.c",
     "tests/target/runtime_port_board/loadmodel/ailite.h": "loadmodel/ailite.h",
     "tests/target/runtime_port_board/loadmodel/aivects.c": "loadmodel/aivects.c",
@@ -632,13 +660,13 @@ def verify_compile_profiles(work):
         profiles[source] = expected
     for path, command in commands.items():
         adapted = "-Dasm=__asm__" in command
-        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c")}):
+        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c")}):
             raise QualificationError("SDK assembly spelling adaptation escaped its adapter")
-    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c"):
+    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c"):
         owned_radio = (work / "project/hal" / name).read_text()
         if re.search(r"\b(?:asm|__asm__|typeof|__typeof__)\b", owned_radio):
             raise QualificationError("Owned radio adapter must remain C99: " + name)
-    for name in ("c3ble.c", "c3gatt.c"):
+    for name in ("c3ble.c", "c3gatt.c", "c3gsvc.c"):
         ble_command = commands[(work / "project/hal" / name).resolve()].replace("\\", "/")
         if (work / "source/include").as_posix() in ble_command:
             raise QualificationError("Native sys/queue.h namespace leaked into NimBLE component")
@@ -781,7 +809,23 @@ def verify_runtime_snapshot(project, root=None):
             if sha256(path) != entry["sha256"]:
                 raise QualificationError(
                     f"Changed {label} project input: {path}; create a fresh qualification build")
+    if "network_setup" in manifest:
+        try:
+            network_setup_module().verify(project, manifest["network_setup"])
+        except (ValueError, OSError) as error:
+            raise QualificationError("Private network setup changed; use a fresh build") from error
     return manifest_path
+
+
+def network_setup_module():
+    """Load the snapshotted setup generator without modifying import paths."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        'uthome_network_setup', ROOT / 'tools/target/network_setup.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
 
 
 def stage_runtime_port(work):
@@ -882,8 +926,13 @@ def verify_senlux_app_probe(work, enabled):
     return {"enabled": enabled, "diagnostic_only": enabled}
 
 
-def build(kernel, sdk, work, *, selection=BuildSelection(), compat_patch=None, resource_patch=None):
+def build(kernel, sdk, work, *, selection=BuildSelection(), compat_patch=None, resource_patch=None, network_settings=None):
     """Build one resolved mode; CLI compatibility belongs to resolve_mode."""
+    network_services = selection.network_services
+    if network_services in ('wifi', 'both') and network_settings is None:
+        raise QualificationError('Wi-Fi services require --network-settings (private local JSON)')
+    if network_settings is not None and network_services not in ('wifi', 'both'):
+        raise QualificationError('Network settings require wifi/both service mode')
     example = selection.upstream_example
     no_spaces(work)
     if kernel == work or kernel in work.parents or sdk == work or sdk in work.parents:
@@ -923,6 +972,11 @@ def build(kernel, sdk, work, *, selection=BuildSelection(), compat_patch=None, r
         image_name = UPSTREAM_EXAMPLES[example]
         if selection.runtime_port:
             project, evidence["project_sources"] = stage_runtime_port(work)
+            if network_settings is not None:
+                try:
+                    network_setup_module().stage(project, network_settings)
+                except (ValueError, OSError) as error:
+                    raise QualificationError("Invalid private network setup; inspect local settings") from error
             manifest = verify_runtime_snapshot(project)
             evidence["source_manifest_sha256"] = sha256(manifest)
             image_name = "uthome_runtime_port"
@@ -1008,6 +1062,10 @@ def main(argv=None):
                         help="isolated UART fault fixture; requires runtime-port and disconnected UART peripherals")
     parser.add_argument("--static-net-queues", action="store_true",
                         help="experimental owned queue adapter; requires runtime-port, does not enable radios")
+    parser.add_argument("--network-services", choices=("ble", "wifi", "both"),
+                        help="experimental real app services, requires configuration-app + static-net-queues")
+    parser.add_argument("--network-settings", type=Path,
+                        help="private local Wi-Fi/TLS setup JSON; never put credentials in command arguments")
     parser.add_argument("--wifi-probe", action="store_true",
                         help="isolated scan-only Wi-Fi diagnostic; requires static-net-queues, never joins a network")
     parser.add_argument("--ble-probe", action="store_true",
@@ -1053,10 +1111,11 @@ def main(argv=None):
                 ble_probe=args.ble_probe, model_probe=args.model_probe,
                 ble_gatt_probe=args.ble_gatt_probe, ble_static_host=args.ble_static_host,
                 model_load_probe=args.model_load_probe, senlux_probe=args.senlux_probe,
-                senlux_app_probe=args.senlux_app_probe)
+                senlux_app_probe=args.senlux_app_probe, network_services=args.network_services)
             report = build(kernel, sdk, args.work_dir.resolve(), selection=selection,
                            compat_patch=args.compat_patch.resolve() if args.compat_patch else None,
-                           resource_patch=args.resource_patch.resolve() if args.resource_patch else None)
+                           resource_patch=args.resource_patch.resolve() if args.resource_patch else None,
+                           network_settings=args.network_settings.resolve() if args.network_settings else None)
             print(f"Build evidence: {report}\nPhysical board and application runtime remain untested.")
     except (QualificationError, OSError) as exc:
         print(str(exc), file=sys.stderr)

@@ -14,3 +14,6 @@ firmware/qualification/*2026103[01]*.json -text whitespace=cr-at-eol
 firmware/qualification/logs/*2026102[67]*.log -text
 # Frozen model fixtures are referenced by qualification hashes.
 tests/target/runtime_port_board/loadmodel/*.json -text whitespace=cr-at-eol
+
+# Preserve networking qualification capture bytes and their historical hashes.
+firmware/qualification/*2026110[123]*.json -text whitespace=cr-at-eol
