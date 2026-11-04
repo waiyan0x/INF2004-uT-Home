@@ -27,6 +27,7 @@ typedef struct
 typedef struct
 {
     spibus_t         bus;
+    bool             b_clock_fail;
     uint64_t         now_ms;
     uint32_t         transfer_ms;
     unsigned         transfers;

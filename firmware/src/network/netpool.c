@@ -92,51 +92,46 @@ void * netpool_create (netpool_t *    p_pool,
         /* Queue slots have dedicated fixed payload buffers. */
     }
     saved = p_pool->ops.p_enter(p_pool->ops.p_context);
-    if (NETPOOL_SLOTS == find_slot(p_pool, p_static_key))
+    if (NETPOOL_SLOTS != find_slot(p_pool, p_static_key))
     {
-        for (uint32_t index = first; index < limit; ++index)
+        p_pool->ops.p_leave(p_pool->ops.p_context, saved);
+        return NULL;
+    }
+    for (uint32_t index = first; index < limit; ++index)
+    {
+        netpool_slot_t * p_slot = &p_pool->slots[index];
+        if (p_slot->b_live)
         {
-            netpool_slot_t * p_slot = &p_pool->slots[index];
-            if (!p_slot->b_live)
-            {
-                int    result = 0;
-                void * p_candidate_key =
-                    (NULL == p_static_key) ? p_slot : p_static_key;
-                if (NETPOOL_SLOTS != find_slot(p_pool, p_candidate_key))
-                {
-                    break;
-                }
-                if (NETPOOL_QUEUE == kind)
-                {
-                    result =
-                        netring_init(&p_slot->ring,
-                                     (NULL == p_storage)
-                                         ? &p_pool->storage[queue_offset(index)]
-                                         : p_storage,
-                                     (NULL == p_storage) ? queue_bytes(index)
-                                                         : storage_bytes,
-                                     capacity,
-                                     item_bytes);
-                }
-                if (0 == result)
-                {
-                    p_slot->p_key =
-                        (NULL == p_static_key) ? p_slot : p_static_key;
-                    p_slot->kind     = kind;
-                    p_slot->capacity = capacity;
-                    p_slot->count    = initial_count;
-                    p_slot->users    = 0U;
-                    p_slot->owner    = 0U;
-                    p_slot->depth    = 0U;
-                    p_slot->b_live   = true;
-                    p_key            = p_slot->p_key;
-                    break;
-                }
-                /* Try the next free fixed-size partition, never a heap
-                 * fallback.
-                 */
-            }
+            continue;
         }
+        void * p_candidate_key = (NULL == p_static_key) ? p_slot : p_static_key;
+        if (NETPOOL_SLOTS != find_slot(p_pool, p_candidate_key))
+        {
+            break;
+        }
+        if ((NETPOOL_QUEUE == kind) &&
+            (0 != netring_init(&p_slot->ring,
+                               (NULL == p_storage)
+                                   ? &p_pool->storage[queue_offset(index)]
+                                   : p_storage,
+                               (NULL == p_storage) ? queue_bytes(index)
+                                                   : storage_bytes,
+                               capacity,
+                               item_bytes)))
+        {
+            /* Try the next fixed partition; no heap fallback. */
+            continue;
+        }
+        p_slot->p_key    = p_candidate_key;
+        p_slot->kind     = kind;
+        p_slot->capacity = capacity;
+        p_slot->count    = initial_count;
+        p_slot->users    = 0U;
+        p_slot->owner    = 0U;
+        p_slot->depth    = 0U;
+        p_slot->b_live   = true;
+        p_key            = p_candidate_key;
+        break;
     }
     p_pool->ops.p_leave(p_pool->ops.p_context, saved);
     return p_key;

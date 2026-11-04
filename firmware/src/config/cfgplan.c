@@ -5,7 +5,15 @@
 #include "cfgplan.h"
 #include "cfgdev.h"
 #include "cfgrule.h"
+#include "uthome/sample.h"
 #include <string.h>
+
+typedef struct
+{
+    const char *  p_name;
+    sample_type_t type;
+} cfgplan_sample_t;
+
 static bool common (const cfgjson_value_t * p_root, cfgplan_t * p_plan);
 static bool buses (const cfgjson_value_t * p_array, cfgplan_t * p_plan);
 static bool bus (const cfgjson_value_t * p_value, cfgplan_bus_t * p_bus);
@@ -32,6 +40,14 @@ int cfgplan_read (const uint8_t * p_data,
     bool b_ok = (common(p_root, p_candidate)) &&
                 (buses(cfgjson_get(p_root, "interfaces"), p_candidate)) &&
                 (queues(cfgjson_get(p_root, "queues"), p_candidate));
+    for (size_t index = 0U; b_ok && (index < p_candidate->queue_count); ++index)
+    {
+        if ((UTHOME_SAMPLE_LIGHT == p_candidate->queues[index].type) &&
+            (0U == (compiled_mask & (UINT32_C(1) << CFGPLAN_LIGHT))))
+        {
+            b_ok = false;
+        }
+    }
     const cfgjson_value_t * p_devices = cfgjson_get(p_root, "devices");
     b_ok                              = b_ok &&
            (cfgjson_array(
@@ -224,15 +240,17 @@ static bool buses (const cfgjson_value_t * p_array, cfgplan_t * p_plan)
     return true;
 }
 
-/** @brief Resolve supported copied sample p_types and bounded FIFO policy. */
+/** @brief Resolve supported copied sample types and bounded FIFO policy. */
 static bool queues (const cfgjson_value_t * p_array, cfgplan_t * p_plan)
 {
     static const char * const p_keys[] = {
         "id", "item_type", "depth", "overflow_policy"};
-    static const char * const p_types[] = {"environment_sample",
-                                           "target_report",
-                                           "distance_sample",
-                                           "health_event"};
+    static const cfgplan_sample_t samples[] = {
+        {"environment_sample", UTHOME_SAMPLE_ENVIRONMENT},
+        {"target_report", UTHOME_SAMPLE_TARGETS},
+        {"distance_sample", UTHOME_SAMPLE_DISTANCE},
+        {"health_event", UTHOME_SAMPLE_HEALTH},
+        {"light_sample", UTHOME_SAMPLE_LIGHT}};
     if (!(cfgjson_array(p_array, UTHOME_PLAN_QUEUES, &p_plan->queue_count)))
     {
         return false;
@@ -252,12 +270,15 @@ static bool queues (const cfgjson_value_t * p_array, cfgplan_t * p_plan)
         {
             return false;
         }
-        for (size_t type = 0U; type < 4U; ++type)
+        for (size_t type = 0U; type < (sizeof(samples) / sizeof(samples[0]));
+             ++type)
         {
-            if ((cfgjson_is(cfgjson_get(p_value, "item_type"), p_types[type])))
+            if (cfgjson_is(cfgjson_get(p_value, "item_type"),
+                           samples[type].p_name))
             {
-                p_queue->type = (uint32_t)type + 1U;
-            } /* Four supported sample IDs. */
+                p_queue->type = samples[type].type;
+                break;
+            }
         }
         if (0U == p_queue->type)
         {
@@ -303,7 +324,8 @@ static bool wiring (const cfgplan_t * p_plan)
     for (size_t index = 0U; index < p_plan->device_count; ++index)
     {
         const cfgplan_device_t * p_device = &p_plan->devices[index];
-        if ((CFGPLAN_PWM == p_device->driver) &&
+        if (((CFGPLAN_PWM == p_device->driver) ||
+             (CFGPLAN_LIGHT == p_device->driver)) &&
             (!claim(&pins, p_device->pin_a, false)))
         {
             return false;

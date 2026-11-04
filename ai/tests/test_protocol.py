@@ -10,15 +10,14 @@ import zlib
 
 from ai import workload
 from ai.export import export_c
-from ai.model import context
-from ai.protocol_model import predict, recommend, train, validate_model
-from ai.protocol_capture import collect
-from ai.protocol_study import dataset, observe_peers, prepare_study, validate_study
+from ai.protocol.model import predict, recommend, train, validate_model
+from ai.protocol.capture import collect
+from ai.protocol.study import dataset, observe_peers, prepare_study, validate_study
 from ai.provenance import make_identity, make_receipt
 from ai.recording import load_recording, record_run
 from ai.tests.test_recording import Board, Clock
-from ai.timing import canonical, digest, export_profile, prepare
-from tools.config_validator.planner import Catalogue, ConfigurationError, ROOT, build_plan, load_document
+from ai.timing import export_profile, prepare
+from tools.config_validator.planner import ConfigurationError, ROOT, build_plan, load_document
 
 
 class ProtocolTests(unittest.TestCase):
@@ -189,13 +188,13 @@ class ProtocolTests(unittest.TestCase):
 
     def test_training_never_uses_test_labels_and_old_c_export_refuses_new_contract(self):
         data = self.fixture_dataset()
-        with patch("ai.protocol_model.dataset", return_value=data):
+        with patch("ai.protocol.model.dataset", return_value=data):
             model, report, _ = train(self.study, [])
         changed = deepcopy(data)
         for row in changed["rows"]:
             if row["family_id"] in self.study["split"]["test"]:
                 row["label"] = 1 - row["label"]
-        with patch("ai.protocol_model.dataset", return_value=changed):
+        with patch("ai.protocol.model.dataset", return_value=changed):
             other, _, _ = train(self.study, [])
         self.assertEqual(model["nodes"], other["nodes"])
         self.assertEqual(model["domain"], other["domain"])
@@ -207,7 +206,7 @@ class ProtocolTests(unittest.TestCase):
             self.assertFalse((Path(root) / "unsupported").exists())
 
     def test_model_abstains_on_context_or_domain_change_and_rejects_cycles(self):
-        with patch("ai.protocol_model.dataset", return_value=self.fixture_dataset()):
+        with patch("ai.protocol.model.dataset", return_value=self.fixture_dataset()):
             model, _, _ = train(self.study, [])
         experiment = self.experiment()
         self.assertEqual(recommend(model, experiment)["interval_ms"], 500)
@@ -230,34 +229,51 @@ class ProtocolTests(unittest.TestCase):
         crc = zlib.crc32(raw)
         workflow = Mock()
         workflow.client = Board(Clock())
-        def dispatch(action, body):
-            if action == "connect":
-                return dict(state=dict(active_crc=crc, saved_crc=crc, flags=80))
-            if action == "review":
-                return dict(review_id="restore")
-            if action == "apply":
-                return dict(status=1, active_crc=crc, saved_crc=crc)
-            raise AssertionError(action)
-        workflow.dispatch.side_effect = dispatch
+        def connect(*, port):
+            workflow.client = Board(Clock())
+            return dict(state=dict(active_crc=crc, saved_crc=crc, flags=80))
+        workflow.connect.side_effect = connect
+        workflow.review.return_value = dict(review_id='restore')
+        workflow.apply.return_value = dict(status=1, active_crc=crc, saved_crc=crc)
+        workflow.dispatch.side_effect = AssertionError('Capture must use named operations')
+        workflow.close.side_effect = lambda **kwargs: setattr(workflow, "client", None)
         with tempfile.TemporaryDirectory() as root:
-            with patch("ai.protocol_capture.apply_trial", return_value={}) as apply_mock:
-                with patch("ai.protocol_capture.record_run", side_effect=OSError("test_disconnect")) as capture_mock:
+            with patch("ai.protocol.capture.apply_trial", return_value={}) as apply_mock:
+                with patch("ai.protocol.capture.record_run", side_effect=OSError("test_disconnect")) as capture_mock:
                     result = collect(workflow, "TEST-ONLY", self.study, self.identity, self.profile, Path(root)/"capture", ["all-current"])
             self.assertEqual(result["error"], "test_disconnect")
             self.assertTrue(result["restored"])
             self.assertEqual(apply_mock.call_count, 1)
             self.assertEqual(capture_mock.call_count, 1)
-            workflow.close.assert_called_once()
+            self.assertEqual(workflow.close.call_count, 2)
+            self.assertEqual([call[0] for call in workflow.method_calls if call[0] in ("connect", "review", "apply")],
+                             ["connect", "connect", "review", "apply"])
+
+    def test_cleanup_failure_does_not_lose_primary_error_or_summary(self):
+        workflow = Mock()
+        workflow.connect.return_value = dict(state=dict(active_crc=0, saved_crc=0, flags=80))
+        workflow.close.side_effect = OSError("close_failed")
+        with tempfile.TemporaryDirectory() as root:
+            folder = Path(root) / "capture"
+            result = collect(workflow, "TEST-ONLY", self.study, self.identity,
+                             self.profile, folder, ["all-current"])
+            self.assertIn("does not match", result["error"])
+            self.assertEqual(result["close_error"], "close_failed")
+            self.assertFalse(result["restored"])
+            self.assertEqual(json.loads((folder / "summary.json").read_text()), result)
+            self.assertIn("finished_utc", result)
 
     def test_changed_baseline_never_applies_a_trial(self):
         workflow = Mock()
-        workflow.dispatch.return_value = dict(state=dict(active_crc=0, saved_crc=0, flags=80))
+        workflow.connect.return_value = dict(state=dict(active_crc=0, saved_crc=0, flags=80))
         with tempfile.TemporaryDirectory() as root:
-            with patch("ai.protocol_capture.apply_trial") as apply_mock:
+            with patch("ai.protocol.capture.apply_trial") as apply_mock:
                 result = collect(workflow, "TEST-ONLY", self.study, self.identity, self.profile, Path(root)/"capture", ["all-current"])
             self.assertIn("does not match", result["error"])
             apply_mock.assert_not_called()
-            self.assertEqual(workflow.dispatch.call_count, 1)
+            workflow.connect.assert_called_once_with(port="TEST-ONLY")
+            workflow.review.assert_not_called()
+            workflow.apply.assert_not_called()
 
 
 if __name__ == "__main__":

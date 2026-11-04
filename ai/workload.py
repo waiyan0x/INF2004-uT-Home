@@ -7,6 +7,7 @@ from copy import deepcopy
 
 from ai.records import FEATURES as BASE_FEATURES, FEATURE_LIMITS as BASE_LIMITS, features as base_features
 from ai.timing import digest, export_profile
+from ai.provenance import context_fingerprint
 from tools.config_validator.planner import Catalogue, ConfigurationError, require
 
 
@@ -110,13 +111,12 @@ def fallback(experiment, reason):
                               goal_guaranteed=False, automatic_apply=False))
 
 
-def compatibility(experiment):
+def workload_fingerprint(experiment):
     """Keep omitted characteristics guarded while allowing studied rate/speed changes.
 
     Device/build provenance remains mandatory. Payload geometry, queue depths,
     priorities, timeouts and topology cannot silently change behind the features.
     """
-    from ai.model import context
     masked = deepcopy(experiment)
     for bus in masked["profile"]["interfaces"]:
         if bus["protocol"] in ("i2c", "spi"):
@@ -125,7 +125,7 @@ def compatibility(experiment):
         behaviour = device["behaviour"]
         if "refresh_interval_ms" in behaviour:
             behaviour["refresh_interval_ms"] = 0
-    return digest(dict(provenance=context(experiment), fixed_workload=family_key(masked)))
+    return digest(dict(provenance=context_fingerprint(experiment), fixed_workload=family_key(masked)))
 
 
 def coverage(experiment, interval, catalogue=None):

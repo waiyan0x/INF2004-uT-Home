@@ -8,59 +8,30 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "spibus.h"
+#include "buslife.h"
 
-/* Permanent lifecycle. Only spiown_init leaves UNINIT, exactly once. */
-typedef enum
-{
-    SPIOWN_UNINIT = 0,
-    SPIOWN_READY  = 1,
-    SPIOWN_FAILED = 2
-} spiown_status_t;
+/* Shared lifecycle storage preserves the permanent state footprint. */
+typedef buslife_status_t spiown_status_t;
+typedef buslife_phase_t  spiown_phase_t;
+typedef buslife_create_t spiown_create_t;
+typedef buslife_owner_t  spiown_owner_t;
+typedef buslife_lock_t   spiown_lock_t;
+typedef buslife_unlock_t spiown_unlock_t;
+typedef buslife_start_t  spiown_start_t;
+typedef buslife_stop_t   spiown_stop_t;
+typedef buslife_ops_t    spiown_ops_t;
+typedef buslife_t        spiown_t;
 
-/* Session phase. RETAINED means cleanup failed: retry close, never reuse. */
-typedef enum
-{
-    SPIOWN_CLOSED   = 0,
-    SPIOWN_OPEN     = 1,
-    SPIOWN_RETAINED = 2
-} spiown_phase_t;
+#define SPIOWN_UNINIT   BUSLIFE_UNINIT
+#define SPIOWN_READY    BUSLIFE_READY
+#define SPIOWN_FAILED   BUSLIFE_FAILED
+#define SPIOWN_CLOSED   BUSLIFE_CLOSED
+#define SPIOWN_OPEN     BUSLIFE_OPEN
+#define SPIOWN_RETAINED BUSLIFE_RETAINED
 
-/* Create the permanent lock; called at most once, during spiown_init. */
-typedef int spiown_create_t (void * p_context);
-/* Report whether the caller is the serialized lifecycle owner. */
-typedef bool spiown_owner_t (void * p_context);
-/* Lock within timeout_ms; zero polls. Return 0, SPIBUS_TIMEOUT or a failure.
+/* p_start receives the settings supplied through the typed wrapper below.
+ * Operations and context remain alive for the program lifetime.
  */
-typedef int spiown_lock_t (void * p_context, uint32_t timeout_ms);
-typedef int spiown_unlock_t (void * p_context);
-/* Acquire pins and start the controller from the adapter's own validated
- * settings. Failure must leave neither held.
- */
-typedef int spiown_start_t (void * p_context, const void * p_settings);
-/* Stop the controller and release pins. Failure keeps pin ownership. */
-typedef int spiown_stop_t (void * p_context);
-
-typedef struct
-{
-    spiown_create_t * p_create;
-    spiown_owner_t *  p_owner;
-    spiown_lock_t *   p_lock;
-    spiown_unlock_t * p_unlock;
-    spiown_start_t *  p_start;
-    spiown_stop_t *   p_stop;
-} spiown_ops_t;
-
-/* Zero-initialize permanent storage. Phase changes happen with the lock held.
- * Operations and context remain alive for the life of the program.
- */
-typedef struct
-{
-    const spiown_ops_t * p_operations;
-    void *               p_context;
-    spiown_status_t      status;
-    spiown_phase_t       phase;
-} spiown_t;
-
 /* Call once during startup, before any open or transfer. Later calls never
  * create another lock: they return 0 after success or SPIBUS_STATE after a
  * failed initialization, which leaves the bus unavailable until reboot.

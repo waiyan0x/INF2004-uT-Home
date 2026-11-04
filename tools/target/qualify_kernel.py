@@ -25,17 +25,52 @@ COMPILER_PACKAGE = "esp-15.2.0_20251204"
 # cfgpart's independent host tests match this digest and attack every byte.
 CONFIGURATION_TABLE_SHA256 = "7f7b089b96a3f7c3d7c431bd974909909e60a2bb8bdf4bb6802e9edbb6d9167e"
 
-# Read-only diagnostic builds of pinned examples, never application acceptance.
-UPSTREAM_EXAMPLES = {
-    "tasks": "mtk3c3_tasks",
-    "ble_gatt": "mtk3c3_ble_gatt",
-    "udp_pingpong_c3": "udp_pingpong_c3",
-}
+# Support both the documented script command and package imports in host tests.
+if __package__:
+    from .build_modes import BuildMode, BuildSelection, QualificationError, UPSTREAM_EXAMPLES, resolve_mode
+else:
+    from build_modes import BuildMode, BuildSelection, QualificationError, UPSTREAM_EXAMPLES, resolve_mode
 
 RUNTIME_SOURCE_FILES = {
+    "firmware/src/config/cfgmux.c": "config/cfgmux.c",
+    "firmware/src/config/cfgmux.h": "config/cfgmux.h",
+    "firmware/src/network/netbroker.c": "network/netbroker.c",
+    "firmware/src/network/netbroker.h": "network/netbroker.h",
+    "firmware/hal/ports/esp32c3/c3mqtt.c": "hal/c3mqtt.c",
+    "firmware/hal/ports/esp32c3/c3mqtt.h": "hal/c3mqtt.h",
+    "firmware/src/network/netmqtt.c": "network/netmqtt.c",
+    "firmware/src/network/netmqtt.h": "network/netmqtt.h",
+    "firmware/src/network/netretry.c": "network/netretry.c",
+    "firmware/src/network/netretry.h": "network/netretry.h",
+    "firmware/src/network/nethttp.c": "network/nethttp.c",
+    "firmware/src/network/nethttp.h": "network/nethttp.h",
+    "firmware/src/network/netread.c": "network/netread.c",
+    "firmware/src/network/netread.h": "network/netread.h",
+    "firmware/src/network/netble.c": "network/netble.c",
+    "firmware/src/network/netble.h": "network/netble.h",
+    "firmware/hal/ports/esp32c3/c3wsta.c": "hal/c3wsta.c",
+    "firmware/hal/ports/esp32c3/c3wsta.h": "hal/c3wsta.h",
+    "firmware/hal/ports/esp32c3/c3https.c": "hal/c3https.c",
+    "firmware/hal/ports/esp32c3/c3https.h": "hal/c3https.h",
+    "firmware/hal/ports/esp32c3/c3gsvc.c": "hal/c3gsvc.c",
+    "firmware/hal/ports/esp32c3/c3gsvc.h": "hal/c3gsvc.h",
+    "firmware/app/c3net.c": "app/c3net.c",
+    "firmware/app/c3net.h": "app/c3net.h",
+    "tests/target/runtime_port_board/network.defaults": "network.defaults",
+    "tools/target/network_setup.py": "network_setup.py",
+
+
+    "tests/target/runtime_port_board/loadmodel/ailite.c": "loadmodel/ailite.c",
+    "tests/target/runtime_port_board/loadmodel/ailite.h": "loadmodel/ailite.h",
+    "tests/target/runtime_port_board/loadmodel/aivects.c": "loadmodel/aivects.c",
+    "tests/target/runtime_port_board/loadmodel/aivects.h": "loadmodel/aivects.h",
+    "tests/target/runtime_port_board/loadmodel/aiload.c": "loadmodel/aiload.c",
+    "tests/target/runtime_port_board/loadmodel/aiload.h": "loadmodel/aiload.h",
+    "tests/target/runtime_port_board/loadmodel/model.json": "loadmodel/model.json",
+    "tests/target/runtime_port_board/loadmodel/fixture.json": "loadmodel/fixture.json",
     "tests/target/runtime_port_board/ble-static.defaults": "ble-static.defaults",
-    "firmware/hal/ports/esp32c3/c3gatt.c": "hal/c3gatt.c",
-    "firmware/hal/ports/esp32c3/c3gatt.h": "hal/c3gatt.h",
+    "firmware/hal/ports/esp32c3/network/c3gatt.c": "hal/c3gatt.c",
+    "firmware/hal/ports/esp32c3/network/c3gatt.h": "hal/c3gatt.h",
     "tests/target/runtime_port_board/ble-gatt.defaults": "ble-gatt.defaults",
     "tests/target/runtime_port_board/model/model.json": "model/model.json",
     "tests/target/runtime_port_board/model/aifrozen.c": "model/aifrozen.c",
@@ -45,22 +80,24 @@ RUNTIME_SOURCE_FILES = {
     "tests/target/runtime_port_board/model/aiprobe.c": "model/aiprobe.c",
     "tests/target/runtime_port_board/model/aiprobe.h": "model/aiprobe.h",
     "tests/target/runtime_port_board/model/fixture.json": "model/fixture.json",
-    "firmware/hal/ports/esp32c3/c3bport.c": "hal/c3bport.c",
-    "firmware/hal/ports/esp32c3/c3bport.h": "hal/c3bport.h",
+    "firmware/hal/ports/esp32c3/network/c3bport.c": "hal/c3bport.c",
+    "firmware/hal/ports/esp32c3/network/c3bport.h": "hal/c3bport.h",
     "tests/target/runtime_port_board/radio/CMakeLists.txt": "components/uthome_radio/CMakeLists.txt",
-    "firmware/hal/ports/esp32c3/c3ble.c": "hal/c3ble.c",
-    "firmware/hal/ports/esp32c3/c3ble.h": "hal/c3ble.h",
+    "firmware/hal/ports/esp32c3/network/c3ble.c": "hal/c3ble.c",
+    "firmware/hal/ports/esp32c3/network/c3ble.h": "hal/c3ble.h",
     "tests/target/runtime_port_board/ble.defaults": "ble.defaults",
-    "firmware/hal/ports/esp32c3/c3boot.c": "hal/c3boot.c",
-    "firmware/hal/ports/esp32c3/c3boot.h": "hal/c3boot.h",
-    "firmware/hal/ports/esp32c3/c3event.c": "hal/c3event.c",
-    "firmware/hal/ports/esp32c3/c3event.h": "hal/c3event.h",
+    "firmware/hal/ports/esp32c3/network/c3boot.c": "hal/c3boot.c",
+    "firmware/hal/ports/esp32c3/network/c3boot.h": "hal/c3boot.h",
+    "firmware/hal/ports/esp32c3/network/c3ewait.c": "hal/c3ewait.c",
+    "firmware/hal/ports/esp32c3/network/c3ewait.h": "hal/c3ewait.h",
+    "firmware/hal/ports/esp32c3/network/c3event.c": "hal/c3event.c",
+    "firmware/hal/ports/esp32c3/network/c3event.h": "hal/c3event.h",
     "firmware/hal/ports/esp32c3/c3task.c": "hal/c3task.c",
     "firmware/hal/ports/esp32c3/c3task.h": "hal/c3task.h",
     "firmware/src/network/netevent.c": "network/netevent.c",
     "firmware/src/network/netevent.h": "network/netevent.h",
-    "firmware/hal/ports/esp32c3/c3wifi.c": "hal/c3wifi.c",
-    "firmware/hal/ports/esp32c3/c3wifi.h": "hal/c3wifi.h",
+    "firmware/hal/ports/esp32c3/network/c3wifi.c": "hal/c3wifi.c",
+    "firmware/hal/ports/esp32c3/network/c3wifi.h": "hal/c3wifi.h",
     "tests/target/runtime_port_board/wifi.defaults": "wifi.defaults",
     "tests/target/runtime_port_board/main/nqcheck.c": "main/nqcheck.c",
     "tests/target/runtime_port_board/main/nqcheck.h": "main/nqcheck.h",
@@ -70,8 +107,8 @@ RUNTIME_SOURCE_FILES = {
     'firmware/src/network/netwait.h': 'network/netwait.h',
     'firmware/src/network/netpool.c': 'network/netpool.c',
     'firmware/src/network/netpool.h': 'network/netpool.h',
-    'firmware/hal/ports/esp32c3/c3nq.c': 'hal/c3nq.c',
-    'firmware/hal/ports/esp32c3/c3nq.h': 'hal/c3nq.h',
+    'firmware/hal/ports/esp32c3/network/c3nq.c': 'hal/c3nq.c',
+    'firmware/hal/ports/esp32c3/network/c3nq.h': 'hal/c3nq.h',
     'tests/target/runtime_port_board/main/netqueue.cmake': 'main/netqueue.cmake',
     'tests/target/runtime_port_board/main/netqueue.lf': 'main/netqueue.lf',
     "firmware/src/runtime/stackmon.c": "runtime/stackmon.c",
@@ -92,8 +129,10 @@ RUNTIME_SOURCE_FILES = {
     "firmware/hal/ports/esp32c3/c3audit.h": "hal/c3audit.h",
     "tests/target/runtime_port_board/main/audit.lf": "main/audit.lf",
     "tests/target/runtime_port_board/audit.defaults": "audit.defaults",
-    "firmware/src/config/cfgpart.c": "config/cfgpart.c",
-    "firmware/src/config/cfgpart.h": "config/cfgpart.h",
+    "firmware/hal/ports/esp32c3/storage/cfgpart.c": "hal/storage/cfgpart.c",
+    "firmware/hal/ports/esp32c3/storage/cfgslot.c": "hal/storage/cfgslot.c",
+    "firmware/hal/ports/esp32c3/storage/cfgslot.h": "hal/storage/cfgslot.h",
+    "firmware/hal/ports/esp32c3/storage/cfgpart.h": "hal/storage/cfgpart.h",
     "tests/target/runtime_port_board/main/uartcheck.c": "main/uartcheck.c",
     "tests/target/runtime_port_board/main/uartcheck.h": "main/uartcheck.h",
     "firmware/hal/ports/esp32c3/c3umem.c": "hal/c3umem.c",
@@ -104,16 +143,20 @@ RUNTIME_SOURCE_FILES = {
     "firmware/src/discovery/disci2c.h": "discovery/disci2c.h",
     "firmware/src/discovery/cfgdisc.c": "discovery/cfgdisc.c",
     "firmware/src/discovery/cfgdisc.h": "discovery/cfgdisc.h",
-    "firmware/src/services/oledview.c": "services/oledview.c",
-    "firmware/src/services/oledview.h": "services/oledview.h",
+    "firmware/src/services/display/oledview.c": "services/oledview.c",
+    "firmware/src/services/display/oledview.h": "services/oledview.h",
+    "firmware/src/services/display/oledwork.c": "services/oledwork.c",
+    "firmware/src/services/display/oledwork.h": "services/oledwork.h",
+    "firmware/src/services/actuator/pwmwork.c": "services/pwmwork.c",
+    "firmware/src/services/actuator/pwmwork.h": "services/pwmwork.h",
     "firmware/src/services/telemetry.c": "services/telemetry.c",
     "firmware/src/services/telemetry.h": "services/telemetry.h",
 
     "firmware/src/services/statusmon.c": "services/statusmon.c",
     "firmware/src/services/statusmon.h": "services/statusmon.h",
 
-    "firmware/src/services/sampcache.c": "services/sampcache.c",
-    "firmware/src/services/sampcache.h": "services/sampcache.h",
+    "firmware/src/runtime/sampcache.c": "runtime/sampcache.c",
+    "firmware/src/runtime/sampcache.h": "runtime/sampcache.h",
 
     "firmware/src/config/cfgpump.c": "config/cfgpump.c",
     "firmware/src/config/cfgpump.h": "config/cfgpump.h",
@@ -210,6 +253,12 @@ RUNTIME_SOURCE_FILES = {
     "firmware/hal/i2cbus.c": "hal/i2cbus.c",
     "firmware/hal/include/i2cown.h": "hal/include/i2cown.h",
     "firmware/hal/i2cown.c": "hal/i2cown.c",
+    "firmware/hal/include/buslife.h": "hal/include/buslife.h",
+    "firmware/hal/buslife.c": "hal/buslife.c",
+    "firmware/hal/bootonce.c": "hal/bootonce.c",
+    "firmware/hal/include/bootonce.h": "hal/include/bootonce.h",
+    "firmware/hal/ports/esp32c3/c3ukern.c": "hal/c3ukern.c",
+    "firmware/hal/ports/esp32c3/c3ukern.h": "hal/c3ukern.h",
     "firmware/hal/include/pinpool.h": "hal/include/pinpool.h",
     "firmware/hal/pinpool.c": "hal/pinpool.c",
     "firmware/hal/include/digiout.h": "hal/include/digiout.h",
@@ -227,6 +276,18 @@ RUNTIME_SOURCE_FILES = {
     "firmware/drivers/ssd1306_spi/oledinst.c": "drivers/oledinst.c",
     "firmware/hal/ports/esp32c3/c3i2c.h": "hal/c3i2c.h",
     "firmware/hal/ports/esp32c3/c3i2c.c": "hal/c3i2c.c",
+    "firmware/hal/ports/esp32c3/c3bwait.c": "hal/c3bwait.c",
+    "firmware/hal/ports/esp32c3/c3bwait.h": "hal/c3bwait.h",
+    "firmware/hal/ports/esp32c3/c3ihw.c": "hal/c3ihw.c",
+    "firmware/hal/ports/esp32c3/c3ihw.h": "hal/c3ihw.h",
+    "firmware/hal/ports/esp32c3/c3shw.c": "hal/c3shw.c",
+    "firmware/hal/ports/esp32c3/c3shw.h": "hal/c3shw.h",
+    "firmware/drivers/generic_i2c/geni2c.h": "drivers/geni2c.h",
+    "firmware/drivers/generic_i2c/geni2c.c": "drivers/geni2c.c",
+    "firmware/drivers/generic_i2c/senlux.h": "drivers/senlux.h",
+    "firmware/drivers/generic_i2c/senlux.c": "drivers/senlux.c",
+    "firmware/drivers/generic_i2c/seninst.h": "drivers/seninst.h",
+    "firmware/drivers/generic_i2c/seninst.c": "drivers/seninst.c",
     "firmware/drivers/bmp388/bmp388.h": "drivers/bmp388.h",
     "firmware/drivers/bmp388/bmp388.c": "drivers/bmp388.c",
     "firmware/drivers/bmp388/bmpinst.h": "drivers/bmpinst.h",
@@ -235,10 +296,6 @@ RUNTIME_SOURCE_FILES = {
     "firmware/third_party/bmp3/bmp3.c": "third_party/bmp3/bmp3.c",
     "firmware/third_party/bmp3/bmp3_defs.h": "third_party/bmp3/bmp3_defs.h",
 }
-
-
-class QualificationError(RuntimeError):
-    pass
 
 
 def check_compiler_flags(command, expected_standard):
@@ -297,10 +354,14 @@ def verify_uart_fault_hook(commands, project):
     native_uart = selections[0] == "1"
     if application and native_uart:
         raise QualificationError("Application cannot include native UART fixture")
-    uart = commands.get((project / "hal/c3uart.c").resolve(), "")
+    native_source = (project / "hal/c3ukern.c").resolve()
+    uart = commands.get(native_source, "")
     hooks = re.findall(r'(?:^|\s)-D\s*"?tk_srea_dev=([A-Za-z_]\w*)"?', uart)
     if hooks != (["uartcheck_read"] if native_uart else []):
         raise QualificationError("Invalid UART fault-injection build scope")
+    for source, command in commands.items():
+        if source != native_source and re.search(r'(?:^|\s)-D\s*"?tk_srea_dev=', command):
+            raise QualificationError("UART read hook escaped its native boundary")
     test_present = (project / "main/uartcheck.c").resolve() in commands
     if test_present != native_uart:
         raise QualificationError("UART acceptance source does not match build mode")
@@ -377,6 +438,47 @@ def check_audit_symbols(symbols):
         # implementations. A zero alias is valid only for such an unused pair.
         retained[original] = bool(address)
     return retained
+
+
+def verify_wifi_probe(work):
+    """Require the diagnostic-only Wi-Fi storage and tick settings."""
+    config_lines = set((work / "sdkconfig").read_text().splitlines())
+    required = {"CONFIG_FREERTOS_HZ=1000", "# CONFIG_BT_ENABLED is not set",
+                "# CONFIG_ESP_WIFI_NVS_ENABLED is not set",
+                "# CONFIG_ESP_WIFI_IRAM_OPT is not set",
+                "# CONFIG_ESP_WIFI_RX_IRAM_OPT is not set",
+                "# CONFIG_ESP_PHY_CALIBRATION_AND_DATA_STORAGE is not set"}
+    if not required <= config_lines:
+        raise QualificationError("Wi-Fi probe storage/tick isolation settings differ")
+    return "Noncompliant diagnostic only: scan/stop/restart; no association/AP/IP/NVS; USB application state retained but not running"
+
+
+def verify_configuration_layout(work):
+    """Require the exact partition bytes reviewed by the write guard."""
+    table = work / "build/partition_table/partition-table.bin"
+    if sha256(table) != CONFIGURATION_TABLE_SHA256:
+        raise QualificationError("Generated partition table differs from the reviewed static layout")
+
+
+def verify_managed_cjson(project):
+    """Require pinned component metadata and byte-identical host/target sources."""
+    dependency_lock = project / "dependencies.lock"
+    if not dependency_lock.is_file():
+        raise QualificationError("Missing managed-component dependency lock")
+    import yaml
+    lock = yaml.safe_load(dependency_lock.read_text(encoding="utf-8"))
+    dependency = lock.get("dependencies", {}).get("espressif/cjson", {})
+    if dependency.get("version") != "1.7.19~2":
+        raise QualificationError("Unexpected cJSON managed-component version")
+    managed = project / "managed_components/espressif__cjson/cJSON"
+    hashes = {}
+    for name in ("cJSON.c", "cJSON.h", "LICENSE"):
+        if sha256(managed / name) != sha256(ROOT / "firmware/third_party/cjson" / name):
+            raise QualificationError(f"Host/target cJSON bytes differ: {name}")
+        hashes[name] = sha256(managed / name)
+    return {
+        "version": dependency["version"], "component_hash": dependency.get("component_hash"),
+        "source_sha256": hashes, "lock_sha256": sha256(dependency_lock)}
 
 
 def verify_ble_probe(work, gatt=False, static_host=False):
@@ -461,6 +563,8 @@ def check_queue_symbols(symbols, aliases):
 
 
 def check_event_symbols(symbols, path):
+    if not 0x40380000 <= symbols.get("c3ewait_available", 0) < 0x403e0000:
+        raise QualificationError("Event cache-availability check is missing or outside IRAM")
     content = Path(path).read_text(encoding="utf-8")
     table = re.search(r"set\(UTHOME_EVENT_ALIASES\s+(.*?)\n\)", content, re.DOTALL)
     pairs = [] if table is None else re.findall(r"^\s*(\w+)=(c3event_\w+)\s*$", table[1], re.MULTILINE)
@@ -523,7 +627,8 @@ def verify_queue_adapter(work, enabled):
         if definition != (Path(entry["file"]).name == "tkinit.c"):
             raise QualificationError("Native initialization rename escaped its source")
     return dict(enabled=True, status="linked_abi_verified", aliases=retained, event_aliases=events,
-                resources=dict(queue_slots=8,queue_bytes_each=1024,semaphore_slots=16,mutex_slots=32,
+                resources=dict(queue_slots=8, queue_bytes_by_slot=[512, 512, 1024, 1024, 1024, 1024, 1024, 2048],
+                               queue_payload_bytes=8192, semaphore_slots=16, mutex_slots=32,
                                startup_native_semaphores=48,startup_native_mutexes=32,
                                event_groups=8,event_waiters=16,native_startup_pool_bytes=12288),
                 qualification="Experimental queue/event/startup scope; cache-off I/O rejects, radio/task/timer paths remain unqualified")
@@ -542,9 +647,9 @@ def verify_compile_profiles(work):
             continue
         expected = "c11" if source in policy["atomic_profile_paths"] else "c99"
         # Pinned SDK LL headers require GNU typeof; owned adapter syntax is C99.
-        if source in {"firmware/hal/ports/esp32c3/c3i2c.c",
+        if source in {"firmware/hal/ports/esp32c3/c3ihw.c",
                       "firmware/hal/ports/esp32c3/c3pin.c",
-                      "firmware/hal/ports/esp32c3/c3spi.c",
+                      "firmware/hal/ports/esp32c3/c3shw.c",
                       "firmware/hal/ports/esp32c3/c3pulse.c",
                       "firmware/hal/ports/esp32c3/c3pwm.c"}:
             expected = "gnu99"
@@ -557,13 +662,13 @@ def verify_compile_profiles(work):
         profiles[source] = expected
     for path, command in commands.items():
         adapted = "-Dasm=__asm__" in command
-        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c")}):
+        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c")}):
             raise QualificationError("SDK assembly spelling adaptation escaped its adapter")
-    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c"):
+    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c"):
         owned_radio = (work / "project/hal" / name).read_text()
         if re.search(r"\b(?:asm|__asm__|typeof|__typeof__)\b", owned_radio):
             raise QualificationError("Owned radio adapter must remain C99: " + name)
-    for name in ("c3ble.c", "c3gatt.c"):
+    for name in ("c3ble.c", "c3gatt.c", "c3gsvc.c"):
         ble_command = commands[(work / "project/hal" / name).resolve()].replace("\\", "/")
         if (work / "source/include").as_posix() in ble_command:
             raise QualificationError("Native sys/queue.h namespace leaked into NimBLE component")
@@ -706,7 +811,23 @@ def verify_runtime_snapshot(project, root=None):
             if sha256(path) != entry["sha256"]:
                 raise QualificationError(
                     f"Changed {label} project input: {path}; create a fresh qualification build")
+    if "network_setup" in manifest:
+        try:
+            network_setup_module().verify(project, manifest["network_setup"])
+        except (ValueError, OSError) as error:
+            raise QualificationError("Private network setup changed; use a fresh build") from error
     return manifest_path
+
+
+def network_setup_module():
+    """Load the snapshotted setup generator without modifying import paths."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        'uthome_network_setup', ROOT / 'tools/target/network_setup.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
 
 
 def stage_runtime_port(work):
@@ -816,37 +937,36 @@ def verify_static_task_link(work, enabled):
     return {"enabled": True, "linked_symbols": sorted(required)}
 
 
-def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_patch=None,
-          configuration_app=False, upstream_example=None, native_uart_fixture=False, static_net_queues=False,
+def build(kernel, sdk, work, *legacy_args, selection=None, compat_patch=None,
+          runtime_port=False, resource_patch=None, configuration_app=False,
+          upstream_example=None, native_uart_fixture=False, static_net_queues=False,
           wifi_probe=False, ble_probe=False, model_probe=False, ble_gatt_probe=False,
-          ble_static_host=False, observer_patch=None):
-    if ble_gatt_probe and not ble_probe:
-        raise QualificationError("GATT probe requires the isolated BLE diagnostic")
-    if ble_static_host and not ble_probe:
-        raise QualificationError("Static host experiment requires the isolated BLE diagnostic")
-    if model_probe and (not runtime_port or not static_net_queues or configuration_app
-                        or native_uart_fixture or upstream_example is not None or wifi_probe or ble_probe):
-        raise QualificationError('Model probe requires the isolated runtime fixture and static queues')
-    if wifi_probe and (not runtime_port or not static_net_queues or configuration_app
-                       or native_uart_fixture or upstream_example is not None or ble_probe):
-        raise QualificationError("Wi-Fi probe requires the isolated runtime fixture and static queues")
-    if ble_probe and (not runtime_port or not static_net_queues or configuration_app
-                      or native_uart_fixture or upstream_example is not None or wifi_probe):
-        raise QualificationError("BLE probe requires the isolated runtime fixture and static queues")
-    if (wifi_probe or ble_probe) and observer_patch is None:
+          ble_static_host=False, observer_patch=None, network_settings=None, **legacy_flags):
+    """Build one resolved mode while keeping the legacy positional CLI API working."""
+    if legacy_args:
+        if len(legacy_args) != 13:
+            raise TypeError("legacy build() positional arguments are fixed")
+        compat_patch, runtime_port, resource_patch, configuration_app, upstream_example, \
+            native_uart_fixture, static_net_queues, wifi_probe, ble_probe, model_probe, \
+            ble_gatt_probe, ble_static_host, observer_patch = legacy_args
+    if selection is None:
+        selection = resolve_mode(
+            runtime_port=runtime_port, configuration_app=configuration_app,
+            upstream_example=upstream_example, native_uart_fixture=native_uart_fixture,
+            static_net_queues=static_net_queues, wifi_probe=wifi_probe,
+            ble_probe=ble_probe, model_probe=model_probe,
+            ble_gatt_probe=ble_gatt_probe, ble_static_host=ble_static_host,
+            network_services=legacy_flags.get('network_services'))
+    if selection.mode in (BuildMode.WIFI, BuildMode.BLE) and observer_patch is None:
         raise QualificationError("Radio probes require the reviewed static-task patch")
-    if static_net_queues and (not runtime_port or native_uart_fixture or upstream_example is not None):
-        raise QualificationError("Static network queues require ordinary runtime/application mode")
-    if native_uart_fixture and (not runtime_port or configuration_app or upstream_example is not None):
-        raise QualificationError("native UART fixture requires runtime-port without application/example")
-    if upstream_example is not None:
-        if upstream_example not in UPSTREAM_EXAMPLES:
-            raise QualificationError("Unsupported upstream diagnostic example")
-        if runtime_port or configuration_app:
-            raise QualificationError("upstream example cannot be combined with application/runtime mode")
-    if configuration_app and not runtime_port:
-        raise QualificationError("configuration application requires --runtime-port")
-    example = upstream_example or "tasks"
+    if selection.network_services in ('wifi', 'both') and network_settings is None:
+        raise QualificationError('Wi-Fi services require --network-settings (private local JSON)')
+    if network_settings is not None and selection.network_services not in ('wifi', 'both'):
+        raise QualificationError('Network settings require wifi/both service mode')
+    if selection.network_services is not None and selection.mode is not BuildMode.CONFIGURATION:
+        raise QualificationError('Network services require application + static queues, without diagnostics')
+    example = selection.upstream_example
+
     no_spaces(work)
     if kernel == work or kernel in work.parents or sdk == work or sdk in work.parents:
         raise QualificationError("Build output must be outside the kernel and SDK checkouts")
@@ -857,16 +977,7 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
     versions = inspect(kernel, sdk)
     work.mkdir(parents=True, exist_ok=False)
     evidence = {"schema_version": "1.0.0", "created_utc": datetime.now(timezone.utc).isoformat(),
-                "example": "tests/target/runtime_port_board" if runtime_port else f"examples/{example}",
-                "diagnostic_only": (not runtime_port) or wifi_probe or ble_probe or model_probe,
-                "configuration_application": configuration_app,
-                "native_uart_fixture": native_uart_fixture,
-                "static_network_queues": static_net_queues,
-                "wifi_probe": wifi_probe,
-                "ble_probe": ble_probe,
-                "ble_gatt_probe": ble_gatt_probe,
-                "ble_static_host": ble_static_host,
-                "model_probe": model_probe,
+                **selection.evidence(),
                 "board_kit": "iote_esp32c3_mini", "target": "esp32c3",
                 "versions": versions, "build_status": "in_progress", "board_status": "not_tested",
                 "application_runtime_status": "not_tested", "artifacts": {},
@@ -901,27 +1012,25 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
             wifi_probe or ble_probe)
         project = work / "source/examples" / example
         image_name = UPSTREAM_EXAMPLES[example]
-        if runtime_port:
+        if selection.runtime_port:
             project, evidence["project_sources"] = stage_runtime_port(work)
+            if network_settings is not None:
+                try:
+                    network_setup_module().stage(project, network_settings)
+                except (ValueError, OSError) as error:
+                    raise QualificationError("Invalid private network setup; inspect local settings") from error
             manifest = verify_runtime_snapshot(project)
             evidence["source_manifest_sha256"] = sha256(manifest)
             image_name = "uthome_runtime_port"
         command = [sys.executable, str(sdk / "tools/idf.py"), "-C", str(project), "-B", str(work / "build"),
                    "-DIDF_TARGET=esp32c3", "-DMTK_BOARD=iote_esp32c3_mini",
                    f"-DSDKCONFIG={work / 'sdkconfig'}", "build"]
-        if runtime_port:
+        if selection.runtime_port:
             # Every direct rebuild also checks the source repository. Paths are
             # separate arguments, including the source checkout with spaces.
-            command[-1:-1] = [f"-DUTHOME_CONFIGURATION_APP={int(configuration_app)}",
-                              f"-DUTHOME_NATIVE_UART_FIXTURE={int(native_uart_fixture)}",
-                              f"-DUTHOME_STATIC_NET_QUEUES={int(static_net_queues)}",
-                              f"-DUTHOME_WIFI_PROBE={int(wifi_probe)}",
-                              f"-DUTHOME_BLE_PROBE={int(ble_probe)}",
-                              f"-DUTHOME_BLE_GATT_PROBE={int(ble_gatt_probe)}",
-                              f"-DUTHOME_BLE_STATIC_HOST={int(ble_static_host)}",
-                              f"-DUTHOME_MODEL_PROBE={int(model_probe)}",
-                              f"-DUTHOME_SOURCE_ROOT={ROOT.as_posix()}",
-                              f"-DUTHOME_CHECK_PYTHON={Path(sys.executable).as_posix()}"]
+            command[-1:-1] = selection.cmake_settings() + [
+                f"-DUTHOME_SOURCE_ROOT={ROOT.as_posix()}",
+                f"-DUTHOME_CHECK_PYTHON={Path(sys.executable).as_posix()}"]
         evidence["command"] = command
         environment = build_environment(sdk)
         evidence["environment_overrides"] = {name: environment[name] for name in
@@ -937,14 +1046,15 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
         evidence["build_exit_code"] = result
         if result:
             raise QualificationError(f"Kernel build failed ({result}); inspect {work / 'build.log'}")
-        if runtime_port:
+        if selection.runtime_port:
             evidence["compiler_profiles"] = verify_compile_profiles(work)
+            evidence["senlux_app_isolation"] = verify_senlux_app_probe(work, selection.mode is BuildMode.SENLUX_APP)
             evidence["memory_audit_link"] = verify_audit_link(work)
-            evidence["network_queue_adapter"] = verify_queue_adapter(work, static_net_queues)
-            evidence["static_task_link"] = verify_static_task_link(
-                work, wifi_probe or ble_probe)
-            evidence["model_isolation"] = verify_model_probe(work, model_probe)
-            if wifi_probe:
+            evidence["network_queue_adapter"] = verify_queue_adapter(work, selection.static_net_queues)
+            evidence["static_task_link"] = verify_static_task_link(work, selection.mode in (BuildMode.WIFI, BuildMode.BLE))
+            evidence["model_isolation"] = verify_model_probe(work, selection.mode is BuildMode.MODEL)
+            evidence["model_load_isolation"] = verify_model_load_probe(work, selection.mode is BuildMode.MODEL_LOAD)
+            if selection.mode is BuildMode.WIFI:
                 config_lines = set((work / "sdkconfig").read_text().splitlines())
                 required = {"CONFIG_FREERTOS_HZ=1000", "# CONFIG_BT_ENABLED is not set",
                             "# CONFIG_ESP_WIFI_NVS_ENABLED is not set",
@@ -954,31 +1064,12 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
                 if not required <= config_lines:
                     raise QualificationError("Wi-Fi probe storage/tick isolation settings differ")
                 evidence["radio_scope"] = "Noncompliant diagnostic only: scan/stop/restart; no association/AP/IP/NVS; USB application state retained but not running"
-            if ble_probe:
-                evidence["ble_isolation"] = verify_ble_probe(work, ble_gatt_probe, ble_static_host)
-                evidence["radio_scope"] = ("Noncompliant diagnostic only: read-only GATT reconnect/read window; no configuration writes, pairing, NVS or Wi-Fi; USB core inactive; SDK heap remains unqualified" if ble_gatt_probe else "Noncompliant diagnostic only: nonconnectable advertising/stop/restart; no GATT, pairing, NVS or Wi-Fi; SDK flash controller without legacy ROM patch; USB core inactive; flash writes during BLE are unqualified")
-            if configuration_app:
-                table = work / "build/partition_table/partition-table.bin"
-                if sha256(table) != CONFIGURATION_TABLE_SHA256:
-                    raise QualificationError("Generated partition table differs from the reviewed static layout")
-
-            dependency_lock = project / "dependencies.lock"
-            if not dependency_lock.is_file():
-                raise QualificationError("Missing managed-component dependency lock")
-            import yaml
-            lock = yaml.safe_load(dependency_lock.read_text(encoding="utf-8"))
-            dependency = lock.get("dependencies", {}).get("espressif/cjson", {})
-            if dependency.get("version") != "1.7.19~2":
-                raise QualificationError("Unexpected cJSON managed-component version")
-            managed = project / "managed_components/espressif__cjson/cJSON"
-            hashes = {}
-            for name in ("cJSON.c", "cJSON.h", "LICENSE"):
-                if sha256(managed / name) != sha256(ROOT / "firmware/third_party/cjson" / name):
-                    raise QualificationError(f"Host/target cJSON bytes differ: {name}")
-                hashes[name] = sha256(managed / name)
-            evidence["managed_cjson"] = {
-                "version": dependency["version"], "component_hash": dependency.get("component_hash"),
-                "source_sha256": hashes, "lock_sha256": sha256(dependency_lock)}
+            if selection.mode is BuildMode.BLE:
+                evidence["ble_isolation"] = verify_ble_probe(work, selection.ble_gatt_probe, selection.ble_static_host)
+                evidence["radio_scope"] = ("Noncompliant diagnostic only: read-only GATT reconnect/read window; no configuration writes, pairing, NVS or Wi-Fi; USB core inactive; SDK heap remains unqualified" if selection.ble_gatt_probe else "Noncompliant diagnostic only: nonconnectable advertising/stop/restart; no GATT, pairing, NVS or Wi-Fi; SDK flash controller without legacy ROM patch; USB core inactive; flash writes during BLE are unqualified")
+            if selection.configuration_app:
+                verify_configuration_layout(work)
+            evidence["managed_cjson"] = verify_managed_cjson(project)
         # A successful process with incomplete artifacts is not build evidence.
         for relative in (f"build/{image_name}.bin", f"build/{image_name}.elf",
                          f"build/{image_name}.map", "build/compile_commands.json",
@@ -989,7 +1080,7 @@ def build(kernel, sdk, work, compat_patch=None, runtime_port=False, resource_pat
                 raise QualificationError(f"Missing build artifact: {relative}")
             evidence["artifacts"][relative] = {"sha256": sha256(artifact), "size_bytes": artifact.stat().st_size}
 
-        if runtime_port:
+        if selection.runtime_port:
             for relative in ("project/dependencies.lock", "project/sdkconfig.defaults"):
                 artifact = work / relative
                 evidence["artifacts"][relative] = {
@@ -1022,6 +1113,10 @@ def main(argv=None):
                         help="isolated UART fault fixture; requires runtime-port and disconnected UART peripherals")
     parser.add_argument("--static-net-queues", action="store_true",
                         help="experimental owned queue adapter; requires runtime-port, does not enable radios")
+    parser.add_argument("--network-services", choices=("ble", "wifi", "both"),
+                        help="experimental real app services, requires configuration-app + static-net-queues")
+    parser.add_argument("--network-settings", type=Path,
+                        help="private local Wi-Fi/TLS setup JSON; never put credentials in command arguments")
     parser.add_argument("--wifi-probe", action="store_true",
                         help="isolated scan-only Wi-Fi diagnostic; requires static-net-queues, never joins a network")
     parser.add_argument("--ble-probe", action="store_true",
@@ -1032,6 +1127,12 @@ def main(argv=None):
                         help="disable NimBLE dynamic global-state conversion in an isolated BLE diagnostic; not full static compliance")
     parser.add_argument("--model-probe", action="store_true",
                         help="isolated experimental classifier parity/latency diagnostic; requires static-net-queues")
+    parser.add_argument("--model-load-probe", action="store_true",
+                        help="diagnostic classifier OFF/ON workload replies; requires configuration-app and static-net-queues")
+    parser.add_argument("--senlux-probe", action="store_true",
+                        help="isolated SEN0390 I2C/enable diagnostic; requires static-net-queues")
+    parser.add_argument("--senlux-app-probe", action="store_true",
+                        help="diagnostic application with SEN0390 enabled; requires configuration-app and static-net-queues")
     parser.add_argument("--upstream-example", choices=tuple(UPSTREAM_EXAMPLES),
                         help="build a pinned diagnostic example; excludes project runtime/application modes")
     args = parser.parse_args(argv)
@@ -1054,12 +1155,18 @@ def main(argv=None):
         if args.action == "inspect":
             print(json.dumps(inspect(kernel, sdk), indent=2))
         else:
-            report = build(kernel, sdk, args.work_dir.resolve(),
-                           args.compat_patch.resolve() if args.compat_patch else None, args.runtime_port,
-                           args.resource_patch.resolve() if args.resource_patch else None, args.configuration_app,
-                           args.upstream_example, args.native_uart_fixture, args.static_net_queues,
-                           args.wifi_probe, args.ble_probe, args.model_probe, args.ble_gatt_probe,
-                           args.ble_static_host,
+            selection = resolve_mode(
+                runtime_port=args.runtime_port, configuration_app=args.configuration_app,
+                upstream_example=args.upstream_example, native_uart_fixture=args.native_uart_fixture,
+                static_net_queues=args.static_net_queues, wifi_probe=args.wifi_probe,
+                ble_probe=args.ble_probe, model_probe=args.model_probe,
+                ble_gatt_probe=args.ble_gatt_probe, ble_static_host=args.ble_static_host,
+                model_load_probe=args.model_load_probe, senlux_probe=args.senlux_probe,
+                senlux_app_probe=args.senlux_app_probe, network_services=args.network_services)
+            report = build(kernel, sdk, args.work_dir.resolve(), selection=selection,
+                           compat_patch=args.compat_patch.resolve() if args.compat_patch else None,
+                           resource_patch=args.resource_patch.resolve() if args.resource_patch else None,
+                           network_settings=args.network_settings.resolve() if args.network_settings else None,
                            observer_patch=args.observer_patch.resolve() if args.observer_patch else None)
             print(f"Build evidence: {report}\nPhysical board and application runtime remain untested.")
     except (QualificationError, OSError) as exc:

@@ -12,9 +12,53 @@ standard HTTP server and local HTML/CSS/JavaScript; no Node build or new web
 framework is required. Offline review needs only the planner dependencies.
 The interface uses one fixed colour palette.
 
+`workflow.py` owns connection state, confirmations and final admission checks.
+`drafts.py` constructs catalogue instances and output queues without serial I/O;
+`discovery.py` adds observation-specific recommendations and connection policy.
+Both discovery and manually selected I2C drafts use the same instance builder.
+Their wiring policies remain explicit: discovery requires its reviewed preset,
+while manual selection reuses a matching bus's existing speed.
+
+Python capture callers use `Workflow.connect(port=...)`, `review(profile=...)`
+and `apply(review_id=...)`. Each operation owns the same nonblocking lock,
+connection-error cleanup and single-use review checks as the HTTP entry point.
+`contracts.py` defines their JSON-compatible result fields; recorded receipts
+retain their existing shape. `dispatch` decodes browser actions only.
+
+**Datasheet assistant** under **Add a device** sends the selected PDF to Google Gemini
+after the user selects Analyse; it shows unreviewed facts, page references and
+uncertainties. Set the API key as described in the
+[AI guide](../../ai/README.md#datasheet-assisted-device-drafts). The PDF is
+limited to 2 MiB / 60 pages and the request may incur charges. Existing offline
+configuration continues without the optional PDF dependency or API.
+
+On Windows, create a key in [Google AI Studio](https://aistudio.google.com/apikey),
+then use **Edit environment variables for your account** to add the user variable
+`GEMINI_API_KEY` with the complete key as its value. Restart the terminal and Desk
+so they inherit it. Keep the key private and out of the repository. The optional
+`UTHOME_GEMINI_MODEL` user variable selects a Gemini model supporting PDF input
+and structured output. See the [Gemini documentation](https://ai.google.dev/gemini-api/docs/structured-output).
+
+Check a reviewed catalogue ID or supported product-name alias against the connected firmware, choose its address
+and GPIO pins, and confirm the actual module and electrical wiring. The periodic
+I2C draft builder uses reviewed catalogue defaults, rejects conflicting pins and
+missing drivers, and changes only the draft. Use the normal review and Apply
+controls afterwards. A name match does not verify identity. The SEN0390 remains
+unavailable in normal firmware: a diagnostic build exercised the reviewed Desk
+backend and light sensor, but full combined-system acceptance remains open.
+When supported light telemetry is available, the live monitor shows illuminance
+in lux with the source name and freshness.
+The reviewed alias `HLK-LD2450` maps to `hlk_ld2450`; other punctuation and
+unknown names are not inferred. UART devices still use their existing device flow.
+An extracted address can depend on the variant or wiring; compare the cited facts
+and confirm the physical module. Draft JSON version 0.2.0 can include conditional
+address options; they are not automatically copied into the profile, and their
+dedicated display is pending. The existing facts and uncertainties may describe
+options but are model-generated and can still be incorrect.
+
 1. In **Profile**, choose an example or import JSON. Open **Edit profile JSON**
    for custom instances, wiring, timing and routes. Optional discovery is under
-   **Add a device**; interfaces, queues and the catalogue are under
+   **Add a device**; interfaces and queues are under
    **Wiring & resources**.
 2. Select **Validate and review** to open **Review & apply** with the requested
    resources, devices and rules. Errors remain visible above all three views.
@@ -151,6 +195,15 @@ uncertain deployment, HTTP boundaries, C/Python parity and presentation. Fake-bo
 Edge walkthroughs cover themes and desktop/mobile flows. These are not physical
 device detection. Evidence: [UI/rules](../../firmware/qualification/esp32c3-ui-rules-20260928.json)
 and [D4](../../firmware/qualification/esp32c3-discovery-d4-20261012.json).
+
+`npm run test:browser` exercises the actual HTML and ES modules with local HTTP
+fixtures. It covers review/discovery races, delayed imports and catalogue loading,
+HTTP decoding failures, telemetry clearing, and the PDF analysis/download lifecycle.
+PDF fixtures never reach a provider. Local import/format/download failures preserve
+board review evidence; failed board requests invalidate it. Datasheet matching
+returns server-owned `draft_builder` requirements (eligibility, addresses and
+enable-pin requirement), so the form does not depend on startup catalogue timing.
+Preparing a draft rechecks eligibility, firmware, wiring and the complete profile.
 
 The incoming Member 5 toolkit remains under [legacy/member5](../../legacy/member5/README.md).
 Its schema-1.0/S3 bundle workflow is separate from the current C3 USB application.

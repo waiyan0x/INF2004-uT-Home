@@ -75,6 +75,14 @@ typedef struct
     bool           b_ready;
 } netpool_t;
 
+/* Every public int-returning operation returns zero on success and -1 on
+ * failure. Invalid inputs/handles, exhausted capacity, expired waits and
+ * backend failures share that failure result; callers cannot distinguish them.
+ * The wait/lock callback's native-timeout value below is internal to the port.
+ * Public tick budgets use tick_hz: zero polls, UINT32_MAX waits indefinitely.
+ * Finite waits retain one deadline across stale or early native wakeups.
+ */
+
 /**
  * @brief Initialize zeroed storage once after native objects exist.
  *
@@ -103,7 +111,8 @@ int netpool_init (netpool_t *           p_pool,
  * Caller storage and keys remain alive until a successful release. Callers
  * must stop using a handle after release; concurrent release fails while an
  * operation is pending. Queue, semaphore and mutex leases have separate
- * declared fixed limits.
+ * declared fixed limits. Returns the leased identity on success or NULL for
+ * invalid settings, identity conflicts or exhausted suitable storage/slots.
  */
 void * netpool_create (netpool_t *    p_pool,
                        netpool_kind_t kind,

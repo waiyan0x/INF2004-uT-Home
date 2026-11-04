@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_utc": "2026-10-31T14:51:26Z",
+  "scope": "User-operated Desk rehearsal on temporary SEN0390 application firmware; single live-monitor observation and user-reported light response",
+  "diagnostic_binary_sha256": "b705cffacde8d651e82b14fad139c6bd9e0a97a355261cf5d0e5dd8ae8be9929",
+  "backup_sha256": "a98aa25765153ca8b8acb555fd13322d3da253c045e572bba7b1a64abf958ada",
+  "backup_local_directory": "build/datasheet-work/demo-rehearsal-20261031-220458",
+  "backup_two_reads_match": true,
+  "before_configuration": {"active_revision": 922, "saved_revision": 922, "active_crc": 3623560383, "saved_crc": 3623560383},
+  "user_reported_flow": [
+    "Connected the prewired SEN0390 with power off; OLED started after USB reconnection.",
+    "Connected to the Desk, matched SEN0390 to the diagnostic firmware, and obtained a Gemini datasheet draft after retrying a service error.",
+    "Reported that the draft identified address 0x4A and mentioned a register conflict.",
+    "Prepared a draft using the existing three-device profile, 0x4A, SDA GPIO0, SCL GPIO1 and EN GPIO5.",
+    "Reviewed all four devices, applied and saved the profile, and confirmed the OLED remained on.",
+    "Reported a fresh light reading that increased when illuminated with a phone flashlight and decreased afterward."
+  ],
+  "desk_observation": {
+    "kind": "single accessibility snapshot; not continuous monitoring",
+    "active_revision": 923,
+    "saved_revision": 923,
+    "fresh_sources": "4/4",
+    "light_lux": 9.324,
+    "failed_workers": 0,
+    "service_status": 0,
+    "health_events_cumulative": 4425
+  },
+  "issues_observed": [
+    "The first Desk instance was network-restricted; a restarted instance reached Gemini, which initially returned HTTP 503 before a successful retry.",
+    "Background polling briefly disabled user controls. A local code change and host test addressed this; the user reported steady buttons after reload.",
+    "After successful draft generation, the user repeated the action because the success notice was away from the control; the resulting duplicate attempt reported too many queues."
+  ],
+  "restoration": "Not yet performed at the time of this record; diagnostic firmware and revision 923 were active and the Desk was connected.",
+  "limitations": [
+    "The user did not report numerical before, during and after flashlight readings; the observed response is qualitative.",
+    "The light reading is not calibrated, and one snapshot does not establish long-term sensor, radar or combined-system reliability.",
+    "The initial radar communication and supply observations remain unresolved; this rehearsal is not full four-device acceptance.",
+    "The AI output is unreviewed, and this is not evidence of general extraction accuracy or new-device driver generation.",
+    "The temporary firmware is not the normal supported release and this rehearsal does not qualify whole-system static memory or wireless services."
+  ],
+  "hardware_qualified": false
+}

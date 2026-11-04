@@ -1,5 +1,6 @@
 """Local UI workflow, HTTP isolation, capabilities and uncertain deployment tests."""
 from dataclasses import replace
+from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor
 import http.client
 import json
@@ -9,6 +10,7 @@ import unittest
 from unittest.mock import patch
 import zlib
 from tools.configurator.workflow import Workflow
+from tools.configurator.drafts import i2c_builder_options, prepare_i2c_draft
 from tools.configurator.web import make_server, ASSETS
 from tools.config_transfer.capabilities import Capabilities, decode_capabilities
 from tools.config_transfer.client import TransferError, Client
@@ -49,6 +51,135 @@ class ConfiguratorTests(unittest.TestCase):
         self.text=json.dumps(load_document(ROOT/"configs/nodes/distance-only.json"))
     def connect(self):return self.flow.dispatch("connect",{"port":"fake"})
     def review(self):return self.flow.dispatch("review",{"profile":self.text})
+
+    def test_datasheet_match_exposes_builder_requirements_without_client_catalogue(self):
+        for name, addresses, needs_enable in (
+                ('bmp388', ['0x76', '0x77'], False), ('sen0390', ['0x4a'], True)):
+            with self.subTest(name=name):
+                match = self.flow.dispatch('datasheet_match', {'device_name': name})['matches'][0]
+                self.assertEqual({'eligible': True, 'addresses': addresses,
+                                  'needs_enable': needs_enable}, match['draft_builder'])
+                self.assertIsNone(match['driver_available'])
+        for name in ('hlk_ld2450', 'ssd1306_spi', 'hc_sr04'):
+            with self.subTest(name=name):
+                match = self.flow.dispatch('datasheet_match', {'device_name': name})['matches'][0]
+                self.assertEqual({'eligible': False, 'addresses': [], 'needs_enable': False},
+                                 match['draft_builder'])
+
+    def test_builder_options_are_copied_and_share_the_preparation_gate(self):
+        descriptor = deepcopy(self.flow.catalogue.descriptors[('bmp388', '1.0.0')])
+        options = i2c_builder_options(descriptor)
+        options['addresses'].clear()
+        self.assertTrue(i2c_builder_options(descriptor)['addresses'])
+        for invalid in (None, descriptor | {'protocol': 'uart'},
+                        descriptor | {'execution': {'kind': 'stream'}},
+                        descriptor | {'defaults': {'behaviour': {'profile': 'display'}}}):
+            with self.subTest(descriptor=invalid):
+                self.assertFalse(i2c_builder_options(invalid)['eligible'])
+        descriptor['instance_schema']['properties']['interface']['properties']['address'].pop('enum')
+        self.assertFalse(i2c_builder_options(descriptor)['eligible'])
+
+    def test_named_operations_share_lock_token_and_uncertain_io_cleanup(self):
+        with patch.object(self.flow, 'dispatch', side_effect=AssertionError('No internal HTTP dispatch')):
+            self.assertTrue(self.flow.connect(port='fake')['connected'])
+            reviewed = self.flow.review(profile=self.text)
+            client, stream = self.flow.client, self.flow.stream
+            self.flow.lock.acquire()
+            try:
+                with self.assertRaisesRegex(ValueError, 'Another request'):
+                    self.flow.apply(review_id=reviewed['review_id'])
+                self.assertIsNotNone(self.flow.pending)
+                self.assertEqual([], client.calls)
+            finally:
+                self.flow.lock.release()
+            client.fail = True
+            with self.assertRaisesRegex(TransferError, 'outcome unknown'):
+                self.flow.apply(review_id=reviewed['review_id'])
+            self.assertEqual(1, len(client.calls))
+            self.assertIsNone(self.flow.pending)
+            self.assertIsNone(self.flow.client)
+            self.assertTrue(stream.closed)
+            self.assertFalse(self.flow.lock.locked())
+
+    def test_datasheet_draft_uses_reviewed_device_and_confirmed_pins(self):
+        self.connect()
+        request = dict(profile=self.text, descriptor_id="bmp388", descriptor_version="1.0.0",
+                       device_id="light_room", address="0x77", sda_gpio=0, scl_gpio=1,
+                       wiring_confirmed=True, identity_confirmed=True,
+                       generated_operations=["untrusted write"])
+        result = self.flow.dispatch("datasheet_prepare_i2c", request)
+        device = result["profile"]["devices"][-1]
+        self.assertEqual(device["driver"], "bmp388")
+        self.assertEqual(device["interface"]["address"], "0x77")
+        self.assertNotIn("generated_operations", device)
+        self.assertEqual(self.flow.client.calls, [])
+        self.assertFalse(result["identity_verified"])
+        self.flow.dispatch("review", {"profile": json.dumps(result["profile"])})
+
+    def test_datasheet_draft_refuses_missing_driver_or_unconfirmed_wiring(self):
+        self.connect()
+        request = dict(profile=self.text, descriptor_id="bmp388", descriptor_version="1.0.0",
+                       device_id="room", address="0x77", sda_gpio=0, scl_gpio=1,
+                       wiring_confirmed=True, identity_confirmed=True)
+        for updates in ({"wiring_confirmed": False}, {"descriptor_id": "sen0390"},
+                        {"address": "0x4a"}, {"sda_gpio": 18}, {"enable_gpio": 3}):
+            with self.subTest(updates=updates), self.assertRaises(ValueError):
+                self.flow.dispatch("datasheet_prepare_i2c", request | updates)
+        self.assertEqual(self.flow.client.calls, [])
+
+    def test_selected_i2c_draft_preserves_bus_speed_and_does_not_alias_inputs(self):
+        document = json.loads(self.text)
+        document['interfaces'].append(dict(id='shared_i2c', protocol='i2c', port=0,
+                                           sda_gpio=0, scl_gpio=1, clock_hz=400000))
+        descriptor = self.flow.catalogue.descriptors[('bmp388', '1.0.0')]
+        original, defaults = deepcopy(document), deepcopy(descriptor)
+        reference = dict(id='bmp388', version='1.0.0')
+        draft = prepare_i2c_draft(document, descriptor, reference, device_id='room',
+                                 address='0x77', sda_gpio=0, scl_gpio=1)
+        self.assertEqual(draft['devices'][-1]['interface']['ref'], 'shared_i2c')
+        self.assertEqual(draft['interfaces'][-1]['clock_hz'], 400000)
+        self.assertEqual(len(draft['interfaces']), len(document['interfaces']))
+        draft['devices'][-1]['behaviour']['interval_ms'] = 1000
+        draft['devices'][-1]['descriptor']['id'] = 'changed'
+        draft['interfaces'][-1]['clock_hz'] = 100000
+        self.assertEqual(document, original)
+        self.assertEqual(descriptor, defaults)
+        self.assertEqual(reference['id'], 'bmp388')
+
+    def test_datasheet_draft_reports_a_device_already_in_the_profile(self):
+        self.connect()
+        request = dict(profile=self.text, descriptor_id="bmp388", descriptor_version="1.0.0",
+                       device_id="room", address="0x77", sda_gpio=0, scl_gpio=1,
+                       wiring_confirmed=True, identity_confirmed=True)
+        added = self.flow.dispatch("datasheet_prepare_i2c", request)
+        with self.assertRaisesRegex(ValueError, "device name is already in the profile"):
+            self.flow.dispatch("datasheet_prepare_i2c", request | {"profile": json.dumps(added["profile"])})
+        self.assertEqual(self.flow.client.calls, [])
+
+    def test_datasheet_enable_gpio_requires_reviewed_schema_and_no_pin_conflict(self):
+        self.connect()
+        descriptor = self.flow.catalogue.descriptors[("bmp388", "1.0.0")]
+        interface = descriptor["instance_schema"]["properties"]["interface"]
+        interface["properties"]["enable_gpio"] = {"type": "integer", "minimum": 0, "maximum": 21}
+        interface["required"].append("enable_gpio")
+        request = dict(profile=self.text, descriptor_id="bmp388", descriptor_version="1.0.0",
+                       device_id="room", address="0x77", sda_gpio=0, scl_gpio=1,
+                       wiring_confirmed=True, identity_confirmed=True)
+        for update in ({}, {"enable_gpio": 0}, {"enable_gpio": 4}, {"enable_gpio": 18}):
+            with self.subTest(update=update), self.assertRaises(ValueError):
+                self.flow.dispatch("datasheet_prepare_i2c", request | update)
+        result = self.flow.dispatch("datasheet_prepare_i2c", request | {"enable_gpio": 3})
+        self.assertEqual(result["profile"]["devices"][-1]["interface"]["enable_gpio"], 3)
+        self.assertEqual(self.flow.client.calls, [])
+
+    def test_datasheet_draft_refuses_changed_firmware_capabilities(self):
+        self.connect()
+        self.flow.client.caps = replace(self.flow.client.caps, drivers=("hc_sr04",))
+        with self.assertRaisesRegex(ValueError, "capabilities changed"):
+            self.flow.dispatch("datasheet_prepare_i2c", dict(profile=self.text, descriptor_id="bmp388",
+                descriptor_version="1.0.0", device_id="room", address="0x77", sda_gpio=0,
+                scl_gpio=1, wiring_confirmed=True, identity_confirmed=True))
+        self.assertEqual(self.flow.client.calls, [])
 
     def test_offline_review_never_opens_serial_and_cannot_deploy(self):
         review=self.review();self.assertFalse(review["connected"]);self.assertEqual(self.ports,[])
@@ -153,6 +284,40 @@ class ConfiguratorTests(unittest.TestCase):
                 self.assertEqual(response.status, 403)
                 self.assertEqual(json.loads(response.read()), {'error': 'Local session required'})
                 connection.close()
+        self.assertEqual(self.ports, [])
+
+    def test_get_preparation_failures_return_json_and_leave_server_usable(self):
+        server = make_server(0, self.flow)
+        Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+
+        def get(path):
+            connection = http.client.HTTPConnection('127.0.0.1', server.server_port, timeout=3)
+            try:
+                connection.request('GET', path)
+                response = connection.getresponse()
+                content = response.read()
+                self.assertEqual(len(content), int(response.getheader('Content-Length')))
+                return response.status, content, response.getheader('Content-Type')
+            finally:
+                connection.close()
+
+        cases = (
+            ('/', 'tools.configurator.web.Path.read_bytes', FileNotFoundError('missing asset')),
+            ('/api/catalogue', 'tools.configurator.web.load_document', OSError('unreadable example')),
+            ('/api/catalogue', 'tools.configurator.web.load_document', ValueError('invalid example JSON')),
+            ('/api/catalogue', 'tools.configurator.web.connection_presets', ValueError('invalid preset')),
+        )
+        for path, target, error in cases:
+            with self.subTest(path=path, error=error):
+                with patch(target, side_effect=error), self.assertLogs('tools.configurator.web') as logged:
+                    status, content, kind = get(path)
+                self.assertEqual(500, status)
+                self.assertEqual({'error': 'Unable to load requested content'}, json.loads(content))
+                self.assertTrue(kind.startswith('application/json'))
+                self.assertIn(str(error), '\n'.join(logged.output))
+                self.assertEqual(200, get(path)[0])
         self.assertEqual(self.ports, [])
 
     def test_bad_body_lengths_are_rejected_without_waiting_for_payload(self):

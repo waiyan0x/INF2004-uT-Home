@@ -75,6 +75,25 @@ class UsbClientTests(unittest.TestCase):
             Client(stream, clock=stream.clock, timeout=1).exchange(Command.APPLY, 4, 2, b"{}")
         self.assertEqual(stream.written, encode_request(Command.APPLY, 4, 2, b"{}"))
 
+    def test_rejected_reply_preserves_decoder_failure_without_retry(self):
+        good = response(Command.APPLY, 4, revision=2)
+        corrupted = good[:-1] + bytes([good[-1] ^ 1])
+        unsupported = response(Command.APPLY, 4, revision=2, first=99)
+        for incoming, reason in ((corrupted, "checksum"), (unsupported, "status")):
+            stream = Stream(incoming)
+            with self.subTest(reason=reason), self.assertRaisesRegex(
+                    TransferError, "matching reply rejected") as caught:
+                Client(stream, clock=stream.clock, timeout=1).exchange(Command.APPLY, 4, 2, b"{}")
+            self.assertIsInstance(caught.exception.__cause__, ValueError)
+            self.assertIn(reason, str(caught.exception.__cause__))
+            self.assertEqual(stream.written, encode_request(Command.APPLY, 4, 2, b"{}"))
+
+    def test_unrelated_noise_remains_a_timeout(self):
+        stream = Stream(b"boot messages" + response(Command.QUERY, 2))
+        with self.assertRaisesRegex(TransferError, "reply timed out") as caught:
+            Client(stream, clock=stream.clock, timeout=1).exchange(Command.QUERY, 1)
+        self.assertIsNone(caught.exception.__cause__)
+
     def test_partial_send_failure_and_invalid_counts_stop(self):
         for count in (0, -1, None, 100):
             stream = Stream()

@@ -40,7 +40,7 @@ int main (int argc, char ** pp_argv)
         /* Verify normal failure reporting for an injected allocator defect. */
         cJSON_InitHooks(NULL);
     }
-    const uint32_t mask = 31U;
+    const uint32_t mask = (0 == strcmp(pp_argv[1], "light-probe")) ? 63U : 31U;
     for (int index = 2; index < argc; ++index)
     {
         FILE * p_file = fopen(pp_argv[index], "rb");

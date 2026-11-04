@@ -33,13 +33,52 @@ FreeRTOS-compatible single-slot notifications and deferred lifecycle cleanup.
 Wireless services are not integrated or whole-system static-memory qualified;
 on-device stack margins, remaining SDK allocation and hardware lifecycle checks
 are still open.
+telemetry are implemented. Wi-Fi scanning and read-only BLE have isolated
+diagnostics, and optional onboard MQTT/HTTPS/BLE service bindings are now ported; they are not
+whole-system static-memory qualified. See the [network guide](firmware/src/network/README.md).
 The timing models remain experimental: none passed its deployment-benefit gate.
+
+The varied-goal AI study is trained and evaluated. Its model matched the simple
+timing rule, so the required added benefit was not demonstrated; deployment stays
+disabled. Follow the [AI guide](ai/README.md) and
+[evaluation record](ai/qualification/protocol-varied-goals-evaluation-20261027.json).
+Raw recordings, the verified inventory and trained artifacts remain local under
+`build/protocol-study-20261027-varied-r1/`. Preserve the collection-order deviation
+and revealed holdouts. Any further model development needs a justified new study
+and fresh evaluation data, not retuning against this test set.
+
+The required experimental AI component uses a compact integer decision tree
+with fixed storage and on-demand inference in the existing controller. Its
+[C export](ai/qualification/protocol-varied-goals-compact-export-20261027.json)
+has host parity and size evidence. The
+[loaded board diagnostic](ai/qualification/protocol-varied-goals-loaded-probe-20261027.json)
+passed classifier parity, timing, application-allocation and peripheral-impact
+checks. The original firmware/profile were restored; normal advice remains
+disabled. Full adviser/transport latency and useful-model qualification are still
+open. A larger model service is unnecessary for timing advice. The separate
+[datasheet assistant](ai/README.md#datasheet-assisted-device-drafts) uses an
+online model on the PC. Its Desk draft flow has a live Gemini connection test;
+extraction evaluation and SEN0390 integration remain unfinished. The reviewed
+SEN0390 descriptor, GPIO-enable control and light worker are provisional. A
+[short diagnostic application capture](firmware/qualification/sen0390-combined-app-20261031.json)
+showed fresh light and BMP388 readings, but the radar timed out before, during and
+after that capture. A [two-hour diagnostic capture](firmware/qualification/sen0390-two-hour-combined-20261101.json)
+later recorded intermittent light and radar faults, followed by a long period of
+fresh radar snapshots. Causes remain unresolved. Normal firmware does not advertise
+the light driver while combined reliability and acceptance remain open.
+
+The user later found and fully seated a radar connection. After reconnection,
+[monitoring](firmware/qualification/esp32c3-radar-reconnected-20261102.json)
+recorded 599/600 fresh radar snapshots across two windows; the user associated
+the one observed interruption with connecting the HLK radar tool. Earlier
+timeouts and full physical acceptance remain open.
 
 Do not assume a previous COM port, firmware image, wiring or free serial port.
 Identify the board, query capabilities/state and close competing Desk/serial
 clients before bench work. Keep reviewed wiring intact unless a test requires
 isolation. The [hardware guide](CONTRIBUTING.md) owns electrical procedures.
-The user deferred the radar zero-target test; do not restart it without a request.
+The [two-minute zero-target observation](firmware/qualification/esp32c3-radar-zero-target-20261102.json)
+passed for the tested setup; controlled movement and full acceptance remain open.
 
 Use the [remaining-work plan](#overall-delivery-plan) below. Dated results and
 restoration identities are in the [evidence index](firmware/qualification/README.md)
@@ -137,15 +176,15 @@ can proceed in parallel; deployment-qualifying data must match that baseline.
 Changing firmware, observation load or resource layout requires a new study
 context. Do not merge old USB-only studies into wireless-load evidence.
 
-Keep normal configuration working when AI abstains. Both existing protocol models
+Keep normal configuration working when AI abstains. The evaluated protocol models
 failed their frozen benefit criteria; do not retune gates after seeing test data.
 A larger host/API language model is optional explanation work, not a substitute
 for useful measured embedded inference.
 
 User-assisted items remain: visual acceptance of the chosen release image,
 review of proposed Desk controls, network setup/phone checks, additional output
-wiring and controlled electrical/power-loss tests. The radar zero-target test is
-explicitly deferred. LED/PWM tests do not qualify an untested motor or relay load.
+wiring and controlled electrical/power-loss tests. LED/PWM tests do not qualify
+an untested motor or relay load.
 
 ## Documentation convention
 
@@ -158,3 +197,10 @@ paths and records are explained in [the documentation index](docs/README.md#hist
 Root coding rules, the hardware guide, shared firmware contracts and signed
 audit records remain separate because they have distinct responsibilities.
 Vendor, license and preserved legacy documentation retain their original layout.
+
+Authenticated HTTPS full-profile Apply is now implemented through the existing
+configuration controller, with bounded USB/HTTP arbitration. See the
+[current transport contract](firmware/src/network/README.md#authenticated-configuration-apply-and-usb-arbitration-2026-11-03)
+and [explicit client](tools/target/README.md#authenticated-http-configuration-client).
+Separate Wi-Fi and BLE firmware builds passed without flashing. Resource approval
+and physical USB/network/flash-save acceptance remain outstanding.

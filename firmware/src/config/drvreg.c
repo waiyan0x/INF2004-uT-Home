@@ -7,6 +7,7 @@
 #include <string.h>
 
 static bool is_valid_name (const char * p_name);
+static bool is_valid_descriptor (const drvreg_descriptor_t * p_descriptor);
 
 /**
  * @brief Validate descriptor names and ownership before accepting a registry.
@@ -29,9 +30,7 @@ int drvreg_init (drvreg_registry_t *         p_registry,
     }
     for (size_t index = 0U; index < count; ++index)
     {
-        if ((!is_valid_name(p_entries[index].p_driver_id)) ||
-            (NULL == p_entries[index].p_operations) ||
-            (0U == p_entries[index].context_size))
+        if (!is_valid_descriptor(&p_entries[index]))
         {
             return UTHOME_COMPONENT_ERR_INVALID;
         }
@@ -83,17 +82,40 @@ int drvreg_bind (const drvreg_registry_t * p_registry,
         {
             continue;
         }
-        if (context_capacity < p_entry->context_size)
-        {
-            return UTHOME_COMPONENT_ERR_INVALID;
-        }
-        component_t candidate = {.p_context    = p_context,
-                                 .p_operations = p_entry->p_operations};
-        memcpy(candidate.name, p_instance_id, strlen(p_instance_id) + 1U);
-        *p_component = candidate;
-        return UTHOME_COMPONENT_OK;
+        return drvreg_attach(
+            p_entry, p_instance_id, p_context, context_capacity, p_component);
     }
     return UTHOME_COMPONENT_ERR_UNSUPPORTED;
+}
+
+/** @brief Bind a selected descriptor after checking identity and storage. */
+int drvreg_attach (const drvreg_descriptor_t * p_descriptor,
+                   const char *                p_instance_id,
+                   void *                      p_context,
+                   size_t                      context_capacity,
+                   component_t *               p_component)
+{
+    if ((!is_valid_descriptor(p_descriptor)) ||
+        (!is_valid_name(p_instance_id)) || (NULL == p_context) ||
+        (NULL == p_component) ||
+        (context_capacity < p_descriptor->context_size))
+    {
+        return UTHOME_COMPONENT_ERR_INVALID;
+    }
+    component_t candidate = {.p_context    = p_context,
+                             .p_operations = p_descriptor->p_operations};
+    memcpy(candidate.name, p_instance_id, strlen(p_instance_id) + 1U);
+    *p_component = candidate;
+    return UTHOME_COMPONENT_OK;
+}
+
+/** @brief A usable descriptor needs bounded identity, callbacks and storage. */
+static bool is_valid_descriptor (const drvreg_descriptor_t * p_descriptor)
+{
+    return (NULL != p_descriptor) &&
+           (is_valid_name(p_descriptor->p_driver_id)) &&
+           (NULL != p_descriptor->p_operations) &&
+           (0U != p_descriptor->context_size);
 }
 
 /**

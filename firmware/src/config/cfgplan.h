@@ -27,6 +27,7 @@ typedef enum
     CFGPLAN_RADAR,
     CFGPLAN_DISTANCE,
     CFGPLAN_PWM,
+    CFGPLAN_LIGHT,
     CFGPLAN_DRIVER_COUNT
 } cfgplan_driver_t;
 

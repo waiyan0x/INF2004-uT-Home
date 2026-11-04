@@ -89,6 +89,19 @@
         "Discovery never changes output duty or runs an actuator. Keep the existing output safety and explicit activation path."
       ],
       "sources": ["catalogue/devices/pwm_output.json", "firmware/drivers/pwm_output/pwminst.c"]
+    },
+    {
+      "descriptor": {"id": "sen0390", "version": "1.0.0"},
+      "identification": {
+        "method": "manual",
+        "confirmation": "Confirm the SEN0390 module, supply, shared I2C wiring and enable GPIO before preparing a profile.",
+        "identity_status": "user_confirmed"
+      },
+      "cautions": [
+        "An I2C address acknowledgement does not establish this sensor's identity; the existing discovery preset does not probe address 0x4A.",
+        "The provisional driver must be advertised by the connected firmware, and normal hardware qualification remains incomplete."
+      ],
+      "sources": ["catalogue/devices/sen0390.json", "firmware/drivers/generic_i2c/README.md"]
     }
   ]
 }

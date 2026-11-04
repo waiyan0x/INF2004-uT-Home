@@ -5,7 +5,6 @@
 #include "cfgbind.h"
 #include "cfgdev.h"
 #include "shared.h"
-#include "oledview.h"
 #include "uthome/sample.h"
 #include <string.h>
 
@@ -29,6 +28,8 @@ typedef struct
     sampcache_source_t source;
     cfgplan_driver_t   driver;
     uint8_t            pair;
+    uint8_t            line_slot;
+    uint8_t            enable_pin;
 
     union
     {
@@ -37,6 +38,7 @@ typedef struct
         hcinst_config_t    distance;
         cfgbind_panel_t    display;
         cfgbind_actuator_t output;
+        seninst_config_t   light;
     } settings;
 } cfgbind_setting_t;
 
@@ -54,8 +56,7 @@ typedef struct
 static int open_display (cfgbind_slot_t *          p_slot,
                          const cfgbind_setting_t * p_config);
 static int close_display (cfgbind_slot_t * p_slot);
-static int display_step (cfgbind_display_t * p_display);
-static int output_step (cfgbind_slot_t * p_slot);
+static int close_light (cfgbind_slot_t * p_slot);
 static int validate (void * p_context, const uint8_t * p_data, size_t size);
 static int apply (void * p_context);
 static int recover (void * p_context);
@@ -67,17 +68,17 @@ static int start_device (cfgbind_slot_t *            p_slot,
                          void *                      p_driver,
                          const void *                p_config,
                          size_t                      config_size);
-static void output_settings (const cfgplan_t *   p_plan,
-                             size_t              index,
-                             cfgbind_setting_t * p_settings);
+static void build_output_settings (const cfgplan_t *   p_plan,
+                                   size_t              index,
+                                   cfgbind_setting_t * p_settings);
 static int configure (void * p_context, const void * p_data, size_t size);
 static int step (void * p_context);
 static int cleanup (void * p_context);
 static bool make_plan (cfgbind_state_t * p_state);
-static void settings (const cfgplan_t *   p_plan,
-                      size_t              index,
-                      uint8_t             pair,
-                      cfgbind_setting_t * p_settings);
+static void build_device_settings (const cfgplan_t *   p_plan,
+                                   size_t              index,
+                                   uint8_t             pair,
+                                   cfgbind_setting_t * p_settings);
 static const cfgctrl_ops_t          g_control      = {validate, apply, recover};
 static const component_operations_t g_resource_ops = {.p_configure =
                                                           open_resources};
@@ -86,9 +87,14 @@ static const component_operations_t g_device_ops   = {.p_configure = configure};
 /** @brief Expose only drivers with complete profile-to-worker binding. */
 uint32_t cfgbind_mask (void)
 {
-    return (UINT32_C(1) << CFGPLAN_ENV) | (UINT32_C(1) << CFGPLAN_RADAR) |
-           (UINT32_C(1) << CFGPLAN_DISTANCE) | (UINT32_C(1) << CFGPLAN_OLED) |
-           (UINT32_C(1) << CFGPLAN_PWM);
+    uint32_t supported =
+        (UINT32_C(1) << CFGPLAN_ENV) | (UINT32_C(1) << CFGPLAN_RADAR) |
+        (UINT32_C(1) << CFGPLAN_DISTANCE) | (UINT32_C(1) << CFGPLAN_OLED) |
+        (UINT32_C(1) << CFGPLAN_PWM);
+#if defined(UTHOME_SENLUX_APP_PROBE) && UTHOME_SENLUX_APP_PROBE
+    supported |= UINT32_C(1) << CFGPLAN_LIGHT;
+#endif
+    return supported;
 }
 
 /** @brief Describe compiled support without advertising hardware acceptance. */
@@ -176,6 +182,20 @@ int cfgbind_service (cfgbind_state_t * p_state, uint64_t now_ms)
     return (ACTIVATE_ACTIVE == status.state)
                ? statusmon_step(&p_state->monitor, now_ms)
                : 0;
+}
+
+/** @brief Keep runtime quiescence checks with the owner of bound resources. */
+bool cfgbind_discovery_ready (const cfgbind_state_t * p_state)
+{
+    size_t workers = 0U;
+    if ((NULL == p_state) || (!p_state->b_initialized) || (p_state->b_busy) ||
+        (!rt_port_is_owner()) || (0 != rt_port_owned_count(&workers)) ||
+        (0U != workers) || (NULL != p_state->p_i2c) || (NULL != p_state->p_spi))
+    {
+        return false;
+    }
+    const uartio_t * p_port = p_state->p_io->p_uart();
+    return (NULL != p_port) && (NULL == p_port->p_owner);
 }
 
 /** @brief Build candidate values only; do not modify any live driver context.
@@ -322,6 +342,7 @@ static int configure (void * p_context, const void * p_data, size_t size)
     memset(&p_slot->context, 0, sizeof(p_slot->context));
     p_slot->b_display                        = CFGPLAN_OLED == config.driver;
     p_slot->b_output                         = CFGPLAN_PWM == config.driver;
+    p_slot->b_light                          = CFGPLAN_LIGHT == config.driver;
     p_slot->p_step                           = NULL;
     const drvreg_descriptor_t * p_descriptor = NULL;
     void *                      p_driver     = NULL;
@@ -336,6 +357,17 @@ static int configure (void * p_context, const void * p_data, size_t size)
         config_size                       = sizeof(config.settings.environment);
         p_slot->p_step                    = bmpinst_step;
         p_slot->p_cleanup                 = bmpinst_cleanup;
+    }
+    else if (CFGPLAN_LIGHT == config.driver)
+    {
+        p_slot->context.light.instance.p_bus    = p_slot->p_owner->p_i2c;
+        p_slot->context.light.instance.p_enable = &p_slot->context.light.enable;
+        p_descriptor                            = seninst_descriptor();
+        p_driver          = &p_slot->context.light.instance;
+        p_config          = &config.settings.light;
+        config_size       = sizeof(config.settings.light);
+        p_slot->p_step    = seninst_step;
+        p_slot->p_cleanup = seninst_cleanup;
     }
     else if (CFGPLAN_RADAR == config.driver)
     {
@@ -394,14 +426,11 @@ static int start_device (cfgbind_slot_t *            p_slot,
                          const void *                p_config,
                          size_t                      config_size)
 {
-    drvreg_registry_t registry = {0};
-    if ((0 != drvreg_init(&registry, p_descriptor, 1U)) ||
-        (0 != drvreg_bind(&registry,
-                          p_descriptor->p_driver_id,
-                          p_settings->source.name,
-                          p_driver,
-                          sizeof(p_slot->context),
-                          &p_slot->component)))
+    if (0 != drvreg_attach(p_descriptor,
+                           p_settings->source.name,
+                           p_driver,
+                           sizeof(p_slot->context),
+                           &p_slot->component))
     {
         return -1;
     }
@@ -409,6 +438,18 @@ static int start_device (cfgbind_slot_t *            p_slot,
     if (p_slot->b_display)
     {
         const int result = open_display(p_slot, p_settings);
+        if (0 != result)
+        {
+            return result;
+        }
+    }
+    if (p_slot->b_light)
+    {
+        const int result =
+            p_slot->p_owner->p_io->p_line_open(p_settings->line_slot,
+                                               p_settings->enable_pin,
+                                               false,
+                                               &p_slot->context.light.enable);
         if (0 != result)
         {
             return result;
@@ -431,9 +472,9 @@ static int step (void * p_context)
     }
     if (p_slot->b_output)
     {
-        return output_step(p_slot);
+        return pwmwork_step(&p_slot->context.output, &p_slot->component);
     }
-    return p_slot->b_display ? display_step(&p_slot->context.display)
+    return p_slot->b_display ? oledwork_step(&p_slot->context.display)
                              : p_slot->p_step(p_slot->component.p_context);
 }
 
@@ -454,6 +495,10 @@ static int cleanup (void * p_context)
     {
         result = close_display(p_slot);
     }
+    if ((0 == result) && (p_slot->b_light))
+    {
+        result = close_light(p_slot);
+    }
     if (0 == result)
     {
         p_slot->b_touched = false;
@@ -463,10 +508,10 @@ static int cleanup (void * p_context)
 
 /** @brief Copy admitted scalar fields into the existing driver configuration.
  */
-static void settings (const cfgplan_t *   p_plan,
-                      size_t              index,
-                      uint8_t             pair,
-                      cfgbind_setting_t * p_settings)
+static void build_device_settings (const cfgplan_t *   p_plan,
+                                   size_t              index,
+                                   uint8_t             pair,
+                                   cfgbind_setting_t * p_settings)
 {
     const cfgplan_device_t * p_device = &p_plan->devices[index];
     memcpy(p_settings->source.name,
@@ -475,18 +520,29 @@ static void settings (const cfgplan_t *   p_plan,
     /* Admission bounds the destination to four queues and source to eight. */
     p_settings->source.h_queue      = (msgbus_queue_id_t)p_device->destination;
     p_settings->source.source_index = (uint16_t)index;
-    p_settings->source.type =
-        (CFGPLAN_ENV == p_device->driver)
-            ? UTHOME_SAMPLE_ENVIRONMENT
-            : ((CFGPLAN_RADAR == p_device->driver) ? UTHOME_SAMPLE_TARGETS
-                                                   : UTHOME_SAMPLE_DISTANCE);
+    if (CFGPLAN_ENV == p_device->driver)
+    {
+        p_settings->source.type = UTHOME_SAMPLE_ENVIRONMENT;
+    }
+    else if (CFGPLAN_RADAR == p_device->driver)
+    {
+        p_settings->source.type = UTHOME_SAMPLE_TARGETS;
+    }
+    else if (CFGPLAN_LIGHT == p_device->driver)
+    {
+        p_settings->source.type = UTHOME_SAMPLE_LIGHT;
+    }
+    else
+    {
+        p_settings->source.type = UTHOME_SAMPLE_DISTANCE;
+    }
     p_settings->source.stale_ms =
         (2U * p_device->period_ms) + (p_device->timeout_us / 1000U) + 100U;
     p_settings->driver = p_device->driver;
     p_settings->pair   = pair;
     if ((CFGPLAN_OLED == p_device->driver) || (CFGPLAN_PWM == p_device->driver))
     {
-        output_settings(p_plan, index, p_settings);
+        build_output_settings(p_plan, index, p_settings);
         return;
     }
     /* Admission proved source/queue/pin fields fit these concrete APIs. */
@@ -494,6 +550,14 @@ static void settings (const cfgplan_t *   p_plan,
     {
         p_settings->settings.environment = (bmpinst_config_t){
             .address       = (uint8_t)p_device->address,
+            .source_index  = (uint16_t)index,
+            .timeout_ms    = p_device->timeout_us / 1000U,
+            .h_destination = (msgbus_queue_id_t)p_device->destination};
+    }
+    else if (CFGPLAN_LIGHT == p_device->driver)
+    {
+        p_settings->enable_pin     = (uint8_t)p_device->pin_a;
+        p_settings->settings.light = (seninst_config_t){
             .source_index  = (uint16_t)index,
             .timeout_ms    = p_device->timeout_us / 1000U,
             .h_destination = (msgbus_queue_id_t)p_device->destination};
@@ -527,9 +591,9 @@ static void settings (const cfgplan_t *   p_plan,
 
 /** @brief Copy output-only settings without assigning sensor queue ownership.
  */
-static void output_settings (const cfgplan_t *   p_plan,
-                             size_t              index,
-                             cfgbind_setting_t * p_settings)
+static void build_output_settings (const cfgplan_t *   p_plan,
+                                   size_t              index,
+                                   cfgbind_setting_t * p_settings)
 {
     const cfgplan_device_t * p_device = &p_plan->devices[index];
     if (CFGPLAN_OLED == p_device->driver)
@@ -576,19 +640,15 @@ static bool make_plan (cfgbind_state_t * p_state)
     memset(p_plan, 0, sizeof(*p_plan));
     p_plan->device_count = p_candidate->device_count;
     p_plan->queue_count  = p_candidate->queue_count;
-    const size_t sizes[] = {0U,
-                            sizeof(sample_environment_t),
-                            sizeof(sample_target_report_t),
-                            sizeof(sample_distance_t),
-                            sizeof(sample_health_t)};
     for (size_t index = 0U; index < p_plan->queue_count; ++index)
     {
         const cfgplan_queue_t * p_queue = &p_candidate->queues[index];
-        p_plan->queues[index]           = (msgbus_queue_config_t){
-                      .type            = (uint16_t)p_queue->type,
-                      .item_size       = sizes[p_queue->type],
-                      .depth           = (uint8_t)p_queue->depth,
-                      .overflow_policy = UTHOME_MSGBUS_DROP_OLDEST};
+        /* Admission resolves only the named sample IDs, all within uint16_t. */
+        p_plan->queues[index] = (msgbus_queue_config_t){
+            .type            = (uint16_t)p_queue->type,
+            .item_size       = sampcache_size((uint16_t)p_queue->type),
+            .depth           = (uint8_t)p_queue->depth,
+            .overflow_policy = UTHOME_MSGBUS_DROP_OLDEST};
     }
     cfgbind_resource_t resource = {.health_ms = p_candidate->health_ms};
     for (uint8_t index = 0U; index < p_plan->queue_count; ++index)
@@ -602,18 +662,42 @@ static bool make_plan (cfgbind_state_t * p_state)
     uint8_t pair           = 0U;
     uint8_t display_pair   = 0U;
     uint8_t output_channel = 0U;
+    uint8_t line_slot      = 0U;
     for (size_t index = 0U; index < p_plan->device_count; ++index)
     {
-        const cfgplan_device_t * p_device = &p_candidate->devices[index];
-        activate_device_t *      p_bound  = &p_plan->devices[index];
-        cfgbind_setting_t        config   = {0};
-        settings(
-            p_candidate,
-            index,
-            (CFGPLAN_OLED == p_device->driver)
-                ? display_pair++
-                : ((CFGPLAN_PWM == p_device->driver) ? output_channel++ : pair),
-            &config);
+        const cfgplan_device_t * p_device       = &p_candidate->devices[index];
+        activate_device_t *      p_bound        = &p_plan->devices[index];
+        cfgbind_setting_t        config         = {0};
+        uint8_t                  resource_index = pair;
+        if (CFGPLAN_OLED == p_device->driver)
+        {
+            resource_index = display_pair;
+            ++display_pair;
+        }
+        else if (CFGPLAN_PWM == p_device->driver)
+        {
+            resource_index = output_channel;
+            ++output_channel;
+        }
+        else if (CFGPLAN_DISTANCE == p_device->driver)
+        {
+            ++pair;
+        }
+        else
+        {
+            /* Other drivers do not allocate a pair or output channel. */
+        }
+        build_device_settings(p_candidate, index, resource_index, &config);
+        if ((CFGPLAN_OLED == p_device->driver) ||
+            (CFGPLAN_LIGHT == p_device->driver))
+        {
+            config.line_slot = line_slot;
+            line_slot += (CFGPLAN_OLED == p_device->driver) ? 2U : 1U;
+            if (line_slot > 8U)
+            {
+                return false;
+            }
+        }
         if ((CFGPLAN_OLED == p_device->driver) && (p_device->b_enabled))
         {
             const cfgplan_bus_t * p_bus = &p_candidate->buses[p_device->bus];
@@ -622,11 +706,9 @@ static bool make_plan (cfgbind_state_t * p_state)
             resource.mosi = (uint8_t)p_bus->pin_a;
             resource.sclk = (uint8_t)p_bus->pin_b;
         }
-        if (CFGPLAN_DISTANCE == p_device->driver)
-        {
-            ++pair;
-        }
-        if ((CFGPLAN_ENV == p_device->driver) && (p_device->b_enabled))
+        if (((CFGPLAN_ENV == p_device->driver) ||
+             (CFGPLAN_LIGHT == p_device->driver)) &&
+            (p_device->b_enabled))
         {
             const cfgplan_bus_t * p_bus = &p_candidate->buses[p_device->bus];
             resource.b_i2c              = true;
@@ -669,13 +751,13 @@ static bool make_plan (cfgbind_state_t * p_state)
 static int open_display (cfgbind_slot_t *          p_slot,
                          const cfgbind_setting_t * p_config)
 {
-    cfgbind_display_t *     p_display = &p_slot->context.display;
+    oledwork_t *            p_display = &p_slot->context.display;
     const cfgbind_panel_t * p_panel   = &p_config->settings.display;
     const cfgbind_io_t *    p_io      = p_slot->p_owner->p_io;
     p_display->instance.p_spi         = &p_display->device;
     p_display->sources                = p_panel->sources;
     /* Four admitted displays need at most eight independent control lines. */
-    const uint8_t line_slot = (uint8_t)(p_config->pair * 2U);
+    const uint8_t line_slot = p_config->line_slot;
     int           result    = spibus_attach(
         p_slot->p_owner->p_spi, &p_display->device, &p_panel->spi);
     if (0 == result)
@@ -695,10 +777,19 @@ static int open_display (cfgbind_slot_t *          p_slot,
     return result;
 }
 
+/** @brief Release an enable line only after the sensor releases the bus. */
+static int close_light (cfgbind_slot_t * p_slot)
+{
+    digiout_t * p_enable = &p_slot->context.light.enable;
+    return (NULL == p_enable->p_set)
+               ? 0
+               : p_slot->p_owner->p_io->p_line_close(p_enable);
+}
+
 /** @brief Called only after display-off succeeded or no display was claimed. */
 static int close_display (cfgbind_slot_t * p_slot)
 {
-    cfgbind_display_t *  p_display = &p_slot->context.display;
+    oledwork_t *         p_display = &p_slot->context.display;
     const cfgbind_io_t * p_io      = p_slot->p_owner->p_io;
     int                  result    = 0;
     if (NULL != p_display->instance.reset.p_set)
@@ -714,61 +805,6 @@ static int close_display (cfgbind_slot_t * p_slot)
         result = spibus_detach(&p_display->device);
     }
     return result;
-}
-
-/** @brief Render one copied observation, releasing the guard before SPI I/O. */
-static int display_step (cfgbind_display_t * p_display)
-{
-    sampcache_entry_t entry  = {0};
-    uint64_t          now_ms = 0U;
-    const int result = shared_sample(p_display->sources, &entry, &now_ms);
-    /* Contention shows unavailable data and retries on the next worker period;
-     * a previous FRESH label must not remain indefinitely on a blocked reader.
-     */
-    if (0 != oledview_render(&p_display->instance.display,
-                             (0 == result) ? &entry : NULL,
-                             now_ms))
-    {
-        return SPIBUS_STATE;
-    }
-    return oledinst_step(&p_display->instance);
-}
-
-/** @brief One worker evaluates its rule and writes one typed output command. */
-static int output_step (cfgbind_slot_t * p_slot)
-{
-    cfgbind_output_t * p_output = &p_slot->context.output;
-    sampcache_entry_t  entry    = {0};
-    uint64_t           now_ms   = 0U;
-    const int          sampled =
-        shared_source(p_output->rule.source_index, &entry, &now_ms);
-    if ((0 != sampled) && (0 != rt_port_now_ms(&now_ms)))
-    {
-        now_ms =
-            0U; /* Regression/unavailable sample forces the zero command. */
-    }
-    pwminst_command_t command   = {0};
-    const int         evaluated = rulecalc_step(&p_output->rule,
-                                        &p_output->state,
-                                        (0 == sampled) ? &entry : NULL,
-                                        now_ms,
-                                        &command.duty_permille);
-    int               result    = 0;
-    if (command.duty_permille != p_output->instance.p_port->duty_permille)
-    {
-        result = component_write(&p_slot->component, &command, sizeof(command));
-    }
-    if ((0 != evaluated) || (0 != result))
-    {
-        command.duty_permille = 0U;
-        const int stopped =
-            component_write(&p_slot->component, &command, sizeof(command));
-        /* The worker's failure and retained ownership remain observable even
-         * if concurrent health accounting is busy. Cleanup must still retry. */
-        (void)shared_report(UTHOME_HEALTH_DEVICE_IO);
-        return (0 != stopped) ? stopped : -1;
-    }
-    return 0;
 }
 
 /* End of file. */

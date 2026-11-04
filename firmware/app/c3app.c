@@ -3,6 +3,7 @@
  * @brief Compose admission, activation, storage and the USB controller loop.
  */
 #include "c3app.h"
+#include "c3net.h"
 #include "c3audit.h"
 #include "c3clock.h"
 #include <tk/tkernel.h>
@@ -19,6 +20,9 @@
 #include "telemetry.h"
 #include "cfgdisc.h"
 static int discovery_wait (void);
+#if UTHOME_NETWORK_WIFI
+static cfgmux_t g_mux = {0};
+#endif
 static cfgbind_state_t g_binding   = {0};
 static cfgctrl_t       g_control   = {0};
 static cfgstore_t      g_store     = {0};
@@ -49,13 +53,17 @@ int c3app_run (const uint8_t *       p_build_hash,
     }
     /* Missing storage is reported by restore/requests without silencing USB. */
     (void)c3store_open();
-    g_store.p_operations = c3store_operations();
-    g_store.slot_bytes   = UTHOME_C3STORE_SLOT;
+    g_store.p_operations            = c3store_operations();
+    g_store.slot_bytes              = UTHOME_C3STORE_SLOT;
+    const cfgdisc_io_t discovery_io = {.p_open  = c3i2c_open,
+                                       .p_close = c3i2c_close,
+                                       .p_uart  = c3uart_port(),
+                                       .p_wait  = discovery_wait};
     if ((0 != cfgdisc_init(&g_discovery,
                            &g_control,
                            &g_binding,
                            p_build_hash,
-                           discovery_wait)) ||
+                           &discovery_io)) ||
         (0 != cfgctrl_init(
                   &g_control, &g_store, cfgdisc_operations(), &g_discovery)) ||
         (0 != c3usb_open()) ||
@@ -67,6 +75,17 @@ int c3app_run (const uint8_t *       p_build_hash,
     {
         return -1;
     }
+#if UTHOME_NETWORK_WIFI || UTHOME_NETWORK_BLE
+    /* Opt-in transport startup failure never prevents local restore/USB. */
+#if UTHOME_NETWORK_WIFI
+    cfgmux_t * p_upload =
+        (0 == cfgmux_init(&g_mux, &g_control, &g_pump)) ? &g_mux : NULL;
+    /* Failed optional arbitration leaves USB/local operation available. */
+    (void)c3net_start(&g_control, p_upload);
+#else
+    (void)c3net_start(&g_control, NULL);
+#endif
+#endif
     if (0 != c3audit_seal())
     {
         return -1;
@@ -83,7 +102,18 @@ int c3app_run (const uint8_t *       p_build_hash,
         }
         g_telemetry.service_error = cfgbind_service(&g_binding, now_ms);
         /* A malformed/disconnected transport never stops the active plan. */
+#if UTHOME_NETWORK_WIFI
+        if (!cfgmux_busy(&g_mux))
+        {
+            (void)cfgpump_step(&g_pump, now_ms);
+        }
+#else
         (void)cfgpump_step(&g_pump, now_ms);
+#endif
+#if UTHOME_NETWORK_WIFI || UTHOME_NETWORK_BLE
+        /* Same owner captures profile metadata after any USB plan change. */
+        (void)c3net_step(&g_control, now_ms);
+#endif
         if (E_OK != tk_dly_tsk(1))
         {
             return -1;

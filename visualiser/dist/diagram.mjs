@@ -15,6 +15,11 @@ function el(tag, attributes = {}, text) {
 function add(parent, tag, attributes, text) {
   const n = el(tag, attributes, text); parent.append(n); return n;
 }
+/**
+ * @param {string} id Endpoint ID accepted by parseEndpoint.
+ * @returns {{x:number, y:number}} Position in the overview coordinate system.
+ * @throws {Error} Propagates parseEndpoint's invalid-ID error.
+ */
 export function point(id) {
   const p = parseEndpoint(id);
   if (p.type === "grid") return { x: BOARD_X[p.board] + COL_X[p.column], y: Y(physicalGridRow(p.board, p.row)) };
@@ -152,7 +157,7 @@ function drawWire(parent, step, index, current, ghost) {
 function makeScene(plan, stepIndex, allWires, selectedHole) {
   const scene = el("g"), current = plan.steps[stepIndex], uses5V = plan.steps.some(s => s.net === "v5");
   ["A", "B"].forEach(b => drawBoard(scene, b, uses5V, selectedHole));
-  drawEsp(scene, stepIndex >= plan.steps.findIndex(s => s.id === "esp"));
+  drawEsp(scene, current.showEsp !== false);
   plan.modules.forEach(id => {
     const first = plan.steps.findIndex(s => s.module === id);
     drawModule(scene, id, allWires || stepIndex >= first);
@@ -168,6 +173,32 @@ function makeScene(plan, stepIndex, allWires, selectedHole) {
   });
   return scene;
 }
+/** @param {import('./plan.mjs').Endpoint} endpoint */
+function focusCaption(endpoint) {
+  if (endpoint.type === "rail") {
+    const side = endpoint.side === "R" ? "RIGHT" : "LEFT";
+    const rail = endpoint.sign === "-" ? "BLUE \u2212" : "RED +";
+    return `${side} ${rail} rail \u00b7 hole ${endpoint.index} from the top`;
+  }
+  if (endpoint.type === "grid") {
+    if (endpoint.board === "B") {
+      return `BOTTOM ${endpoint.column.toUpperCase()} \u00b7 RIGHT row ${endpoint.row} \u00b7 LEFT ${60 - endpoint.row}`;
+    }
+    return `Column ${endpoint.column} \u00b7 printed row ${endpoint.row}`;
+  }
+  return "Use the printed module label";
+}
+
+/**
+ * Render a known plan/valid step without mutating plan data. Endpoint errors
+ * propagate from parseEndpoint; this renderer does not validate plan imports.
+ * @param {SVGSVGElement} svg
+ * @param {import('./plan.mjs').Plan} plan
+ * @param {number} stepIndex Integer index within plan.steps.
+ * @param {'overview'|'focus'} mode
+ * @param {boolean} allWires
+ * @param {string|null} selectedHole Valid endpoint ID or null.
+ */
 export function renderDiagram(svg, plan, stepIndex, mode, allWires, selectedHole) {
   const current = plan.steps[stepIndex], scene = makeScene(plan, stepIndex, allWires, selectedHole);
   svg.replaceChildren(el("title", { id: "diagram-title" }, current.title), el("desc", { id: "diagram-desc" }, current.instruction));
@@ -185,12 +216,7 @@ export function renderDiagram(svg, plan, stepIndex, mode, allWires, selectedHole
       const w = parsed.type === "module" ? 285 : 115, h = w * 340 / 307;
       const inner = add(svg, "svg", { x: x + 10, y: y + 58, width: 307, height: 340, viewBox: `${p.x - w / 2} ${p.y - h / 2} ${w} ${h}`, overflow: "hidden" });
       inner.append(scene.cloneNode(true));
-      add(svg, "text", { x: x + 14, y: y + 437, class: "module-sub" }, parsed.type === "rail"
-        ? `${parsed.side === "R" ? "RIGHT" : "LEFT"} ${parsed.sign === "-" ? "BLUE −" : "RED +"} rail · hole ${parsed.index} from the top`
-        : parsed.type === "grid" ? (parsed.board === "B"
-          ? `BOTTOM ${parsed.column.toUpperCase()} · RIGHT row ${parsed.row} · LEFT ${60 - parsed.row}`
-          : `Column ${parsed.column} · printed row ${parsed.row}`)
-          : "Use the printed module label");
+      add(svg, "text", { x: x + 14, y: y + 437, class: "module-sub" }, focusCaption(parsed));
     });
   } else if (mode === "focus" && current.focusEsp) {
     svg.setAttribute("viewBox", "0 0 700 500");

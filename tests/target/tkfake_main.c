@@ -13,6 +13,7 @@
 #include <tk/tkernel.h>
 #include "workport.h"
 #include "activate.h"
+#include "actfault.h"
 #include "shared.h"
 #include "periph.h"
 #include "oledtest.h"
@@ -572,6 +573,7 @@ static void verify_activation (void)
     assert(0 == activate_apply(&g_plan));
     check_rejected_plans();
     check_plan_failures();
+    actfault_verify(&g_plan);
     check_recovery();
     assert(0 == rt_port_shared_call(check_shared_reentry, NULL));
     g_system_state = 4U;

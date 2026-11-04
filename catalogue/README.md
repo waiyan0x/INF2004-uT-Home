@@ -62,6 +62,12 @@ evidence that its C3 adapter is linked. The checked-in host manifest is for host
 admission tests; the target-pending manifest lists no hardware-qualified adapters. Firmware must
 advertise/check its actual compiled registry, not trust a host-supplied manifest.
 
+The SEN0390 descriptor records reviewed I2C address and GPIO-enable constraints,
+with conservative provisional timing defaults. It is not hardware-qualified and
+does not make the unbound driver available; the connected firmware must advertise
+it before a draft can be generated. Datasheet register inconsistencies and the
+manufacturer's enable/read timing require the documented bench validation.
+
 Per-item queue storage is bounded at 64 bytes in this board profile. Sample type
 names describe routing compatibility, not a native C struct ABI. Driver adapters
 must normalize their output and assert it fits. JSON transport must serialize

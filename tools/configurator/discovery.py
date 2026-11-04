@@ -2,6 +2,7 @@
 from copy import deepcopy
 
 from tools.config_validator.planner import ROOT, load_document, require
+from .drafts import append_instance, descriptor_instance
 
 
 PRESETS = ('bench-i2c', 'bench-uart', 'bench-oled', 'bench-distance', 'bench-pwm')
@@ -34,20 +35,17 @@ def recommend(report, catalogue, preset, *, document=None, source_queue=None):
                 defaults["behaviour"].get("profile") != "periodic_sensor"):
             recommendation["status"] = "blocked"
             continue
-        behaviour = deepcopy(defaults["behaviour"])
+        address = device["observation"]["address"]
+        suffix = f"i2c{preset['interface']['port']}_{address:02x}"
+        instance = descriptor_instance(descriptor, ref, device_id=f"detected_{suffix}",
+                                       task_name=f"read_{suffix}",
+                                       interface=dict(ref=preset["interface"]["id"], address=f"0x{address:02x}"))
+        behaviour = instance['behaviour']
         override = next((row for row in preset.get("recommendations", [])
                          if row["descriptor"] == ref), None)
         if override:
             behaviour.update(override["behaviour"])
-        address = device["observation"]["address"]
-        suffix = f"i2c{preset['interface']['port']}_{address:02x}"
         behaviour["destination"] = f"readings.{suffix}"
-        instance = dict(device_id=f"detected_{suffix}", driver=descriptor["driver_id"],
-                        descriptor=deepcopy(ref), enabled=True,
-                        interface=dict(ref=preset["interface"]["id"], address=f"0x{address:02x}"),
-                        behaviour=behaviour,
-                        task=dict(name=f"read_{suffix}", priority=defaults["priority"],
-                                  stack_size_bytes=defaults["stack_size_bytes"]))
         settings = []
 
         def setting(label, value, source, reason):
@@ -84,13 +82,11 @@ def source_queues(document, descriptor):
 
 def recommend_confirmed(device, descriptor, preset, document, source_queue):
     defaults = descriptor['defaults']
-    behaviour = deepcopy(defaults['behaviour'])
     suffix = preset['preset_id'].removeprefix('bench_')
-    instance = dict(device_id=f'confirmed_{suffix}', driver=descriptor['driver_id'],
-                    descriptor=deepcopy(device['identity']['selected']), enabled=True,
-                    interface=deepcopy(preset['device_interface']), behaviour=behaviour,
-                    task=dict(name=f'work_{suffix}', priority=defaults['priority'],
-                              stack_size_bytes=defaults['stack_size_bytes']))
+    instance = descriptor_instance(descriptor, device['identity']['selected'],
+                                   device_id=f'confirmed_{suffix}', task_name=f'work_{suffix}',
+                                   interface=preset['device_interface'])
+    behaviour = instance['behaviour']
     output = descriptor['routing']['output_type']
     if output:
         behaviour['destination'] = f'readings.{suffix}'
@@ -159,9 +155,5 @@ def add_to_draft(document, device, preset):
     if instance['behaviour']['profile'] == 'rule_output':
         require(draft['schema_version'] == '2.1.0', 'PWM needs schema 2.1.0; update and review the draft first')
     # The shared planner checks duplicate device/task/queue IDs and all limits.
-    draft["devices"].append(instance)
-    if recommendation['queue_type']:
-        draft["queues"].append(dict(id=instance["behaviour"]["destination"],
-                                item_type=recommendation["queue_type"],
-                                depth=draft["runtime"]["queue_depth"], overflow_policy="drop_oldest"))
+    append_instance(draft, instance, recommendation['queue_type'])
     return draft

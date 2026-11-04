@@ -5,6 +5,7 @@
 #include "c3pulse.h"
 #include <tk/tkernel.h>
 #include "workport.h"
+#include "bootonce.h"
 #include "c3pin.h"
 #include "esp_private/esp_clk.h"
 #include "esp_private/periph_ctrl.h"
@@ -24,6 +25,7 @@ typedef struct
     bool           b_clock;
 } c3pulse_state_t;
 
+static int create_mutex (void * p_context, size_t index);
 static int open_port (void * p_context, const pulseio_config_t * p_config);
 static int close_port (void * p_context);
 static int measure (void *     p_context,
@@ -51,9 +53,8 @@ static pulseio_t g_ports[2] = {
     {.p_operations = &g_operations, .p_context = &g_states[0]},
     {.p_operations = &g_operations, .p_context = &g_states[1]}};
 
-static uint8_t g_users      = 0U;
-static bool    gb_attempted = false;
-static bool    gb_ready     = false;
+static uint8_t    g_users   = 0U;
+static bootonce_t g_startup = {0};
 
 /** @brief Create the fixed mutex set once before normal operation begins.
  * A partial failure retains created objects and fails closed until reboot. */
@@ -63,23 +64,8 @@ int c3pulse_startup (void)
     {
         return PULSEIO_STATE;
     }
-    if (gb_attempted)
-    {
-        return gb_ready ? 0 : PULSEIO_IO;
-    }
-    gb_attempted       = true;
-    const T_CMTX mutex = {.mtxatr = TA_INHERIT};
-    for (size_t index = 0U; index < 2U; ++index)
-    {
-        const ID h_mutex = tk_cre_mtx(&mutex);
-        if (h_mutex <= 0)
-        {
-            return PULSEIO_IO;
-        }
-        g_states[index].h_mutex = h_mutex;
-    }
-    gb_ready = true;
-    return 0;
+    return (0 == bootonce_run(&g_startup, 2U, create_mutex, NULL)) ? 0
+                                                                   : PULSEIO_IO;
 }
 
 /** @brief Return static noncopyable storage with no hardware side effects. */
@@ -88,15 +74,29 @@ pulseio_t * c3pulse_port (uint8_t pair)
     return (pair < 2U) ? &g_ports[pair] : NULL;
 }
 
+/** @brief Retain each successfully created native mutex until reboot. */
+static int create_mutex (void * p_context, size_t index)
+{
+    (void)p_context; /* The fixed port array owns the permanent handles. */
+    const T_CMTX mutex   = {.mtxatr = TA_INHERIT};
+    const ID     h_mutex = tk_cre_mtx(&mutex);
+    if (h_mutex <= 0)
+    {
+        return -1;
+    }
+    g_states[index].h_mutex = h_mutex;
+    return 0;
+}
+
 /** @brief Claims and partial setup are retained until lifecycle cleanup. */
 static int open_port (void * p_context, const pulseio_config_t * p_config)
 {
     c3pulse_state_t * p_state   = p_context;
     const uint32_t    frequency = esp_clk_xtal_freq();
-    if ((!rt_port_is_owner()) || (!gb_ready) || (p_state->b_clock) ||
-        (p_state->trigger.b_open) || (p_state->input.b_open) ||
-        (0U == frequency) || (0U != (frequency % 1000000U)) ||
-        ((frequency / 1000000U) > 256U))
+    if ((!rt_port_is_owner()) || (!bootonce_ready(&g_startup)) ||
+        (p_state->b_clock) || (p_state->trigger.b_open) ||
+        (p_state->input.b_open) || (0U == frequency) ||
+        (0U != (frequency % 1000000U)) || ((frequency / 1000000U) > 256U))
     {
         return PULSEIO_INVALID;
     }

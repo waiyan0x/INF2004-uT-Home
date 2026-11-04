@@ -1,0 +1,71 @@
+{
+  "record_version": "1.0.0",
+  "scope": "Targeted manual comparison of two previously saved Gemini drafts with selected text in one 16-page SEN0390 datasheet; no new model requests or hardware access",
+  "pdf": {
+    "local_path": "Project/ESP/Datasheets/SEN0390.pdf",
+    "sha256": "e25c86fe30ce4511ff275d2f2051a395a66ef5c13455957e5406b21b5e7a5247",
+    "pages": 16
+  },
+  "drafts": [
+    {
+      "name": "CLI live draft",
+      "local_path": "build/datasheet-work/sen0390-gemini-live.json",
+      "sha256": "f3a15c9bfc5041d1812969f82bd8ffcf1fda630c146ef8eca527f1b3d502e476"
+    },
+    {
+      "name": "Desk live draft",
+      "local_path": "build/datasheet-work/sen0390-gemini-desk-live.json",
+      "sha256": "948ed0f75f3f7a5df8c57ce0efb8dfbff089c2a02354104448cf20d692930ef1"
+    }
+  ],
+  "reviewed_points": [
+    {
+      "point": "I2C address",
+      "source_pages": [1, 13],
+      "finding": "Both drafts report address bytes 0x94 and 0x95 and infer the 7-bit address 0x4A. Both source pages list the two address bytes; shifting either byte right by one gives 0x4A."
+    },
+    {
+      "point": "Interface and pins",
+      "source_pages": [1, 9],
+      "finding": "Both drafts give VCC, SCL, SDA, GND and EN in the page-1 pin order. Page 1 describes EN as active high. Page 9 describes a two-wire I2C-compatible interface at up to 400 kHz."
+    },
+    {
+      "point": "Supply and current",
+      "source_pages": [1, 3],
+      "finding": "Both drafts repeat the page-1 supply range 2.7 to 6 V and report 0.7 mA. Page 1 calls the 0.7 mA figure full-load consumption and describes current as less than 0.8 mA; page 3 gives a typical 700 microamp figure. The Desk draft additionally flags page-2 graphs as a possible discrepancy; those graphs were not verified in this text-only review."
+    },
+    {
+      "point": "Configuration register discrepancy",
+      "source_pages": [5, 6, 8, 9],
+      "finding": "Both drafts flag the register-map address 0x04 against the later references to 0x02. The text contains those differing references; the drafts do not establish the correct operation."
+    },
+    {
+      "point": "Light register discrepancy",
+      "source_pages": [5, 14],
+      "finding": "Both drafts flag the 0x00-0x03 light-register map against page 14's reference to 0x03 and 0x04. The source contains both references; the review does not resolve which transaction is correct."
+    },
+    {
+      "point": "EEPROM address span",
+      "source_pages": [1, 5],
+      "finding": "The source states 112 bytes but the page-5 table displays endpoints 0x10 and 0x80, which span 113 addresses if both are inclusive. The Desk draft flags this ambiguity; the CLI draft repeats the capacity and range without flagging it."
+    },
+    {
+      "point": "Light units",
+      "source_pages": [1, 3],
+      "finding": "The source uses both lumens and lux. The CLI draft explicitly flags the inconsistent units; the Desk draft reproduces both without listing the unit issue as unresolved. Neither result alone establishes calibrated lux."
+    },
+    {
+      "point": "Default integration time",
+      "source_pages": [3, 7],
+      "finding": "Both drafts report the page-3 default integration time of 100 ms. The Desk draft also lists the page-7 selectable settings from 800 to 6.25 ms."
+    }
+  ],
+  "limitations": [
+    "This is a targeted comparison of selected claims, not a complete audit of every fact, note or cited page in either draft.",
+    "Page-2 graphs and other diagrams were not visually reviewed; do not treat their claims as verified.",
+    "The two outputs are earlier live samples without a frozen evaluation protocol, reference set, repeated trials or independent reviewer. They cannot establish model accuracy, reliability or performance on other devices.",
+    "The review verifies what the PDF says and arithmetic on its address bytes; it does not establish the sensor's electrical safety, transaction sequence, calibrated units, driver support or hardware qualification.",
+    "Generated drafts remain untrusted and do not authorize device commands or profile application."
+  ],
+  "acceptance_status": "not qualified"
+}

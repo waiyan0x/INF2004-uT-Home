@@ -20,10 +20,10 @@ def apply_trial(workflow, experiment, interval, identity, folder):
     check_target(experiment, identity)
     profile = export_profile(experiment, interval)
     check_firmware(workflow.client, identity, active_only=False)
-    review = workflow.dispatch("review", {"profile": json.dumps(profile)})
+    review = workflow.review(profile=json.dumps(profile))
     save_new(Path(folder) / "request.json", dict(experiment_sha256=digest(experiment),
              identity_sha256=digest(identity), interval_ms=interval, review=review))
-    reply = workflow.dispatch("apply", {"review_id": review["review_id"]})
+    reply = workflow.apply(review_id=review["review_id"])
     # Always retain the reply, including rejected or saving-failed responses.
     save_new(Path(folder) / "reply.json", reply)
     receipt = make_receipt(experiment, interval, identity, review, reply)
@@ -109,7 +109,7 @@ def main(argv=None):
             print(json.dumps(dict(identity=str(args.output / "identity.json"), firmware=identity["build"])))
         else:
             workflow = Workflow()
-            workflow.dispatch("connect", {"port": args.port})
+            workflow.connect(port=args.port)
             receipt = apply_trial(workflow, experiment, args.interval_ms, identity, args.output)
             print(json.dumps(dict(receipt=str(args.output / "receipt.json"), reply=receipt["reply"]), indent=2))
         return 0

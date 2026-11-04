@@ -1,10 +1,23 @@
 # Actuator services
 
-This directory is a placeholder for higher-level command validation and actuator
-feedback. Current PWM/rule behavior is implemented in the
-[automation modules](../../automation/README.md) and
+`fanctrl.c/h` implements the separate relay-output rule service. It consumes
+runtime sample snapshots and the same rule evaluator; `pwmwork` owns the
+independent PWM worker contract below.
+
+`pwmwork.c/h` owns recurring source sampling, rule state, duty changes and the
+zero-duty fallback. `cfgbind` supplies admitted settings, opens the PWM instance
+and wires its worker and cleanup callbacks. The service reuses the
+[rule evaluator](../../automation/README.md) and
 [PWM component](../../../drivers/pwm_output/README.md).
 
-Physical output/load acceptance remains open. Future services must reuse checked
-configuration, ownership and safe-state handling rather than introduce another
-output path. No actuator feedback implementation is provided here.
+Each worker owns its fixed instance/rule/state context. A failed sample uses
+the current clock when available; unavailable/regressed time forces zero duty.
+Evaluation or write failure attempts zero duty and reports health failure;
+cleanup retains the resource until the existing driver succeeds. There is no
+additional task, pointer, queue, heap storage or actuator feedback mechanism.
+
+Manual BARR-C review: C99, initialized bounded values, unchanged field layout,
+borrowed component/port lifetime and single-worker rule ownership. No casts,
+new hardware access or exceptions. Host binding tests exercise stale inputs,
+rule changes, write failures and safe-state retries. Physical load acceptance
+remains open.

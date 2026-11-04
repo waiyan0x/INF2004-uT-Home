@@ -10,7 +10,9 @@
 #include "uartdisc.h"
 #include "cfgpump.h"
 #include "i2cfake.h"
+#include "shared.h"
 #include <assert.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 static i2cfake_t       g_fake        = {0};
@@ -34,6 +36,7 @@ static void verify_core (void);
 static void verify_budget (void);
 static void verify_rejections (cfgwire_request_t * p_request);
 static void verify_recovery (cfgwire_request_t * p_request);
+static void verify_empty_recovery (cfgwire_request_t * p_request);
 static void verify_transport (const cfgwire_request_t * p_request);
 static int
 receive (void * p_context, uint8_t * p_data, size_t capacity, size_t * p_count);
@@ -55,14 +58,40 @@ void disctest_run (const cfgbind_io_t * p_io, cfgstore_t * p_store)
     i2cfake_init(&g_fake);
     i2cfake_sensor(&g_fake, 0U, 12500U);
     i2cfake_sensor(&g_fake, 1U, 12500U);
-    g_fake.registers[1][0] = 0x60U;
-    g_io                   = *p_io;
-    g_io.p_i2c_open        = open_bus;
-    g_io.p_i2c_close       = close_bus;
+    g_fake.registers[1][0]          = 0x60U;
+    g_io                            = *p_io;
+    g_io.p_i2c_open                 = open_bus;
+    g_io.p_i2c_close                = close_bus;
+    const unsigned     opens        = g_opens;
+    const unsigned     closes       = g_closes;
+    uint8_t            hash[32]     = {1U};
+    const cfgdisc_io_t discovery_io = {.p_open  = open_bus,
+                                       .p_close = close_bus,
+                                       .p_uart  = g_io.p_uart(),
+                                       .p_wait  = uartdisc_wait};
+    assert(-1 ==
+           cfgdisc_init(
+               &g_discovery, &g_control, &g_binding, hash, &discovery_io));
+    assert(NULL == g_discovery.p_control);
     assert(0 == cfgbind_init(&g_binding, &g_io));
-    uint8_t hash[32] = {1U};
+    cfgdisc_io_t incomplete[4] = {
+        discovery_io, discovery_io, discovery_io, discovery_io};
+    incomplete[0].p_open  = NULL;
+    incomplete[1].p_close = NULL;
+    incomplete[2].p_uart  = NULL;
+    incomplete[3].p_wait  = NULL;
+    for (size_t index = 0U; index < 4U; ++index)
+    {
+        assert(-1 == cfgdisc_init(&g_discovery,
+                                  &g_control,
+                                  &g_binding,
+                                  hash,
+                                  &incomplete[index]));
+        assert(NULL == g_discovery.p_control);
+    }
+    assert((opens == g_opens) && (closes == g_closes));
     assert(0 == cfgdisc_init(
-                    &g_discovery, &g_control, &g_binding, hash, uartdisc_wait));
+                    &g_discovery, &g_control, &g_binding, hash, &discovery_io));
     g_discovery.probe.p_now = now_ms;
     assert(0 == cfgctrl_init(
                     &g_control, p_store, cfgdisc_operations(), &g_discovery));
@@ -81,6 +110,7 @@ void disctest_run (const cfgbind_io_t * p_io, cfgstore_t * p_store)
     assert((0U == g_control.saved_revision) && (0U == g_control.cached_size));
     verify_rejections(&request);
     verify_recovery(&request);
+    verify_empty_recovery(&request);
     puts("Generic I2C discovery, bounded faults, USB parity and retained "
          "cleanup passed.");
 }
@@ -253,6 +283,72 @@ static void verify_recovery (cfgwire_request_t * p_request)
     assert(0 == cfgctrl_handle(&g_control, &request, fields));
     assert((CFGCTRL_EMPTY == fields[0]) && (!g_control.b_recovery));
     assert(NULL == g_discovery.probe.p_bus);
+}
+
+/** @brief Recovery must invalidate even an applied profile with no hardware. */
+static void verify_empty_recovery (cfgwire_request_t * p_request)
+{
+    const uint8_t profile[] =
+        "{\"schema_version\":\"2.0.0\",\"node_id\":\"empty-test\","
+        "\"board\":{\"platform\":\"esp32-c3\","
+        "\"variant\":\"esp32-c3-supermini\",\"capability_version\":\"1.0.0\"},"
+        "\"runtime\":{\"health_report_interval_ms\":5000,"
+        "\"max_device_tasks\":4,\"queue_depth\":8,"
+        "\"configuration_source\":\"usb_serial\",\"rollback_on_error\":true},"
+        "\"devices\":[],\"interfaces\":[],\"queues\":[{\"id\":\"health\","
+        "\"item_type\":\"health_event\",\"depth\":8,"
+        "\"overflow_policy\":\"drop_oldest\"}]}";
+    uint32_t          fields[6] = {0};
+    cfgwire_request_t request   = {.command = CFGWIRE_QUERY, .request_id = 4U};
+    assert(0 == cfgctrl_handle(&g_control, &request, fields));
+    assert(UINT32_MAX > fields[2]);
+    const uint32_t revision = fields[2] + 1U;
+
+    request = (cfgwire_request_t){.command    = CFGWIRE_APPLY,
+                                  .request_id = 5U,
+                                  .revision   = revision,
+                                  .size       = sizeof(profile) - 1U,
+                                  .p_data     = profile};
+    assert(0 == cfgctrl_handle(&g_control, &request, fields));
+    assert((CFGCTRL_SAVED == fields[0]) && (revision == fields[1]));
+    msgbus_stats_t stats = {0};
+    assert(0 == shared_queue_stats(0, &stats));
+    uint8_t output[112] = {0};
+    size_t  size        = 0U;
+    p_request->revision = revision;
+    gb_close_fail       = true;
+    assert(0 == cfgdisc_observe(
+                    &g_discovery, p_request, output, sizeof(output), &size));
+    assert(DISCI2C_FAULT == cfgbytes_get(&output[4]));
+    assert(0U == cfgbytes_get(&output[12]));
+    assert((5U == g_control.last_id) && (revision == g_control.saved_revision));
+    assert(!cfgctrl_view(&g_control).b_available);
+    printf("RECOVERYDISCOVERY:%" PRIu32 ":", revision);
+    for (size_t index = 0U; index < size; ++index)
+    {
+        /* Byte promotion matches the unsigned printf conversion. */
+        printf("%02X", (unsigned)output[index]);
+    }
+    puts("");
+    gb_close_fail = false;
+    request = (cfgwire_request_t){.command = CFGWIRE_RECOVER, .request_id = 6U};
+    assert(0 == cfgctrl_handle(&g_control, &request, fields));
+    assert(CFGCTRL_EMPTY == fields[0]);
+    assert((0U == fields[1]) && (0U == fields[3]));
+    assert(0U == (fields[5] & UTHOME_CFG_ACTIVE_KNOWN));
+    assert((revision == fields[2]) && (0U == g_control.active_size));
+    assert(cfgctrl_view(&g_control).b_available);
+    assert(0 != shared_queue_stats(0, &stats));
+    request = (cfgwire_request_t){.command    = CFGWIRE_APPLY,
+                                  .request_id = 7U,
+                                  .revision   = revision,
+                                  .size       = sizeof(profile) - 1U,
+                                  .p_data     = profile};
+    assert(0 == cfgctrl_handle(&g_control, &request, fields));
+    assert((CFGCTRL_SAVED == fields[0]) && (revision == fields[1]));
+    assert(0U != (fields[5] & UTHOME_CFG_ACTIVATED));
+    assert(0 == shared_queue_stats(0, &stats));
+    assert(0 == activate_clear());
 }
 
 /** @brief Fragment both directions and expose the actual C frame to Python. */

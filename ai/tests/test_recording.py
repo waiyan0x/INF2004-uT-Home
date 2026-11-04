@@ -1,6 +1,5 @@
 """Recording contracts exercised with fake telemetry and clocks, never hardware."""
 from copy import deepcopy
-from dataclasses import asdict
 import hashlib
 import json
 from pathlib import Path
@@ -12,8 +11,8 @@ import zlib
 from ai.provenance import (check_receipt, make_identity, make_receipt, retained_build)
 from ai.recorder import apply_trial, bundle_recordings, main
 from ai.recording import load_recording, record_run
-from ai.records import assess_run, build_dataset
-from ai.timing import canonical, digest, export_profile, prepare
+from ai.records import build_dataset
+from ai.timing import export_profile, prepare
 from tools.config_transfer.capabilities import Capabilities
 from tools.config_transfer.discovery import Discovery
 from tools.config_transfer.telemetry import Snapshot
@@ -154,7 +153,13 @@ class RecordingTests(unittest.TestCase):
         for field, reason in (("failure_at", "test_disconnect"), ("delay_at", "sampling_gap")):
             self.board.calls = 0
             setattr(self.board, field, 6)
-            folder, result = self.record(field)
+            if field == "failure_at":
+                with self.assertRaisesRegex(OSError, "test_disconnect"):
+                    self.record(field)
+                folder = self.root / field
+                result = json.loads((folder / "assessment.json").read_text())
+            else:
+                folder, result = self.record(field)
             self.assertFalse(result["usable"])
             self.assertIn(reason, result["reason"])
             self.assertTrue((folder / "raw.jsonl").exists())
@@ -189,10 +194,23 @@ class RecordingTests(unittest.TestCase):
         for call, count in ((2, 0), (3, 1)):
             self.board.calls = 0
             self.board.failure_at = call
-            folder, result = self.record("early-" + str(call))
+            name = "early-" + str(call)
+            with self.assertRaisesRegex(OSError, "test_disconnect"):
+                self.record(name)
+            folder = self.root / name
+            result = json.loads((folder / "assessment.json").read_text())
             self.assertFalse(result["usable"])
             _, run = load_recording(folder)
             self.assertEqual(len(run["samples"]), count)
+
+    def test_preflight_disconnect_is_retained_before_propagation(self):
+        self.board.failure_at = 1
+        with self.assertRaisesRegex(OSError, "test_disconnect"):
+            self.record("preflight")
+        folder = self.root / "preflight"
+        self.assertEqual(json.loads((folder / "failure.json").read_text())["reason"], "test_disconnect")
+        self.assertTrue((folder / "raw.jsonl").exists())
+        self.assertFalse((folder / "run.json").exists())
 
     def test_profile_race_during_build_checks_is_retained(self):
         original = self.board.discover_i2c
@@ -236,7 +254,9 @@ class RecordingTests(unittest.TestCase):
         workflow.client = self.board
         reply = deepcopy(self.receipt["reply"])
         reply["status"] = 0
-        workflow.dispatch.side_effect = [dict(sha256=hashlib.sha256(raw).hexdigest(), review_id="test"), reply]
+        workflow.review.return_value = dict(sha256=hashlib.sha256(raw).hexdigest(), review_id="test")
+        workflow.apply.return_value = reply
+        workflow.dispatch.side_effect = AssertionError("Use named operations")
         with self.assertRaisesRegex(ConfigurationError, "not acknowledged"):
             apply_trial(workflow, self.experiment, 500, self.identity, folder)
         self.assertTrue((folder / "request.json").exists())

@@ -4,9 +4,10 @@ import struct
 import zlib
 
 from .protocol import Command, HEADER
+from .payloads import DiscoveryObservation, DiscoveryResult, ObservationStatus
 
-RESULTS = ("complete", "busy", "fault", "invalid", "stale", "incomplete")
-OBSERVATIONS = ("responding", "not_responding", "timeout", "fault", "not_checked")
+RESULTS: tuple[DiscoveryResult, ...] = ("complete", "busy", "fault", "invalid", "stale", "incomplete")
+OBSERVATIONS: tuple[ObservationStatus, ...] = ("responding", "not_responding", "timeout", "fault", "not_checked")
 
 
 @dataclass(frozen=True)
@@ -14,16 +15,16 @@ class Discovery:
     request_id: int
     revision: int
     active_revision: int
-    result: str
+    result: DiscoveryResult
     preset_code: int
     session_id: int
     started_ms: int
     elapsed_ms: int
     build_sha256: str
-    records: tuple
+    records: tuple[DiscoveryObservation, ...]
 
 
-def discovery_request(session_id, *, wiring_confirmed, preset_code=1):
+def discovery_request(session_id: int, *, wiring_confirmed: bool, preset_code: int = 1) -> bytes:
     if wiring_confirmed is not True:
         raise ValueError("Confirm the reviewed preset wiring before discovery")
     if type(session_id) is not int or not 0 < session_id <= 0xFFFFFFFFFFFFFFFF:
@@ -33,7 +34,7 @@ def discovery_request(session_id, *, wiring_confirmed, preset_code=1):
     return struct.pack("<IIQII", 1, preset_code, session_id, 1, 0)
 
 
-def decode_discovery(frame, *, request_id, revision, payload):
+def decode_discovery(frame: bytes, *, request_id: int, revision: int, payload: bytes) -> Discovery:
     if len(payload) != 24 or not 104 <= len(frame) <= 232:
         raise ValueError("invalid discovery length")
     version, preset, session, confirmed, reserved = struct.unpack("<IIQII", payload)
@@ -53,12 +54,15 @@ def decode_discovery(frame, *, request_id, revision, payload):
         received_session != session or count not in (0, expected_count) or
         len(data) != 80 + count * record_size or any(data[72:80]) or not any(data[40:72])):
         raise ValueError("unsupported discovery fields")
-    if result != 4 and active_revision != revision:
+    # Retained probe cleanup enters recovery and invalidates active identity.
+    # Other revision changes are allowed only in an explicit stale response.
+    recovery_invalidated = result == 2 and active_revision == 0
+    if result != 4 and not recovery_invalidated and active_revision != revision:
         raise ValueError("configuration revision changed during discovery")
     if ((result in (0, 5) and count != expected_count) or
         (result in (1, 3, 4) and (count or started or elapsed))):
         raise ValueError("inconsistent discovery outcome")
-    records = []
+    records: list[DiscoveryObservation] = []
     if preset == 2 and count:
         parser, received, valid, framing, discarded, errors, pending, window = struct.unpack_from('<8I', data, 80)
         if (parser != 1 or received > 128000 or valid * 30 > received or

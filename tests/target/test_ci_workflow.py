@@ -42,9 +42,13 @@ class WorkflowTests(unittest.TestCase):
 
     def test_preserves_all_host_suites(self):
         host = "\n".join(step.get("run", "") for step in self.workflow["jobs"]["c-standard"]["steps"])
-        for suite in ("tests/c_standard", "tests/foundation", "tests/runtime", "tests/target"):
+        for suite in ("tests/c_standard", "tests/foundation", "tests/runtime", "tests/target",
+                      "tests/discovery", "ai/tests", "tests/target/test_*.mjs",
+                      "visualiser/tests/*.test.mjs", "tools/test_uart_gpio.py", "tools/test_outputs.py"):
             self.assertIn(suite, host)
         self.assertIn("tools/c_standard/check.py", host)
+        self.assertTrue(any(step.get("uses", "").startswith("actions/setup-node@")
+                            for step in self.workflow["jobs"]["c-standard"]["steps"]))
         self.assertTrue(any(step.get("working-directory") == "legacy/member5"
                             for step in self.workflow["jobs"]["c-standard"]["steps"]))
 

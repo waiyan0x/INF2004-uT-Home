@@ -8,8 +8,9 @@ import subprocess
 import tempfile
 import unittest
 
-from ai import measurements, protocol_export, workload
-from ai.protocol_capture import collect
+from ai import measurements, workload
+from ai.protocol import export as protocol_export
+from ai.protocol.capture import collect
 from ai.static_context import REQUIRED_CHECKS, bind_experiment, check_capture, qualification_reasons, validate_context
 from ai.tests import test_protocol
 from ai.timing import digest
@@ -112,7 +113,9 @@ class StaticTests(unittest.TestCase):
                 collect(workflow, "TEST", self.study, self.identity, self.study["base_profile"], output,
                         [self.experiment["scenario"]["family_id"]], execution_context=context, qualification_folder=folder)
             self.assertFalse(output.exists())
-            workflow.dispatch.assert_not_called()
+            workflow.connect.assert_not_called()
+            workflow.review.assert_not_called()
+            workflow.apply.assert_not_called()
 
     def test_protocol_export_preserves_eighteenth_feature_and_threshold_boundary(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -167,19 +170,16 @@ class StaticTests(unittest.TestCase):
         crc = zlib.crc32(json.dumps(original, ensure_ascii=True, separators=(",", ":")).encode())
         workflow = Mock()
         workflow.client = Board(Clock())
-        def dispatch(action, body):
-            if action == "connect":
-                return dict(state=dict(active_crc=crc, saved_crc=crc, flags=80))
-            if action == "review":
-                return dict(review_id="restore")
-            if action == "apply":
-                return dict(status=1, active_crc=crc, saved_crc=crc)
-            raise AssertionError(action)
-        workflow.dispatch.side_effect = dispatch
+        def connect(*, port):
+            return dict(state=dict(active_crc=crc, saved_crc=crc, flags=80))
+        workflow.connect.side_effect = connect
+        workflow.review.return_value = dict(review_id='restore')
+        workflow.apply.return_value = dict(status=1, active_crc=crc, saved_crc=crc)
+        workflow.dispatch.side_effect = AssertionError('Capture must use named operations')
         with tempfile.TemporaryDirectory() as folder:
             (Path(folder) / "test-only.txt").write_bytes(b"test only")
-            with patch("ai.protocol_capture.apply_trial", return_value={}) as apply_mock, \
-                    patch("ai.protocol_capture.record_run", side_effect=OSError("test_disconnect")):
+            with patch("ai.protocol.capture.apply_trial", return_value={}) as apply_mock, \
+                    patch("ai.protocol.capture.record_run", side_effect=OSError("test_disconnect")):
                 result = collect(workflow, "TEST", self.study, self.identity, original, Path(folder)/"capture", ["all-current"],
                                  execution_context=context_fixture(), qualification_folder=folder)
             self.assertEqual(result["error"], "test_disconnect")

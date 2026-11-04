@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0.0",
+  "scope": "Read-only USB telemetry and per-worker workcost observation on the restored three-device application",
+  "start_utc": "2026-11-01T06:18:16.434790+00:00",
+  "last_utc": "2026-11-01T06:20:15.522575+00:00",
+  "elapsed_seconds_at_last_observation": 119.18,
+  "local_directory": "build/datasheet-work/radar-observe-20261101-141816",
+  "journal_sha256": "1d5946eadfd3a6db0721324db47a56f069f60b96bc783a81c6d3ff04de6263ab",
+  "telemetry_observations": 120,
+  "workcost_observations": 120,
+  "radar_quality_snapshots": {"fresh": 120},
+  "radar_worker_delta_between_first_and_last_workcost": {
+    "steps": 11901,
+    "transfer_bytes": 68340,
+    "transfers": 11901,
+    "timeouts": 0,
+    "errors": 0
+  },
+  "health_event_delta_indices_0_to_7": [0, 0, 0, 0, 2635, 0, 0, 0],
+  "configuration_unchanged": true,
+  "configuration": {"active_revision": 922, "saved_revision": 922, "active_crc": 3623560383, "saved_crc": 3623560383},
+  "user_report_received_during_capture": "OLED readable, everything else closed, connected",
+  "phone_app_state": "Not independently timestamp-confirmed for the complete capture",
+  "interpretation": "Healthy sampled radar reports with increasing delivered-byte counters; no fault window occurred to compare directly within this run.",
+  "limitations": [
+    "Snapshots do not cover every sensor frame or prove absence of short interruptions.",
+    "Global health counters cannot identify the source; event 4 is queue overflow, not device timeout.",
+    "Prior zero-byte observations were made on a different date and their exact firmware context is not established as identical.",
+    "No independent UART waveform, module supply waveform, power cycle, absence test or full-system acceptance is established."
+  ],
+  "serial_closed": true,
+  "root_cause_established": false,
+  "hardware_qualified": false
+}

@@ -21,7 +21,14 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(405, { Allow: "GET, HEAD" }).end();
     return;
   }
-  const entry = allowed.get(new URL(req.url, "http://localhost").pathname);
+  let pathname;
+  try {
+    pathname = new URL(req.url, "http://localhost").pathname;
+  } catch {
+    res.writeHead(400, { "Content-Type": "text/plain" }).end("Invalid request URL");
+    return;
+  }
+  const entry = allowed.get(pathname);
   if (!entry) {
     res.writeHead(404, { "Content-Type": "text/plain" }).end("Not found");
     return;
@@ -36,7 +43,8 @@ const server = http.createServer(async (req, res) => {
       "Content-Security-Policy": "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'",
     });
     res.end(req.method === "HEAD" ? undefined : data);
-  } catch {
+  } catch (error) {
+    console.error(`Unable to serve visualiser asset ${entry[0]}:`, error);
     res.writeHead(500, { "Content-Type": "text/plain" }).end("Unable to read visualiser file");
   }
 });

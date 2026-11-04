@@ -21,7 +21,8 @@ typedef enum
     UTHOME_SAMPLE_ENVIRONMENT = 1U,
     UTHOME_SAMPLE_TARGETS     = 2U,
     UTHOME_SAMPLE_DISTANCE    = 3U,
-    UTHOME_SAMPLE_HEALTH      = 4U
+    UTHOME_SAMPLE_HEALTH      = 4U,
+    UTHOME_SAMPLE_LIGHT       = 5U
 } sample_type_t;
 
 /* A zero-initialized record is unknown, never a successful measurement.
@@ -65,6 +66,13 @@ typedef struct
     uint32_t        distance_mm;
     uint32_t        echo_us;
 } sample_distance_t;
+
+/* Illuminance in millilux; 0 is a valid measurement. */
+typedef struct
+{
+    sample_header_t header;
+    uint32_t        millilux;
+} sample_light_t;
 
 /* Preserve target slots; an absent slot has b_present false and zero values. */
 typedef struct

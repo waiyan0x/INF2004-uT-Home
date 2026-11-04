@@ -6,6 +6,25 @@ explicitly selected serial port. It sets DTR/RTS inactive before opening,
 performs no explicit reset and never flashes. Some host drivers can still pulse
 control lines during open; verify actual board behavior during acceptance.
 
+The borrowed `SerialStream` protocol and command-specific `Client.exchange`
+overloads expose concrete replies. `payloads.py` describes the decoded JSON
+records, including nullable measurements and empty objects on failed captures.
+These annotations preserve the wire/JSON format; decoders validate incoming data.
+`identity.py` supplies shared configuration/capability comparison keys for the
+configurator and capture tools. Request correlation fields do not establish
+board state; active/saved identity and recovery flags remain significant.
+Persisted evidence retains its existing list/object formats.
+The strict check runs in CI and covers AI measurement processing and its shared validation
+dependencies. Live cost observations stay `WorkcostReply` objects until the
+recording boundary; replayed JSON is validated before typed window summaries
+are returned. Unavailable worker counters remain distinct from zero work.
+Check these contracts from the repository root with Python 3.11 or newer:
+
+```console
+python -m pip install -r tools/config_transfer/requirements-dev.txt
+python -m mypy --config-file tools/config_transfer/mypy.ini
+```
+
 The board must run the **configuration application image**, not the acceptance
 fixture. Query its identity and capabilities before use. Scoped discovery/core
 acceptance is indexed in [qualification](../../firmware/qualification/README.md);
@@ -44,6 +63,10 @@ may already be active or durable. Reconnect and QUERY before deciding. Never
 open a serial monitor or second controller concurrently. IDs increase per boot
 and cannot wrap; PROBE still works at UINT32_MAX. The low-level client takes a
 borrowed stream with finite timeouts, making its behavior testable without USB.
+If matching replies fail decoding and no valid reply follows before the deadline,
+the client reports a rejected reply and retains the decoder error as its cause.
+Silence or unrelated bytes remain a timeout. Both outcomes require the same
+reconnect/query decision; neither triggers a mutation retry.
 
 ## One read-only telemetry snapshot
 

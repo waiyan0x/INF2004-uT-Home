@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_utc": "2026-10-31T14:56:43Z",
+  "scope": "Restoration following the user-operated SEN0390 Desk rehearsal",
+  "rehearsal_record": "firmware/qualification/sen0390-desk-rehearsal-20261031.json",
+  "backup_local_directory": "build/datasheet-work/demo-rehearsal-20261031-220458",
+  "backup_sha256": "a98aa25765153ca8b8acb555fd13322d3da253c045e572bba7b1a64abf958ada",
+  "restored_prefix_bytes": 1138688,
+  "restored_prefix_sha256": "7dfe8be0caf3cd1301c13404a8f7ef108b7a2666c4494774c5fb280b45f934c6",
+  "restored_prefix_matches_backup": true,
+  "restored_configuration": {"active_revision": 922, "saved_revision": 922, "active_crc": 3623560383, "saved_crc": 3623560383},
+  "user_reported_oled": "Readable and updating after restoration",
+  "user_reported_saved_four_device_draft": true,
+  "limitations": [
+    "The byte comparison covers the restored prefix through the saved configuration, not a post-restoration read of all flash.",
+    "OLED readability and one restoration check do not establish radar or full system reliability."
+  ]
+}

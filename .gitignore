@@ -21,6 +21,10 @@ dependencies.lock
 __pycache__/
 *.pyc
 .venv/
+.desloppify/
+
+# JavaScript development tools
+node_modules/
 
 # Secrets
 secrets/

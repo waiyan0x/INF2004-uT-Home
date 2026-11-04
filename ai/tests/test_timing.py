@@ -10,6 +10,7 @@ import unittest
 from jsonschema import Draft202012Validator
 
 from ai.timing import SCHEMA, export_profile, main, prepare, validate
+from ai.provenance import context_fingerprint
 from tools.config_validator import Catalogue, ConfigurationError, build_plan, load_document
 
 
@@ -57,6 +58,19 @@ class TimingTests(unittest.TestCase):
         for invalid in (400, True, 1000.0):
             with self.subTest(interval=invalid), self.assertRaises(ConfigurationError):
                 export_profile(experiment, invalid, self.catalogue)
+
+    def test_context_tracks_every_admission_module(self):
+        experiment = self.plan()
+        original = context_fingerprint(experiment)
+        for module in ("planner", "catalogue", "documents", "wiring"):
+            with self.subTest(module=module):
+                changed = deepcopy(experiment)
+                path = f"tools/config_validator/{module}.py"
+                self.assertIn(path, changed["provenance"]["implementation_sha256"])
+                changed["provenance"]["implementation_sha256"][path] = "0" * 64
+                self.assertNotEqual(original, context_fingerprint(changed))
+                with self.assertRaises(ConfigurationError):
+                    validate(changed, self.catalogue)
 
     def test_same_driver_instances_can_have_separate_experiments(self):
         self.scenario.update(instance_id="room_2", duration_ms=60000)

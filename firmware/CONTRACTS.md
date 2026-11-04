@@ -31,6 +31,7 @@ device models. Existing component callbacks and the message bus are unchanged.
 | `target_report` | `UTHOME_SAMPLE_TARGETS` (2) | `sample_target_report_t` | Three slots: signed x/y in mm, signed speed in cm/s, resolution in mm, presence Boolean |
 | `distance_sample` | `UTHOME_SAMPLE_DISTANCE` (3) | `sample_distance_t` | Distance in mm, echo duration in microseconds |
 | `health_event` | `UTHOME_SAMPLE_HEALTH` (4) | `sample_health_t` | Existing `health_event_t` code and cumulative occurrence count |
+| `light_sample` | `UTHOME_SAMPLE_LIGHT` (5) | `sample_light_t` | Illuminance in integer millilux, 0..200,000,000; not yet bound to a device |
 
 Every record has the same header:
 

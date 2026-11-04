@@ -49,7 +49,7 @@ class AdviserTests(unittest.TestCase):
         cls.addClassCleanup(cls.temp.cleanup)
         dll = Path(cls.temp.name) / 'adviser.dll'
         subprocess.run([gcc, '-std=c99', '-Wall', '-Wextra', '-Werror', '-pedantic', '-O2', '-shared',
-                        str(ROOT / 'firmware/src/services/adviser.c'), '-o', str(dll)],
+                        str(ROOT / 'firmware/src/services/advice/adviser.c'), '-o', str(dll)],
                        check=True, capture_output=True)
         cls.lib = c.CDLL(str(dll))
         cls.start = cls.lib.adviser_start

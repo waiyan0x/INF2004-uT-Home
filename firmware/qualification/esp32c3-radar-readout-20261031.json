@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_utc": "2026-10-31T12:36:27.097859+00:00",
+  "scope": "Restored three-device firmware; BLE app attempts were requested but timing and completion not yet confirmed",
+  "local_directory": "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\ESP\\Tribunal1\\sen0390-flash-backup-abbb1c1ab37742eb9449f3aabaf11281\\radar-ble-reconnect-check",
+  "telemetry_sha256": "361615e3ccc014313b0f49950023f09de3ea9ecd7466ef1e7792343094bde585",
+  "workcost_before_sha256": "280724cbedd624c59bdbdb12ba9c97d934e36bd7fbb4fd76411a574a9756d993",
+  "workcost_after_sha256": "c2230a0d1d71704303ce547e53896bbe7abdb4cd432dffad0502cdd13aa757b5",
+  "samples": 60,
+  "quality_counts": {
+    "fault": 60
+  },
+  "capture_start_utc": "2026-10-31T12:33:28.471353+00:00",
+  "capture_end_utc": "2026-10-31T12:34:33.109150+00:00",
+  "esp_uptime_first_ms": 590878,
+  "esp_uptime_last_ms": 655496,
+  "radar_read_payload_bytes_delta": 0,
+  "radar_read_operations_delta": 6316,
+  "radar_transport_errors_delta": 0,
+  "interpretation": "No radar payload was delivered to the ESP in this interval. The ESP uptime increased throughout; the cause and the radar BLE connection state are not established."
+}
