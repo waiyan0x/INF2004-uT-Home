@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:uthome:i2c-recipe-draft:1.0.0",
+  "title": "Bounded I2C register-read recipe draft",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "device_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,21}$"
+    },
+    "bus_ref": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+    },
+    "address": {
+      "type": "string",
+      "pattern": "^0x(?:0[89a-f]|[1-6][0-9a-f]|7[0-7])$"
+    },
+    "register": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "read_length": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "read_pause_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "select_offset": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 15
+    },
+    "select_length": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "interval_ms": {
+      "type": "integer",
+      "minimum": 200,
+      "maximum": 60000
+    },
+    "timeout_ms": {
+      "type": "integer",
+      "minimum": 10,
+      "maximum": 100
+    }
+  },
+  "required": [
+    "device_id",
+    "bus_ref",
+    "address",
+    "register",
+    "read_length",
+    "read_pause_ms",
+    "select_offset",
+    "select_length",
+    "interval_ms",
+    "timeout_ms"
+  ]
+}

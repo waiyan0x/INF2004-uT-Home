@@ -22,6 +22,7 @@ static void verify_sources (uint64_t * p_clock);
 static void verify_values (uint64_t now_ms);
 static void verify_monitor (uint64_t * p_clock);
 static void verify_light (uint64_t now_ms);
+static void verify_raw (uint64_t * p_clock);
 static void emit (void);
 static void verify_rule (void);
 static void verify_rule_metrics (void);
@@ -50,6 +51,7 @@ void servtest_run (uint64_t * p_clock)
     g_telemetry.p_audit = capture_audit;
     verify_monitor(p_clock);
     verify_light(*p_clock);
+    verify_raw(p_clock);
     assert(0 == shared_reset(NULL, 0U));
     assert(0 == shared_capture(&g_capture));
     assert(!g_capture.samples.entries[0].b_expected);
@@ -57,6 +59,58 @@ void servtest_run (uint64_t * p_clock)
     assert(0 == rt_port_shared_call(check_contention, NULL));
     puts("Services: independent sources, freshness, health, reset and wire "
          "parity passed.");
+}
+
+/** @brief Validate raw length/padding and clear values after a clock fault. */
+static void verify_raw (uint64_t * p_clock)
+{
+    const msgbus_queue_config_t queue = {
+        UTHOME_SAMPLE_RAW, sizeof(sample_raw_t), 1U, UTHOME_MSGBUS_DROP_OLDEST};
+    assert(0 == shared_reset(&queue, 1U));
+    const sampcache_source_t source = {.name         = "raw",
+                                       .h_queue      = 0,
+                                       .type         = UTHOME_SAMPLE_RAW,
+                                       .source_index = 0U,
+                                       .stale_ms     = 1000U};
+    assert(0 == shared_expect(&source));
+    sample_raw_t sample = {
+        .header = {.timestamp_ms = *p_clock, .status = UTHOME_SAMPLE_OK},
+        .length = UTHOME_SAMPLE_RAW_MAX};
+    sample.bytes[15] = 0xA5U;
+    assert(0 == shared_publish(0, UTHOME_SAMPLE_RAW, &sample, sizeof(sample)));
+    size_t size = 0U;
+    assert(0 == telemetry_observe(
+                    &g_telemetry, &g_frame[24], UTHOME_TELEMETRY_MAX, &size));
+    assert(5U == cfgbytes_get(&g_frame[24]));
+    const size_t offset =
+        24U + UTHOME_TELEMETRY_HEADER + UTHOME_TELEMETRY_QUEUE;
+    assert((16U == cfgbytes_get(&g_frame[offset + 72U])) &&
+           (0xA5U == g_frame[offset + 91U]));
+    --*p_clock;
+    assert(0 == telemetry_observe(
+                    &g_telemetry, &g_frame[24], UTHOME_TELEMETRY_MAX, &size));
+    assert(3U == cfgbytes_get(&g_frame[offset + 12U]));
+    for (size_t index = 72U; index < 128U; ++index)
+    {
+        assert(0U == g_frame[offset + index]);
+    }
+    ++*p_clock;
+    sample.header.sequence = 1U;
+    sample.length          = UTHOME_SAMPLE_RAW_MAX + 1U;
+    assert(0 == shared_publish(0, UTHOME_SAMPLE_RAW, &sample, sizeof(sample)));
+    assert(0 == shared_capture(&g_capture));
+    assert(UTHOME_SAMPLE_INVALID == g_capture.samples.entries[0].header.status);
+    sample.header.sequence = 2U;
+    sample.length          = 1U;
+    assert(0 == shared_publish(0, UTHOME_SAMPLE_RAW, &sample, sizeof(sample)));
+    assert(0 == shared_capture(&g_capture));
+    assert(UTHOME_SAMPLE_INVALID == g_capture.samples.entries[0].header.status);
+    memset(sample.bytes, 0, sizeof(sample.bytes));
+    sample.header.sequence = 3U;
+    sample.bytes[0]        = 0x50U;
+    assert(0 == shared_publish(0, UTHOME_SAMPLE_RAW, &sample, sizeof(sample)));
+    assert(0 == shared_capture(&g_capture));
+    assert(UTHOME_SAMPLE_OK == g_capture.samples.entries[0].header.status);
 }
 
 /** @brief Reply and telemetry preserve every persistent-state flag combination.

@@ -84,8 +84,11 @@ assertion counts. Fake-kernel tests inject lifecycle failures and invoke workers
 manually; they do not emulate physical scheduling. Sensor fixtures test parsing,
 ownership, bounds and recovery, not electrical waveforms or measurement accuracy.
 
-Admission tests also require GNU `objcopy` to redirect parser/vendor allocator
-references to the `heaptrap` test module. Interception excludes the host CRT and
+Admission tests also require GNU `objcopy` or `llvm-objcopy` on PATH to redirect
+parser/vendor allocator references to the `heaptrap` test module. macOS Mach-O
+C symbols use their leading underscore; other supported hosts use ELF-style
+names. The positive interception control and injected heap-violation test are
+required on both paths. Interception excludes the host CRT and
 file-I/O harness. The trap records/refuses calls rather than aborting the process;
 unexpected heap use produces a diagnostic and failure status. The positive
 interception control and injected-failure test both complete without deliberate

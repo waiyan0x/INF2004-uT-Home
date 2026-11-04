@@ -47,6 +47,7 @@
   <g id="i-clock"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></g>
   <g id="i-refresh"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></g>
   <g id="i-clipboard"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></g>
+  <g id="i-sparkles"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></g>
   <g id="i-package"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12m9-4-9 4-9-4"/></g>
 </defs></svg>
 
@@ -99,6 +100,37 @@
             </div>
           </div>
         </section>
+        <section class="section" aria-labelledby="recipe-heading">
+          <div class="section__head" data-accent="violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-i2c"/></svg><h2 id="recipe-heading">Communication recipe</h2><span class="section__meta">I²C register read</span></div>
+          <div class="card">
+            <p class="hint">Tell the ESP which register to read and which bytes to keep. Change these instructions through JSON using the same firmware.</p>
+            <p class="hint" id="recipe-support" role="status">Connect to check recipe support.</p>
+            <div class="field"><label class="field__label" for="recipe-existing">Recipe in this profile</label><select class="input" id="recipe-existing"><option value="">New recipe</option></select></div>
+            <div class="field"><label class="field__label" for="recipe-example">Reviewed read example</label><select class="input" id="recipe-example"><option value="">Custom recipe</option></select></div>
+            <p class="hint" id="recipe-example-note">Check the commands against your exact device's datasheet.</p>
+            <div class="field-row">
+              <div class="field"><label class="field__label" for="recipe-device">Source name</label><input class="input" id="recipe-device" value="raw_sensor" maxlength="22"></div>
+              <div class="field"><label class="field__label" for="recipe-bus">Existing I²C bus</label><select class="input" id="recipe-bus"></select></div>
+              <div class="field"><label class="field__label" for="recipe-address">7-bit address</label><input class="input" id="recipe-address" value="0x77" maxlength="4" placeholder="0x77"></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label class="field__label" for="recipe-register">Read register (hex or decimal)</label><input class="input" id="recipe-register" value="0x00" maxlength="4"></div>
+              <div class="field"><label class="field__label" for="recipe-read">Bytes to read</label><input class="input" id="recipe-read" type="number" min="1" max="16" value="1"></div>
+              <div class="field"><label class="field__label" for="recipe-interval">Read every (ms)</label><input class="input" id="recipe-interval" type="number" min="200" max="60000" value="500"></div>
+            </div>
+            <details><summary>Byte selection &amp; timing</summary><div class="details-body field-row">
+              <div class="field"><label class="field__label" for="recipe-offset">First byte to keep (starts at 0)</label><input class="input" id="recipe-offset" type="number" min="0" max="15" value="0"></div>
+              <div class="field"><label class="field__label" for="recipe-length">Bytes to keep</label><input class="input" id="recipe-length" type="number" min="1" max="16" value="1"></div>
+              <div class="field"><label class="field__label" for="recipe-pause">Read delay (ms)</label><input class="input" id="recipe-pause" type="number" min="0" max="10" value="0"></div>
+              <div class="field"><label class="field__label" for="recipe-timeout">Deadline (ms)</label><input class="input" id="recipe-timeout" type="number" min="10" max="100" value="100"></div>
+            </div></details>
+            <p class="hint" id="recipe-preview" aria-live="polite"></p>
+            <label class="discovery-confirm"><input type="checkbox" id="recipe-confirm">I checked the read instructions, device address and existing wiring against the datasheet.</label>
+            <button class="btn" id="recipe-add" type="button" disabled>Add recipe to draft</button>
+            <p class="hint" id="recipe-status" role="status" aria-live="polite">Draft only. Validate and review before applying. A device address can have only one owner.</p>
+            <details><summary>What this supports</summary><p class="hint">Bounded register reads return raw bytes, without temperature or light conversion. Devices needing initialization writes or other commands need more operation support. Generic SPI/UART recipes and configurable sensor ML are not implemented yet. AI assistance is optional; the ESP runs applied recipes without an online AI service.</p></details>
+          </div>
+        </section>
         <section class="section" aria-labelledby="devices-heading">
           <div class="section__head" data-accent="orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-package"/></svg><h2 id="devices-heading">Devices in this profile</h2><div class="section__meta" id="devicesMeta"></div></div>
           <div class="tiles" id="devices"></div>
@@ -123,9 +155,9 @@
           <details class="card datasheet-card" id="datasheet-details" open>
             <summary><img class="datasheet-icon" src="/assets/datasheet/document.png" alt=""> Datasheet assistant</summary>
             <div class="details-body">
-              <p class="hint">Analysis sends the PDF to Google Gemini and may incur API charges. Review all facts and page references.</p>
+              <p class="hint">Optional preparation only. Analysis sends the PDF to Google Gemini and may incur API charges. Review all facts and page references. This assistant extracts facts; it does not generate communication recipes yet.</p>
               <div class="field"><label class="field__label" for="datasheet-file">PDF datasheet</label><input class="input" id="datasheet-file" type="file" accept=".pdf,application/pdf"></div>
-              <button class="btn btn--primary" id="datasheet-analyse" type="button"><img class="datasheet-icon" src="/assets/datasheet/sparkles.png" alt=""> Analyse</button>
+              <button class="btn btn--primary" id="datasheet-analyse" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-sparkles"/></svg>Analyse</button>
               <p class="hint" id="datasheet-status" role="status" aria-live="polite">Choose a PDF to prepare an unreviewed device description.</p>
               <button class="btn" id="datasheet-download" type="button" disabled>Download device draft JSON</button>
               <details><summary>Key facts and source pages</summary><div class="details-body" id="datasheet-facts"></div></details>

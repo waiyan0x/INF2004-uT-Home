@@ -7,7 +7,8 @@
  *   {type: 2, value: {targets: RadarTarget[]}|null} |
  *   {type: 3, value: {distance_mm: number, echo_us: number}|null} |
  *   {type: 4, value: {event: number, occurrences: number}|null} |
- *   {type: 5, value: {millilux: number}|null})} Sample
+ *   {type: 5, value: {millilux: number}|null} |
+ *   {type: 6, value: {bytes: number[]}|null})} Sample
  * @typedef {{result?: 0, timestamp_ms: number, configuration: BoardState,
  *   runtime: {failed_workers: number, service_error: number},
  *   health: {total_events: number}, samples: Sample[], queues: object[]}} AvailableTelemetry
@@ -22,6 +23,7 @@ const drivers = {
   hc_sr04: ['HC-SR04', 'ruler', 'cyan'],
   pwm_output: ['PWM output', 'gpio', 'teal'],
   sen0390: ['SEN0390 light sensor', 'gauge', 'amber'],
+  i2c_recipe: ['I²C register-read recipe', 'i2c', 'violet'],
 };
 const display = value => value === null || typeof value === 'object'
   ? '[invalid value]' : String(value);
@@ -178,6 +180,7 @@ function formatSampleValue(sample) {
     ? `${index + 1}: (${target.x_mm}, ${target.y_mm}) mm, ${target.speed_cm_s} cm/s`
     : `${index + 1}: absent`).join('; ');
   if (sample.type === 5) return `${(value.millilux / 1000).toFixed(3)} lux`;
+  if (sample.type === 6) return value.bytes.map(byte => byte.toString(16).padStart(2, '0').toUpperCase()).join(' ');
   return `Last event ${value.event} · count ${value.occurrences}`;
 }
 
@@ -216,6 +219,8 @@ export function renderTelemetry(snapshot) {
       pills.push(pill(sample, 'Presence', `${value.targets.filter(t => t.present).length} targets`, 'radar', 'violet'));
     } else if (sample.type === 5) {
       pills.push(pill(sample, 'Light', `${(value.millilux / 1000).toFixed(3)} lux`, 'gauge', 'amber'));
+    } else if (sample.type === 6) {
+      pills.push(pill(sample, 'Raw bytes', formatSampleValue(sample), 'braces', 'violet'));
     }
   }
   el('pills').replaceChildren(...(pills.length ? pills : [node('p', 'hint', 'No available sensor values in this snapshot.')]));

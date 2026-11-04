@@ -194,3 +194,21 @@ test('missing discovery callbacks stay disabled after local confirmation changes
   renderDiscovery(discoveryReport(), null);
   assert.equal(addButtons()[0].disabled, true);
 });
+
+test('recipe bytes remain raw, retain freshness and disappear on a fault', () => {
+  const snapshot = {timestamp_ms: 1000, samples: [
+    {type: 6, name: 'chip_id', quality: 'fresh', age_ms: 10, value: {bytes: [80, 0, 255]}},
+  ], runtime: {failed_workers: 0}, health: {total_events: 0},
+  configuration: {active_revision: 2, saved_revision: 2}};
+  renderTelemetry(snapshot);
+  assert.match(text('pills'), /chip_id · Raw bytes50 00 FF/);
+  assert.match(text('readings'), /50 00 FF/);
+  assert.doesNotMatch(text('pills'), /°C|lux|mm/);
+  snapshot.samples[0] = {...snapshot.samples[0], quality: 'stale'};
+  renderTelemetry(snapshot);
+  assert.match(text('pills'), /50 00 FFstale/);
+  snapshot.samples[0] = {...snapshot.samples[0], quality: 'fault', value: null};
+  renderTelemetry(snapshot);
+  assert.doesNotMatch(text('pills'), /50 00 FF/);
+  assert.match(text('readings'), /faultUnavailable/);
+});

@@ -14,6 +14,7 @@
 #include "uartfake.h"
 #include "gpiofake.h"
 #include "spifake.h"
+#include "telemetry.h"
 #include <stdlib.h>
 #include "shared.h"
 #include "uthome/sample.h"
@@ -44,6 +45,8 @@ static bool            gb_spi_open                          = false;
 static bool            gb_line_close_fail                   = false;
 static int             g_fail_line                          = -1;
 static char            g_display_profile[8193]              = {0};
+static telemetry_t     g_recipe_telemetry = {.p_control = &g_control};
+static uint8_t         g_recipe_wire[UTHOME_TELEMETRY_MAX] = {0};
 static int open_spi (uint8_t sclk, uint8_t mosi, spibus_t ** pp_bus);
 static int close_spi (spibus_t * p_bus);
 static int
@@ -60,6 +63,8 @@ static pwmio_t * pwm (uint8_t channel);
 static void load_profile (const char * p_variable);
 static void verify_output_binding (uint64_t * p_clock);
 static void verify_light_binding (void);
+static void verify_recipe_binding (void);
+static void verify_recipe_wire (uint32_t length, uint8_t first);
 static int read_slot (void *    p_context,
                       unsigned  slot,
                       size_t    offset,
@@ -105,6 +110,31 @@ static const char g_distance[] =
     "1"
     "0,\"stack_size_bytes\":3072},\"descriptor\":{\"id\":\"hc_sr04\",\"version"
     "\":\"1.0.0\"}}]}";
+static const char g_recipe[] =
+    "{\"schema_version\":\"2.1.0\",\"node_id\":\"recipe-test\","
+    "\"board\":{\"platform\":\"esp32-c3\",\"variant\":\"esp32-c3-supermini\","
+    "\"capability_version\":\"1.0.0\"},\"runtime\":{\"health_report_interval_"
+    "ms\":1000,"
+    "\"max_device_tasks\":4,\"queue_depth\":8,\"configuration_source\":\"usb_"
+    "serial\","
+    "\"rollback_on_error\":true},\"interfaces\":[{\"id\":\"i2c0\",\"protocol\":"
+    "\"i2c\","
+    "\"port\":0,\"sda_gpio\":0,\"scl_gpio\":1,\"clock_hz\":100000}],"
+    "\"queues\":[{\"id\":\"readings.raw\",\"item_type\":\"raw_sample\","
+    "\"depth\":8,"
+    "\"overflow_policy\":\"drop_oldest\"}],\"devices\":[{\"device_id\":\"raw_"
+    "sensor\","
+    "\"driver\":\"i2c_recipe\",\"enabled\":true,\"interface\":{\"ref\":"
+    "\"i2c0\","
+    "\"address\":\"0x76\"},\"behaviour\":{\"profile\":\"periodic_sensor\","
+    "\"operation\":\"read_register\",\"register\":0,\"read_length\":2,"
+    "\"read_pause_ms\":0,\"select_offset\":0,\"select_length\":1,\"interval_"
+    "ms\":500,"
+    "\"timeout_ms\":100,\"destination\":\"readings.raw\"},\"task\":{\"name\":"
+    "\"raw_reader\","
+    "\"priority\":11,\"stack_size_bytes\":3072},\"descriptor\":{\"id\":\"i2c_"
+    "recipe\","
+    "\"version\":\"1.0.0\"}}],\"rules\":[]}";
 static const char g_environment[] =
     "{\"schema_version\":\"2.0.0\",\"node_id\":\"two-environment-sensors\",\"b"
     "oard\":{\"platform\":\"esp32-c3\",\"variant\":\"esp32-c3-supermini\",\"cap"
@@ -169,8 +199,8 @@ void bindtest_run (uint64_t * p_clock)
     assert(0 == cfgbind_init(&g_binding, &g_io));
     assert(-1 == cfgbind_init(&g_binding, &g_io));
     assert(
-        (31U == cfgbind_mask()) ||
-        ((63U == cfgbind_mask()) && (NULL != getenv("UTHOME_LIGHT_PROFILE"))));
+        (95U == cfgbind_mask()) ||
+        ((127U == cfgbind_mask()) && (NULL != getenv("UTHOME_LIGHT_PROFILE"))));
     uint8_t frame[376] = {0};
     size_t  size       = 0U;
     assert(0 == cfgbind_capabilities(NULL, &frame[24], 352U, &size));
@@ -209,9 +239,86 @@ void bindtest_run (uint64_t * p_clock)
     {
         verify_light_binding();
     }
+    verify_recipe_binding();
     disctest_run(&g_io, &g_store);
     puts("Production admission/binding, shared resources, driver replacement "
          "and safe-empty recovery passed.");
+}
+
+/** @brief Reconfigure one compiled engine, publish faults and retain rollback.
+ */
+static void verify_recipe_binding (void)
+{
+    request(g_recipe, 20U, CFGCTRL_SAVED);
+    recinst_t * p_instance = &g_binding.slots[0].context.recipe;
+    assert((0U == p_instance->config.recipe.reg) &&
+           (2U == p_instance->config.recipe.read_size));
+    assert(0 == recinst_step(p_instance));
+    sample_raw_t sample = {0};
+    assert(0 == shared_consume(0, UTHOME_SAMPLE_RAW, &sample, sizeof(sample)));
+    assert((UTHOME_SAMPLE_OK == sample.header.status) &&
+           (1U == sample.length) && (0x50U == sample.bytes[0]));
+    verify_recipe_wire(1U, 0x50U);
+    const char * p_offset = strstr(g_recipe, "\"select_offset\":0");
+    assert(NULL != p_offset);
+    memcpy(g_display_profile, g_recipe, sizeof(g_recipe));
+    /* The known fixture character lies within this copied array. */
+    g_display_profile[(size_t)(p_offset - g_recipe) + 16U] = '1';
+    request(g_display_profile, 21U, CFGCTRL_SAVED);
+    assert(1U == p_instance->config.select_offset);
+    assert(0 == recinst_step(p_instance));
+    assert(0 == shared_consume(0, UTHOME_SAMPLE_RAW, &sample, sizeof(sample)));
+    assert((1U == sample.length) && (0U == sample.bytes[0]));
+    verify_recipe_wire(1U, 0U);
+    const unsigned opens = g_opens;
+    request("{}", 22U, CFGCTRL_REJECTED);
+    assert((opens == g_opens) && (1U == p_instance->config.select_offset));
+    g_i2c.b_present[0] = false;
+    assert(0 == recinst_step(p_instance));
+    assert(0 == shared_consume(0, UTHOME_SAMPLE_RAW, &sample, sizeof(sample)));
+    assert((UTHOME_SAMPLE_IO == sample.header.status) && (0U == sample.length));
+    verify_recipe_wire(0U, 0U);
+    g_i2c.b_present[0] = true;
+    g_i2c.transfer_ms  = 100U;
+    assert(0 == recinst_step(p_instance));
+    assert(0 == shared_consume(0, UTHOME_SAMPLE_RAW, &sample, sizeof(sample)));
+    assert((UTHOME_SAMPLE_TIMEOUT == sample.header.status) &&
+           (0U == sample.length));
+    verify_recipe_wire(0U, 0U);
+    g_i2c.transfer_ms      = 0U;
+    g_pulses[0].open_error = PULSEIO_IO;
+    request(g_distance, 22U, CFGCTRL_REJECTED);
+    assert((p_instance->b_configured) &&
+           (1U == p_instance->config.select_offset));
+    assert(0 == recinst_step(p_instance));
+    verify_recipe_wire(1U, 0U);
+    g_pulses[0].open_error = 0;
+    request(g_environment, 22U, CFGCTRL_SAVED);
+    assert(CFGPLAN_ENV == g_binding.candidate.devices[0].driver);
+    assert(0 == activate_clear());
+    assert(NULL == g_binding.p_i2c);
+    puts("I2C recipe selection, raw telemetry, fault clearing and rollback "
+         "passed.");
+}
+
+/** @brief Check the new wire type and every reserved byte on success/fault. */
+static void verify_recipe_wire (uint32_t length, uint8_t first)
+{
+    size_t size = 0U;
+    assert(0 == telemetry_observe(&g_recipe_telemetry,
+                                  g_recipe_wire,
+                                  sizeof(g_recipe_wire),
+                                  &size));
+    assert((5U == cfgbytes_get(g_recipe_wire)) &&
+           ((UTHOME_TELEMETRY_HEADER + UTHOME_TELEMETRY_QUEUE +
+             UTHOME_TELEMETRY_SAMPLE) == size));
+    const uint8_t * p_value =
+        &g_recipe_wire[UTHOME_TELEMETRY_HEADER + UTHOME_TELEMETRY_QUEUE + 72U];
+    assert((length == cfgbytes_get(p_value)) && (first == p_value[4]));
+    for (size_t index = 5U; index < 56U; ++index)
+    {
+        assert(0U == p_value[index]);
+    }
 }
 
 /** @brief Assert admission performs no I/O and retries never reactivate. */

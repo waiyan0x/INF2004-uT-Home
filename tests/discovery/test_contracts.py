@@ -50,6 +50,13 @@ class DiscoveryContractTests(unittest.TestCase):
         preset = load_document(ROOT / "catalogue/connections/bench-i2c.json")
         self.assertNotIn(0x4A, [read["address"] for read in preset["reads"]])
 
+    def test_generic_recipe_is_a_manual_capability_not_automatic_identity(self):
+        entry = next(entry for entry in self.document["entries"]
+                     if entry["descriptor"]["id"] == "i2c_recipe")
+        self.assertEqual(entry["identification"]["method"], "manual")
+        self.assertEqual(entry["identification"]["identity_status"], "user_confirmed")
+        self.assertNotIn("addresses", entry["identification"])
+
     def test_local_evidence_paths_exist(self):
         for entry in self.document["entries"]:
             for source in entry["sources"]:

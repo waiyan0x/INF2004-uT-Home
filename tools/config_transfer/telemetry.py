@@ -1,4 +1,4 @@
-"""Strict decoding of version 1/2/3/4 typed observations (TELEMETRY.md)."""
+"""Strict decoding of version 1/2/3/4/5 typed observations (TELEMETRY.md)."""
 from dataclasses import dataclass
 import math
 import re
@@ -41,9 +41,9 @@ def decode_telemetry(frame: bytes, *, request_id: int) -> Snapshot:
         raise ValueError("telemetry checksum mismatch")
     data = frame[24:]
     h = struct.unpack_from("<40I", data)
-    if h[0] not in (1, 2, 3, 4) or h[1] > 2:
+    if h[0] not in (1, 2, 3, 4, 5) or h[1] > 2:
         raise ValueError("unsupported telemetry version/result")
-    header_size = {1: 160, 2: 320, 3: 352, 4: 352}[h[0]]
+    header_size = {1: 160, 2: 320, 3: 352, 4: 352, 5: 352}[h[0]]
     if len(data) < header_size:
         raise ValueError("truncated telemetry header")
     if h[1]:
@@ -60,7 +60,8 @@ def decode_telemetry(frame: bytes, *, request_id: int) -> Snapshot:
     offset = header_size
     for index in range(queues):
         q = struct.unpack_from("<8I", data, offset)
-        if q[0] != index or not 1 <= q[1] <= (5 if h[0] == 4 else 4) or q[5] > q[6] or q[6] > 8 or q[7]:
+        max_kind = 6 if h[0] == 5 else (5 if h[0] == 4 else 4)
+        if q[0] != index or not 1 <= q[1] <= max_kind or q[5] > q[6] or q[6] > 8 or q[7]:
             raise ValueError("invalid queue row")
         queue_rows.append(dict(index=q[0], type=q[1], published=q[2], consumed=q[3],
                                dropped=q[4], depth=q[5], high_water=q[6]))
@@ -92,14 +93,15 @@ def decode_telemetry(frame: bytes, *, request_id: int) -> Snapshot:
                 raise ValueError("inconsistent freshness")
         elif status == 1 and timestamp <= now:
             raise ValueError("inconsistent sample fault")
-        value = _decode_value(kind, row[72:112])
-        if status != 1 and any(row[72:112]):
+        raw_unavailable = kind == 6 and quality in (0, 3)
+        if (status != 1 or raw_unavailable) and any(row[72:112]):
             raise ValueError("fault values must be zero")
+        value = _decode_value(kind, row[72:112]) if status == 1 and not raw_unavailable else None
         sample_rows.append(dict(queue=queue, type=kind, source_index=source,
             name=name.decode("ascii"), quality=qualities[quality],
             timestamp_ms=timestamp, sequence=sequence, status=status,
             stale_after_ms=stale, age_ms=None if quality == 0 else age,
-            value=value if status == 1 else None))
+            value=value))
         offset += 128
     return Snapshot(rid, 0, h[2] | h[3] << 32,
         dict(active_revision=h[4], saved_revision=h[5], active_crc=h[6], saved_crc=h[7], flags=h[8]),
@@ -146,7 +148,7 @@ def _decode_audit(data: bytes) -> MemoryAudit | None:
 
 
 def _decode_value(kind: int, data: bytes) -> SampleValue:
-    used = 36 if kind == 2 else (4 if kind == 5 else 8)
+    used = {2: 36, 5: 4, 6: 20}.get(kind, 8)
     if any(data[used:]):
         raise ValueError("nonzero value padding")
     if kind == 1:
@@ -167,6 +169,11 @@ def _decode_value(kind: int, data: bytes) -> SampleValue:
         if millilux > 200000000:
             raise ValueError("invalid illuminance")
         return dict(millilux=millilux)
+    if kind == 6:
+        length, = struct.unpack_from("<I", data)
+        if not 1 <= length <= 16 or any(data[4 + length:20]):
+            raise ValueError("invalid raw byte length/padding")
+        return {"bytes": list(data[4:4 + length])}
     targets: list[RadarTarget] = []
     for index in range(3):
         flags, position, speed = struct.unpack_from("<3I", data, index * 12)
