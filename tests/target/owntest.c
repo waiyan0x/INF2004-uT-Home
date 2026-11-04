@@ -41,7 +41,7 @@ static int create_lock (void * p_context);
 static bool owner (void * p_context);
 static int lock_bus (void * p_context, uint32_t timeout_ms);
 static int unlock_bus (void * p_context);
-static int start_bus (void * p_context, const i2cbus_config_t * p_config);
+static int start_bus (void * p_context, const void * p_settings);
 static int stop_bus (void * p_context);
 static void reset_fake (void);
 static void verify_uninitialized (void);
@@ -125,8 +125,10 @@ static int unlock_bus (void * p_context)
 }
 
 /** @brief Start a session only while the lock is held. */
-static int start_bus (void * p_context, const i2cbus_config_t * p_config)
+static int start_bus (void * p_context, const void * p_settings)
 {
+    /* i2cown_open supplies a live, correctly aligned I2C configuration. */
+    const i2cbus_config_t * p_config = p_settings;
     assert((&g_fake == p_context) && (&g_config == p_config));
     assert(g_fake.b_held);
     ++g_fake.starts;

@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_utc": "2026-11-01T06:14:14Z",
+  "scope": "Five ESP software resets followed by two-hour four-device diagnostic application monitoring; not power-cycle or full-system acceptance",
+  "diagnostic_binary_sha256": "b705cffacde8d651e82b14fad139c6bd9e0a97a355261cf5d0e5dd8ae8be9929",
+  "diagnostic_only": true,
+  "local_directory": "build/datasheet-work/unattended-20261101-111736",
+  "raw_telemetry_sha256": "2bb36ea22ca81fe85646e2e7f175a2dade22573df1b58d84c2c6d0ac29149442",
+  "local_analysis_sha256": "548a753d5e67b6d8398fed1c652d307aacba940e12d7be6c545cf6cd3a413b36",
+  "final_workcost_sha256": "891b0198b7ec10c5cf682f12fc8cd101730eb9dd61c09ae4b4ded16e7ca8786a",
+  "startup": {"software_resets": 5, "snapshots_per_reset": 15, "light_fault_snapshots_by_reset": [0, 2, 1, 4, 5]},
+  "continuous": {
+    "first_utc": "2026-11-01T03:20:03.189916+00:00",
+    "last_utc": "2026-11-01T05:20:02.450724+00:00",
+    "last_elapsed_seconds": 7199.431,
+    "snapshots": 6556,
+    "qualities": {
+      "environment_sensor": {"fresh": 6556},
+      "presence_sensor": {"fresh": 3367, "fault": 3189},
+      "light_sensor": {"fresh": 6508, "fault": 48},
+      "health": {"fresh": 6556}
+    },
+    "radar_fault_snapshot_status": {"timeout": 3186, "io": 3},
+    "light_faults_in_first_two_minutes": 45,
+    "light_faults_later": 3,
+    "coincident_radar_fault_light_fresh_snapshots": 3149,
+    "coincident_radar_fresh_light_fault_snapshots": 8,
+    "radar_last_observed_fresh_run": {
+      "first_elapsed_seconds": 3758.006,
+      "last_elapsed_seconds": 7199.431,
+      "observed_span_seconds": 3441.425
+    },
+    "global_health_delta_event_indices_0_to_7": [0, 0, 14140, 13, 112394, 0, 52, 0],
+    "failed_workers_at_end": 0
+  },
+  "final_workcost": {
+    "scope": "Cumulative since last software reset; no per-window workcost snapshots",
+    "radar_worker_steps": 722012,
+    "radar_transfer_bytes": 2084199,
+    "radar_errors": 16,
+    "light_worker_errors": 56,
+    "light_worker_stack_unused_min_measured": false
+  },
+  "restoration": {
+    "two_full_backup_reads_match": true,
+    "full_backup_sha256": "a98aa25765153ca8b8acb555fd13322d3da253c045e572bba7b1a64abf958ada",
+    "restored_prefix_bytes": 1138688,
+    "restored_prefix_sha256": "7dfe8be0caf3cd1301c13404a8f7ef108b7a2666c4494774c5fb280b45f934c6",
+    "restored_prefix_matches_fresh_backup": true,
+    "active_revision": 922,
+    "saved_revision": 922,
+    "active_crc": 3623560383,
+    "saved_crc": 3623560383,
+    "post_restore_snapshot": {"environment_sensor": "fresh", "presence_sensor": "fresh", "health": "fresh", "failed_workers": 0},
+    "oled_appearance_after_restore": "not visually verified"
+  },
+  "interpretation": [
+    "Radar sample quality varied from repeated timeouts to a final long run of fresh sampled observations; this does not establish the cause or prove continuous successful reception between samples.",
+    "Light and radar faults were not consistently coincident; their causes remain unestablished.",
+    "Ordinary firmware still does not advertise SEN0390."
+  ],
+  "limitations": [
+    "Snapshots approximately 1.1 seconds apart do not represent every sensor operation or precise transition times.",
+    "Software resets do not test loss and restoration of module power; no independent UART or voltage waveform was measured.",
+    "Global health counters do not identify a source and can undercount under contention. Event 4 is queue overflow, not device timeout; event 7 is UART RX overflow.",
+    "End-only cumulative workcost cannot identify UART byte counts during any specific fault window; discarded flush bytes are not delivered payload.",
+    "Light accuracy, physical OLED readability, independent radar ground truth, whole-system allocation compliance and full hardware acceptance remain unverified.",
+    "Post-restoration flash comparison covers only the prefix through configuration, not the entire 4 MB."
+  ],
+  "root_cause_established": false,
+  "hardware_qualified": false
+}

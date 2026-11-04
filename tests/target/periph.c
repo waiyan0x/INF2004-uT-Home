@@ -211,6 +211,24 @@ static void verify_driver (void)
 /** @brief Ensure elapsed transfers/delays share one budget and can recover. */
 static void verify_deadlines (void)
 {
+    i2cfake_init(&g_fake);
+    uint64_t deadline = 123U;
+    assert(I2CBUS_INVALID == i2cbus_deadline(NULL, 1U, &deadline));
+    assert(I2CBUS_INVALID == i2cbus_deadline(&g_fake.bus, 0U, &deadline));
+    assert(I2CBUS_INVALID ==
+           i2cbus_deadline(&g_fake.bus, UINT32_MAX, &deadline));
+    assert(I2CBUS_INVALID == i2cbus_deadline(&g_fake.bus, 1U, NULL));
+    assert(123U == deadline);
+    g_fake.b_clock_fail = true;
+    assert(I2CBUS_IO == i2cbus_deadline(&g_fake.bus, 1U, &deadline));
+    assert(123U == deadline);
+    g_fake.b_clock_fail = false;
+    g_fake.now_ms       = UINT64_MAX;
+    assert(I2CBUS_INVALID == i2cbus_deadline(&g_fake.bus, 1U, &deadline));
+    assert(123U == deadline);
+    g_fake.now_ms = UINT64_MAX - 1U;
+    assert(0 == i2cbus_deadline(&g_fake.bus, 1U, &deadline));
+    assert(UINT64_MAX == deadline);
     bmp388_t sensor = {0};
     i2cfake_init(&g_fake);
     i2cfake_sensor(&g_fake, 0U, 12500U);

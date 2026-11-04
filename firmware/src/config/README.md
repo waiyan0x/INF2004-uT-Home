@@ -1,7 +1,7 @@
 # Configuration, USB and storage
 
 One controller owns the path from reviewed JSON to running devices:
-`cfgpump → cfgctrl → cfgbind/activate`, with `cfgstore → c3store` for persistence.
+`cfgpump ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ cfgctrl ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ cfgbind/activate`, with `cfgstore ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ c3store` for persistence.
 The board independently checks every profile; a host-valid plan is not enough.
 Runtime, framing and storage do not dispatch on prototype device names.
 
@@ -11,7 +11,6 @@ Runtime, framing and storage do not dispatch on prototype device names.
 |---|---|
 | `cfgbytes`, `cfgwire` | Explicit little-endian fields, CRC and bounded framing |
 | `cfgstore`, `cfgctrl` | Durable records, request identity, activation/save ordering |
-| `cfgpart` | Exact reviewed partition-table bytes and overflow-safe write window |
 | `jsonscan`, `cfgjson` | Bounded JSON parsing and exclusive cJSON allocation |
 | `cfgplan`, `cfgdev`, `cfgrule` | Board/resources, driver/settings and typed-rule admission |
 | `cfgbind`, `c3bind`, `cfgdisc` | Copied instance settings, actual transports and discovery/controller coordination |
@@ -87,6 +86,12 @@ Callbacks map status explicitly: activation success, rejection with old plan
 restored, or uncertain/recovery state. `activate_clear` releases to safe EMPTY;
 `activate_recover` restores the preceding plan. Neither silently discards retained
 resources. The controller's RECOVER does not erase the saved startup profile.
+Discovery requests recovery through the controller, which invalidates the active
+revision, CRC and byte count as soon as resource ownership becomes uncertain.
+Successful RECOVER leaves those fields empty. Applying the saved revision again
+therefore rebuilds runtime resources instead of taking the already-active path.
+Read-only discovery borrows a controller view and asks the binder whether its
+resources are idle; it does not mutate their lifecycle fields directly.
 
 APPLY establishes durable state, validates, activates, then saves. Rejection
 preserves active/saved state; uncertain activation blocks APPLY/SAVE until
@@ -234,12 +239,26 @@ before narrowing; explicit serialization, no raw C structures; stable borrowed
 buffers with aliasing prohibited; reentry and bounded loops; initialized metadata;
 checked backend/activation outcomes and preservation of old data on failure.
 
+The controller recovery/view boundary retains C99 and the existing controller
+layout. Views borrow const bytes until the next serialized mutation; they add no
+heap, task, lock or persistent RAM. Recovery clears active identity while keeping
+durable metadata and exact-request caching separate. The discovery regression
+checks an applied empty-hardware profile, retained cleanup, recovery and queue
+reconstruction when the same saved revision is applied again.
+
 ### Admission C review
 
 Copied scalar settings without pointers; alignment and bounded allocation;
 complete tree release; bounded recursion/loops; callback serialization/lifetime;
 explicit status mapping; stopped-worker resource release and retained failures.
 Vendor spelling stays inside existing exceptions.
+
+Selected-driver binding shares descriptor/name/capacity validation with registry
+lookup and publishes the component only after every check succeeds. Callback and
+context lifetimes are unchanged. Routing uses named sample constants and the
+shared sample-size lookup; the admitted IDs fit the existing uint16 queue field.
+Resource counters remain bounded by admission, include disabled reservations and
+advance explicitly. These changes need no ABI, wire-value or deviation changes.
 
 The light diagnostic uses the same bounded plan, copied settings and static
 instance slots; its compile-time flag adds one capability bit only in the
@@ -276,6 +295,8 @@ approval remain unchanged. No new ISR/task entry ABI or exception was added.
 
 ## Static partition access
 
+`cfgpart` and `cfgslot` live in the [C3 storage port](../../hal/ports/esp32c3/storage/README.md); generic `cfgstore` retains the record/commit policy.
+
 `cfgpart` recognizes exactly the four entries in the maintained
 `tests/target/runtime_port_board/configuration.csv`, their MD5 record and the
 entire erased tail. A different valid layout is also rejected. Changing the
@@ -292,6 +313,16 @@ missing, altered or unreadable table. Ordinary reads also use that scratch buffe
 to avoid the SDK's conditional heap-backed read buffer. The existing partition
 APIs retain their bounds and the two 12 KiB slot isolation checks.
 
+The portable `cfgslot` core owns these checks and scratch storage; `c3store`
+supplies synchronous SDK calls and preserves the controller's null-context API.
+Host fault tests execute that same core: every table/read chunk can fail, wrong
+flash sizes and overflowing ranges are rejected before I/O, and write/erase
+requests preserve the peer slot. Failed reads retain only previously completed
+chunks in the caller's buffer. No operation retries an I/O failure automatically.
+On RV32 the fixed state, including scratch, is 268 bytes: 11 bytes above the
+previous separate readiness flag and 256-byte buffer. The six callback pointers
+are immutable; the refactor adds no heap allocation or kernel object.
+
 The pinned SDK otherwise allocates during both flash-write protection queries:
 `esp_partition_is_flash_region_writable` iterates partitions, and
 `esp_partition_main_flash_region_safe` resolves the running application through
@@ -301,12 +332,13 @@ Before successful verification it denies every write; afterwards it permits only
 `0x110000..0x115fff`. Bootloader, table, application, NVS and PHY writes remain
 denied. This is stricter than the SDK's default window. Dependency source bytes
 are unchanged, and qualification checks both substitutions and their scope.
-This current application does not support OTA or network persistence.
+The current application does not support OTA. Authenticated HTTP Apply now uses
+the existing persistence path through cfgmux, as described below.
 
 Manual BARR-C review: `cfgpart` is C99 with an immutable byte table, no native
 layout casts, no writable globals and subtraction-first bounds. The descriptor's
 custom enum values use documented 8-bit SDK IDs. `c3store` owns its descriptor,
-ready flag and scratch for the whole boot; the controller serializes open/read/
+`cfgslot` state and scratch for the whole boot; the controller serializes open/read/
 write/erase. Private scratch cannot alias caller-owned output. Checked slot
 arithmetic bounds every translated offset below 24 KiB. The flash protection
 callback performs no kernel calls or logging and is called before cache-disabled
@@ -320,3 +352,29 @@ Host tests compile the actual C99 validator with warnings as errors, compare it
 with independently encoded SDK-format bytes, flip every table byte, recompute
 checksums for unreviewed layouts, and exercise size/address wrap boundaries.
 The generated real-target table is checked against the same reviewed digest.
+
+The binder constructs device/output settings and owns resource lifecycle;
+recurring display and PWM policy lives in the fixed-storage `oledwork` and
+`pwmwork` services. See [display](../services/display/README.md) and
+[actuator contracts](../services/actuator/README.md). This extraction preserves
+context field order, fixed union storage, driver configuration and cleanup order.
+
+The 2026-11-02 isolated `uthome-desloppify-services-storage-app-20261102`
+application build passes the pinned target/compiler checks. Its RV32 symbols
+retain 12,832 bytes for `g_binding` and 16,464 bytes for the controller, matching
+the preceding application build. The shared metadata view is automatic call
+storage, not another retained controller. The image is 230,608 bytes. This is
+software build evidence; physical behavior and measured stack headroom remain
+separate acceptance work. Host fault, storage and build-tool tests cover the
+extraction and metadata reply/telemetry equivalence.
+
+## Network Apply arbitration
+
+`cfgmux.c/.h` borrows an idle cfgpump receiver for one authenticated HTTP upload.
+The application pauses USB parsing only during this lease. Complete requests call
+the unchanged cfgctrl Apply path; no second validator, save or recovery path is
+introduced. USB/controller IDs share one sequence with optimistic boot/revision
+preconditions. Exact retained retries do not save again. See the
+[network contract](../network/README.md#authenticated-configuration-apply-and-usb-arbitration-2026-11-03)
+for limits, errors, cache eviction and uncertain outcomes. The original controller,
+pump, wire and store implementation files remain unchanged.

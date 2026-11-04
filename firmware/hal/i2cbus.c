@@ -51,9 +51,16 @@ int i2cbus_deadline (i2cbus_t * p_bus,
                      uint64_t * p_deadline)
 {
     uint64_t now = 0U;
-    if ((NULL == p_deadline) || (0U == timeout_ms) ||
-        (timeout_ms > UINT32_C(2147483647)) || (0 != i2cbus_now(p_bus, &now)) ||
-        (now > (UINT64_MAX - timeout_ms)))
+    if ((!valid_bus(p_bus)) || (NULL == p_deadline) || (0U == timeout_ms) ||
+        (timeout_ms > UINT32_C(2147483647)))
+    {
+        return I2CBUS_INVALID;
+    }
+    if (0 != i2cbus_now(p_bus, &now))
+    {
+        return I2CBUS_IO;
+    }
+    if (now > (UINT64_MAX - timeout_ms))
     {
         return I2CBUS_INVALID;
     }
@@ -62,7 +69,9 @@ int i2cbus_deadline (i2cbus_t * p_bus,
 }
 
 /** @brief Require an actual delay implementation, using the same deadline. */
-int i2cbus_delay (i2cbus_t * p_bus, uint32_t duration_us, uint64_t deadline_ms)
+int i2cbus_delay_us (i2cbus_t * p_bus,
+                     uint32_t   duration_us,
+                     uint64_t   deadline_ms)
 {
     if (!valid_bus(p_bus))
     {

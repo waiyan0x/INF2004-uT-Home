@@ -44,7 +44,7 @@ class FaultHookScopeTests(unittest.TestCase):
     def setUp(self):
         self.project = Path("build/project").resolve()
         self.main = self.project / "main/main.c"
-        self.uart = self.project / "hal/c3uart.c"
+        self.uart = self.project / "hal/c3ukern.c"
         self.test = self.project / "main/uartcheck.c"
 
     def test_production_has_no_hook(self):
@@ -68,6 +68,16 @@ class FaultHookScopeTests(unittest.TestCase):
         commands[self.test] = "cc"
         with self.assertRaises(qualification.QualificationError):
             qualification.verify_uart_fault_hook(commands, self.project)
+
+    def test_native_hook_cannot_leak_to_lifecycle_or_other_sources(self):
+        commands = {self.main: "cc -DUTHOME_CONFIGURATION_APP=0 -DUTHOME_NATIVE_UART_FIXTURE=1",
+                    self.uart: "cc -Dtk_srea_dev=uartcheck_read", self.test: "cc"}
+        for name in ("hal/c3uart.c", "hal/c3usb.c", "main/uartcheck.c"):
+            with self.subTest(name=name):
+                leaked = commands.copy()
+                leaked[self.project / name] = "cc -Dtk_srea_dev=uartcheck_read"
+                with self.assertRaises(qualification.QualificationError):
+                    qualification.verify_uart_fault_hook(leaked, self.project)
 
     def test_ambiguous_or_unsafe_mode_fails(self):
         for flags in ("", "-DUTHOME_NATIVE_UART_FIXTURE=0 -DUTHOME_NATIVE_UART_FIXTURE=1",

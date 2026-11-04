@@ -8,57 +8,30 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "i2cbus.h"
+#include "buslife.h"
 
-/* Permanent lifecycle. Only i2cown_init leaves UNINIT, exactly once. */
-typedef enum
-{
-    I2COWN_UNINIT = 0,
-    I2COWN_READY  = 1,
-    I2COWN_FAILED = 2
-} i2cown_status_t;
+/* Shared lifecycle storage preserves the permanent state footprint. */
+typedef buslife_status_t i2cown_status_t;
+typedef buslife_phase_t  i2cown_phase_t;
+typedef buslife_create_t i2cown_create_t;
+typedef buslife_owner_t  i2cown_owner_t;
+typedef buslife_lock_t   i2cown_lock_t;
+typedef buslife_unlock_t i2cown_unlock_t;
+typedef buslife_start_t  i2cown_start_t;
+typedef buslife_stop_t   i2cown_stop_t;
+typedef buslife_ops_t    i2cown_ops_t;
+typedef buslife_t        i2cown_t;
 
-/* Session phase. RETAINED means cleanup failed: retry close, never reuse. */
-typedef enum
-{
-    I2COWN_CLOSED   = 0,
-    I2COWN_OPEN     = 1,
-    I2COWN_RETAINED = 2
-} i2cown_phase_t;
+#define I2COWN_UNINIT   BUSLIFE_UNINIT
+#define I2COWN_READY    BUSLIFE_READY
+#define I2COWN_FAILED   BUSLIFE_FAILED
+#define I2COWN_CLOSED   BUSLIFE_CLOSED
+#define I2COWN_OPEN     BUSLIFE_OPEN
+#define I2COWN_RETAINED BUSLIFE_RETAINED
 
-/* Create the permanent lock; called at most once, during i2cown_init. */
-typedef int i2cown_create_t (void * p_context);
-/* Report whether the caller is the serialized lifecycle owner. */
-typedef bool i2cown_owner_t (void * p_context);
-/* Lock within timeout_ms; zero polls. Return 0, I2CBUS_TIMEOUT or a failure.
+/* p_start receives the settings supplied through the typed wrapper below.
+ * Operations and context remain alive for the program lifetime.
  */
-typedef int i2cown_lock_t (void * p_context, uint32_t timeout_ms);
-typedef int i2cown_unlock_t (void * p_context);
-/* Acquire pins and start the controller. Failure must leave neither held. */
-typedef int i2cown_start_t (void * p_context, const i2cbus_config_t * p_config);
-/* Stop the controller and release pins. Failure keeps pin ownership. */
-typedef int i2cown_stop_t (void * p_context);
-
-typedef struct
-{
-    i2cown_create_t * p_create;
-    i2cown_owner_t *  p_owner;
-    i2cown_lock_t *   p_lock;
-    i2cown_unlock_t * p_unlock;
-    i2cown_start_t *  p_start;
-    i2cown_stop_t *   p_stop;
-} i2cown_ops_t;
-
-/* Zero-initialize permanent storage. Phase changes happen with the lock held.
- * Operations and context remain alive for the life of the program.
- */
-typedef struct
-{
-    const i2cown_ops_t * p_operations;
-    void *               p_context;
-    i2cown_status_t      status;
-    i2cown_phase_t       phase;
-} i2cown_t;
-
 /* Call once during startup, before any open or transfer. Later calls never
  * create another lock: they return 0 after success or I2CBUS_STATE after a
  * failed initialization, which leaves the bus unavailable until reboot.

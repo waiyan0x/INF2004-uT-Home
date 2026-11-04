@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zlib
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -40,6 +41,8 @@ class RuntimePortFailureTests(unittest.TestCase):
                        "-I", str(ROOT / "firmware/src/config"),
                        "-I", str(ROOT / "firmware/src/discovery"),
                        "-I", str(ROOT / "firmware/src/services"),
+                       "-I", str(ROOT / "firmware/src/services/display"),
+                       "-I", str(ROOT / "firmware/src/services/actuator"),
                        "-I", str(ROOT / "firmware/src/automation"),
                        "-I", str(ROOT / "firmware/third_party/cjson"),
                        "-DCJSON_NESTING_LIMIT=8",
@@ -78,10 +81,12 @@ class RuntimePortFailureTests(unittest.TestCase):
                        str(ROOT / "firmware/drivers/ssd1306_spi/oledinst.c"),
                        str(ROOT / "firmware/hal/i2cbus.c"),
                        str(ROOT / "firmware/hal/i2cown.c"),
+                       str(ROOT / "firmware/hal/buslife.c"),
                        str(ROOT / "firmware/hal/ports/host_sim/i2cfake.c"),
                        str(ROOT / "firmware/drivers/bmp388/bmp388.c"),
                        str(ROOT / "firmware/drivers/bmp388/bmpinst.c"),
                        str(ROOT / "firmware/drivers/generic_i2c/geni2c.c"),
+                       str(ROOT / "firmware/drivers/generic_i2c/recinst.c"),
                        str(ROOT / "firmware/drivers/generic_i2c/senlux.c"),
                        str(ROOT / "firmware/drivers/generic_i2c/seninst.c"),
                        str(ROOT / "firmware/third_party/bmp3/bmp3.c"),
@@ -93,10 +98,12 @@ class RuntimePortFailureTests(unittest.TestCase):
                        str(ROOT / "firmware/src/services/costview.c"),
                        str(ROOT / "firmware/src/runtime/activate.c"),
                        str(ROOT / "firmware/src/runtime/shared.c"),
-                       str(ROOT / "firmware/src/services/sampcache.c"),
+                       str(ROOT / "firmware/src/runtime/sampcache.c"),
                        str(ROOT / "firmware/src/services/statusmon.c"),
                        str(ROOT / "firmware/src/services/telemetry.c"),
-                       str(ROOT / "firmware/src/services/oledview.c"),
+                       str(ROOT / "firmware/src/services/display/oledview.c"),
+                       str(ROOT / "firmware/src/services/display/oledwork.c"),
+                       str(ROOT / "firmware/src/services/actuator/pwmwork.c"),
                        str(ROOT / "firmware/src/runtime/component.c"),
                        str(ROOT / "firmware/src/messaging/msgbus.c"),
                        str(ROOT / "firmware/src/health/health.c"),
@@ -115,6 +122,19 @@ class RuntimePortFailureTests(unittest.TestCase):
                        str(ROOT / "firmware/third_party/cjson/cJSON.c"),
                        "-lm",
                        "-o", str(binary)]
+            # Redirect only the activator's owned status-query boundary. The
+            # adapter and fault wrappers still call the unmodified port API.
+            source = str(ROOT / "firmware/src/runtime/activate.c")
+            activate_object = Path(folder) / "activate.o"
+            first_source = command.index(str(ROOT / "tests/target/tkfake_main.c"))
+            subprocess.run([
+                *command[:first_source],
+                "-Drt_port_task_is_running=actfault_running",
+                "-Drt_port_task_result=actfault_result",
+                "-c", source, "-o", str(activate_object),
+            ], check=True, capture_output=True, text=True, timeout=30)
+            command[command.index(source)] = str(activate_object)
+            command.insert(-2, str(ROOT / "tests/target/actfault.c"))
             result = subprocess.run(command, capture_output=True, text=True, timeout=30)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             profile = json.loads((ROOT / "configs/nodes/distance-only.json").read_bytes())
@@ -175,6 +195,16 @@ class RuntimePortFailureTests(unittest.TestCase):
                                          payload=discovery_request(123, wiring_confirmed=True))
             self.assertEqual(discovery.result, "complete")
             self.assertEqual([record["value"] for record in discovery.records], [0x50, 0x60])
+            from tools.config_transfer.protocol import HEADER
+            _, revision, payload_hex = next(line for line in result.stdout.splitlines()
+                                            if line.startswith("RECOVERYDISCOVERY:")).split(":")
+            recovery_payload = bytes.fromhex(payload_hex)
+            head = HEADER.pack(b"UTH1", 1, 0x88, 0, 27, int(revision), len(recovery_payload), 0)[:20]
+            crc = zlib.crc32(recovery_payload, zlib.crc32(head))
+            recovered = decode_discovery(head + crc.to_bytes(4, "little") + recovery_payload,
+                                          request_id=27, revision=int(revision),
+                                          payload=discovery_request(123, wiring_confirmed=True))
+            self.assertEqual((recovered.result, recovered.active_revision), ("fault", 0))
             uart_frame = next(bytes.fromhex(line.split(':', 1)[1]) for line in result.stdout.splitlines()
                               if line.startswith('UARTDISCOVERY:'))
             uart = decode_discovery(uart_frame, request_id=27, revision=0,
@@ -187,7 +217,7 @@ class RuntimePortFailureTests(unittest.TestCase):
                               if line.startswith("CAPABILITIES:"))
             caps = decode_capabilities(caps_frame, request_id=27)
             self.assertEqual(caps.features, 7)
-            self.assertEqual(set(caps.drivers), {"bmp388", "ssd1306_spi", "hlk_ld2450", "hc_sr04", "pwm_output"})
+            self.assertEqual(set(caps.drivers), {"bmp388", "ssd1306_spi", "hlk_ld2450", "hc_sr04", "pwm_output", "i2c_recipe"})
             self.assertFalse(caps.hardware_qualified)
             self.assertEqual((caps.board,caps.node_schema), ("esp32-c3-supermini", "2.1.0"))
             from tools.config_transfer.telemetry import decode_telemetry

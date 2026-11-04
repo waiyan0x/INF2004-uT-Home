@@ -7,6 +7,13 @@
 #include "cfgrule.h"
 #include "uthome/sample.h"
 #include <string.h>
+
+typedef struct
+{
+    const char *  p_name;
+    sample_type_t type;
+} cfgplan_sample_t;
+
 static bool common (const cfgjson_value_t * p_root, cfgplan_t * p_plan);
 static bool buses (const cfgjson_value_t * p_array, cfgplan_t * p_plan);
 static bool bus (const cfgjson_value_t * p_value, cfgplan_bus_t * p_bus);
@@ -37,6 +44,11 @@ int cfgplan_read (const uint8_t * p_data,
     {
         if ((UTHOME_SAMPLE_LIGHT == p_candidate->queues[index].type) &&
             (0U == (compiled_mask & (UINT32_C(1) << CFGPLAN_LIGHT))))
+        {
+            b_ok = false;
+        }
+        if ((UTHOME_SAMPLE_RAW == p_candidate->queues[index].type) &&
+            (0U == (compiled_mask & (UINT32_C(1) << CFGPLAN_RECIPE))))
         {
             b_ok = false;
         }
@@ -233,16 +245,18 @@ static bool buses (const cfgjson_value_t * p_array, cfgplan_t * p_plan)
     return true;
 }
 
-/** @brief Resolve supported copied sample p_types and bounded FIFO policy. */
+/** @brief Resolve supported copied sample types and bounded FIFO policy. */
 static bool queues (const cfgjson_value_t * p_array, cfgplan_t * p_plan)
 {
     static const char * const p_keys[] = {
         "id", "item_type", "depth", "overflow_policy"};
-    static const char * const p_types[] = {"environment_sample",
-                                           "target_report",
-                                           "distance_sample",
-                                           "health_event",
-                                           "light_sample"};
+    static const cfgplan_sample_t samples[] = {
+        {"environment_sample", UTHOME_SAMPLE_ENVIRONMENT},
+        {"target_report", UTHOME_SAMPLE_TARGETS},
+        {"distance_sample", UTHOME_SAMPLE_DISTANCE},
+        {"health_event", UTHOME_SAMPLE_HEALTH},
+        {"light_sample", UTHOME_SAMPLE_LIGHT},
+        {"raw_sample", UTHOME_SAMPLE_RAW}};
     if (!(cfgjson_array(p_array, UTHOME_PLAN_QUEUES, &p_plan->queue_count)))
     {
         return false;
@@ -262,12 +276,15 @@ static bool queues (const cfgjson_value_t * p_array, cfgplan_t * p_plan)
         {
             return false;
         }
-        for (size_t type = 0U; type < 5U; ++type)
+        for (size_t type = 0U; type < (sizeof(samples) / sizeof(samples[0]));
+             ++type)
         {
-            if ((cfgjson_is(cfgjson_get(p_value, "item_type"), p_types[type])))
+            if (cfgjson_is(cfgjson_get(p_value, "item_type"),
+                           samples[type].p_name))
             {
-                p_queue->type = (uint32_t)type + 1U;
-            } /* Five supported sample IDs. */
+                p_queue->type = samples[type].type;
+                break;
+            }
         }
         if (0U == p_queue->type)
         {

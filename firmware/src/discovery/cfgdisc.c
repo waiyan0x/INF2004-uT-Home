@@ -3,6 +3,7 @@
  * @brief Keep detection separate from identity, activation and durable state.
  */
 #include "cfgdisc.h"
+#include "cfgbind.h"
 #include "cfgjson.h"
 #include <string.h>
 static int validate (void * p_context, const uint8_t * p_data, size_t size);
@@ -12,7 +13,7 @@ static void observe_uart (cfgdisc_t *               p_context,
                           const cfgwire_request_t * p_request,
                           uint8_t *                 p_data,
                           size_t *                  p_size);
-static bool empty_configuration (const cfgctrl_t * p_control);
+static bool empty_configuration (const cfgctrl_view_t * p_view);
 static disci2c_result_t admissible (const cfgdisc_t *         p_context,
                                     const cfgwire_request_t * p_request);
 static void encode (const cfgdisc_t *             p_context,
@@ -39,32 +40,28 @@ static const uartio_config_t g_uart_connection = {.baud            = 256000U,
 
 /** @brief Bind the existing I2C backend and controller without opening a bus.
  */
-int cfgdisc_init (cfgdisc_t *       p_context,
-                  cfgctrl_t *       p_control,
-                  cfgbind_state_t * p_binding,
-                  const uint8_t *   p_build_hash,
-                  discuart_wait_t * p_wait)
+int cfgdisc_init (cfgdisc_t *          p_context,
+                  cfgctrl_t *          p_control,
+                  cfgbind_state_t *    p_binding,
+                  const uint8_t *      p_build_hash,
+                  const cfgdisc_io_t * p_io)
 {
     if ((NULL == p_context) || (NULL == p_control) || (NULL == p_binding) ||
-        (NULL == p_build_hash) || (!p_binding->b_initialized) ||
-        (NULL == p_binding->p_io) || (NULL == p_wait) ||
+        (NULL == p_build_hash) || (NULL == p_io) || (NULL == p_io->p_open) ||
+        (NULL == p_io->p_close) || (NULL == p_io->p_uart) ||
+        (NULL == p_io->p_wait) || (!cfgbind_discovery_ready(p_binding)) ||
         (NULL != p_context->p_control))
-    {
-        return -1;
-    }
-    uartio_t * p_port = p_binding->p_io->p_uart();
-    if (NULL == p_port)
     {
         return -1;
     }
     p_context->p_control         = p_control;
     p_context->p_binding         = p_binding;
-    p_context->probe.p_open      = p_binding->p_io->p_i2c_open;
-    p_context->probe.p_close     = p_binding->p_io->p_i2c_close;
+    p_context->probe.p_open      = p_io->p_open;
+    p_context->probe.p_close     = p_io->p_close;
     p_context->probe.p_now       = rt_port_now_ms;
-    p_context->uart_probe.p_port = p_port;
+    p_context->uart_probe.p_port = p_io->p_uart;
     p_context->uart_probe.p_now  = rt_port_now_ms;
-    p_context->uart_probe.p_wait = p_wait;
+    p_context->uart_probe.p_wait = p_io->p_wait;
     memcpy(p_context->build_hash, p_build_hash, sizeof(p_context->build_hash));
     return 0;
 }
@@ -111,10 +108,10 @@ int cfgdisc_observe (void *                    p_context,
         }
         if (NULL != p_discovery->probe.p_bus)
         {
-            /* Only this serialized owner changes the recovery flag. Queries
+            /* Only this serialized owner requests recovery. Queries
              * remain available; the wrapped RECOVER retries retained cleanup.
              */
-            p_discovery->p_control->b_recovery = true;
+            cfgctrl_require_recovery(p_discovery->p_control);
         }
     }
     encode(p_discovery, p_request, &result, p_data, p_size);
@@ -162,16 +159,15 @@ static int recover (void * p_context)
 
 /** @brief Disabled devices and even unused declared buses still reserve wiring.
  */
-static bool empty_configuration (const cfgctrl_t * p_control)
+static bool empty_configuration (const cfgctrl_view_t * p_view)
 {
-    if (0U == p_control->active_size)
+    if (0U == p_view->size)
     {
         return true;
     }
-    const cfgjson_value_t * p_root =
-        cfgjson_open(p_control->active, p_control->active_size);
-    size_t     count = 0U;
-    const bool b_empty =
+    const cfgjson_value_t * p_root = cfgjson_open(p_view->p_data, p_view->size);
+    size_t                  count  = 0U;
+    const bool              b_empty =
         (NULL != p_root) &&
         (cfgjson_array(cfgjson_get(p_root, "devices"), 0U, &count)) &&
         (cfgjson_array(cfgjson_get(p_root, "interfaces"), 0U, &count));
@@ -194,19 +190,15 @@ static disci2c_result_t admissible (const cfgdisc_t *         p_context,
     {
         return DISCI2C_INVALID;
     }
-    const cfgctrl_t * p_control = p_context->p_control;
-    if (p_request->revision != p_control->active_revision)
+    const cfgctrl_view_t view = cfgctrl_view(p_context->p_control);
+    if (p_request->revision != view.revision)
     {
         return DISCI2C_STALE;
     }
-    size_t workers = 0U;
-    if ((!p_control->b_initialized) || (p_control->b_busy) ||
-        (p_control->b_recovery) || (p_context->p_binding->b_busy) ||
-        (!rt_port_is_owner()) || (0 != rt_port_owned_count(&workers)) ||
-        (0U != workers) || (NULL != p_context->p_binding->p_i2c) ||
-        (NULL != p_context->p_binding->p_spi) ||
+    if ((!view.b_available) ||
+        (!cfgbind_discovery_ready(p_context->p_binding)) ||
         (NULL != p_context->uart_probe.p_port->p_owner) ||
-        (NULL != p_context->probe.p_bus) || (!empty_configuration(p_control)))
+        (NULL != p_context->probe.p_bus) || (!empty_configuration(&view)))
     {
         return DISCI2C_BUSY;
     }
@@ -227,7 +219,7 @@ static void encode (const cfgdisc_t *             p_context,
     cfgbytes_put(&p_data[0], 1U);
     cfgbytes_put(&p_data[4], p_result->status);
     cfgbytes_put(&p_data[8], cfgbytes_get(&p_request->p_data[4]));
-    cfgbytes_put(&p_data[12], p_context->p_control->active_revision);
+    cfgbytes_put(&p_data[12], cfgctrl_view(p_context->p_control).revision);
     memcpy(&p_data[16], &p_request->p_data[8], 8U);
     cfgbytes_put(&p_data[24], (uint32_t)(p_result->started_ms & UINT32_MAX));
     cfgbytes_put(&p_data[28], (uint32_t)(p_result->started_ms >> 32U));
@@ -259,6 +251,10 @@ static void observe_uart (cfgdisc_t *               p_context,
     {
         result.status = DISCUART_INVALID;
     }
+    if (p_context->uart_probe.p_port->p_owner == &p_context->uart_probe)
+    {
+        cfgctrl_require_recovery(p_context->p_control);
+    }
     /* Both observer enums use the bounded discovery wire result codes 0..5. */
     disci2c_result_data_t header = {.status = (disci2c_result_t)result.status,
                                     .started_ms = result.started_ms,
@@ -281,10 +277,6 @@ static void observe_uart (cfgdisc_t *               p_context,
                          values[index]);
         }
         *p_size += 32U;
-    }
-    if (p_context->uart_probe.p_port->p_owner == &p_context->uart_probe)
-    {
-        p_context->p_control->b_recovery = true;
     }
 }
 

@@ -13,10 +13,21 @@ try {
     state.allWires = saved.allWires === true;
     if (saved.done && typeof saved.done === "object" && !Array.isArray(saved.done)) state.done = saved.done;
   }
-} catch { /* Private browser mode or corrupt notes: start clean. */ }
+} catch (error) {
+  // A fresh view remains usable when saved notes are corrupt or inaccessible.
+  console.warn("Saved wiring progress could not be loaded.", error);
+}
 let selectedHole = null;
+let saveErrorReported = false;
 function save() {
-  try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch { /* Viewing still works without persistence. */ }
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(state));
+    saveErrorReported = false;
+  } catch (error) {
+    // Keep navigation usable and report once until storage recovers.
+    if (!saveErrorReported) console.warn("Wiring progress could not be saved.", error);
+    saveErrorReported = true;
+  }
 }
 function doneKey(step) { return `${state.plan}:${step.id}`; }
 function node(tag, className, text) {
@@ -33,8 +44,8 @@ for (const [name, location, readiness] of EQUIPMENT) {
   item.append(node("strong", "", name), node("span", "", location), node("span", "readiness", readiness));
   $("equipment-list").append(item);
 }
-function go(index) {
-  state.step = Math.max(0, Math.min(index, PLANS[state.plan].steps.length - 1));
+function selectStep(stepIndex) {
+  state.step = Math.max(0, Math.min(stepIndex, PLANS[state.plan].steps.length - 1));
   selectedHole = null;
   $("hole-detail").textContent = "Select a hole to see its address and electrical connection.";
   save(); render();
@@ -56,7 +67,7 @@ function render() {
     button.type = "button"; button.dataset.step = i;
     if (i === state.step) button.setAttribute("aria-current", "step");
     button.append(node("span", "step-number", done ? "✓" : String(i + 1)), node("span", "", s.title));
-    button.addEventListener("click", () => go(i)); list.append(button);
+    button.addEventListener("click", () => selectStep(i)); list.append(button);
   });
   $("step-kicker").textContent = `${step.phase.toUpperCase()} / ${String(state.step + 1).padStart(2, "0")}`;
   $("step-title").textContent = step.title;
@@ -92,7 +103,7 @@ function render() {
     if (s.kind !== "wire") return;
     const row = node("tr", index === state.step ? "selected-row" : "");
     const first = node("td"); const jump = node("button", "wire-link", s.title);
-    jump.addEventListener("click", () => { go(index); document.querySelector(".workspace").scrollIntoView({ behavior: "smooth", block: "start" }); });
+    jump.addEventListener("click", () => { selectStep(index); document.querySelector(".workspace").scrollIntoView({ behavior: "smooth", block: "start" }); });
     first.append(jump);
     row.append(first);
     for (const id of [s.from, s.to]) {
@@ -109,8 +120,8 @@ $("setup").addEventListener("change", e => {
   $("hole-detail").textContent = "Select a hole to see its address and electrical connection.";
   state.allWires = false; state.mode = "overview"; save(); render();
 });
-$("previous").addEventListener("click", () => go(state.step - 1));
-$("next").addEventListener("click", () => go(state.step + 1));
+$("previous").addEventListener("click", () => selectStep(state.step - 1));
+$("next").addEventListener("click", () => selectStep(state.step + 1));
 $("step-done").addEventListener("change", e => { state.done[doneKey(PLANS[state.plan].steps[state.step])] = e.target.checked; save(); render(); });
 for (const mode of ["overview", "focus"]) $(mode).addEventListener("click", () => { state.mode = mode; save(); render(); });
 $("all-wires").addEventListener("change", e => { state.allWires = e.target.checked; save(); render(); });

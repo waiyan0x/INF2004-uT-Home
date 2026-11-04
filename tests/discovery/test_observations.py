@@ -78,6 +78,22 @@ class DiscoveryObservationTests(unittest.TestCase):
         struct.pack_into("<4I", data, 80, 118, 0, 1, 0)
         self.assertEqual(identify_i2c(self.decode(data), self.caps)["devices"][0]["identity"]["status"], "unknown")
 
+    def test_recovery_fault_can_invalidate_active_revision_only_to_zero(self):
+        data = response()
+        struct.pack_into("<I", data, 4, 2)
+        observed = decode_discovery(frame(data, revision=7), request_id=27,
+                                    revision=7, payload=self.payload)
+        self.assertEqual((observed.result, observed.active_revision), ("fault", 0))
+        struct.pack_into("<I", data, 12, 8)
+        with self.assertRaisesRegex(ValueError, "revision changed"):
+            decode_discovery(frame(data, revision=7), request_id=27,
+                             revision=7, payload=self.payload)
+        struct.pack_into("<I", data, 12, 0)
+        struct.pack_into("<I", data, 4, 0)
+        with self.assertRaisesRegex(ValueError, "revision changed"):
+            decode_discovery(frame(data, revision=7), request_id=27,
+                             revision=7, payload=self.payload)
+
     def test_new_catalogue_identity_needs_no_resolver_branch(self):
         catalogue = Catalogue()
         descriptor = deepcopy(catalogue.descriptors[("bmp388", "1.0.0")])

@@ -47,7 +47,7 @@ static int capture (shared_capture_t * p_capture, uint64_t now_ms);
 static int publish (const shared_request_t * p_request, uint64_t now_ms);
 static int expect (const sampcache_source_t * p_source);
 static int perform (void * p_context);
-static int reset_queues (const shared_request_t * p_request);
+static int reset_shared_state (const shared_request_t * p_request);
 
 /** @brief Reset the plan's shared state only after all workers are released. */
 int shared_reset (const msgbus_queue_config_t * p_queues, size_t count)
@@ -221,7 +221,7 @@ static int perform (void * p_context)
     {
     case SHARED_RESET:
     {
-        return reset_queues(p_request);
+        return reset_shared_state(p_request);
     }
     case SHARED_PUBLISH:
     {
@@ -287,9 +287,9 @@ static int perform (void * p_context)
     }
 }
 
-/** @brief Rebuild the whole fixed queue table after validation and quiescence.
+/** @brief Reset queues, health, watches and sample cache after quiescence.
  */
-static int reset_queues (const shared_request_t * p_request)
+static int reset_shared_state (const shared_request_t * p_request)
 {
     if ((0 != msgbus_init()) || (0 != health_init()) || (0 != watchdog_init()))
     {

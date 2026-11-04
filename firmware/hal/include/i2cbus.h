@@ -78,10 +78,14 @@ typedef struct
  */
 int i2cbus_transfer (i2cbus_t * p_bus, const i2cbus_request_t * p_request);
 int i2cbus_now (i2cbus_t * p_bus, uint64_t * p_now);
+/* INVALID rejects arguments or deadline overflow; IO reports clock failure.
+ * The output is written only on success. */
 int i2cbus_deadline (i2cbus_t * p_bus,
                      uint32_t   timeout_ms,
                      uint64_t * p_deadline);
-int i2cbus_delay (i2cbus_t * p_bus, uint32_t duration_us, uint64_t deadline_ms);
+int i2cbus_delay_us (i2cbus_t * p_bus,
+                     uint32_t   duration_us,
+                     uint64_t   deadline_ms);
 int i2cbus_claim (i2cbus_t * p_bus, uint8_t address);
 int i2cbus_release (i2cbus_t * p_bus, uint8_t address);
 bool i2cbus_has_claims (const i2cbus_t * p_bus);

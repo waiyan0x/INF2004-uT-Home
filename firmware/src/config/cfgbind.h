@@ -11,9 +11,10 @@
 #include "ldinst.h"
 #include "hcinst.h"
 #include "statusmon.h"
-#include "oledinst.h"
-#include "pwminst.h"
+#include "oledwork.h"
+#include "pwmwork.h"
 #include "seninst.h"
+#include "recinst.h"
 typedef int cfgbind_i2c_open_t (const i2cbus_config_t * p_config,
                                 i2cbus_t **             pp_bus);
 typedef int cfgbind_i2c_close_t (i2cbus_t * p_bus);
@@ -47,32 +48,19 @@ typedef struct
 
 typedef struct
 {
-    oledinst_t      instance;
-    spibus_device_t device;
-    uint8_t         sources;
-} cfgbind_display_t;
-
-typedef struct
-{
-    pwminst_t         instance;
-    rulecalc_config_t rule;
-    rulecalc_state_t  state;
-} cfgbind_output_t;
-
-typedef struct
-{
     seninst_t instance;
     digiout_t enable;
 } cfgbind_light_t;
 
 typedef union
 {
-    bmpinst_t         environment;
-    ldinst_t          radar;
-    hcinst_t          distance;
-    cfgbind_display_t display;
-    cfgbind_output_t  output;
-    cfgbind_light_t   light;
+    bmpinst_t       environment;
+    ldinst_t        radar;
+    hcinst_t        distance;
+    oledwork_t      display;
+    pwmwork_t       output;
+    cfgbind_light_t light;
+    recinst_t       recipe;
 } cfgbind_context_t;
 typedef struct cfgbind_state cfgbind_state_t;
 
@@ -113,6 +101,10 @@ const cfgctrl_ops_t * cfgbind_operations (void);
 uint32_t cfgbind_mask (void);
 /* Owner loop: service the active copied settings, including after rollback. */
 int cfgbind_service (cfgbind_state_t * p_state, uint64_t now_ms);
+/* Serialized owner only: no workers, retained buses or UART owner. Checks
+ * readiness without opening hardware; false for NULL/uninitialized/busy state.
+ * The backend UART getter must return its borrowed context without I/O. */
+bool cfgbind_discovery_ready (const cfgbind_state_t * p_state);
 /* Read-only capability payload: compiled bindings, never physical discovery.
  * Uses no context; matches the pump observer callback. See configurator README.
  */

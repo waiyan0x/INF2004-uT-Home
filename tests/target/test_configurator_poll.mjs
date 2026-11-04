@@ -21,7 +21,7 @@ test('a user review waits for an active observation without disabling the button
     if (!elements.has(id)) elements.set(id, new Element());
     return elements.get(id);
   };
-  const timers = [], requests = [];
+  const timers = [], requests = [], reviewPlans = [];
   let finishObservation, duplicate = false;
   const response = data => ({ ok: true, json: async () => data });
   const fetch = async url => {
@@ -37,6 +37,7 @@ test('a user review waits for an active observation without disabling the button
       plan: { resources: { active_tasks: 0, device_stack_bytes: 0 }, devices: [], rules: [] } });
     if (url === '/api/datasheet_match') return response({ connected: true, matches: [{
       descriptor_id: 'sen0390', descriptor_version: '1.0.0', driver_id: 'sen0390', driver_available: true,
+      draft_builder: {eligible: true, addresses: ['0x4a'], needs_enable: true},
     }] });
     if (url === '/api/datasheet_prepare_i2c') return duplicate
       ? { ok: false, json: async () => ({ error: 'This device name is already in the profile' }) }
@@ -50,7 +51,9 @@ test('a user review waits for an active observation without disabling the button
   const source = (await readFile(new URL('../../tools/configurator/static/app.js', import.meta.url), 'utf8'))
     .replace(/^import .*;\r?\n/gm, '');
   const context = vm.createContext({ document, fetch, setTimeout: fn => timers.push(fn), clearTimeout() {},
-    renderProfile() {}, renderTelemetry() {}, renderDiscovery() {}, renderDatasheet() {},
+    renderProfile() {}, renderTelemetry() {}, renderBoardState() {},
+    renderReviewPlan(plan, connected) { reviewPlans.push({plan, connected}); },
+    updateDiscoveryControls() {}, renderDiscovery() {}, renderDatasheet() {},
     setupWorkspace: () => () => {}, console });
   vm.runInContext(source, context);
   await new Promise(resolve => setImmediate(resolve));
@@ -68,6 +71,9 @@ test('a user review waits for an active observation without disabling the button
   assert.ok(requests.indexOf('/api/review') > requests.indexOf('/api/telemetry'));
   assert.equal(get('review').disabled, false);
   assert.match(get('notice').textContent, /Profile validated/);
+  assert.equal(reviewPlans.length, 1);
+  assert.equal(reviewPlans[0].connected, true);
+  assert.equal(reviewPlans[0].plan.resources.active_tasks, 0);
   get('datasheet-name').value = 'SEN0390';
   await get('datasheet-match').onclick();
   assert.match(get('datasheet-driver').textContent, /sen0390 is installed/);

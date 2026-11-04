@@ -5,8 +5,8 @@ import json
 import unittest
 from unittest.mock import patch
 
-from ai.protocol_baseline import assess_calibrated, load_calibration
-from ai.protocol_model import train
+from ai.protocol.baseline import assess_calibrated, load_calibration
+from ai.protocol.model import train
 from ai.recording import load_recording
 from ai.tests import test_protocol as fixtures
 from ai.tests import test_cost_capture as cost_fixtures
@@ -23,7 +23,7 @@ class CalibratedGateTests(unittest.TestCase):
         cls.data = fixture.fixture_dataset()
         for index, row in enumerate(cls.data['rows']):
             row['evidence'] = [dict(run_sha256=digest(['trial', index]), raw_sha256=digest(['raw', index]))]
-        with patch('ai.protocol_model.dataset', return_value=cls.data):
+        with patch('ai.protocol.model.dataset', return_value=cls.data):
             cls.model, _, _ = train(cls.study, [])
         cls.baseline = dict(study_sha256=digest(cls.study), baseline_file_sha256='c' * 64,
             families=[dict(family_id=f, margin_ms=1, calibrated_rule_interval_ms=500,
@@ -108,7 +108,7 @@ class CalibrationReplayTests(unittest.TestCase):
         self.frozen_hash = hashlib.sha256(self.baseline_path.read_bytes()).hexdigest()
 
     def load(self):
-        with patch('ai.protocol_baseline.validate_study'):
+        with patch('ai.protocol.baseline.validate_study'):
             return load_calibration(self.study, self.root, self.frozen_hash)
 
     def test_verified_costs_are_rounded_up_and_remain_separate(self):
@@ -134,7 +134,7 @@ class CalibrationReplayTests(unittest.TestCase):
             self.load()
 
     def test_unhealthy_calibration_is_rejected_even_with_matching_hashes(self):
-        with patch('ai.protocol_baseline.assess_run', return_value=dict(usable=True, unhealthy_samples=1, health_faults=0)):
+        with patch('ai.protocol.baseline.assess_run', return_value=dict(usable=True, unhealthy_samples=1, health_faults=0)):
             with self.assertRaisesRegex(ConfigurationError, 'Unhealthy calibration'):
                 self.load()
 

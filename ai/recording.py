@@ -9,6 +9,7 @@ import time
 from ai.provenance import check_firmware, check_receipt, config_key
 from ai.records import assess_run
 from ai.timing import canonical, digest, validate
+from tools.config_transfer.client import TransferError
 from tools.config_validator.planner import load_document, require
 
 
@@ -58,6 +59,12 @@ def record_run(client, experiment, interval, repetition, identity, receipt, fold
     Pre/post discovery must return BUSY on the active profile; this supplies
     the running ELF hash without borrowing its I2C bus. Wiring was confirmed
     separately when producing identity evidence.
+
+    Setup and finalization failures propagate. Acquisition validation failures
+    and KeyboardInterrupt produce retained, unusable results; a preflight
+    failure writes failure.json rather than a correlated run. Transport errors
+    (TransferError/OSError) are re-raised after journal/result persistence so
+    the connection owner can discard the failed client before restoration.
     """
     experiment = validate(experiment)
     expected = check_receipt(experiment, interval, identity, receipt)
@@ -79,6 +86,7 @@ def record_run(client, experiment, interval, repetition, identity, receipt, fold
     end_ms = experiment["scenario"]["warmup_ms"] + experiment["scenario"]["duration_ms"]
     hasher, raw_size = hashlib.sha256(), 0
     costs, cost_summary = [], None
+    transport_error = None
     cost_due_ms = experiment['scenario']['warmup_ms']
     with (folder / "raw.jsonl").open("xb") as output:
         def journal(value):
@@ -128,7 +136,7 @@ def record_run(client, experiment, interval, repetition, identity, receipt, fold
                     cost_capture.check_audit(snapshot)
                     if elapsed >= cost_due_ms:
                         observed = dict(type='workcost', elapsed_ms=elapsed,
-                                        response=cost_capture.observe(client, **cost_context))
+                                        response=asdict(cost_capture.observe(client, **cost_context)))
                         journal(observed)
                         costs.append(observed)
                         cost_due_ms = elapsed + 1000
@@ -138,35 +146,41 @@ def record_run(client, experiment, interval, repetition, identity, receipt, fold
                 previous = snapshot
                 if elapsed >= end_ms:
                     require(elapsed <= end_ms + 2 * cadence_ms, "terminal_overshoot")
-                    firmware = check_firmware(client, identity, active_only=True)
-                    require(firmware["active_revision"] == expected[0], "configuration_changed_during_build_check")
-                    run["evidence"]["firmware_after"] = firmware
-                    after = asdict(client.telemetry())
-                    journal(dict(type="postflight", snapshot=after, firmware=run["evidence"]["firmware_after"]))
-                    sample_from_snapshot(experiment, after, elapsed, session, profile_hash, expected, generation, previous)
-                    if collect_costs:
-                        cost_capture.check_audit(after)
-                        cost_summary = cost_capture.summarize(costs, **cost_context)
-                    # Faults after the measured window are retained in raw evidence;
-                    # the last measured snapshot remains the endpoint for labels.
-                    run["capture"].update(status="complete", reason=None)
                     break
                 due = max(origin + (len(run["samples"]) * cadence_ms / 1000), received)
             else:
                 raise ValueError("sample_limit")
+            firmware = check_firmware(client, identity, active_only=True)
+            require(firmware["active_revision"] == expected[0], "configuration_changed_during_build_check")
+            run["evidence"]["firmware_after"] = firmware
+            after = asdict(client.telemetry())
+            journal(dict(type="postflight", snapshot=after, firmware=run["evidence"]["firmware_after"]))
+            sample_from_snapshot(experiment, after, elapsed, session, profile_hash, expected, generation, previous)
+            if collect_costs:
+                cost_capture.check_audit(after)
+                cost_summary = cost_capture.summarize(costs, **cost_context)
+            # Faults after the measured window are retained in raw evidence;
+            # the last measured snapshot remains the endpoint for labels.
+            run["capture"].update(status="complete", reason=None)
         except (Exception, KeyboardInterrupt) as error:
             run["capture"].update(status="interrupted", reason=(str(error) or type(error).__name__)[:250])
+            if isinstance(error, (TransferError, OSError)):
+                transport_error = error
         journal(dict(type="footer", capture={k: v for k, v in run["capture"].items() if k != "raw_sha256"}))
     run["capture"]["raw_sha256"] = hasher.hexdigest()
     # Preflight failures cannot claim a correlated hardware run.
     if run["evidence"]["firmware_before"] is None:
         save_new(folder / "failure.json", dict(reason=run["capture"]["reason"], raw_sha256=hasher.hexdigest()))
+        if transport_error is not None:
+            raise transport_error
         return dict(usable=False, passes=None, reason=run["capture"]["reason"])
     save_new(folder / "run.json", run)
     assessment = assess_run(experiment, run)
     save_new(folder / "assessment.json", assessment)
     if cost_summary is not None:
         save_new(folder / 'workcost.json', dict(cost_summary, raw_sha256=hasher.hexdigest(), run_sha256=digest(run)))
+    if transport_error is not None:
+        raise transport_error
     return assessment
 
 

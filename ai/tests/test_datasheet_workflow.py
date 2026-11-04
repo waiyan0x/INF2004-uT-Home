@@ -25,7 +25,8 @@ def pdf_body():
 
 def example():
     return {"device_name": "SEN0390", "i2c_address": {"address_7bit": 74, "write_byte": 148,
-                                                       "read_byte": 149, "pages": [1]}, "facts": [
+                                                       "read_byte": 149, "pages": [1],
+                                                       "conditional_options": []}, "facts": [
         {"name": "I2C address", "value": "0x4A (7-bit)", "status": "inferred", "pages": [1],
          "note": "0x94 and 0x95 include the read/write bit."},
         {"name": "mode register", "value": None, "status": "conflicting", "pages": [1],
@@ -64,6 +65,45 @@ class DatasheetTests(TestCase):
         self.assertTrue(result["i2c_address_review"]["conflicting"])
         self.assertEqual(result["status"], "unreviewed")
 
+    def test_variant_addresses_remain_conditional_and_unreviewed(self):
+        draft = example()
+        draft["i2c_address"] = {"address_7bit": None, "write_byte": None,
+                                "read_byte": None, "pages": [],
+                                "conditional_options": [
+                                    {"address_7bit": 0x1D, "condition": "Selection pin high", "pages": [1]},
+                                    {"address_7bit": 0x53, "condition": "Selection pin low", "pages": [1]}]}
+        draft["facts"] = [{"name": "I2C address options", "value": "0x1D if high; 0x53 if low",
+                           "status": "stated", "pages": [1], "note": "Confirm the selection pin."}]
+        draft["unresolved"] = ["Confirm the device variant and address pin."]
+        result = datasheet.analyse(pdf_body(), request=lambda *args: draft)
+        self.assertIsNone(result["i2c_address_review"]["derived_7bit"])
+        self.assertEqual(result["draft"], draft)
+        self.assertEqual(result["status"], "unreviewed")
+        self.assertEqual(result["version"], "0.2.0")
+
+    def test_invalid_conditional_address_evidence_is_rejected(self):
+        option = {"address_7bit": 0x1D, "condition": "Selection pin high", "pages": [1]}
+        for options, scalar, evidence in (([option], 0x1D, [1]),
+                                          ([option | {"address_7bit": 0x80}], None, []),
+                                          ([option | {"condition": " "}], None, []),
+                                          ([option | {"pages": []}], None, []),
+                                          ([option | {"pages": [2]}], None, []),
+                                          ([option] * 9, None, [])):
+            draft = example()
+            draft["i2c_address"].update(address_7bit=scalar, write_byte=None, read_byte=None,
+                                        pages=evidence, conditional_options=options)
+            with self.subTest(address=draft["i2c_address"]), self.assertRaises(ValueError):
+                datasheet.analyse(pdf_body(), request=lambda *args: draft)
+
+        draft = example()
+        draft["i2c_address"].update(address_7bit=None, write_byte=None, read_byte=None,
+                                    pages=[], conditional_options=[option])
+        for unresolved in ([], ["  "]):
+            draft["unresolved"] = unresolved
+            with self.subTest(unresolved=unresolved):
+                with self.assertRaisesRegex(ValueError, "invalid conditional I2C address evidence"):
+                    datasheet.analyse(pdf_body(), request=lambda *args: draft)
+
     def test_sen0390_reference_pages_and_conflicting_registers_stay_visible(self):
         writer = PdfWriter()
         for _ in range(16): writer.add_blank_page(width=100, height=100)
@@ -98,6 +138,18 @@ class DatasheetTests(TestCase):
                 datasheet.analyse(pdf_body(), request=lambda *args: self.fail())
             self.assertNotIn(malformed, str(caught.exception))
 
+    def test_encrypted_pdf_is_rejected_before_provider_request(self):
+        for user_password in ("", "required-password"):
+            writer = PdfWriter()
+            writer.add_blank_page(width=100, height=100)
+            writer.encrypt(user_password=user_password, owner_password="owner-password")
+            pdf = io.BytesIO()
+            writer.write(pdf)
+            body = {"pdf_base64": base64.b64encode(pdf.getvalue()).decode("ascii")}
+            with self.subTest(user_password_empty=not user_password):
+                with self.assertRaisesRegex(ValueError, "Encrypted PDFs are not supported"):
+                    datasheet.analyse(body, request=lambda *args: self.fail("provider was called"))
+
     def test_pdf_without_extractable_text_is_sent_and_model_id_is_restricted(self):
         self.assertEqual(datasheet.analyse(pdf_body(), request=lambda *args: example())["pages"], 1)
         with patch.dict(os.environ, {"UTHOME_GEMINI_MODEL": "../other"}), self.assertRaises(ValueError):
@@ -130,6 +182,9 @@ class DatasheetTests(TestCase):
             self.assertEqual(request.get_header("X-goog-api-key"), "secret")
             self.assertEqual(payload["generationConfig"]["responseFormat"]["text"]["schema"], datasheet.DRAFT_SCHEMA)
             self.assertEqual(payload["contents"][0]["parts"][0]["inlineData"], {"mimeType": "application/pdf", "data": "cGRm"})
+            instructions = payload["systemInstruction"]["parts"][0]["text"]
+            self.assertIn("set all three scalar i2c_address values to null", instructions)
+            self.assertIn("Do not assume that a floating selection pin has a default", instructions)
             return Response()
         with patch.object(datasheet, "urlopen", side_effect=open_request):
             self.assertEqual(datasheet._request(b"pdf", "secret", "model"), example())
@@ -154,6 +209,12 @@ class DatasheetTests(TestCase):
         light = flow.dispatch("datasheet_match", {"device_name": "SEN0390"})
         self.assertEqual(light["matches"][0]["descriptor_id"], "sen0390")
         self.assertIsNone(light["matches"][0]["driver_available"])
+        radar = flow.dispatch("datasheet_match", {"device_name": " HLK-LD2450 "})
+        self.assertFalse(radar["identity_verified"])
+        self.assertEqual(radar["matches"][0]["descriptor_id"], "hlk_ld2450")
+        self.assertIsNone(radar["matches"][0]["driver_available"])
+        for unknown in ("HLK-LD2451", "HLK LD2450", "HLK-LD2450-extra"):
+            self.assertEqual(flow.dispatch("datasheet_match", {"device_name": unknown})["matches"], [])
         class Client:
             def capabilities(self):
                 class Caps: drivers = ("bmp388",)
@@ -161,6 +222,13 @@ class DatasheetTests(TestCase):
         flow.client = Client()
         self.assertTrue(flow.dispatch("datasheet_match", {"device_name": "bmp388"})["matches"][0]["driver_available"])
         self.assertFalse(flow.dispatch("datasheet_match", {"device_name": "sen0390"})["matches"][0]["driver_available"])
+        self.assertFalse(flow.dispatch("datasheet_match", {"device_name": "HLK-LD2450"})["matches"][0]["driver_available"])
+        class RadarClient:
+            def capabilities(self):
+                class Caps: drivers = ("hlk_ld2450",)
+                return Caps()
+        flow.client = RadarClient()
+        self.assertTrue(flow.dispatch("datasheet_match", {"device_name": "HLK-LD2450"})["matches"][0]["driver_available"])
 
     def test_slow_model_request_does_not_hold_serial_workflow_lock(self):
         started, release = Event(), Event()

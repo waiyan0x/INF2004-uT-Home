@@ -114,7 +114,11 @@ static int transfer (void * p_context, const i2cbus_request_t * p_request)
 static int now_ms (void * p_context, uint64_t * p_now)
 {
     const i2cfake_t * p_fake = p_context;
-    *p_now                   = p_fake->now_ms;
+    if (p_fake->b_clock_fail)
+    {
+        return I2CBUS_IO;
+    }
+    *p_now = p_fake->now_ms;
     return 0;
 }
 

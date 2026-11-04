@@ -12,6 +12,67 @@ standard HTTP server and local HTML/CSS/JavaScript; no Node build or new web
 framework is required. Offline review needs only the planner dependencies.
 The interface uses one fixed colour palette.
 
+## Configuration recipes
+
+The professor-feedback change starts with one bounded generic I2C operation:
+write a one-byte register pointer, read 1–16 bytes, and publish a selected
+contiguous part of that response as raw bytes. The register, read length, byte
+selection, optional 0–10 ms read-address pause, sample period and timeout come
+from JSON. This reuses one firmware driver across compatible register-reading
+devices; it does not generate C, add arbitrary writes or run a script.
+Generic SPI/UART recipes and configurable onboard ML are still separate work.
+
+The existing Profile → Review & apply → Live monitor flow and visual style
+remain. A recipe draft uses an existing I2C interface and an explicitly confirmed
+address; it never probes pins, rewires a bus or applies itself. The builder is
+additive and rejects an address already owned by any enabled or disabled device.
+Use the complete `i2c-recipe-demo` example to replace the BMP388-specific reader
+while keeping the current OLED/radar wiring. Its raw register values are not
+compensated temperature or pressure readings. The OLED keeps radar/health sources.
+
+Success means two reviewed JSON register reads run on the same firmware image,
+the monitor shows the returned bytes with freshness, invalid ranges/duplicate
+addresses are rejected without changing the active plan, and ordinary BMP/OLED/
+radar profiles still work. Host tests and a firmware build establish software
+checks only; dated board captures are needed for each physical claim.
+
+The recipe form prepares one reader on an I2C interface already present in the
+draft. Connect firmware advertising `i2c_recipe`, select the bus and address,
+review the register/read/selection fields, confirm the physical operation, then
+prepare the draft. Preparing does not stop, apply or save anything. It clears
+the previous review, so review the resulting whole profile before Apply.
+Adding a recipe at the BMP388 reader's address is rejected even if that reader
+is disabled; the complete example intentionally replaces that owner.
+
+`POST /api/recipe-prepare` requires `profile` (JSON text), `recipe` (the
+strict [draft schema](../../schemas/i2c-recipe.schema.json)) and
+`wiring_confirmed: true`. The only optional key, `replace_device_id`, explicitly
+edits an existing `i2c_recipe` with that same device name. Editing preserves its
+task, enabled state, output queue and unrelated devices; it cannot replace a
+BMP388-specific driver or rename a recipe. Its response contains the copied `profile`,
+a readable `summary` and a draft-only `notice`. `/api/catalogue` supplies
+`recipe_limits` and `recipe_examples` independently of connected capabilities.
+The same host planner validates imported/manual profiles; the firmware admits
+them independently. Raw observations use telemetry version 5, type 6:
+`value.bytes` contains 1–16 selected bytes with no inferred units. Older typed
+telemetry versions are retained. Fault/missing samples expose no value.
+Raw recipes currently use the USB observation path; the existing network frame
+encoder rejects this new raw sample type. No MQTT/BLE raw-reading support or
+wireless acceptance is claimed by this change.
+
+`workflow.py` owns connection state, confirmations and final admission checks.
+`drafts.py` constructs catalogue instances and output queues without serial I/O;
+`discovery.py` adds observation-specific recommendations and connection policy.
+Both discovery and manually selected I2C drafts use the same instance builder.
+Their wiring policies remain explicit: discovery requires its reviewed preset,
+while manual selection reuses a matching bus's existing speed.
+
+Python capture callers use `Workflow.connect(port=...)`, `review(profile=...)`
+and `apply(review_id=...)`. Each operation owns the same nonblocking lock,
+connection-error cleanup and single-use review checks as the HTTP entry point.
+`contracts.py` defines their JSON-compatible result fields; recorded receipts
+retain their existing shape. `dispatch` decodes browser actions only.
+
 **Datasheet assistant** under **Add a device** sends the selected PDF to Google Gemini
 after the user selects Analyse; it shows unreviewed facts, page references and
 uncertainties. Set the API key as described in the
@@ -26,7 +87,7 @@ so they inherit it. Keep the key private and out of the repository. The optional
 `UTHOME_GEMINI_MODEL` user variable selects a Gemini model supporting PDF input
 and structured output. See the [Gemini documentation](https://ai.google.dev/gemini-api/docs/structured-output).
 
-Check a reviewed catalogue ID against the connected firmware, choose its address
+Check a reviewed catalogue ID or supported product-name alias against the connected firmware, choose its address
 and GPIO pins, and confirm the actual module and electrical wiring. The periodic
 I2C draft builder uses reviewed catalogue defaults, rejects conflicting pins and
 missing drivers, and changes only the draft. Use the normal review and Apply
@@ -35,6 +96,13 @@ unavailable in normal firmware: a diagnostic build exercised the reviewed Desk
 backend and light sensor, but full combined-system acceptance remains open.
 When supported light telemetry is available, the live monitor shows illuminance
 in lux with the source name and freshness.
+The reviewed alias `HLK-LD2450` maps to `hlk_ld2450`; other punctuation and
+unknown names are not inferred. UART devices still use their existing device flow.
+An extracted address can depend on the variant or wiring; compare the cited facts
+and confirm the physical module. Draft JSON version 0.2.0 can include conditional
+address options; they are not automatically copied into the profile, and their
+dedicated display is pending. The existing facts and uncertainties may describe
+options but are model-generated and can still be incorrect.
 
 1. In **Profile**, choose an example or import JSON. Open **Edit profile JSON**
    for custom instances, wiring, timing and routes. Optional discovery is under
@@ -164,6 +232,7 @@ remain in [assets/fonts/README.md](static/assets/fonts/README.md).
 
 ```powershell
 python -B -m unittest discover -s tests/target -p test_configurator.py -v
+python -B -m unittest discover -s tests/target -p "test_recipe*.py" -v
 python -B -m unittest discover -s tests/target -p test_discovery_ui.py -v
 python -B -m unittest discover -s tests/target -p test_discovery_confirm.py -v
 python -B -m unittest discover -s tests/discovery -v
@@ -175,6 +244,15 @@ uncertain deployment, HTTP boundaries, C/Python parity and presentation. Fake-bo
 Edge walkthroughs cover themes and desktop/mobile flows. These are not physical
 device detection. Evidence: [UI/rules](../../firmware/qualification/esp32c3-ui-rules-20260928.json)
 and [D4](../../firmware/qualification/esp32c3-discovery-d4-20261012.json).
+
+`npm run test:browser` exercises the actual HTML and ES modules with local HTTP
+fixtures. It covers review/discovery races, delayed imports and catalogue loading,
+HTTP decoding failures, telemetry clearing, and the PDF analysis/download lifecycle.
+PDF fixtures never reach a provider. Local import/format/download failures preserve
+board review evidence; failed board requests invalidate it. Datasheet matching
+returns server-owned `draft_builder` requirements (eligibility, addresses and
+enable-pin requirement), so the form does not depend on startup catalogue timing.
+Preparing a draft rechecks eligibility, firmware, wiring and the complete profile.
 
 The incoming Member 5 toolkit remains under [legacy/member5](../../legacy/member5/README.md).
 Its schema-1.0/S3 bundle workflow is separate from the current C3 USB application.

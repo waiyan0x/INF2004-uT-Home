@@ -48,7 +48,7 @@ class LayoutTests(unittest.TestCase):
         cls.addClassCleanup(cls.folder.cleanup)
         cls.library_path = Path(cls.folder.name) / "cfgpart.dll"
         subprocess.run([compiler, "-std=c99", "-Wall", "-Wextra", "-Werror", "-pedantic",
-                        "-shared", "-O2", str(ROOT / "firmware/src/config/cfgpart.c"),
+                        "-shared", "-O2", str(ROOT / "firmware/hal/ports/esp32c3/storage/cfgpart.c"),
                         "-o", str(cls.library_path)], check=True, capture_output=True)
         cls.library = ctypes.CDLL(str(cls.library_path))
         cls.check = cls.library.cfgpart_check

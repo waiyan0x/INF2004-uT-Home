@@ -42,8 +42,21 @@ DRAFT_SCHEMA = {
                 "write_byte": {"type": ["integer", "null"]},
                 "read_byte": {"type": ["integer", "null"]},
                 "pages": {"type": "array", "items": {"type": "integer"}},
+                "conditional_options": {
+                    "type": "array",
+                    "description": "Conditional 7-bit addresses, their conditions and source pages; empty if none.",
+                    "items": {
+                        "type": "object", "additionalProperties": False,
+                        "properties": {
+                            "address_7bit": {"type": "integer"},
+                            "condition": {"type": "string"},
+                            "pages": {"type": "array", "items": {"type": "integer"}},
+                        },
+                        "required": ["address_7bit", "condition", "pages"],
+                    },
+                },
             },
-            "required": ["address_7bit", "write_byte", "read_byte", "pages"],
+            "required": ["address_7bit", "write_byte", "read_byte", "pages", "conditional_options"],
         },
         "facts": {"type": "array", "items": FACT_SCHEMA},
         "unresolved": {"type": "array", "items": {"type": "string"}},
@@ -88,8 +101,14 @@ def _request(raw, key, model):
                 "1-based source page numbers. Identify conflicting passages, address widths, "
                 "units, protocol, pins, supply, registers, timing and missing details. "
                 "Inspect text, tables and diagrams; mark unclear details as unresolved. "
+                "State what the device measures and the documented read command and response format when available. "
                 "For each address value supply its source pages; if none can be found, "
                 "use null. Separate 7-bit addresses from 8-bit read and write bytes. "
+                "When several I2C addresses depend on the exact variant or pin state, "
+                "set all three scalar i2c_address values to null, list each option and "
+                "its condition in conditional_options and cited facts, and say the choice requires confirmation "
+                "in unresolved. Do not assume that a floating selection pin has a default. "
+                "Use an empty conditional_options list if no conditional addresses are documented. "
                 "Check every register reference for contradictions elsewhere in the text. "
                 "A missing value must be null. Return only the requested structure.")}]},
         "contents": [{"role": "user", "parts": [
@@ -131,6 +150,44 @@ def _request(raw, key, model):
         raise ValueError("AI response was malformed") from error
 
 
+def _valid_pages(references, page_count):
+    return len(references) <= 20 and all(1 <= page <= page_count for page in references)
+
+
+def _validate_fact(fact, page_count):
+    message = "AI draft contains invalid fact evidence; check page references and missing values, then retry"
+    if not fact['name'] or len(fact['name']) > 120 or len(fact['note']) > 1000:
+        raise ValueError(message)
+    if fact['value'] is not None and len(fact['value']) > 1000:
+        raise ValueError(message)
+    if not _valid_pages(fact['pages'], page_count):
+        raise ValueError(message)
+    if fact['status'] == 'stated' and (not fact['pages'] or fact['value'] is None):
+        raise ValueError(message)
+    if fact['status'] == 'inferred' and fact['value'] is None:
+        raise ValueError(message)
+    if fact['status'] == 'missing' and fact['value'] is not None:
+        raise ValueError(message)
+
+
+def _validate_address_options(options, scalar_values, unresolved, page_count):
+    message = "AI draft contains invalid conditional I2C address evidence"
+    if len(options) > 8:
+        raise ValueError(message)
+    if options:
+        if not any(issue.strip() for issue in unresolved):
+            raise ValueError(message)
+        if any(value is not None for value in scalar_values):
+            raise ValueError(message)
+    for option in options:
+        if not 0x08 <= option['address_7bit'] <= 0x77:
+            raise ValueError(message)
+        if not option['condition'].strip() or len(option['condition']) > 300:
+            raise ValueError(message)
+        if not option['pages'] or not _valid_pages(option['pages'], page_count):
+            raise ValueError(message)
+
+
 def analyse(body, *, request=_request):
     """Return a draft only; no bus access, device approval or profile mutation."""
     if not isinstance(body, dict) or set(body) != {"pdf_base64"}:
@@ -155,23 +212,17 @@ def analyse(body, *, request=_request):
     if draft["device_name"] is not None and len(draft["device_name"]) > 160:
         raise ValueError("AI device name is too long")
     for fact in draft["facts"]:
-        if (not fact["name"] or len(fact["name"]) > 120 or
-            len(fact["note"]) > 1000 or
-            (fact["value"] is not None and len(fact["value"]) > 1000) or
-            len(fact["pages"]) > 20 or
-            any(p < 1 or p > pages for p in fact["pages"]) or
-            (fact["status"] == "stated" and (not fact["pages"] or fact["value"] is None)) or
-            (fact["status"] == "inferred" and fact["value"] is None) or
-            (fact["status"] == "missing" and fact["value"] is not None)):
-            raise ValueError("AI draft contains invalid fact evidence; check page references and missing values, then retry")
+        _validate_fact(fact, pages)
     if any(len(item) > 1000 for item in draft["unresolved"]):
         raise ValueError("AI draft contains an oversized unresolved item")
     address = draft["i2c_address"]
     values = [address["address_7bit"], address["write_byte"], address["read_byte"]]
-    if (len(address["pages"]) > 20 or any(p < 1 or p > pages for p in address["pages"]) or
+    options = address["conditional_options"]
+    if (not _valid_pages(address["pages"], pages) or
         (any(value is not None for value in values) and not address["pages"]) or
         any(v is not None and not 0 <= v <= 255 for v in values)):
         raise ValueError("AI draft contains invalid I2C address evidence")
+    _validate_address_options(options, values, draft['unresolved'], pages)
     write, read = address["write_byte"], address["read_byte"]
     derived = (write >> 1 if write is not None and write % 2 == 0 else
                read >> 1 if read is not None and read % 2 == 1 else None)
@@ -184,7 +235,7 @@ def analyse(body, *, request=_request):
                 (derived is not None and not 0x08 <= derived <= 0x77))
     address_review = {"derived_7bit": derived, "conflicting": conflict,
                       "notice": "Calculated from model-extracted values; verify the cited source."}
-    return {"version": "0.1.0", "status": "unreviewed", "source_sha256": hashlib.sha256(raw).hexdigest(),
+    return {"version": "0.2.0", "status": "unreviewed", "source_sha256": hashlib.sha256(raw).hexdigest(),
             "pages": pages, "provider": "gemini", "model": model, "draft": draft,
             "i2c_address_review": address_review,
             "notice": "AI output and page references require review; this draft cannot configure hardware."}

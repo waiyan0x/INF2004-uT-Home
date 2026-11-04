@@ -102,6 +102,20 @@
         "The provisional driver must be advertised by the connected firmware, and normal hardware qualification remains incomplete."
       ],
       "sources": ["catalogue/devices/sen0390.json", "firmware/drivers/generic_i2c/README.md"]
+    },
+    {
+      "descriptor": {"id": "i2c_recipe", "version": "1.0.0"},
+      "identification": {
+        "method": "manual",
+        "confirmation": "Confirm the actual module, address, register-read semantics, voltage and existing bus wiring before preparing a generic recipe.",
+        "identity_status": "user_confirmed"
+      },
+      "cautions": [
+        "This descriptor is a register-reading capability, not a device identity or an automatic probe.",
+        "Raw bytes do not establish units, calibration, valid conversion timing or electrical safety.",
+        "The recipe builder never identifies unknown wiring, executes arbitrary writes or replaces an existing address owner implicitly."
+      ],
+      "sources": ["catalogue/devices/i2c_recipe.json", "schemas/i2c-recipe.schema.json", "firmware/drivers/generic_i2c/README.md"]
     }
   ]
 }

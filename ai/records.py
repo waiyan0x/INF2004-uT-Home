@@ -1,5 +1,5 @@
 """Validate replayed timing observations and derive labels without hardware I/O."""
-from ai.timing import canonical, digest, integer_numbers, validate
+from ai.timing import canonical, digest, validate_integer_tokens, validate
 from tools.config_validator.planner import ROOT, Catalogue, check, load_document, require
 
 
@@ -41,7 +41,7 @@ def features(experiment, interval, catalogue):
 
 def assess_run(experiment, run, schema=None):
     """Interrupted runs are unusable; complete bad runs are valid negative examples."""
-    integer_numbers(run)
+    validate_integer_tokens(run)
     live = run.get("version") == "0.2.0"
     selected_schema = (load_document(ROOT / "ai/contracts/timing-run-v0.2.schema.json") if live
                        else schema or load_document(ROOT / "ai/contracts/timing-run.schema.json"))

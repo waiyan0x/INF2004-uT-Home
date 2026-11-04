@@ -7,7 +7,8 @@ import tempfile
 import unittest
 
 from ai.export import export_c, verify_c
-from ai.model import context, predict, recommend, split_families, train, validate_model
+from ai.model import predict, recommend, split_families, train, validate_model
+from ai.provenance import context_fingerprint
 from ai.offline import save, simulate
 from ai.records import assess_run, build_dataset, features, validate_dataset
 from ai.timing import digest, prepare
@@ -126,7 +127,7 @@ class LearningTests(unittest.TestCase):
             validate_dataset(changed, self.bundle, self.catalogue)
 
     def test_recommendation_requires_explicit_simulation_and_shared_validation(self):
-        experiment = next(case for case in self.dataset["cases"] if context(case) in self.model["contexts"])
+        experiment = next(case for case in self.dataset["cases"] if context_fingerprint(case) in self.model["contexts"])
         self.assertEqual(recommend(self.model, experiment)["status"], "abstain")
         result = recommend(self.model, experiment, allow_simulated=True)
         self.assertFalse(result["deployment_allowed"])

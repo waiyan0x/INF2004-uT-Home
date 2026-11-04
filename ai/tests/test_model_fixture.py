@@ -9,7 +9,7 @@ import sys
 import tempfile
 import unittest
 
-from ai.protocol_model import predict
+from ai.protocol.model import predict
 from ai.timing import digest
 
 ROOT = Path(__file__).resolve().parents[2]
