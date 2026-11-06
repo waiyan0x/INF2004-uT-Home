@@ -1,0 +1,69 @@
+{
+  "version": "0.1.0",
+  "scope": "Scenario B ESP32-C3 Wi-Fi station application fixed memory; runtime heap, stack high-water and hardware acceptance remain unqualified",
+  "evidence_basis": {
+    "map_sha256": "5b0dd3bb3fdf830e04703f7ecf569f3945330eb9395a50fa6caed0e0ea715774",
+    "total_dram": 271908,
+    "application_fixed": 144025,
+    "task_pool_fixed": 18469,
+    "kernel_sdk_fixed": 53066,
+    "ram_code": 56348,
+    "module_margin_policy": "Retain reviewed diagnostic limits for unchanged station modules; reserve one additional 256-byte block for c3app, round new c3https to 128 bytes and c3net/c3wsta to 16 bytes, and retain the reviewed c3task reservation. Exact-size pools require explicit review before growth. BLE-only c3ble/c3gatt are absent from this required Wi-Fi-only map."
+  },
+  "required_evidence": {
+    "configuration_application": true,
+    "network_services": "wifi",
+    "static_network_queues": true,
+    "static_task_pool": true,
+    "wifi_probe": false,
+    "ble_probe": false,
+    "ble_gatt_probe": false,
+    "ble_static_host": false,
+    "diagnostic_only": false
+  },
+  "archive_groups": {
+    "/uthome_task/libuthome_task.a:": "task_pool_fixed"
+  },
+  "module_groups": {
+    "c3task.c.obj": "task_pool_fixed"
+  },
+  "require_all_module_limits": true,
+  "application_fixed_limit": 147456,
+  "task_pool_fixed_limit": 18560,
+  "kernel_sdk_fixed_limit": 55296,
+  "ram_code_limit": 57152,
+  "total_dram_limit": 278528,
+  "rtc_limit": 128,
+  "module_limits": {
+    "c3audit.c.obj": 184,
+    "c3app.c.obj": 42496,
+    "tkport.c.obj": 33428,
+    "cfgjson.c.obj": 28698,
+    "activate.c.obj": 3955,
+    "msgbus.c.obj": 2240,
+    "sampcache.c.obj": 1440,
+    "c3umem.c.obj": 1280,
+    "c3store.c.obj": 384,
+    "watchdog.c.obj": 512,
+    "health.c.obj": 256,
+    "shared.c.obj": 128,
+    "c3pin.c.obj": 160,
+    "c3pwm.c.obj": 128,
+    "c3pulse.c.obj": 64,
+    "c3uart.c.obj": 56,
+    "c3ukern.c.obj": 8,
+    "c3i2c.c.obj": 64,
+    "c3spi.c.obj": 64,
+    "c3bind.c.obj": 32,
+    "c3usb.c.obj": 16,
+    "main.c.obj": 2048,
+    "cJSON.c.obj": 32,
+    "c3nq.c.obj": 12288,
+    "c3boot.c.obj": 12288,
+    "c3event.c.obj": 450,
+    "c3https.c.obj": 3200,
+    "c3net.c.obj": 96,
+    "c3wsta.c.obj": 64,
+    "c3task.c.obj": 18504
+  }
+}

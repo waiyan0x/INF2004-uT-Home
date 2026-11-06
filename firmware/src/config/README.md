@@ -20,8 +20,11 @@ Initialize cJSON hooks and activation once, then one persistent binder/controlle
 All large contexts have static/application lifetime. One long-lived kernel task
 owns calls; reentry guards are not cross-task locks. Only `cfgctrl` may apply,
 restore or clear live profiles. Out-of-band activation invalidates its metadata.
-Context, scratch, input and response storage must not alias. Keep request bytes
-stable until handling completes; retain unread RX and partially written TX bytes.
+Context, input and response storage must not alias. `cfgstore` borrows the
+controller's cached-record array as its full-record workspace: an exact load
+destination alias is supported, while partial load overlap and every save-source
+overlap are rejected before I/O. Keep request bytes stable until handling
+completes; retain unread RX and partially written TX bytes.
 
 The application reuses the upstream 8 KiB initial-task stack at priority 20,
 restores once, then services transport/health with a 1 ms yield. This yield is
@@ -236,8 +239,9 @@ the [documentation history](../../../docs/README.md#historical-references).
 
 Paired modules/prefixes; fixed-width arithmetic and unsigned shifts; bounds
 before narrowing; explicit serialization, no raw C structures; stable borrowed
-buffers with aliasing prohibited; reentry and bounded loops; initialized metadata;
-checked backend/activation outcomes and preservation of old data on failure.
+buffers with only the documented exact load/workspace alias; reentry and bounded
+loops; initialized metadata; checked backend/activation outcomes and
+preservation of old data on failure.
 
 The controller recovery/view boundary retains C99 and the existing controller
 layout. Views borrow const bytes until the next serialized mutation; they add no

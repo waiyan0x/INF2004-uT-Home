@@ -92,13 +92,15 @@ Wi-Fi and BLE must run on the ESP under uT-Kernel. The planned services are BLE
 identification/status/telemetry and Wi-Fi MQTT telemetry plus bounded HTTP
 status/configuration. They are not integrated into the ordinary USB application.
 The [network guide](src/network/README.md) owns compatibility contracts and the
-[source audit](qualification/esp32c3-wireless-source-audit-20261027.json) identifies
-remaining task, notification, timer, TLS/per-task-state and SDK allocation gaps.
+[source audit](qualification/esp32c3-wireless-source-audit-20261027.json) records
+the inspected source paths and gaps at its historical revision. The network guide
+tracks the current task-stack, notification, timer, TLS and SDK-allocation status.
 
 The optional `--static-net-queues` build selects owned fixed queue/event resources;
-it does not enable radios or prove whole-system static compliance. Queue and
-event adapters are implemented; task stacks, notification semantics, timer
-callback context, BLE/lwIP/service allocation and cache-off traffic still need work.
+it does not enable radios or prove whole-system static compliance. Queue/event
+adapters and the isolated radio diagnostics' native task stacks are now bounded.
+Notification semantics, timer callback context, BLE/lwIP/service allocation,
+runtime stack margin and cache-off traffic still need work.
 Isolated Wi-Fi scan/restart and read-only GATT evidence is indexed in
 [qualification](qualification/README.md).
 
@@ -169,8 +171,8 @@ not a reusable promise of free memory in later builds.
 
 ### Migration and acceptance order
 
-1. Finish fixed wireless service resources and actual SDK semantics, with budgets
-   and host/target capabilities kept consistent.
+1. Finish fixed wireless notification/timer/service resources and actual SDK
+   semantics, with budgets and host/target capabilities kept consistent.
 2. Verify maximum occupancy, parser/queue/storage exhaustion, discovery cleanup,
    rollback, network loss and flash saves on the combined image. Count creation
    calls, not just live objects, and retain unavailable measurements as null.
