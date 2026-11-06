@@ -1,5 +1,6 @@
 /** @file occwire.c
- * @brief Bounded ESPHome plaintext framing and one occupancy entity. */
+ * @brief Bounded ESPHome plaintext framing for radar occupancy and freshness.
+ */
 #include "occwire.h"
 #include <string.h>
 
@@ -9,19 +10,36 @@ static const uint8_t g_entity[] = {
     'o',   'o',   'm', ' ', 'o',   'c', 'c', 'u', 'p', 'a',   'n', 'c',
     'y',   0x2aU, 9U,  'o', 'c',   'c', 'u', 'p', 'a', 'n',   'c', 'y'};
 
+/* Binary sensor key 2, diagnostic category. String terminator is not sent. */
+static const uint8_t g_fresh[] = "\x0a\x10"
+                                 "radar_data_fresh"
+                                 "\x15\x02\x00\x00\x00"
+                                 "\x1a\x10"
+                                 "Radar data fresh"
+                                 "\x48\x02";
+
+/* Two entity descriptions and list-done, each with a three-byte frame header.
+ */
+enum
+{
+    OCCWIRE_LIST_FITS = 1 / ((9U + sizeof(g_entity) + sizeof(g_fresh) - 1U) <=
+                             sizeof(((occwire_t *)0)->transmit))
+};
+
 static void frame (occwire_t *     p_wire,
                    uint8_t         kind,
                    const uint8_t * p_bytes,
                    uint8_t         length)
 {
-    p_wire->transmit[0] = 0U;
-    p_wire->transmit[1] = length;
-    p_wire->transmit[2] = kind;
+    uint8_t * p_next = &p_wire->transmit[p_wire->queued];
+    p_next[0]        = 0U;
+    p_next[1]        = length;
+    p_next[2]        = kind;
     if (0U < length)
     {
-        memcpy(&p_wire->transmit[3], p_bytes, length);
+        memcpy(&p_next[3], p_bytes, length);
     }
-    p_wire->queued = (uint8_t)(3U + length);
+    p_wire->queued = (uint8_t)(p_wire->queued + 3U + length);
     p_wire->sent   = 0U;
 }
 
@@ -95,9 +113,8 @@ int occwire_step (occwire_t * p_wire, const char * p_node, uint8_t state)
             break;
             case 11U:
                 frame(p_wire, 12U, g_entity, (uint8_t)sizeof(g_entity));
-                p_wire->transmit[p_wire->queued++] = 0U;
-                p_wire->transmit[p_wire->queued++] = 0U;
-                p_wire->transmit[p_wire->queued++] = 19U;
+                frame(p_wire, 12U, g_fresh, (uint8_t)(sizeof(g_fresh) - 1U));
+                frame(p_wire, 19U, NULL, 0U);
             break;
             case 20U:
                 p_wire->b_subscribed = true;
@@ -109,6 +126,12 @@ int occwire_step (occwire_t * p_wire, const char * p_node, uint8_t state)
             p_wire->used = (uint8_t)(p_wire->used - 3U - length);
             memmove(
                 p_wire->receive, &p_wire->receive[3U + length], p_wire->used);
+            if (20U == kind)
+            {
+                /* Next owner tick captures the actual initial radar snapshot.
+                 */
+                return 0;
+            }
         }
     }
     if ((0U == p_wire->queued) && (p_wire->b_subscribed) &&
@@ -121,6 +144,13 @@ int occwire_step (occwire_t * p_wire, const char * p_node, uint8_t state)
         body[7] = 24U;
         body[8] = (uint8_t)(0U == state);
         frame(p_wire, 21U, body, 9U);
+        if ((3U == p_wire->last) || ((0U == state) != (0U == p_wire->last)))
+        {
+            body[1] = 2U;
+            body[6] = (uint8_t)(0U != state);
+            body[8] = 0U;
+            frame(p_wire, 21U, body, 9U);
+        }
         p_wire->last = state;
     }
     return 0;

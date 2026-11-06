@@ -536,14 +536,21 @@ class EspBindingTests(unittest.TestCase):
                     self.assertEqual(info.name,'uthome-010203040506')
                     entities,_=await client.list_entities_services()
                     self.assertEqual([(e.name,e.device_class) for e in entities],
-                                     [('Room occupancy','occupancy')])
+                                     [('Room occupancy','occupancy'),('Radar data fresh','')])
+                    self.assertEqual(entities[1].entity_category.value,2)
                     client.subscribe_states(states.put_nowait)
                     self.assertTrue((await states.get()).missing_state)
+                    initial=await states.get()
+                    self.assertEqual((initial.key,initial.state,initial.missing_state),(2,False,False))
                     for mode,expected,missing in [(2,True,False),(1,False,False),(3,False,True)]:
                         self.lib.c3fake_radar(mode)
                         state=await states.get()
                         self.assertEqual((state.key,state.state,state.missing_state),
                                          (entities[0].key,expected,missing))
+                        if mode in (2,3):
+                            fresh=await states.get()
+                            self.assertEqual((fresh.key,fresh.state,fresh.missing_state),
+                                             (entities[1].key,not missing,False))
                 finally:
                     await client.disconnect()
                 await finished.wait()
@@ -558,21 +565,29 @@ class EspBindingTests(unittest.TestCase):
             nonlocal now
             before=len(self.output())
             if data:self.lib.c3fake_input(10,data,len(data))
-            for _ in range(25):
+            for _ in range(50):  # drain two descriptions even at three bytes per tick
                 now+=1
                 self.assertEqual(self.drive(now),0)
             return self.output()[before:]
         self.assertEqual(step(b'\x00\x00'),b'')  # fragmented hello
         self.assertIn(b'uthome-010203040506',step(b'\x01'))
         self.assertIn(b'room_occupancy',step(bytes([0,0,11])))
-        self.assertEqual(step(bytes([0,0,20]))[-2:],bytes([24,1]))
+        def packet(key,state,missing):
+            return bytes([0,9,21,13,key,0,0,0,16,state,24,missing])
+        self.assertEqual(step(bytes([0,0,20])),packet(1,0,1)+packet(2,0,0))
+        fresh=False
         for mode,state,missing in [(2,1,0),(1,0,0),(3,0,1),(2,1,0),(4,0,1),(1,0,0),(5,0,1)]:
             self.lib.c3fake_radar(mode)
-            self.assertEqual(step(),bytes([0,9,21,13,1,0,0,0,16,state,24,missing]))
+            expected=packet(1,state,missing)
+            if fresh != (not missing):expected+=packet(2,not missing,0)
+            self.assertEqual(step(),expected)
+            fresh=not missing
         step(bytes([0,126]))  # exceeds receive bound; closes only this client
         self.assertEqual(self.lib.c3fake_closed(10),1)
         self.lib.c3fake_accept_next(10)
         self.assertIn(b'uthome-',step(bytes([0,0,1])))
+        self.lib.c3fake_radar(1)
+        self.assertEqual(step(bytes([0,0,20])),packet(1,0,0)+packet(2,1,0))
         self.assertEqual(self.lib.c3fake_deleted(),0)  # never instantiated TLS
 
     def test_https_configuration_state_and_result_fit_max_width_without_io(self):

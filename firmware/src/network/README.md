@@ -1598,3 +1598,5 @@ and radar input are doubled). Run `python -m unittest discover -s tests/target
 -p test_network_esp.py -v` as one command from the repository root. On hardware,
 confirm a person entering/leaving changes state, stopping radar updates gives
 unknown rather than clear, and local sampling continues through a client reconnect.
+
+**Radar data fresh** is a separate diagnostic binary sensor. It is on for a fresh valid target report (even an empty room), and off for missing, stale, faulty, or mismatched radar data. Both entities become unavailable when Home Assistant loses its connection. Both use the same copied snapshot, existing connection state and 128-byte transmit buffer.
