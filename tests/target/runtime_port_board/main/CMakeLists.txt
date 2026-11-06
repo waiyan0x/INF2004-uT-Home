@@ -1,3 +1,4 @@
+
 idf_component_register(SRCS "../discovery/discuart.c" "../discovery/disci2c.c" "../discovery/cfgdisc.c" "../config/cfgpump.c" "../hal/c3usb.c"
                        "../hal/c3store.c" "../hal/storage/cfgpart.c" "../hal/storage/cfgslot.c" "../app/c3net.c" "../app/c3app.c" "../config/jsonscan.c" "../config/cfgjson.c" "../config/cfgplan.c" "../config/cfgdev.c" "../config/cfgrule.c" "../automation/rulecalc.c" "../config/cfgbind.c" "../hal/c3bind.c"
                        "../network/netring.c" "../network/netwait.c" "../network/netpool.c" "../network/netevent.c" "../hal/c3event.c" "../hal/c3ewait.c" "../hal/c3boot.c" "../hal/c3nq.c" "../hal/c3wifi.c" "../hal/c3bport.c"
@@ -27,10 +28,12 @@ idf_component_register(SRCS "../discovery/discuart.c" "../discovery/disci2c.c" "
                                     "../../source/device/include" "../../source/device/ser"
                        LDFRAGMENTS "audit.lf" "netqueue.lf"
                        REQUIRES uthome_radio bt esp_wifi esp_event esp_app_format mtkernel freertos_shim esp_rom esp_partition spi_flash esp_hal_usb esp_hal_i2c esp_hal_gpspi
-                                esp_hal_rmt esp_hal_ledc esp_timer espressif__cjson)
+                                esp_hal_rmt esp_hal_ledc esp_timer espressif__cjson
+                       PRIV_REQUIRES uthome_task)
 target_compile_definitions(${COMPONENT_LIB} PRIVATE UTHOME_RUNTIME_UTKERNEL=1
     UTHOME_CONFIGURATION_APP=$<BOOL:${UTHOME_CONFIGURATION_APP}>
     UTHOME_STATIC_NET_QUEUES=$<BOOL:${UTHOME_STATIC_NET_QUEUES}>
+    UTHOME_STATIC_TASKS=$<BOOL:${UTHOME_STATIC_TASKS}>
     UTHOME_NETWORK_WIFI=$<BOOL:${UTHOME_NETWORK_WIFI}>
     UTHOME_NETWORK_BLE=$<BOOL:${UTHOME_NETWORK_BLE}>
     UTHOME_WIFI_PROBE=$<BOOL:${UTHOME_WIFI_PROBE}>
@@ -181,6 +184,41 @@ foreach(allocator malloc calloc realloc free)
         "-Wl,--defsym=__wrap_knl_I${allocator}=c3audit_k${allocator}")
 endforeach()
 
+# Preserve the three native startup boundaries under private names and route
+# callers through a flash-resident trace only in the isolated Wi‑Fi probe.
+# This reports exact return values without changing device policy, resources,
+# or the cache-safe memory-audit path.
+function(uthome_startup_trace source syscall name)
+    set_property(SOURCE "${source}"
+        TARGET_DIRECTORY ${UTHOME_KERNEL_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
+        "${syscall}=c3start_native_${name}")
+    target_link_libraries(${COMPONENT_LIB} INTERFACE
+        "-Wl,--wrap=${syscall}"
+        "-Wl,--defsym=__wrap_${syscall}=c3start_${name}")
+endfunction()
+if(UTHOME_WIFI_PROBE)
+    target_sources(${COMPONENT_LIB} PRIVATE "../hal/c3start.c")
+    set_source_files_properties("../hal/c3start.c"
+        PROPERTIES COMPILE_OPTIONS "-std=c99;${UTHOME_WARNINGS}")
+    uthome_startup_trace(
+        "${UTHOME_NATIVE_ROOT}/kernel/tkernel/device.c"
+        knl_initialize_devmgr devmgr)
+    uthome_startup_trace(
+        "${UTHOME_NATIVE_ROOT}/lib/libtk/fastmlock.c"
+        CreateMLock mlock)
+    uthome_startup_trace(
+        "${UTHOME_NATIVE_ROOT}/kernel/sysdepend/${MTK_BOARD}/devinit.c"
+        knl_start_device device)
+    uthome_startup_trace(
+        "${UTHOME_NATIVE_ROOT}/device/ser/ser.c"
+        dev_init_ser serial)
+    uthome_startup_trace(
+        "${UTHOME_NATIVE_ROOT}/device/adc/adc.c"
+        dev_init_adc adc)
+    target_link_libraries(${COMPONENT_LIB} INTERFACE
+        "-Wl,--undefined=c3start_devmgr")
+endif()
+
 # This isolated test drives UART pins and requires no external sender/receiver.
 # The ordinary runtime fixture can run with the reviewed peripherals attached.
 if(UTHOME_NATIVE_UART_FIXTURE)
@@ -268,9 +306,11 @@ if(UTHOME_NETWORK_BLE)
     endif()
 endif()
 if(UTHOME_NETWORK_WIFI)
-    if(NOT CONFIG_ESP_TLS_USING_MBEDTLS OR NOT CONFIG_MBEDTLS_TLS_SERVER OR
+    if(NOT CONFIG_LWIP_IPV4 OR CONFIG_LWIP_IPV6 OR CONFIG_LWIP_DHCPS OR
+       CONFIG_ESP_WIFI_SOFTAP_SUPPORT OR CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT OR
+       NOT CONFIG_ESP_TLS_USING_MBEDTLS OR NOT CONFIG_MBEDTLS_TLS_SERVER OR
        NOT CONFIG_MBEDTLS_SSL_PROTO_TLS1_2 OR CONFIG_ESP_WIFI_NVS_ENABLED OR
        NOT CONFIG_LWIP_MAX_SOCKETS EQUAL 6 OR NOT CONFIG_LWIP_SO_REUSE)
-        message(FATAL_ERROR "HTTPS services require reviewed TLS/socket/RAM-only settings")
+        message(FATAL_ERROR "Wi-Fi services require reviewed station/TLS/socket/RAM-only settings")
     endif()
 endif()

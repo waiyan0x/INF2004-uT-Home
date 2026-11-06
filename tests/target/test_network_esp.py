@@ -400,6 +400,9 @@ class EspBindingTests(unittest.TestCase):
                 capture_output=True,text=True)
             if compiled.returncode:
                 raise AssertionError(compiled.stdout+compiled.stderr)
+        fixture_dir = Path(__file__).resolve().parent
+        if str(fixture_dir) not in sys.path:
+            sys.path.insert(0, str(fixture_dir))
         from _network_config_fixture import ConfigLibrary
         cls.config_library=ConfigLibrary()
         cls.addClassCleanup(cls.config_library.close)

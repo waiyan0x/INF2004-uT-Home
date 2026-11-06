@@ -89,7 +89,7 @@ typedef struct
  * successful deployment. PROBE bypasses sequence checks, does no I/O and
  * never evicts the retry cache. Its first reply field is last_id, not status.
  * Request bytes must remain stable and may not alias this context/store
- * scratch. */
+ * workspace. */
 int cfgctrl_init (cfgctrl_t *           p_control,
                   cfgstore_t *          p_store,
                   const cfgctrl_ops_t * p_operations,

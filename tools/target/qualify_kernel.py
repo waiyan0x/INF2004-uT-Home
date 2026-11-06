@@ -59,7 +59,6 @@ RUNTIME_SOURCE_FILES = {
     "tests/target/runtime_port_board/network.defaults": "network.defaults",
     "tools/target/network_setup.py": "network_setup.py",
 
-
     "tests/target/runtime_port_board/loadmodel/ailite.c": "loadmodel/ailite.c",
     "tests/target/runtime_port_board/loadmodel/ailite.h": "loadmodel/ailite.h",
     "tests/target/runtime_port_board/loadmodel/aivects.c": "loadmodel/aivects.c",
@@ -92,11 +91,15 @@ RUNTIME_SOURCE_FILES = {
     "firmware/hal/ports/esp32c3/network/c3ewait.h": "hal/c3ewait.h",
     "firmware/hal/ports/esp32c3/network/c3event.c": "hal/c3event.c",
     "firmware/hal/ports/esp32c3/network/c3event.h": "hal/c3event.h",
+    "firmware/hal/ports/esp32c3/c3task.c": "hal/c3task.c",
+    "firmware/hal/ports/esp32c3/c3task.h": "hal/c3task.h",
+    "tests/target/runtime_port_board/task/CMakeLists.txt": "components/uthome_task/CMakeLists.txt",
     "firmware/src/network/netevent.c": "network/netevent.c",
     "firmware/src/network/netevent.h": "network/netevent.h",
     "firmware/hal/ports/esp32c3/network/c3wifi.c": "hal/c3wifi.c",
     "firmware/hal/ports/esp32c3/network/c3wifi.h": "hal/c3wifi.h",
     "tests/target/runtime_port_board/wifi.defaults": "wifi.defaults",
+    "tests/target/runtime_port_board/wifi-station.defaults": "wifi-station.defaults",
     "tests/target/runtime_port_board/main/nqcheck.c": "main/nqcheck.c",
     "tests/target/runtime_port_board/main/nqcheck.h": "main/nqcheck.h",
     'firmware/src/network/netring.c': 'network/netring.c',
@@ -125,6 +128,8 @@ RUNTIME_SOURCE_FILES = {
     "firmware/src/runtime/memaudit.h": "runtime/memaudit.h",
     "firmware/hal/ports/esp32c3/c3audit.c": "hal/c3audit.c",
     "firmware/hal/ports/esp32c3/c3audit.h": "hal/c3audit.h",
+    "firmware/hal/ports/esp32c3/c3start.c": "hal/c3start.c",
+    "firmware/hal/ports/esp32c3/c3start.h": "hal/c3start.h",
     "tests/target/runtime_port_board/main/audit.lf": "main/audit.lf",
     "tests/target/runtime_port_board/audit.defaults": "audit.defaults",
     "firmware/hal/ports/esp32c3/storage/cfgpart.c": "hal/storage/cfgpart.c",
@@ -417,6 +422,47 @@ def verify_audit_scope(commands):
     return {str(path): renames for path, renames in selected.items()}
 
 
+STARTUP_RENAMES = {
+    "/kernel/tkernel/device.c": {
+        "knl_initialize_devmgr": "c3start_native_devmgr"},
+    "/lib/libtk/fastmlock.c": {"CreateMLock": "c3start_native_mlock"},
+    "/kernel/sysdepend/iote_esp32c3_mini/devinit.c": {
+        "knl_start_device": "c3start_native_device"},
+    "/device/ser/ser.c": {"dev_init_ser": "c3start_native_serial"},
+    "/device/adc/adc.c": {"dev_init_adc": "c3start_native_adc"},
+}
+
+STARTUP_SYMBOLS = (
+    ("knl_initialize_devmgr", "c3start_devmgr", "c3start_native_devmgr"),
+    ("CreateMLock", "c3start_mlock", "c3start_native_mlock"),
+    ("knl_start_device", "c3start_device", "c3start_native_device"),
+    ("dev_init_ser", "c3start_serial", "c3start_native_serial"),
+    ("dev_init_adc", "c3start_adc", "c3start_native_adc"),
+)
+
+
+def verify_startup_scope(commands, project, enabled):
+    """Confine startup tracing to the Wi‑Fi diagnostic boundaries only."""
+    selected = {}
+    all_names = {symbol for renames in STARTUP_RENAMES.values() for symbol in renames}
+    for suffix, renames in STARTUP_RENAMES.items():
+        paths = [path for path in commands if path.as_posix().endswith(suffix)]
+        if len(paths) != 1:
+            raise QualificationError(f"Missing or ambiguous startup source: {suffix}")
+        selected[paths[0]] = renames
+    for path, command in commands.items():
+        for symbol in all_names:
+            values = re.findall(r'(?:^|\s)-D\s*"?' + symbol + r'=([A-Za-z_]\w*)"?', command)
+            expected = selected.get(path, {}).get(symbol) if enabled else None
+            if values != ([] if expected is None else [expected]):
+                raise QualificationError(f"Invalid startup trace scope: {path}: {symbol}")
+    trace_present = (project / "hal/c3start.c").resolve() in commands
+    if trace_present != enabled:
+        raise QualificationError("Startup trace source does not match Wi‑Fi mode")
+    return {"enabled": enabled,
+            "renames": {str(path): renames for path, renames in selected.items()} if enabled else {}}
+
+
 def check_audit_symbols(symbols):
     """Verify live wrappers/aliases and cache-safe hook primitives in a C3 ELF."""
     required = ("c3audit_alloc", "c3audit_free", "memaudit_heap", "memaudit_create",
@@ -438,6 +484,27 @@ def check_audit_symbols(symbols):
         # implementations. A zero alias is valid only for such an unused pair.
         retained[original] = bool(address)
     return retained
+
+
+def check_startup_symbols(symbols, enabled):
+    """Verify diagnostic aliases preserve each exact native startup result."""
+    pairs = STARTUP_SYMBOLS
+    names = {name for pair in pairs for name in pair}
+    names.update("__wrap_" + pair[0] for pair in pairs)
+    if not enabled:
+        leaked = sorted(name for name in names if name.startswith("c3start_") and name in symbols)
+        if leaked:
+            raise QualificationError("Startup trace leaked outside Wi‑Fi probe: " + ", ".join(leaked))
+        return {"enabled": False}
+    linked = {}
+    for original, wrapper, native in pairs:
+        address = symbols.get(wrapper, 0)
+        if (not address or symbols.get("__wrap_" + original) != address
+                or not symbols.get(native) or original in symbols):
+            raise QualificationError("Invalid linked startup forwarding: " + original)
+        linked[original] = {"wrapper": wrapper, "wrapper_address": address,
+                            "native": native, "native_address": symbols[native]}
+    return {"enabled": True, "linked": linked}
 
 
 def verify_wifi_probe(work):
@@ -534,6 +601,17 @@ def verify_audit_link(work):
             "symbols": {name: address for name, address in symbols.items()
                         if name.startswith(("c3audit_", "memaudit_", "__wrap_"))
                         or name in ("disint", "enaint", "add_count", "record_create", "record_kernel")}}
+
+
+def verify_startup_link(work, enabled):
+    """Inspect the final ELF rather than trusting linker command text."""
+    elf = work / "build/uthome_runtime_port.elf"
+    output = run(["riscv32-esp-elf-nm", "-n", elf])
+    symbols = {name: int(address, 16) for address, _, name in
+               re.findall(r"^([0-9a-fA-F]+)\s+(\w)\s+(\S+)$", output, re.MULTILINE)}
+    result = check_startup_symbols(symbols, enabled)
+    result["elf_sha256"] = sha256(elf)
+    return result
 
 
 def queue_aliases(path):
@@ -634,7 +712,7 @@ def verify_queue_adapter(work, enabled):
                 qualification="Experimental queue/event/startup scope; cache-off I/O rejects, radio/task/timer paths remain unqualified")
 
 
-def verify_compile_profiles(work):
+def verify_compile_profiles(work, startup_trace=False):
     """Verify every snapshotted owned C file's generated compiler command."""
     database = work / "build/compile_commands.json"
     entries = json.loads(database.read_text(encoding="utf-8"))
@@ -656,6 +734,8 @@ def verify_compile_profiles(work):
         command = commands.get((work / "project" / destination).resolve())
         if destination == "main/uartcheck.c" and not native_uart:
             continue
+        if destination == "hal/c3start.c" and not startup_trace:
+            continue
         if command is None:
             raise QualificationError(f"Missing compiler command for {source}")
         check_compiler_flags(command, expected)
@@ -668,16 +748,31 @@ def verify_compile_profiles(work):
         owned_radio = (work / "project/hal" / name).read_text()
         if re.search(r"\b(?:asm|__asm__|typeof|__typeof__)\b", owned_radio):
             raise QualificationError("Owned radio adapter must remain C99: " + name)
-    for name in ("c3ble.c", "c3gatt.c", "c3gsvc.c"):
-        ble_command = commands[(work / "project/hal" / name).resolve()].replace("\\", "/")
-        if (work / "source/include").as_posix() in ble_command:
-            raise QualificationError("Native sys/queue.h namespace leaked into NimBLE component")
+    radio_includes = verify_radio_include_isolation(commands, work)
     storage = verify_uart_storage(commands, work / "source")
     flash_guard = verify_flash_guard(commands)
     audit = verify_audit_scope(commands)
+    startup = verify_startup_scope(commands, work / "project", startup_trace)
     return {"status": "passed", "profiles": profiles, "uart_storage": storage,
             "flash_guard": flash_guard, "memory_audit": audit,
+            "radio_include_isolation": radio_includes, "startup_trace": startup,
             "compile_commands_sha256": sha256(database)}
+
+
+def verify_radio_include_isolation(commands, work):
+    """Keep the native queue namespace out of every BLE-facing adapter."""
+    native = (work / "source/include").as_posix()
+    isolated = []
+    for name in ("c3ble.c", "c3gatt.c", "c3gsvc.c"):
+        path = (work / "project/hal" / name).resolve()
+        command = commands.get(path)
+        if command is None:
+            raise QualificationError("Missing BLE-facing compiler command: " + name)
+        if native in command.replace("\\", "/"):
+            raise QualificationError(
+                "Native sys/queue.h namespace leaked into NimBLE component")
+        isolated.append(name)
+    return {"native_include": native, "isolated_sources": isolated}
 
 
 def run(arguments, cwd=None):
@@ -928,14 +1023,141 @@ def verify_senlux_app_probe(work, enabled):
     return {"enabled": enabled, "diagnostic_only": enabled}
 
 
-def build(kernel, sdk, work, *, selection=BuildSelection(), compat_patch=None, resource_patch=None, network_settings=None):
-    """Build one resolved mode; CLI compatibility belongs to resolve_mode."""
-    network_services = selection.network_services
-    if network_services in ('wifi', 'both') and network_settings is None:
+def verify_static_task_source(source, enabled):
+    """Verify the staged vendor adapter has the bounded project contract."""
+    text = source.read_text(encoding="utf-8")
+    if not enabled:
+        return {"enabled": False}
+    component = source.with_name("CMakeLists.txt").read_text(encoding="utf-8")
+    registration = re.search(r"idf_component_register\((.*?)\)\s*", component, re.DOTALL)
+    if registration is None or not re.search(
+            r"\bPRIV_REQUIRES\b[^)]*\buthome_task\b", registration[1]):
+        raise QualificationError(
+            "Patched task shim does not privately require uthome_task")
+    if re.search(r"\b(?:main|uthome_radio)\b", registration[1]):
+        raise QualificationError(
+            "Patched task shim creates a circular application dependency")
+    required = {
+        "fixed stack acquisition": "c3task_stack_acquire",
+        "post-deletion release": "c3task_stack_release",
+        "surviving reaper binding": "c3task_reaper_bind",
+        "bounded cleanup step": "shim_task_reap_one",
+        "generation-aware handles": "s_generations",
+        "caller-owned kernel stack": "TA_USERBUF",
+        "startup allocation seal": "c3task_stack_commit",
+        "notification pending state": "SHIM_FLAG_NOTIFY_PENDING",
+        "no-overwrite notification": "eSetValueWithoutOverwrite",
+        "notification state clear": "__wrap_xTaskGenericNotifyStateClear",
+        "notification value clear": "__wrap_ulTaskGenericNotifyValueClear",
+    }
+    missing = [description for description, token in required.items()
+               if token not in text]
+    if missing:
+        raise QualificationError("Static task patch is incomplete: " +
+                                 ", ".join(missing))
+    if re.search(r"\bheap_caps_(?:malloc|free)\s*\(", text):
+        raise QualificationError("Patched task shim still allocates task stacks from the heap")
+    if not re.search(r"#define\s+SHIM_TASK_MAX\s+4\b", text):
+        raise QualificationError("Patched task shim capacity differs from reviewed bound")
+    return {
+        "enabled": True,
+        "source": "components/freertos_shim/shim_task.c",
+        "source_sha256": sha256(source),
+        "component_dependency": "uthome_task",
+        "shim_task_capacity": 4,
+        "dynamic_task_stack_calls": 0,
+    }
+
+
+def verify_static_task_project(project):
+    """Verify the staged component graph owns c3task without dependency cycles."""
+    task = (project / "components/uthome_task/CMakeLists.txt").read_text(
+        encoding="utf-8")
+    main = (project / "main/CMakeLists.txt").read_text(encoding="utf-8")
+    radio = (project / "components/uthome_radio/CMakeLists.txt").read_text(
+        encoding="utf-8")
+    registration = re.search(r"idf_component_register\((.*?)\)\s*", task, re.DOTALL)
+    if registration is None or "../../hal/c3task.c" not in registration[1] or not re.search(
+            r"\bPRIV_REQUIRES\s+mtkernel\b", registration[1]):
+        raise QualificationError("uthome_task does not own c3task over mtkernel")
+    if re.search(r"\b(?:freertos_shim|main|uthome_radio)\b", registration[1]):
+        raise QualificationError("uthome_task has an application or shim dependency")
+    for name, content in (("main", main), ("uthome_radio", radio)):
+        if not re.search(r"\bPRIV_REQUIRES\s+uthome_task\b", content):
+            raise QualificationError(f"{name} does not privately require uthome_task")
+    if re.search(r"^[^#\n]*\.\./hal/c3task\.c", main, re.MULTILINE):
+        raise QualificationError("main still compiles the shared c3task implementation")
+    return {"component": "uthome_task", "private_requires": ["mtkernel"],
+            "consumers": ["freertos_shim", "main", "uthome_radio"],
+            "acyclic": True}
+
+
+def verify_static_task_link(work, enabled, observations=False):
+    """Verify the final radio ELF retained its selected static-task boundary."""
+    if not enabled:
+        return {"enabled": False}
+    output = run(["riscv32-esp-elf-nm", "-n",
+                  work / "build/uthome_runtime_port.elf"])
+    symbols = {name for _, _, name in re.findall(
+        r"^([0-9a-fA-F]+)\s+(\w)\s+(\S+)$", output, re.MULTILINE)}
+    required = {"c3task_init", "c3task_stack_acquire", "c3task_stack_release",
+                "c3task_reaper_bind", "c3task_reaper_task",
+                "c3task_stack_commit", "c3task_seal",
+                "g_reaper_stack", "shim_task_reap_one"}
+    if observations:
+        required.add("c3task_resource_snapshot")
+    missing = sorted(required - symbols)
+    if missing:
+        raise QualificationError("Static task symbols missing from ELF: " +
+                                 ", ".join(missing))
+    return {"enabled": True, "observation_snapshot": observations,
+            "linked_symbols": sorted(required)}
+
+
+def static_task_selection(selection, observer_patch):
+    """Resolve the reviewed single-radio static task-pool configuration."""
+    probe = selection.mode in (BuildMode.WIFI, BuildMode.BLE)
+    service = selection.network_services in ("wifi", "ble")
+    if probe and observer_patch is None:
+        raise QualificationError("Radio probes require the reviewed static-task patch")
+    if observer_patch is not None and not (probe or service):
+        if selection.network_services == "both":
+            raise QualificationError(
+                "Combined Wi-Fi/BLE services exceed the reviewed single-radio static task pool")
+        raise QualificationError(
+            "The static-task patch requires a Wi-Fi/BLE probe or one real radio service")
+    return observer_patch is not None
+
+
+def build(kernel, sdk, work, *legacy_args, selection=None, compat_patch=None,
+          runtime_port=False, resource_patch=None, configuration_app=False,
+          upstream_example=None, native_uart_fixture=False, static_net_queues=False,
+          wifi_probe=False, ble_probe=False, model_probe=False, ble_gatt_probe=False,
+          ble_static_host=False, observer_patch=None, network_settings=None, **legacy_flags):
+    """Build one resolved mode while keeping the legacy positional CLI API working."""
+    if legacy_args:
+        if len(legacy_args) != 13:
+            raise TypeError("legacy build() positional arguments are fixed")
+        compat_patch, runtime_port, resource_patch, configuration_app, upstream_example, \
+            native_uart_fixture, static_net_queues, wifi_probe, ble_probe, model_probe, \
+            ble_gatt_probe, ble_static_host, observer_patch = legacy_args
+    if selection is None:
+        selection = resolve_mode(
+            runtime_port=runtime_port, configuration_app=configuration_app,
+            upstream_example=upstream_example, native_uart_fixture=native_uart_fixture,
+            static_net_queues=static_net_queues, wifi_probe=wifi_probe,
+            ble_probe=ble_probe, model_probe=model_probe,
+            ble_gatt_probe=ble_gatt_probe, ble_static_host=ble_static_host,
+            network_services=legacy_flags.get('network_services'))
+    static_tasks = static_task_selection(selection, observer_patch)
+    if selection.network_services in ('wifi', 'both') and network_settings is None:
         raise QualificationError('Wi-Fi services require --network-settings (private local JSON)')
-    if network_settings is not None and network_services not in ('wifi', 'both'):
+    if network_settings is not None and selection.network_services not in ('wifi', 'both'):
         raise QualificationError('Network settings require wifi/both service mode')
+    if selection.network_services is not None and selection.mode is not BuildMode.CONFIGURATION:
+        raise QualificationError('Network services require application + static queues, without diagnostics')
     example = selection.upstream_example
+
     no_spaces(work)
     if kernel == work or kernel in work.parents or sdk == work or sdk in work.parents:
         raise QualificationError("Build output must be outside the kernel and SDK checkouts")
@@ -950,7 +1172,7 @@ def build(kernel, sdk, work, *, selection=BuildSelection(), compat_patch=None, r
                 "board_kit": "iote_esp32c3_mini", "target": "esp32c3",
                 "versions": versions, "build_status": "in_progress", "board_status": "not_tested",
                 "application_runtime_status": "not_tested", "artifacts": {},
-                "coding_standard": standard}
+                "coding_standard": standard, "static_task_pool": static_tasks}
     report = work / "evidence.json"
     report.write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")
     try:
@@ -970,10 +1192,20 @@ def build(kernel, sdk, work, *, selection=BuildSelection(), compat_patch=None, r
             staged_patch.write_bytes(resource_patch.read_bytes())
             evidence["resource_patch"] = {"name": resource_patch.name, "sha256": sha256(staged_patch)}
             apply_patch(staged_patch, work / "source")
+        evidence["observer_patch"] = None
+        if observer_patch is not None:
+            staged_patch = work / "kernel-observer.patch"
+            staged_patch.write_bytes(observer_patch.read_bytes())
+            evidence["observer_patch"] = {"name": observer_patch.name, "sha256": sha256(staged_patch)}
+            apply_patch(staged_patch, work / "source")
+        evidence["static_task_source"] = verify_static_task_source(
+            work / "source/components/freertos_shim/shim_task.c",
+            static_tasks)
         project = work / "source/examples" / example
         image_name = UPSTREAM_EXAMPLES[example]
         if selection.runtime_port:
             project, evidence["project_sources"] = stage_runtime_port(work)
+            evidence["static_task_components"] = verify_static_task_project(project)
             if network_settings is not None:
                 try:
                     network_setup_module().stage(project, network_settings)
@@ -989,6 +1221,7 @@ def build(kernel, sdk, work, *, selection=BuildSelection(), compat_patch=None, r
             # Every direct rebuild also checks the source repository. Paths are
             # separate arguments, including the source checkout with spaces.
             command[-1:-1] = selection.cmake_settings() + [
+                f"-DUTHOME_STATIC_TASKS={int(static_tasks)}",
                 f"-DUTHOME_SOURCE_ROOT={ROOT.as_posix()}",
                 f"-DUTHOME_CHECK_PYTHON={Path(sys.executable).as_posix()}"]
         evidence["command"] = command
@@ -1007,20 +1240,31 @@ def build(kernel, sdk, work, *, selection=BuildSelection(), compat_patch=None, r
         if result:
             raise QualificationError(f"Kernel build failed ({result}); inspect {work / 'build.log'}")
         if selection.runtime_port:
-            evidence["compiler_profiles"] = verify_compile_profiles(work)
+            evidence["compiler_profiles"] = verify_compile_profiles(work, selection.mode is BuildMode.WIFI)
             evidence["senlux_app_isolation"] = verify_senlux_app_probe(work, selection.mode is BuildMode.SENLUX_APP)
             evidence["memory_audit_link"] = verify_audit_link(work)
+            evidence["startup_trace_link"] = verify_startup_link(work, selection.mode is BuildMode.WIFI)
             evidence["network_queue_adapter"] = verify_queue_adapter(work, selection.static_net_queues)
+            evidence["static_task_link"] = verify_static_task_link(
+                work, static_tasks,
+                selection.mode in (BuildMode.WIFI, BuildMode.BLE))
             evidence["model_isolation"] = verify_model_probe(work, selection.mode is BuildMode.MODEL)
             evidence["model_load_isolation"] = verify_model_load_probe(work, selection.mode is BuildMode.MODEL_LOAD)
             if selection.mode is BuildMode.WIFI:
-                evidence["radio_scope"] = verify_wifi_probe(work)
+                config_lines = set((work / "sdkconfig").read_text().splitlines())
+                required = {"CONFIG_FREERTOS_HZ=1000", "# CONFIG_BT_ENABLED is not set",
+                            "# CONFIG_ESP_WIFI_NVS_ENABLED is not set",
+                            "# CONFIG_ESP_WIFI_IRAM_OPT is not set",
+                            "# CONFIG_ESP_WIFI_RX_IRAM_OPT is not set",
+                            "# CONFIG_ESP_PHY_CALIBRATION_AND_DATA_STORAGE is not set"}
+                if not required <= config_lines:
+                    raise QualificationError("Wi-Fi probe storage/tick isolation settings differ")
+                evidence["radio_scope"] = "Noncompliant diagnostic only: scan/stop/restart; no association/AP/IP/NVS; USB application state retained but not running"
             if selection.mode is BuildMode.BLE:
                 evidence["ble_isolation"] = verify_ble_probe(work, selection.ble_gatt_probe, selection.ble_static_host)
                 evidence["radio_scope"] = ("Noncompliant diagnostic only: read-only GATT reconnect/read window; no configuration writes, pairing, NVS or Wi-Fi; USB core inactive; SDK heap remains unqualified" if selection.ble_gatt_probe else "Noncompliant diagnostic only: nonconnectable advertising/stop/restart; no GATT, pairing, NVS or Wi-Fi; SDK flash controller without legacy ROM patch; USB core inactive; flash writes during BLE are unqualified")
             if selection.configuration_app:
                 verify_configuration_layout(work)
-
             evidence["managed_cjson"] = verify_managed_cjson(project)
         # A successful process with incomplete artifacts is not build evidence.
         for relative in (f"build/{image_name}.bin", f"build/{image_name}.elf",
@@ -1056,6 +1300,7 @@ def main(argv=None):
     parser.add_argument("--project-dir", type=Path, help="staged project for verify-snapshot")
     parser.add_argument("--compat-patch", type=Path, help="explicit reviewed build compatibility patch; recorded by hash")
     parser.add_argument("--resource-patch", type=Path, help="explicit reviewed kernel resource patch; isolated and hashed")
+    parser.add_argument("--observer-patch", type=Path, help="explicit reviewed task-observer patch; isolated and hashed")
     parser.add_argument("--runtime-port", action="store_true",
                         help="build the project task-port acceptance test instead of the upstream example")
     parser.add_argument("--configuration-app", action="store_true",
@@ -1117,7 +1362,8 @@ def main(argv=None):
             report = build(kernel, sdk, args.work_dir.resolve(), selection=selection,
                            compat_patch=args.compat_patch.resolve() if args.compat_patch else None,
                            resource_patch=args.resource_patch.resolve() if args.resource_patch else None,
-                           network_settings=args.network_settings.resolve() if args.network_settings else None)
+                           network_settings=args.network_settings.resolve() if args.network_settings else None,
+                           observer_patch=args.observer_patch.resolve() if args.observer_patch else None)
             print(f"Build evidence: {report}\nPhysical board and application runtime remain untested.")
     except (QualificationError, OSError) as exc:
         print(str(exc), file=sys.stderr)

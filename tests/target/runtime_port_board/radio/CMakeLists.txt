@@ -5,7 +5,8 @@ idf_component_register(SRCS "../../hal/c3ble.c" "../../hal/c3gatt.c"
     "../../network/netbroker.c" "../../network/netmqtt.c" "../../network/netretry.c"
     "../../network/nethttp.c" "../../network/netread.c" "../../network/netble.c"
     INCLUDE_DIRS "../../config" "../../hal" "../../runtime" "../../network" "../../services" "../../include"
-    REQUIRES bt esp_timer esp_hw_support esp_wifi esp_event esp_netif esp-tls lwip)
+    REQUIRES bt esp_timer esp_hw_support esp_wifi esp_event esp_netif esp-tls lwip
+    PRIV_REQUIRES uthome_task)
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     UTHOME_NETWORK_WIFI=$<BOOL:${UTHOME_NETWORK_WIFI}>
     UTHOME_NETWORK_BLE=$<BOOL:${UTHOME_NETWORK_BLE}>
