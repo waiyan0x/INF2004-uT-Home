@@ -1,0 +1,2 @@
+# Host-only Home Assistant native API interoperability test.
+aioesphomeapi==46.28.0

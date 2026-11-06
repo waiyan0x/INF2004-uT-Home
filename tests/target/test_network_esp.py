@@ -499,12 +499,9 @@ class EspBindingTests(unittest.TestCase):
         return int(header.split()[1]),json.loads(body),changes
 
     def test_esphome_real_client(self):
-        # Opt-in host interoperability check; the socket pump replaces only SDK I/O.
+        # Mandatory host interoperability check; the socket pump replaces only SDK I/O.
         import asyncio
-        try:
-            from aioesphomeapi import APIClient
-        except ImportError:
-            self.skipTest("install aioesphomeapi for the live client protocol test")
+        from aioesphomeapi import APIClient
         self.assertEqual(self.lib.c3fake_start(),0)
         async def verify():
             states=asyncio.Queue()
@@ -539,7 +536,8 @@ class EspBindingTests(unittest.TestCase):
                                      [('Room occupancy','occupancy'),('Radar data fresh','')])
                     self.assertEqual(entities[1].entity_category.value,2)
                     client.subscribe_states(states.put_nowait)
-                    self.assertTrue((await states.get()).missing_state)
+                    occupancy=await states.get()
+                    self.assertEqual((occupancy.key,occupancy.missing_state),(entities[0].key,True))
                     initial=await states.get()
                     self.assertEqual((initial.key,initial.state,initial.missing_state),(2,False,False))
                     for mode,expected,missing in [(2,True,False),(1,False,False),(3,False,True)]:

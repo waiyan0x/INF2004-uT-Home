@@ -1592,8 +1592,8 @@ and reconnects. SDK/lwIP/TCP objects are not automatically Wi-Fi-exempt.
 
 Host regression tests compile the board adapter with warnings as errors and
 exercise stale, fault, wrong source, oversize, fragmentation and reconnect.
-With `aioesphomeapi==46.28.0` installed on the test host, the optional loopback
-test drives the same C adapter with the real ESPHome client (only socket I/O
+Install the pinned host client with `python -m pip install -r tests/target/requirements-esphome.txt`.
+The mandatory CI loopback test checks both radar entities and drives the same C adapter with the real ESPHome client (only socket I/O
 and radar input are doubled). Run `python -m unittest discover -s tests/target
 -p test_network_esp.py -v` as one command from the repository root. On hardware,
 confirm a person entering/leaving changes state, stopping radar updates gives
