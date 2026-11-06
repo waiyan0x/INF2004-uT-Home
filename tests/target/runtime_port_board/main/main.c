@@ -170,11 +170,11 @@ static const component_operations_t g_plan_operations = {.p_configure =
 EXPORT INT usermain (void)
 {
     CHECK(0 == c3audit_begin());
-#if UTHOME_WIFI_PROBE || UTHOME_BLE_PROBE || UTHOME_MODEL_PROBE ||             \
-    UTHOME_SENLUX_PROBE
-#if UTHOME_WIFI_PROBE || UTHOME_BLE_PROBE
+#if defined(UTHOME_STATIC_TASKS) && UTHOME_STATIC_TASKS
     CHECK(0 == c3task_init());
 #endif
+#if UTHOME_WIFI_PROBE || UTHOME_BLE_PROBE || UTHOME_MODEL_PROBE ||             \
+    UTHOME_SENLUX_PROBE
     start_idle();
     CHECK(0 == rt_port_clock_set(c3clock_now));
     CHECK(0 == rt_port_init());

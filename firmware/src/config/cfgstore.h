@@ -42,7 +42,8 @@ typedef struct
     const cfgstore_ops_t * p_operations;
     void *                 p_context;
     size_t                 slot_bytes;
-    uint8_t                scratch[UTHOME_CONFIG_BYTES];
+    uint8_t *              p_workspace;
+    size_t                 workspace_size;
     bool                   b_busy;
 } cfgstore_t;
 
@@ -55,13 +56,17 @@ typedef enum
     CFGSTORE_CONFLICT = -3
 } cfgstore_result_t;
 
-/* Single serialized owner, callbacks do not reenter. Backend reads exactly the
- * requested bytes, erases to 0xFF, supports byte-range writes in a slot, and
- * syncs durability. Erase/write must never disturb the other slot. No backend
- * is implicitly selected. Slot capacity >=MIN_SLOT, rounded for actual flash.
- * read/save work buffers may not alias scratch. A failed save can already be
- * durable; reread to determine saved state. Revision zero and wrap are invalid.
- * Loading checks record integrity only; callers must independently admit JSON.
+/* Single serialized owner, callbacks do not reenter or retain buffers. Backend
+ * reads exactly the requested bytes, erases to 0xFF, supports byte-range writes
+ * in a slot, and syncs durability. Erase/write must never disturb the other
+ * slot. No backend is implicitly selected. Slot capacity >=MIN_SLOT, rounded
+ * for actual flash. The caller lends one stable, exclusively available
+ * UTHOME_CONFIG_BYTES workspace for the store lifetime. It may be exactly the
+ * load destination; partial load overlap and all save-source overlap are
+ * rejected before I/O. The workspace may not overlap cfgstore_t. A failed save
+ * can already be durable; reread to determine saved state. Revision zero and
+ * wrap are invalid. Loading checks record integrity only; callers must
+ * independently admit JSON.
  */
 int cfgstore_load (cfgstore_t *        p_store,
                    uint8_t *           p_data,

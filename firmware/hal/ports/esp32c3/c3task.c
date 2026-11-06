@@ -20,24 +20,30 @@
 #endif
 
 /*
- * The isolated Wi-Fi and BLE builds have different, mutually exclusive task
- * sets. Capacities are the actual byte requests made by their selected ESP-IDF
- * 6.1 paths. ESP-IDF already includes its libc allowance in those requests.
- * The pinned kernel has a separate 4 KiB interrupt stack, so no unmeasured
- * per-task interrupt allowance is added here.
+ * The reviewed static Wi-Fi and BLE builds have different, mutually exclusive
+ * task sets. Capacities are the actual byte requests made by their selected
+ * ESP-IDF 6.1 paths. ESP-IDF already includes its libc allowance in those
+ * requests. The pinned kernel has a separate 4 KiB interrupt stack, so no
+ * unmeasured per-task interrupt allowance is added here.
  */
 
-#if defined(UTHOME_WIFI_PROBE) && UTHOME_WIFI_PROBE
+#if defined(UTHOME_STATIC_TASKS) && UTHOME_STATIC_TASKS
+#if (defined(UTHOME_WIFI_PROBE) && UTHOME_WIFI_PROBE) ||                       \
+    (defined(UTHOME_NETWORK_WIFI) && UTHOME_NETWORK_WIFI)
 #define C3TASK_STACK_SLOTS   4U
 #define C3TASK_STACK_0_BYTES 2816U
 #define C3TASK_STACK_1_BYTES 3584U
 #define C3TASK_STACK_2_BYTES 4096U
 #define C3TASK_STACK_3_BYTES 6656U
-#elif defined(UTHOME_BLE_PROBE) && UTHOME_BLE_PROBE
+#elif (defined(UTHOME_BLE_PROBE) && UTHOME_BLE_PROBE) ||                       \
+    (defined(UTHOME_NETWORK_BLE) && UTHOME_NETWORK_BLE)
 #define C3TASK_STACK_SLOTS   3U
 #define C3TASK_STACK_0_BYTES 4096U
 #define C3TASK_STACK_1_BYTES 4096U
 #define C3TASK_STACK_2_BYTES 4096U
+#else
+#define C3TASK_STACK_SLOTS 0U
+#endif
 #elif defined(UTHOME_C3TASK_HOST_TEST) && UTHOME_C3TASK_HOST_TEST
 #define C3TASK_STACK_SLOTS   4U
 #define C3TASK_STACK_0_BYTES 2816U

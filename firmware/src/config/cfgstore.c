@@ -6,6 +6,13 @@
 #include "cfgstore.h"
 #include <string.h>
 static bool valid_store (const cfgstore_t * p_store);
+static bool buffers_overlap (const void * p_first,
+                             size_t       first_size,
+                             const void * p_second,
+                             size_t       second_size);
+static bool valid_load_buffer (const cfgstore_t * p_store,
+                               const uint8_t *    p_data,
+                               size_t             capacity);
 static int inspect_slot (cfgstore_t *        p_store,
                          unsigned            slot,
                          cfgstore_record_t * p_record);
@@ -35,7 +42,7 @@ int cfgstore_load (cfgstore_t *        p_store,
                    cfgstore_record_t * p_record)
 {
     if ((!valid_store(p_store)) || (NULL == p_data) || (NULL == p_record) ||
-        (p_store->b_busy))
+        (p_store->b_busy) || (!valid_load_buffer(p_store, p_data, capacity)))
     {
         return CFGSTORE_INVALID;
     }
@@ -55,7 +62,9 @@ int cfgstore_save (cfgstore_t *    p_store,
                    uint32_t        revision)
 {
     if ((!valid_store(p_store)) || (NULL == p_data) || (0U == size) ||
-        (size > UTHOME_CONFIG_BYTES) || (0U == revision) || (p_store->b_busy))
+        (size > UTHOME_CONFIG_BYTES) || (0U == revision) || (p_store->b_busy) ||
+        (buffers_overlap(
+            p_data, size, p_store->p_workspace, p_store->workspace_size)))
     {
         return CFGSTORE_INVALID;
     }
@@ -73,10 +82,45 @@ static bool valid_store (const cfgstore_t * p_store)
 {
     return (NULL != p_store) && (NULL != p_store->p_operations) &&
            (p_store->slot_bytes >= UTHOME_CFGSTORE_MIN_SLOT) &&
+           (NULL != p_store->p_workspace) &&
+           (p_store->workspace_size >= UTHOME_CONFIG_BYTES) &&
+           (!buffers_overlap(p_store,
+                             sizeof(*p_store),
+                             p_store->p_workspace,
+                             p_store->workspace_size)) &&
            (NULL != p_store->p_operations->p_read) &&
            (NULL != p_store->p_operations->p_write) &&
            (NULL != p_store->p_operations->p_erase) &&
            (NULL != p_store->p_operations->p_sync);
+}
+
+/** @brief Compare declared byte ranges without pointer arithmetic overflow. */
+static bool buffers_overlap (const void * p_first,
+                             size_t       first_size,
+                             const void * p_second,
+                             size_t       second_size)
+{
+    if ((0U == first_size) || (0U == second_size))
+    {
+        return false;
+    }
+    const uintptr_t first  = (uintptr_t)p_first;
+    const uintptr_t second = (uintptr_t)p_second;
+    return (first <= second) ? ((second - first) < first_size)
+                             : ((first - second) < second_size);
+}
+
+/** @brief Exact workspace output is intentional; partial aliasing is not. */
+static bool valid_load_buffer (const cfgstore_t * p_store,
+                               const uint8_t *    p_data,
+                               size_t             capacity)
+{
+    if (p_data == p_store->p_workspace)
+    {
+        return capacity <= p_store->workspace_size;
+    }
+    return !buffers_overlap(
+        p_data, capacity, p_store->p_workspace, p_store->workspace_size);
 }
 
 /** @brief Invalid or interrupted records are ignored, never partially loaded.
@@ -103,12 +147,12 @@ inspect_slot (cfgstore_t * p_store, unsigned slot, cfgstore_record_t * p_record)
     if (0 != p_store->p_operations->p_read(p_store->p_context,
                                            slot,
                                            UTHOME_CFGSTORE_HEADER,
-                                           p_store->scratch,
+                                           p_store->p_workspace,
                                            size))
     {
         return CFGSTORE_IO;
     }
-    const uint32_t crc = ~cfgbytes_crc(UINT32_MAX, p_store->scratch, size);
+    const uint32_t crc = ~cfgbytes_crc(UINT32_MAX, p_store->p_workspace, size);
     if (crc != cfgbytes_get(&header[16]))
     {
         return CFGSTORE_EMPTY;
@@ -172,7 +216,10 @@ static int load_record (cfgstore_t *        p_store,
     {
         return CFGSTORE_IO;
     }
-    memcpy(p_data, p_store->scratch, selected.size);
+    if (p_data != p_store->p_workspace)
+    {
+        memcpy(p_data, p_store->p_workspace, selected.size);
+    }
     *p_record = selected;
     return CFGSTORE_OK;
 }
@@ -203,7 +250,7 @@ static int write_record (cfgstore_t *    p_store,
         {
             return CFGSTORE_IO;
         }
-        return (0 == memcmp(p_store->scratch, p_data, size))
+        return (0 == memcmp(p_store->p_workspace, p_data, size))
                    ? CFGSTORE_OK
                    : CFGSTORE_CONFLICT;
     }
@@ -246,9 +293,9 @@ static int commit_record (cfgstore_t *    p_store,
         (0 != p_ops->p_read(p_store->p_context,
                             slot,
                             UTHOME_CFGSTORE_HEADER,
-                            p_store->scratch,
+                            p_store->p_workspace,
                             size)) ||
-        (0 != memcmp(p_data, p_store->scratch, size)))
+        (0 != memcmp(p_data, p_store->p_workspace, size)))
     {
         return CFGSTORE_IO;
     }
@@ -261,7 +308,7 @@ static int commit_record (cfgstore_t *    p_store,
     cfgstore_record_t record = {0};
     if ((CFGSTORE_OK != inspect_slot(p_store, slot, &record)) ||
         (record.revision != revision) || (record.size != size) ||
-        (0 != memcmp(p_data, p_store->scratch, size)))
+        (0 != memcmp(p_data, p_store->p_workspace, size)))
     {
         return CFGSTORE_IO;
     }

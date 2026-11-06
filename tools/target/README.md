@@ -256,6 +256,34 @@ memory observations are described in the [network guide](../../firmware/src/netw
 Do not install either while the AI collector owns serial. Diagnostic binaries
 are not release candidates and must not be substituted for application acceptance.
 
+The separate `wifi-station-budget.json` applies only to a passed, non-diagnostic
+Wi-Fi configuration application with static network queues and the static task
+pool. It leaves `network-budget.json` unchanged. The station policy attributes
+the project-owned `uthome_task` archive once to `task_pool_fixed`; it is neither
+application data nor external SDK/kernel data. Its group limits are 147,456
+bytes application fixed, 18,560 bytes task-pool fixed, 55,296 bytes external
+SDK/kernel fixed and 57,152 bytes RAM code, under the unchanged 278,528-byte
+total cap. Every reserved module must be linked, and every linked owned module
+must have and remain within its reservation. Run it only against immutable build
+evidence, writing a new result outside that evidence directory.
+
+The station-08 map is the policy basis. Existing reviewed per-object limits are
+retained where the station links the same module. `c3app` receives one additional
+256-byte block above its 42,240-byte measurement; new station objects round
+`c3https` to 3,200 bytes (128-byte boundary), `c3net` to 96 bytes and `c3wsta`
+to 64 bytes (16-byte boundaries). `c3task` retains its reviewed 18,504-byte
+reservation, 35 bytes above the station measurement. Exact-size static pools
+remain exact so any capacity change requires review. BLE-only `c3ble` and
+`c3gatt` are excluded because the policy requires Wi-Fi-only evidence and neither
+object is linked in the reference map.
+
+```sh
+python tools/target/memory_budget.py \
+  --build /tmp/uthome-wifi-station-08 \
+  --output /tmp/uthome-wifi-station-budget-check.json \
+  --budget tools/target/wifi-station-budget.json
+```
+
 `--ble-probe` selects isolated nonconnectable advertising. Adding
 `--ble-gatt-probe` selects the bounded, one-connection, read-only GATT diagnostic
 described in the network guide. The qualifier checks actual SDK peripheral-role,

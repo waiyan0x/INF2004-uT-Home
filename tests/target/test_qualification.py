@@ -28,6 +28,47 @@ def setUpModule():
 
 
 class QualificationTests(unittest.TestCase):
+    def test_station_memory_defaults_are_wifi_service_only(self):
+        station = ROOT / "tests/target/runtime_port_board/wifi-station.defaults"
+        required = {
+            "CONFIG_LWIP_IPV6=n",
+            "CONFIG_LWIP_DHCPS=n",
+            "CONFIG_ESP_WIFI_SOFTAP_SUPPORT=n",
+            "CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT=n",
+        }
+        self.assertEqual(
+            required,
+            {line for line in station.read_text().splitlines()
+             if line.startswith("CONFIG_")},
+        )
+        project = (ROOT / "tests/target/runtime_port_board/CMakeLists.txt").read_text()
+        self.assertEqual(project.count('"wifi-station.defaults"'), 1)
+        self.assertIn(
+            'if(UTHOME_NETWORK_WIFI)\n'
+            '        list(APPEND SDKCONFIG_DEFAULTS "wifi.defaults" '
+            '"wifi-station.defaults")',
+            project,
+        )
+        diagnostic = (ROOT / "tests/target/runtime_port_board/wifi.defaults").read_text()
+        shared = (ROOT / "tests/target/runtime_port_board/network.defaults").read_text()
+        ble = (ROOT / "tests/target/runtime_port_board/ble.defaults").read_text()
+        for setting in required:
+            name = setting.partition("=")[0]
+            self.assertNotIn(name, diagnostic)
+            self.assertNotIn(name, shared)
+            self.assertNotIn(name, ble)
+
+        with tempfile.TemporaryDirectory() as folder:
+            work = Path(folder)
+            defaults = work / "source/examples/tasks/sdkconfig.defaults"
+            defaults.parent.mkdir(parents=True)
+            defaults.write_bytes(b'CONFIG_IDF_TARGET="esp32c3"\n')
+            staged, _ = qualification.stage_runtime_port(work)
+            self.assertEqual(
+                station.read_bytes(),
+                (staged / "wifi-station.defaults").read_bytes(),
+            )
+
     def test_wifi_settings_reject_each_missing_isolation_requirement(self):
         settings = ["CONFIG_FREERTOS_HZ=1000", "# CONFIG_BT_ENABLED is not set",
                     "# CONFIG_ESP_WIFI_NVS_ENABLED is not set",
@@ -458,6 +499,57 @@ class QualificationTests(unittest.TestCase):
                 with self.subTest(name=name, value=value), self.assertRaises(qualification.QualificationError):
                     qualification.check_queue_symbols(damaged, aliases)
 
+    def test_startup_trace_link_is_exact_and_wifi_only(self):
+        symbols = {}
+        pairs = qualification.STARTUP_SYMBOLS
+        for original, wrapper, native in pairs:
+            symbols[wrapper] = 0x42010000 + len(symbols) * 32
+            symbols["__wrap_" + original] = symbols[wrapper]
+            symbols[native] = 0x42020000 + len(symbols) * 32
+        self.assertTrue(qualification.check_startup_symbols(symbols, True)["enabled"])
+        for name in ("__wrap_CreateMLock", "c3start_native_device"):
+            damaged = dict(symbols)
+            damaged[name] = 0
+            with self.subTest(name=name), self.assertRaises(qualification.QualificationError):
+                qualification.check_startup_symbols(damaged, True)
+        with self.assertRaises(qualification.QualificationError):
+            qualification.check_startup_symbols({"c3start_device": 1}, False)
+        self.assertFalse(qualification.check_startup_symbols({}, False)["enabled"])
+
+    def test_startup_link_verifies_elf_aliases_and_rejects_misdirection(self):
+        with tempfile.TemporaryDirectory() as folder:
+            work = Path(folder)
+            (work / "build").mkdir()
+            (work / "build/uthome_runtime_port.elf").write_bytes(b"fixture")
+            symbols = {}
+            for index, (original, wrapper, native) in enumerate(qualification.STARTUP_SYMBOLS):
+                symbols[wrapper] = 0x42010000 + index * 32
+                symbols["__wrap_" + original] = symbols[wrapper]
+                symbols[native] = 0x42020000 + index * 32
+            nm = "\n".join(f"{address:08x} T {name}" for name, address in sorted(symbols.items()))
+            with patch.object(qualification, "run", return_value=nm):
+                self.assertTrue(qualification.verify_startup_link(work, True)["enabled"])
+                damaged = dict(symbols)
+                damaged["c3start_native_device"] = 0
+                with self.assertRaises(qualification.QualificationError):
+                    qualification.check_startup_symbols(damaged, True)
+                with self.assertRaises(qualification.QualificationError):
+                    qualification.verify_startup_link(work, False)
+
+    def test_startup_trace_definitions_are_scoped_to_wifi_sources(self):
+        project = Path("/project")
+        commands = {Path("/test" + suffix).resolve(): " ".join(
+            f"-D{symbol}={value}" for symbol, value in renames.items())
+            for suffix, renames in qualification.STARTUP_RENAMES.items()}
+        commands[(project / "hal/c3start.c").resolve()] = "gcc -c c3start.c"
+        self.assertTrue(qualification.verify_startup_scope(commands, project, True)["enabled"])
+        no_trace = {path: "" for path in commands if path.name != "c3start.c"}
+        self.assertFalse(qualification.verify_startup_scope(no_trace, project, False)["enabled"])
+        leaked = dict(no_trace)
+        leaked[Path("/unrelated.c").resolve()] = "-DCreateMLock=c3start_native_mlock"
+        with self.assertRaises(qualification.QualificationError):
+            qualification.verify_startup_scope(leaked, project, False)
+
     def test_ble_probe_requires_isolated_static_mode(self):
         for options in ({}, {"runtime_port": True},
                         {"runtime_port": True, "static_net_queues": True, "configuration_app": True},
@@ -598,6 +690,91 @@ class QualificationTests(unittest.TestCase):
                 with self.subTest(name=name, value=value), self.assertRaises(qualification.QualificationError):
                     qualification.check_event_symbols(dict(symbols, **{name: value}), path)
 
+    def test_station_static_task_component_graph_is_shared_and_acyclic(self):
+        observer = ROOT / "tools/target/patches/freertos-task-observer.patch"
+        selection = qualification.resolve_mode(
+            runtime_port=True,
+            configuration_app=True,
+            static_net_queues=True,
+            network_services="wifi",
+        )
+        self.assertFalse(qualification.static_task_selection(selection, None))
+        self.assertTrue(qualification.static_task_selection(selection, observer))
+        combined = qualification.resolve_mode(
+            runtime_port=True,
+            configuration_app=True,
+            static_net_queues=True,
+            network_services="both",
+        )
+        with self.assertRaisesRegex(qualification.QualificationError,
+                                    "single-radio static task pool"):
+            qualification.static_task_selection(combined, observer)
+
+        with tempfile.TemporaryDirectory() as folder:
+            work = Path(folder)
+            defaults = work / "source/examples/tasks/sdkconfig.defaults"
+            defaults.parent.mkdir(parents=True)
+            defaults.write_bytes(b'CONFIG_IDF_TARGET="esp32c3"\n')
+            project, _ = qualification.stage_runtime_port(work)
+            graph = qualification.verify_static_task_project(project)
+            self.assertTrue(graph["acyclic"])
+            self.assertEqual("uthome_task", graph["component"])
+            self.assertEqual(["mtkernel"], graph["private_requires"])
+
+            shim = work / "kernel/components/freertos_shim"
+            shim.mkdir(parents=True)
+            vendor = ROOT / "firmware/third_party/esp32c3-mtk3/components/freertos_shim"
+            for name in ("CMakeLists.txt", "shim_task.c"):
+                (shim / name).write_bytes((vendor / name).read_bytes())
+            qualification.apply_patch(observer, work / "kernel")
+            source = qualification.verify_static_task_source(
+                shim / "shim_task.c", True)
+            self.assertEqual("uthome_task", source["component_dependency"])
+
+    def test_wifi_station_radio_commands_preserve_queue_header_isolation(self):
+        with tempfile.TemporaryDirectory() as folder:
+            work = Path(folder)
+            commands = {
+                (work / "project/hal" / name).resolve():
+                    "cc -I/sdk/include -DUTHOME_NETWORK_WIFI=1 " + name
+                for name in ("c3ble.c", "c3gatt.c", "c3gsvc.c")
+            }
+            result = qualification.verify_radio_include_isolation(commands, work)
+            self.assertEqual(
+                ["c3ble.c", "c3gatt.c", "c3gsvc.c"],
+                result["isolated_sources"],
+            )
+            leaked = dict(commands)
+            gatt = (work / "project/hal/c3gatt.c").resolve()
+            leaked[gatt] += " -I" + (work / "source/include").as_posix()
+            with self.assertRaisesRegex(qualification.QualificationError,
+                                        "Native sys/queue.h namespace leaked"):
+                qualification.verify_radio_include_isolation(leaked, work)
+
+    def test_station_static_link_requires_operations_not_probe_snapshot(self):
+        symbols = {
+            "c3task_init", "c3task_stack_acquire", "c3task_stack_release",
+            "c3task_reaper_bind", "c3task_reaper_task",
+            "c3task_stack_commit", "c3task_seal", "g_reaper_stack",
+            "shim_task_reap_one",
+        }
+        output = "\n".join(
+            f"4200{index:04x} T {name}"
+            for index, name in enumerate(sorted(symbols), 1)
+        )
+        with patch.object(qualification, "run", return_value=output):
+            station = qualification.verify_static_task_link(
+                Path("station"), True, False)
+            self.assertFalse(station["observation_snapshot"])
+            with self.assertRaisesRegex(qualification.QualificationError,
+                                        "c3task_resource_snapshot"):
+                qualification.verify_static_task_link(Path("probe"), True, True)
+        output += "\n4200ffff T c3task_resource_snapshot"
+        with patch.object(qualification, "run", return_value=output):
+            probe = qualification.verify_static_task_link(
+                Path("probe"), True, True)
+            self.assertTrue(probe["observation_snapshot"])
+
     def test_runtime_sources_are_snapshotted_and_identified_by_hash(self):
         with tempfile.TemporaryDirectory() as folder:
             work = Path(folder)
@@ -605,14 +782,24 @@ class QualificationTests(unittest.TestCase):
             defaults.parent.mkdir(parents=True)
             defaults.write_bytes(b"CONFIG_IDF_TARGET=\"esp32c3\"\n")
             project, sources = qualification.stage_runtime_port(work)
-            self.assertEqual(len(sources), 255)
+            generated_default = "firmware/third_party/esp32c3-mtk3/examples/tasks/sdkconfig.defaults"
+            self.assertEqual(len(sources), len(qualification.RUNTIME_SOURCE_FILES) + 1)
+            self.assertSetEqual(set(sources) - {generated_default}, set(qualification.RUNTIME_SOURCE_FILES))
+            self.assertIn(generated_default, sources)
             for name in ('stackmon', 'workcost', 'workmeter'):
                 self.assertIn(f'firmware/src/runtime/{name}.c', sources)
                 self.assertIn(f'firmware/src/runtime/{name}.h', sources)
+            for name in ("firmware/hal/ports/esp32c3/c3task.c",
+                         "firmware/hal/ports/esp32c3/c3task.h",
+                         "firmware/hal/ports/esp32c3/c3start.c",
+                         "firmware/hal/ports/esp32c3/c3start.h"):
+                self.assertIn(name, sources)
             for name in ("hal/c3umem.c", "hal/c3umem.h", "main/uartcheck.c", "main/uartcheck.h"):
                 self.assertTrue((project / name).is_file())
-            for name in ("hal/c3task.c", "hal/c3task.h"):
+            for name in ("hal/c3task.c", "hal/c3task.h", "hal/c3start.c", "hal/c3start.h"):
                 self.assertTrue((project / name).is_file())
+            self.assertTrue((project / "components/uthome_task/CMakeLists.txt").is_file())
+            self.assertTrue(qualification.verify_static_task_project(project)["acyclic"])
             qualification.verify_runtime_snapshot(project)
             for source, entry in sources.items():
                 target = work / entry["staged_path"]

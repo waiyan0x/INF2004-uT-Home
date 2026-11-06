@@ -14,6 +14,7 @@ VENDOR_SHIM = (
     ROOT
     / "firmware/third_party/esp32c3-mtk3/components/freertos_shim/shim_task.c"
 )
+VENDOR_CMAKE = VENDOR_SHIM.with_name("CMakeLists.txt")
 PATCH = ROOT / "tools/target/patches/freertos-task-observer.patch"
 
 
@@ -878,6 +879,7 @@ def main():
         staged = directory / "components/freertos_shim/shim_task.c"
         staged.parent.mkdir(parents=True)
         shutil.copyfile(VENDOR_SHIM, staged)
+        shutil.copyfile(VENDOR_CMAKE, staged.with_name("CMakeLists.txt"))
         subprocess.run(
             ["git", "apply", "--check", str(PATCH)],
             cwd=directory,

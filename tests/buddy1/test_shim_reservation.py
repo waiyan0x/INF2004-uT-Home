@@ -13,6 +13,7 @@ import textwrap
 
 ROOT = Path.cwd()
 SHIM = ROOT / 'firmware/third_party/esp32c3-mtk3/components/freertos_shim/shim_task.c'
+SHIM_CMAKE = ROOT / 'firmware/third_party/esp32c3-mtk3/components/freertos_shim/CMakeLists.txt'
 PATCH = ROOT / 'tools/target/patches/freertos-task-observer.patch'
 
 def extract_function(source, name):
@@ -33,7 +34,7 @@ def extract_function(source, name):
 def run_command(args, cwd=None):
     subprocess.run(args, cwd=cwd, check=True)
 
-if not SHIM.is_file() or not PATCH.is_file():
+if not SHIM.is_file() or not SHIM_CMAKE.is_file() or not PATCH.is_file():
     raise SystemExit('Run from repo root; vendor shim or observer patch missing')
 
 with tempfile.TemporaryDirectory(prefix='buddy1_reservation_') as folder:
@@ -42,6 +43,7 @@ with tempfile.TemporaryDirectory(prefix='buddy1_reservation_') as folder:
     stage.mkdir(parents=True)
     staged_file = stage / 'shim_task.c'
     staged_file.write_bytes(SHIM.read_bytes())
+    (stage / 'CMakeLists.txt').write_bytes(SHIM_CMAKE.read_bytes())
     # Only apply to the temporary copy. Never change the pinned vendor tree.
     run_command(['git', '-c', 'core.autocrlf=true', 'apply', '--check', str(PATCH)], cwd=workspace)
     run_command(['git', '-c', 'core.autocrlf=true', 'apply', str(PATCH)], cwd=workspace)

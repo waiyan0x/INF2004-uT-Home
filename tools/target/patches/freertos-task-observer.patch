@@ -1,3 +1,17 @@
+diff --git a/components/freertos_shim/CMakeLists.txt b/components/freertos_shim/CMakeLists.txt
+--- a/components/freertos_shim/CMakeLists.txt
++++ b/components/freertos_shim/CMakeLists.txt
+@@ -11,6 +11,7 @@ idf_component_register(
+         shim_stubs.c
+         shim_ble_patch.c
+     INCLUDE_DIRS include
+-    REQUIRES mtkernel esp_wifi lwip esp_netif esp_event esp_timer nvs_flash esp_hw_support esp_system bt)
+-
++    REQUIRES mtkernel esp_wifi lwip esp_netif esp_event esp_timer nvs_flash esp_hw_support esp_system bt
++    PRIV_REQUIRES uthome_task)
++# c3task is supplied by the staged project-owned uthome_task component.
+ # ---------------------------------------------------------------------------
+
 diff --git a/components/freertos_shim/shim_task.c b/components/freertos_shim/shim_task.c
 index d4bdafa..d4dc55f 100644
 --- a/components/freertos_shim/shim_task.c

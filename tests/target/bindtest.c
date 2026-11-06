@@ -186,9 +186,11 @@ void bindtest_run (uint64_t * p_clock)
     puts("");
     assert((0U == g_opens) && (0U == g_writes));
     memset(g_flash, 0xFF, sizeof(g_flash));
-    g_store = (cfgstore_t){.p_operations = &g_storage,
-                           .p_context    = g_flash,
-                           .slot_bytes   = UTHOME_CFGSTORE_MIN_SLOT};
+    g_store = (cfgstore_t){.p_operations   = &g_storage,
+                           .p_context      = g_flash,
+                           .slot_bytes     = UTHOME_CFGSTORE_MIN_SLOT,
+                           .p_workspace    = g_control.cached,
+                           .workspace_size = sizeof(g_control.cached)};
     assert(0 == cfgctrl_init(
                     &g_control, &g_store, cfgbind_operations(), &g_binding));
     assert(CFGCTRL_EMPTY == cfgctrl_restore(&g_control));

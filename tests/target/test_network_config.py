@@ -1,6 +1,13 @@
 """USB/HTTP arbitration with real cfgctrl, cfgstore, cfgpump and strict JSON."""
 import ctypes as c
+import sys
 import unittest
+from pathlib import Path
+
+fixture_dir = Path(__file__).resolve().parent
+if str(fixture_dir) not in sys.path:
+    sys.path.insert(0, str(fixture_dir))
+
 from _network_config_fixture import ConfigLibrary,Fixture
 from tools.config_transfer.protocol import Command,encode_request,decode_reply
 
