@@ -69,6 +69,10 @@ class IlluminanceValue(TypedDict):
     millilux: int
 
 
+class RawValue(TypedDict):
+    bytes: list[int]
+
+
 class RadarTarget(TypedDict):
     present: bool
     resolution_mm: int
@@ -81,7 +85,7 @@ class RadarValue(TypedDict):
     targets: list[RadarTarget]
 
 
-SampleValue = EnvironmentValue | DistanceValue | HealthValue | IlluminanceValue | RadarValue
+SampleValue = EnvironmentValue | DistanceValue | HealthValue | IlluminanceValue | RadarValue | RawValue
 
 
 class SampleObservation(TypedDict):

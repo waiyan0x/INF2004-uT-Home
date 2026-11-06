@@ -2,6 +2,7 @@
 import { renderProfile, renderTelemetry, renderBoardState, renderReviewPlan, setupWorkspace } from './dashboard.js';
 import { renderDiscovery, updateDiscoveryControls } from './discovery.js';
 import { renderDatasheet } from './datasheet.js';
+import { parseRecipeFields, describeRecipe } from './recipes.js';
 const el = id => document.getElementById(id);
 const token = document.querySelector('meta[name="session"]').content;
 const showWorkspace = setupWorkspace();
@@ -10,6 +11,68 @@ let draftEdited = false, draftGeneration = 0;
 let discoveryFeatures = 0, recoveryRequired = false, discovered = null;
 let discoveryTimer = null, discoveryGeneration = 0, connections = [];
 let datasheetSelection = null, datasheetBusy = false, datasheetResult = null;
+let recipeSupported = false, recipeExamples = [], editingRecipeId = '', recipeGeneration = 0;
+const recipeFields = {device_id: 'recipe-device', bus_ref: 'recipe-bus', address: 'recipe-address',
+  register: 'recipe-register', read_length: 'recipe-read', read_pause_ms: 'recipe-pause',
+  select_offset: 'recipe-offset', select_length: 'recipe-length', interval_ms: 'recipe-interval',
+  timeout_ms: 'recipe-timeout'};
+const readRecipe = () => parseRecipeFields(Object.fromEntries(Object.entries(recipeFields)
+  .map(([key, id]) => [key, el(id).value])));
+function updateRecipeControls() {
+  let valid = false;
+  try {
+    el('recipe-preview').textContent = describeRecipe(readRecipe());
+    valid = true;
+  } catch (error) {
+    el('recipe-preview').textContent = error.message;
+  }
+  el('recipe-add').disabled = !connected || !recipeSupported || busy || !valid || !el('recipe-confirm').checked;
+  el('recipe-add').textContent = editingRecipeId ? 'Update recipe in draft' : 'Add recipe to draft';
+  el('recipe-device').readOnly = !!editingRecipeId;
+  el('recipe-support').textContent = !connected ? 'Connect to check recipe support. Preparing a draft does not apply it.'
+    : recipeSupported ? 'Connected firmware supports I²C register-read recipes.'
+      : 'This firmware cannot run recipes. Install a recipe-enabled build before applying one.';
+}
+function fillRecipe(recipe) {
+  for (const [key, id] of Object.entries(recipeFields)) {
+    if (recipe[key] !== undefined) el(id).value = String(recipe[key]);
+  }
+  recipeGeneration++;
+  el('recipe-confirm').checked = false;
+  updateRecipeControls();
+}
+function refreshRecipeProfile() {
+  let profile;
+  try { profile = JSON.parse(el('profile').value); } catch { profile = {}; }
+  const buses = Array.isArray(profile?.interfaces) ? profile.interfaces.filter(bus => bus?.protocol === 'i2c') : [];
+  const previousBus = el('recipe-bus').value;
+  el('recipe-bus').replaceChildren();
+  for (const bus of buses) {
+    const option = document.createElement('option');
+    option.value = bus.id;
+    option.textContent = `${bus.id} · SDA ${bus.sda_gpio} / SCL ${bus.scl_gpio}`;
+    el('recipe-bus').append(option);
+  }
+  if (buses.some(bus => bus.id === previousBus)) el('recipe-bus').value = previousBus;
+  const devices = Array.isArray(profile?.devices) ? profile.devices.filter(device => device?.driver === 'i2c_recipe') : [];
+  el('recipe-existing').replaceChildren();
+  for (const device of [{device_id: '', label: 'New recipe'}, ...devices]) {
+    const option = document.createElement('option');
+    option.value = device.device_id;
+    option.textContent = device.label || device.device_id;
+    el('recipe-existing').append(option);
+  }
+  editingRecipeId = devices.find(device => device.device_id === editingRecipeId)?.device_id || devices[0]?.device_id || '';
+  el('recipe-existing').value = editingRecipeId;
+  const selected = devices.find(device => device.device_id === editingRecipeId);
+  if (selected) fillRecipe({...selected.behaviour, device_id: selected.device_id,
+    bus_ref: selected.interface?.ref, address: selected.interface?.address});
+  else {
+    recipeGeneration++;
+    el('recipe-confirm').checked = false;
+    updateRecipeControls();
+  }
+}
 function clearDiscovery(message) {
   discovered = null;
   discoveryGeneration++;
@@ -48,6 +111,7 @@ function updateControls() {
   el('apply').disabled = !connected || !reviewId || busy;
   el('datasheet-analyse').disabled = datasheetBusy || !el('datasheet-file').files.length;
   el('datasheet-generate').disabled = datasheetBusy || busy || !connected || !datasheetSelection || !el('datasheet-confirm').checked;
+  updateRecipeControls();
 }
 function invalidateReviewAndDiscovery() {
   clearDiscovery();
@@ -57,6 +121,7 @@ function invalidateReviewAndDiscovery() {
   el('rule-plan').replaceChildren();
   el('datasheet-generate-status').textContent = 'A draft cannot install a driver or change the board. Review and apply separately.';
   renderProfile(el('profile').value);
+  refreshRecipeProfile();
   updateControls();
 }
 function markDraftChanged() {
@@ -64,6 +129,49 @@ function markDraftChanged() {
   draftGeneration++;
   invalidateReviewAndDiscovery();
 }
+for (const id of Object.values(recipeFields)) {
+  el(id).addEventListener('input', () => {
+    recipeGeneration++;
+    el('recipe-confirm').checked = false;
+    el('recipe-example').value = '';
+    el('recipe-example-note').textContent = 'Custom instructions. Check the exact device datasheet.';
+    updateRecipeControls();
+  });
+}
+el('recipe-confirm').onchange = updateRecipeControls;
+el('recipe-existing').onchange = () => {
+  editingRecipeId = el('recipe-existing').value;
+  if (editingRecipeId) refreshRecipeProfile();
+  else fillRecipe({device_id: 'raw_sensor'});
+};
+el('recipe-example').onchange = () => {
+  const example = recipeExamples.find(item => item.id === el('recipe-example').value);
+  if (!example) return;
+  const instructions = Object.fromEntries(Object.entries(example.recipe)
+    .filter(([key]) => !['device_id', 'bus_ref', 'address'].includes(key)));
+  fillRecipe(instructions);
+  el('recipe-example-note').textContent = `${example.description}${example.expected ? ` Expected byte: ${example.expected}.` : ''}`;
+};
+el('recipe-add').onclick = () => {
+  let recipe;
+  try { recipe = readRecipe(); } catch (error) { notice(error.message, true); return; }
+  if (!el('recipe-confirm').checked) { notice('Check the read instructions and wiring first.', true); return; }
+  const draft = draftGeneration, form = recipeGeneration;
+  const request = {profile: el('profile').value, recipe, wiring_confirmed: true,
+    ...(editingRecipeId ? {replace_device_id: editingRecipeId} : {})};
+  return runBoardAction(async () => {
+    reviewId = null;
+    clearDiscovery();
+    const result = await rpc('recipe-prepare', request);
+    if (draft !== draftGeneration || form !== recipeGeneration) {
+      throw new Error('The draft or recipe changed. Prepare the recipe again.');
+    }
+    el('profile').value = JSON.stringify(result.profile, null, 2);
+    markDraftChanged();
+    el('recipe-status').textContent = result.summary + ' Draft only. Validate and review before applying.';
+    notice('Recipe prepared in your draft. Validate and review the complete profile next.');
+  }, error => { el('recipe-status').textContent = error.message; });
+};
 async function decodeResponse(response, action) {
   let data;
   try {
@@ -350,6 +458,7 @@ el('connect').onclick = () => runBoardAction(async () => {
   connected = true;
   resetDatasheetMatch();
   discoveryFeatures = data.capabilities.features;
+  recipeSupported = data.capabilities.drivers.includes('i2c_recipe');
   el('wiring-confirmed').checked = false;
   invalidateReviewAndDiscovery();
   updateBoardState(data.state);
@@ -363,6 +472,7 @@ el('connect').onclick = () => runBoardAction(async () => {
 el('disconnect').onclick = () => runBoardAction(async () => {
   await rpc('disconnect');
   connected = false;
+  recipeSupported = false;
   resetDatasheetMatch();
   invalidateReviewAndDiscovery();
   renderTelemetry(null);
@@ -439,14 +549,22 @@ async function loadCatalogue() {
     }
     updateDiscoveryPreset();
     examples = data.examples;
+    recipeExamples = data.recipe_examples || [];
+    for (const example of recipeExamples) {
+      const option = document.createElement('option');
+      option.value = example.id;
+      option.textContent = example.label;
+      el('recipe-example').append(option);
+    }
     for (const name of Object.keys(examples)) {
       const option = document.createElement('option');
       option.value = name;
       option.textContent = name;
       el('examples').append(option);
     }
-    if (!draftEdited && !el('profile').value.trim() && examples['distance-only']) {
-      el('examples').value = 'distance-only';
+    const initialExample = ['i2c-recipe-demo', 'c3-protocol-demo', 'distance-only'].find(name => examples[name]);
+    if (!draftEdited && !el('profile').value.trim() && initialExample) {
+      el('examples').value = initialExample;
       el('examples').onchange();
     }
   } catch (error) {

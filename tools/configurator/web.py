@@ -10,12 +10,14 @@ from tools.config_transfer.client import TransferError
 from .workflow import Workflow
 from .discovery import connection_presets
 from .datasheet import analyse, MAX_PDF_BYTES
+from .recipes import recipe_catalogue
 
 STATIC = Path(__file__).with_name("static")
 LOGGER = logging.getLogger(__name__)
 ASSETS = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
           "/style.css": ("style.css", "text/css"), "/dashboard.js": ("dashboard.js", "text/javascript"),
-          "/discovery.js": ("discovery.js", "text/javascript"), "/datasheet.js": ("datasheet.js", "text/javascript")}
+          "/discovery.js": ("discovery.js", "text/javascript"), "/datasheet.js": ("datasheet.js", "text/javascript"),
+          "/recipes.js": ("recipes.js", "text/javascript")}
 # Explicit assets only: restoring the design must not expose the source tree.
 STYLE_FILES = (
     "main.css", "tokens.css", "fonts.css", "base.css",
@@ -77,6 +79,7 @@ class Handler(BaseHTTPRequestHandler):
             content = {"examples": {p.stem: load_document(p) for p in sorted((ROOT / "configs/nodes").glob("*.json"))},
                        "descriptors": list(self.server.workflow.catalogue.descriptors.values()),
                        "connections": connection_presets()}
+            content.update(recipe_catalogue(self.server.workflow.catalogue.descriptors[("i2c_recipe", "1.0.0")]))
             return 200, content, "application/json"
         return 404, {"error": "Not found"}, "application/json"
 

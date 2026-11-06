@@ -786,6 +786,8 @@ class QualificationTests(unittest.TestCase):
             self.assertEqual(len(sources), len(qualification.RUNTIME_SOURCE_FILES) + 1)
             self.assertSetEqual(set(sources) - {generated_default}, set(qualification.RUNTIME_SOURCE_FILES))
             self.assertIn(generated_default, sources)
+            for name in ('recinst.c', 'recinst.h'):
+                self.assertIn(f'firmware/drivers/generic_i2c/{name}', sources)
             for name in ('stackmon', 'workcost', 'workmeter'):
                 self.assertIn(f'firmware/src/runtime/{name}.c', sources)
                 self.assertIn(f'firmware/src/runtime/{name}.h', sources)

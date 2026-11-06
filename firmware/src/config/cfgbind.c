@@ -39,6 +39,7 @@ typedef struct
         cfgbind_panel_t    display;
         cfgbind_actuator_t output;
         seninst_config_t   light;
+        recinst_config_t   recipe;
     } settings;
 } cfgbind_setting_t;
 
@@ -90,7 +91,7 @@ uint32_t cfgbind_mask (void)
     uint32_t supported =
         (UINT32_C(1) << CFGPLAN_ENV) | (UINT32_C(1) << CFGPLAN_RADAR) |
         (UINT32_C(1) << CFGPLAN_DISTANCE) | (UINT32_C(1) << CFGPLAN_OLED) |
-        (UINT32_C(1) << CFGPLAN_PWM);
+        (UINT32_C(1) << CFGPLAN_PWM) | (UINT32_C(1) << CFGPLAN_RECIPE);
 #if defined(UTHOME_SENLUX_APP_PROBE) && UTHOME_SENLUX_APP_PROBE
     supported |= UINT32_C(1) << CFGPLAN_LIGHT;
 #endif
@@ -358,6 +359,16 @@ static int configure (void * p_context, const void * p_data, size_t size)
         p_slot->p_step                    = bmpinst_step;
         p_slot->p_cleanup                 = bmpinst_cleanup;
     }
+    else if (CFGPLAN_RECIPE == config.driver)
+    {
+        p_slot->context.recipe.p_bus = p_slot->p_owner->p_i2c;
+        p_descriptor                 = recinst_descriptor();
+        p_driver                     = &p_slot->context.recipe;
+        p_config                     = &config.settings.recipe;
+        config_size                  = sizeof(config.settings.recipe);
+        p_slot->p_step               = recinst_step;
+        p_slot->p_cleanup            = recinst_cleanup;
+    }
     else if (CFGPLAN_LIGHT == config.driver)
     {
         p_slot->context.light.instance.p_bus    = p_slot->p_owner->p_i2c;
@@ -532,6 +543,10 @@ static void build_device_settings (const cfgplan_t *   p_plan,
     {
         p_settings->source.type = UTHOME_SAMPLE_LIGHT;
     }
+    else if (CFGPLAN_RECIPE == p_device->driver)
+    {
+        p_settings->source.type = UTHOME_SAMPLE_RAW;
+    }
     else
     {
         p_settings->source.type = UTHOME_SAMPLE_DISTANCE;
@@ -550,6 +565,21 @@ static void build_device_settings (const cfgplan_t *   p_plan,
     {
         p_settings->settings.environment = (bmpinst_config_t){
             .address       = (uint8_t)p_device->address,
+            .source_index  = (uint16_t)index,
+            .timeout_ms    = p_device->timeout_us / 1000U,
+            .h_destination = (msgbus_queue_id_t)p_device->destination};
+    }
+    else if (CFGPLAN_RECIPE == p_device->driver)
+    {
+        const geni2c_recipe_t recipe = {
+            .address       = (uint8_t)p_device->address,
+            .reg           = (uint8_t)p_device->recipe_register,
+            .read_size     = (uint8_t)p_device->read_length,
+            .read_pause_ms = (uint8_t)p_device->read_pause_ms};
+        p_settings->settings.recipe = (recinst_config_t){
+            .recipe        = recipe,
+            .select_offset = (uint8_t)p_device->select_offset,
+            .select_length = (uint8_t)p_device->select_length,
             .source_index  = (uint16_t)index,
             .timeout_ms    = p_device->timeout_us / 1000U,
             .h_destination = (msgbus_queue_id_t)p_device->destination};
@@ -707,7 +737,8 @@ static bool make_plan (cfgbind_state_t * p_state)
             resource.sclk = (uint8_t)p_bus->pin_b;
         }
         if (((CFGPLAN_ENV == p_device->driver) ||
-             (CFGPLAN_LIGHT == p_device->driver)) &&
+             (CFGPLAN_LIGHT == p_device->driver) ||
+             (CFGPLAN_RECIPE == p_device->driver)) &&
             (p_device->b_enabled))
         {
             const cfgplan_bus_t * p_bus = &p_candidate->buses[p_device->bus];

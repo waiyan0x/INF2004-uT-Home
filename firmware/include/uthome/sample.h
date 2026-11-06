@@ -14,6 +14,7 @@
 #define UTHOME_SAMPLE_VERSION     1U
 #define UTHOME_SAMPLE_MAX_TARGETS 3U
 #define UTHOME_SAMPLE_NO_SOURCE   UINT16_MAX
+#define UTHOME_SAMPLE_RAW_MAX     16U
 
 /* Queue type identifiers. New formats receive new identifiers. */
 typedef enum
@@ -22,7 +23,8 @@ typedef enum
     UTHOME_SAMPLE_TARGETS     = 2U,
     UTHOME_SAMPLE_DISTANCE    = 3U,
     UTHOME_SAMPLE_HEALTH      = 4U,
-    UTHOME_SAMPLE_LIGHT       = 5U
+    UTHOME_SAMPLE_LIGHT       = 5U,
+    UTHOME_SAMPLE_RAW         = 6U
 } sample_type_t;
 
 /* A zero-initialized record is unknown, never a successful measurement.
@@ -73,6 +75,16 @@ typedef struct
     sample_header_t header;
     uint32_t        millilux;
 } sample_light_t;
+
+/* Selected opaque bytes, without inferred scaling, units or physical meaning.
+ * Successful length is 1..16; trailing bytes and every fault value are zero.
+ */
+typedef struct
+{
+    sample_header_t header;
+    uint32_t        length;
+    uint8_t         bytes[UTHOME_SAMPLE_RAW_MAX];
+} sample_raw_t;
 
 /* Preserve target slots; an absent slot has b_present false and zero values. */
 typedef struct

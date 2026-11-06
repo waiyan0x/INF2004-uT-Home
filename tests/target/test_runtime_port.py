@@ -86,6 +86,7 @@ class RuntimePortFailureTests(unittest.TestCase):
                        str(ROOT / "firmware/drivers/bmp388/bmp388.c"),
                        str(ROOT / "firmware/drivers/bmp388/bmpinst.c"),
                        str(ROOT / "firmware/drivers/generic_i2c/geni2c.c"),
+                       str(ROOT / "firmware/drivers/generic_i2c/recinst.c"),
                        str(ROOT / "firmware/drivers/generic_i2c/senlux.c"),
                        str(ROOT / "firmware/drivers/generic_i2c/seninst.c"),
                        str(ROOT / "firmware/third_party/bmp3/bmp3.c"),
@@ -216,7 +217,7 @@ class RuntimePortFailureTests(unittest.TestCase):
                               if line.startswith("CAPABILITIES:"))
             caps = decode_capabilities(caps_frame, request_id=27)
             self.assertEqual(caps.features, 7)
-            self.assertEqual(set(caps.drivers), {"bmp388", "ssd1306_spi", "hlk_ld2450", "hc_sr04", "pwm_output"})
+            self.assertEqual(set(caps.drivers), {"bmp388", "ssd1306_spi", "hlk_ld2450", "hc_sr04", "pwm_output", "i2c_recipe"})
             self.assertFalse(caps.hardware_qualified)
             self.assertEqual((caps.board,caps.node_schema), ("esp32-c3-supermini", "2.1.0"))
             from tools.config_transfer.telemetry import decode_telemetry

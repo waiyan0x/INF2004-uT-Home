@@ -18,6 +18,7 @@ from .documents import (
     unique_by as unique_by,
 )
 from .wiring import WiringClaims
+from .recipe import validate_recipe_selection
 
 
 def build_plan(
@@ -101,6 +102,8 @@ def build_plan(
             f"Driver unavailable in selected build: {driver}",
         )
         check(device, descriptor["instance_schema"], device["device_id"])
+        if driver == "i2c_recipe":
+            validate_recipe_selection(device["behaviour"])
         instance_counts[driver] += 1
         driver_limits[driver] = min(
             driver_limits.get(driver, 8),

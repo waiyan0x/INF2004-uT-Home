@@ -5,6 +5,7 @@
  */
 #include "c3event.h"
 
+#include <stddef.h>
 #include "netevent.h"
 #include "netwait.h"
 #include "c3ewait.h"

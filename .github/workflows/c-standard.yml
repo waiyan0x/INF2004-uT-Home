@@ -20,11 +20,12 @@ jobs:
           cache-dependency-path: |
             tools/c_standard/requirements.txt
             tools/requirements.txt
+            tools/config_transfer/requirements.txt
             tools/config_transfer/requirements-dev.txt
             ai/training-requirements.txt
             ai/requirements.txt
       - name: Install pinned formatting and host test dependencies
-        run: python -m pip install -r tools/c_standard/requirements.txt -r tools/requirements.txt -r ai/training-requirements.txt -r tools/config_transfer/requirements-dev.txt
+        run: python -m pip install -r tools/c_standard/requirements.txt -r tools/requirements.txt -r ai/training-requirements.txt -r tools/config_transfer/requirements.txt -r tools/config_transfer/requirements-dev.txt
       - name: Require the host compiler
         run: gcc --version
       - name: Enforce BARR-C policy

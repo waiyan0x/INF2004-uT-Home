@@ -36,13 +36,15 @@ class AdmissionTests(unittest.TestCase):
                    "-I", str(ROOT / "firmware/src/services/actuator"),
                    "-I", str(ROOT / "firmware/src/runtime"),
                    "-I", str(ROOT / "firmware/include")]
-        objcopy = shutil.which("objcopy")
+        objcopy = shutil.which("objcopy") or shutil.which("llvm-objcopy")
         if objcopy is None:
-            raise AssertionError("GNU objcopy is required for allocator interception")
+            raise AssertionError("GNU or LLVM objcopy is required for allocator interception")
         aliases = []
+        # Mach-O's C symbols have a leading underscore; ELF symbols do not.
+        symbol_prefix = "_" if sys.platform == "darwin" else ""
         for original, replacement in (("malloc", "allocate"), ("calloc", "zero"),
                                       ("realloc", "resize"), ("free", "release")):
-            aliases += ["--redefine-sym", f"{original}=heaptrap_{replacement}"]
+            aliases += ["--redefine-sym", f"{symbol_prefix}{original}={symbol_prefix}heaptrap_{replacement}"]
         objects = []
         # Intercept the owned parser and vendor objects, not the host CRT's
         # startup/file-I/O allocator. No allocator call in these objects escapes.
@@ -163,6 +165,40 @@ class AdmissionTests(unittest.TestCase):
         self.assertEqual(self.run_documents([oled], catalogue=True)[0][0], 0)
         self.assertEqual(self.run_documents([oled])[0][0], 0)
 
+    def test_generic_register_recipe_bounds_and_duplicate_address_match_host(self):
+        document = json.loads((ROOT / "configs/nodes/i2c-recipe-demo.json").read_bytes())
+        invalid = []
+        for changes in (dict(register=-1), dict(register=256), dict(register=True),
+                        dict(read_length=0), dict(read_length=17), dict(read_pause_ms=11),
+                        dict(select_offset=1), dict(select_length=2),
+                        dict(read_pause_ms=10, timeout_ms=10), dict(interval_ms=199),
+                        dict(timeout_ms=101), dict(extra=0), dict(operation="write")):
+            candidate = deepcopy(document)
+            candidate["devices"][0]["behaviour"].update(changes)
+            invalid.append(candidate)
+        for key in document["devices"][0]["behaviour"]:
+            candidate = deepcopy(document)
+            del candidate["devices"][0]["behaviour"][key]
+            invalid.append(candidate)
+        for address in ("0x07", "0x78", "0X77", "0x7F", "119"):
+            candidate = deepcopy(document)
+            candidate["devices"][0]["interface"]["address"] = address
+            invalid.append(candidate)
+        original = json.loads((ROOT / "configs/nodes/c3-protocol-demo.json").read_bytes())
+        for enabled in (True, False):
+            candidate = deepcopy(document)
+            bmp = deepcopy(original["devices"][0])
+            bmp["enabled"] = enabled
+            candidate["devices"].append(bmp)
+            candidate["queues"].append(original["queues"][0])
+            invalid.append(candidate)
+        results = self.run_documents([document, *invalid])
+        self.assertEqual([row[0] == 0 for row in results], [True] + [False] * len(invalid))
+        build_plan(document, self.manifest, self.catalogue)
+        for candidate in invalid:
+            with self.assertRaises(ConfigurationError):
+                build_plan(candidate, self.manifest, self.catalogue)
+
     def test_independent_semantic_rejections(self):
         bad = []
         paths = [
@@ -260,7 +296,7 @@ class AdmissionTests(unittest.TestCase):
         self.assertEqual(board["resources"]["device_stack_budget_bytes"],16384)
         self.assertEqual(board["resources"]["max_queues"],4)
         self.assertEqual(set(self.catalogue.descriptors),
-                         {(name,"1.0.0") for name in ("bmp388","ssd1306_spi","hlk_ld2450","hc_sr04","pwm_output","sen0390")})
+                         {(name,"1.0.0") for name in ("bmp388","ssd1306_spi","hlk_ld2450","hc_sr04","pwm_output","sen0390","i2c_recipe")})
 
     def test_rule_profile_and_alternate_signed_environment_metric(self):
         rule = json.loads((ROOT / "configs/nodes/distance-controlled-output.json").read_bytes())

@@ -56,6 +56,7 @@ static void environment (ssd1306_t *                  p_display,
                          const sample_environment_t * p_sample);
 static void targets (ssd1306_t *                    p_display,
                      const sample_target_report_t * p_sample);
+static void raw_bytes (ssd1306_t * p_display, const sample_raw_t * p_sample);
 
 /** @brief Clear obsolete pixels and draw identity, quality and typed values. */
 int oledview_render (ssd1306_t *               p_display,
@@ -163,9 +164,13 @@ static void values (ssd1306_t * p_display, const sampcache_entry_t * p_entry)
                        p_entry->value.light.millilux / 1000U);
         line(p_display, 2U, text);
     }
+    else if (UTHOME_SAMPLE_RAW == p_entry->source.type)
+    {
+        raw_bytes(p_display, &p_entry->value.raw);
+    }
     else
     {
-        /* The cache admits only these five types and eight health event codes.
+        /* The cache admits only these six types and eight health event codes.
          */
         (void)snprintf(text,
                        sizeof(text),
@@ -178,6 +183,27 @@ static void values (ssd1306_t * p_display, const sampcache_entry_t * p_entry)
                        p_entry->value.health.occurrences);
         line(p_display, 3U, text);
         line(p_display, 4U, "LAST EVENT REPORT");
+    }
+}
+
+/** @brief Show four selected bytes per row without inventing measurement units.
+ */
+static void raw_bytes (ssd1306_t * p_display, const sample_raw_t * p_sample)
+{
+    for (size_t first = 0U; first < p_sample->length; first += 4U)
+    {
+        char text[13] = {0};
+        for (size_t offset = 0U;
+             (offset < 4U) && ((first + offset) < p_sample->length);
+             ++offset)
+        {
+            /* Byte promotion matches hexadecimal printf; four fields fit. */
+            (void)snprintf(&text[offset * 3U],
+                           4U,
+                           "%02X ",
+                           (unsigned)p_sample->bytes[first + offset]);
+        }
+        line(p_display, 2U + (first / 4U), text);
     }
 }
 

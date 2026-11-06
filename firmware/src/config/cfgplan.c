@@ -47,6 +47,11 @@ int cfgplan_read (const uint8_t * p_data,
         {
             b_ok = false;
         }
+        if ((UTHOME_SAMPLE_RAW == p_candidate->queues[index].type) &&
+            (0U == (compiled_mask & (UINT32_C(1) << CFGPLAN_RECIPE))))
+        {
+            b_ok = false;
+        }
     }
     const cfgjson_value_t * p_devices = cfgjson_get(p_root, "devices");
     b_ok                              = b_ok &&
@@ -250,7 +255,8 @@ static bool queues (const cfgjson_value_t * p_array, cfgplan_t * p_plan)
         {"target_report", UTHOME_SAMPLE_TARGETS},
         {"distance_sample", UTHOME_SAMPLE_DISTANCE},
         {"health_event", UTHOME_SAMPLE_HEALTH},
-        {"light_sample", UTHOME_SAMPLE_LIGHT}};
+        {"light_sample", UTHOME_SAMPLE_LIGHT},
+        {"raw_sample", UTHOME_SAMPLE_RAW}};
     if (!(cfgjson_array(p_array, UTHOME_PLAN_QUEUES, &p_plan->queue_count)))
     {
         return false;

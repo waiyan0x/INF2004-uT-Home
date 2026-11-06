@@ -15,6 +15,7 @@ typedef union
     sample_distance_t      distance;
     sample_health_t        health;
     sample_light_t         light;
+    sample_raw_t           raw;
 } sampcache_value_t;
 
 typedef struct

@@ -14,6 +14,7 @@
 #include "oledwork.h"
 #include "pwmwork.h"
 #include "seninst.h"
+#include "recinst.h"
 typedef int cfgbind_i2c_open_t (const i2cbus_config_t * p_config,
                                 i2cbus_t **             pp_bus);
 typedef int cfgbind_i2c_close_t (i2cbus_t * p_bus);
@@ -59,6 +60,7 @@ typedef union
     oledwork_t      display;
     pwmwork_t       output;
     cfgbind_light_t light;
+    recinst_t       recipe;
 } cfgbind_context_t;
 typedef struct cfgbind_state cfgbind_state_t;
 

@@ -15,6 +15,7 @@ from tools.config_transfer.identity import configuration_key, capability_key
 from tools.device_discovery import identify_i2c, identify_uart, identity_result, confirm_identity
 from .discovery import connection_preset, recommend, add_to_draft, source_queues
 from .drafts import i2c_builder_options, prepare_i2c_draft
+from .recipes import prepare_recipe
 from .contracts import ConnectionResult, ReplyData, ReviewResult
 
 STATUS = ("Active", "Active and saved", "Active; saving failed", "Rejected", "Recovery required",
@@ -142,6 +143,8 @@ class Workflow:
             require(self.client is not None, "Connect to the board first")
             if action == "datasheet_prepare_i2c":
                 return self.datasheet_prepare_i2c(body)
+            if action == "recipe-prepare":
+                return self.prepare_recipe(body)
             if action == "discover":
                 return self.discover(body)
             if action == "add_discovered":
@@ -212,6 +215,32 @@ class Workflow:
         self.validate(json.dumps(document))
         require(identity(self.client.query()) == identity(before), "Board state changed; prepare again")
         return {"profile": document, "identity_verified": False,
+                "notice": "Draft only. Validate and review before applying."}
+
+    def prepare_recipe(self, body):
+        """Prepare an additive register reader; never apply or access its bus."""
+        self.pending = self.discovery = None
+        required = {"profile", "recipe", "wiring_confirmed"}
+        require(isinstance(body, dict) and required <= set(body) <= required | {"replace_device_id"},
+                "Send one profile, recipe and wiring confirmation")
+        require("replace_device_id" not in body or isinstance(body["replace_device_id"], str),
+                "Choose the existing recipe to edit")
+        require(body["wiring_confirmed"] is True,
+                "Confirm the device, register operation and physical wiring")
+        current_caps = self.client.capabilities()
+        require(capability_key(asdict(current_caps)) == capability_key(asdict(self.caps)),
+                "Firmware capabilities changed; reconnect")
+        require("i2c_recipe" in current_caps.drivers, "Connected firmware has no compatible recipe driver")
+        document, _, _ = self.validate(body["profile"])
+        descriptor = self.catalogue.descriptors[("i2c_recipe", "1.0.0")]
+        draft = prepare_recipe(document, body["recipe"], descriptor,
+                               replace_device_id=body.get("replace_device_id"))
+        self.validate(json.dumps(draft))
+        operation = next(device["behaviour"] for device in draft["devices"]
+                         if device["device_id"] == body["recipe"]["device_id"])
+        summary = (f"Read {operation['read_length']} byte(s) from register 0x{operation['register']:02x}; "
+                   f"publish {operation['select_length']} byte(s) at offset {operation['select_offset']}")
+        return {"profile": draft, "summary": summary,
                 "notice": "Draft only. Validate and review before applying."}
 
     def validate(self, text):

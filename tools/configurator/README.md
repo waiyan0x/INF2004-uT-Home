@@ -12,6 +12,54 @@ standard HTTP server and local HTML/CSS/JavaScript; no Node build or new web
 framework is required. Offline review needs only the planner dependencies.
 The interface uses one fixed colour palette.
 
+## Configuration recipes
+
+The professor-feedback change starts with one bounded generic I2C operation:
+write a one-byte register pointer, read 1–16 bytes, and publish a selected
+contiguous part of that response as raw bytes. The register, read length, byte
+selection, optional 0–10 ms read-address pause, sample period and timeout come
+from JSON. This reuses one firmware driver across compatible register-reading
+devices; it does not generate C, add arbitrary writes or run a script.
+Generic SPI/UART recipes and configurable onboard ML are still separate work.
+
+The existing Profile → Review & apply → Live monitor flow and visual style
+remain. A recipe draft uses an existing I2C interface and an explicitly confirmed
+address; it never probes pins, rewires a bus or applies itself. The builder is
+additive and rejects an address already owned by any enabled or disabled device.
+Use the complete `i2c-recipe-demo` example to replace the BMP388-specific reader
+while keeping the current OLED/radar wiring. Its raw register values are not
+compensated temperature or pressure readings. The OLED keeps radar/health sources.
+
+Success means two reviewed JSON register reads run on the same firmware image,
+the monitor shows the returned bytes with freshness, invalid ranges/duplicate
+addresses are rejected without changing the active plan, and ordinary BMP/OLED/
+radar profiles still work. Host tests and a firmware build establish software
+checks only; dated board captures are needed for each physical claim.
+
+The recipe form prepares one reader on an I2C interface already present in the
+draft. Connect firmware advertising `i2c_recipe`, select the bus and address,
+review the register/read/selection fields, confirm the physical operation, then
+prepare the draft. Preparing does not stop, apply or save anything. It clears
+the previous review, so review the resulting whole profile before Apply.
+Adding a recipe at the BMP388 reader's address is rejected even if that reader
+is disabled; the complete example intentionally replaces that owner.
+
+`POST /api/recipe-prepare` requires `profile` (JSON text), `recipe` (the
+strict [draft schema](../../schemas/i2c-recipe.schema.json)) and
+`wiring_confirmed: true`. The only optional key, `replace_device_id`, explicitly
+edits an existing `i2c_recipe` with that same device name. Editing preserves its
+task, enabled state, output queue and unrelated devices; it cannot replace a
+BMP388-specific driver or rename a recipe. Its response contains the copied `profile`,
+a readable `summary` and a draft-only `notice`. `/api/catalogue` supplies
+`recipe_limits` and `recipe_examples` independently of connected capabilities.
+The same host planner validates imported/manual profiles; the firmware admits
+them independently. Raw observations use telemetry version 5, type 6:
+`value.bytes` contains 1–16 selected bytes with no inferred units. Older typed
+telemetry versions are retained. Fault/missing samples expose no value.
+Raw recipes currently use the USB observation path; the existing network frame
+encoder rejects this new raw sample type. No MQTT/BLE raw-reading support or
+wireless acceptance is claimed by this change.
+
 `workflow.py` owns connection state, confirmations and final admission checks.
 `drafts.py` constructs catalogue instances and output queues without serial I/O;
 `discovery.py` adds observation-specific recommendations and connection policy.
@@ -184,6 +232,7 @@ remain in [assets/fonts/README.md](static/assets/fonts/README.md).
 
 ```powershell
 python -B -m unittest discover -s tests/target -p test_configurator.py -v
+python -B -m unittest discover -s tests/target -p "test_recipe*.py" -v
 python -B -m unittest discover -s tests/target -p test_discovery_ui.py -v
 python -B -m unittest discover -s tests/target -p test_discovery_confirm.py -v
 python -B -m unittest discover -s tests/discovery -v

@@ -287,6 +287,8 @@ RUNTIME_SOURCE_FILES = {
     "firmware/hal/ports/esp32c3/c3shw.h": "hal/c3shw.h",
     "firmware/drivers/generic_i2c/geni2c.h": "drivers/geni2c.h",
     "firmware/drivers/generic_i2c/geni2c.c": "drivers/geni2c.c",
+    "firmware/drivers/generic_i2c/recinst.h": "drivers/recinst.h",
+    "firmware/drivers/generic_i2c/recinst.c": "drivers/recinst.c",
     "firmware/drivers/generic_i2c/senlux.h": "drivers/senlux.h",
     "firmware/drivers/generic_i2c/senlux.c": "drivers/senlux.c",
     "firmware/drivers/generic_i2c/seninst.h": "drivers/seninst.h",

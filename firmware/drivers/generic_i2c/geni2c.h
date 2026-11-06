@@ -7,8 +7,9 @@
 
 #include "i2cbus.h"
 
-/* Recipes must be immutable, reviewed build inputs, not model output or profile
- * data. This primitive does not identify a device, control EN or decode values.
+/* Recipes must be independently admitted and copied before worker execution.
+ * The primitive alone does not admit profile/model output, identify a device,
+ * control EN or decode values. recinst is the bounded profile-facing adapter.
  */
 typedef struct
 {

@@ -1,0 +1,202 @@
+{
+  "schema_version": "1.0.0",
+  "descriptor_id": "i2c_recipe",
+  "descriptor_version": "1.0.0",
+  "driver_id": "i2c_recipe",
+  "protocol": "i2c",
+  "description": "Bounded configurable I2C register read with raw byte selection; physical identity, units and device semantics require review.",
+  "instance_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "device_id": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+      },
+      "driver": {
+        "const": "i2c_recipe"
+      },
+      "descriptor": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "const": "i2c_recipe"
+          },
+          "version": {
+            "const": "1.0.0"
+          }
+        },
+        "required": [
+          "id",
+          "version"
+        ]
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "interface": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "address": {
+            "type": "string",
+            "pattern": "^0x(?:0[89a-f]|[1-6][0-9a-f]|7[0-7])$"
+          }
+        },
+        "required": [
+          "ref",
+          "address"
+        ]
+      },
+      "behaviour": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "periodic_sensor"
+          },
+          "operation": {
+            "const": "read_register"
+          },
+          "register": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "read_length": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16
+          },
+          "read_pause_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "select_offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "select_length": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16
+          },
+          "interval_ms": {
+            "type": "integer",
+            "minimum": 200,
+            "maximum": 60000
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 100
+          },
+          "destination": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          }
+        },
+        "required": [
+          "profile",
+          "operation",
+          "register",
+          "read_length",
+          "read_pause_ms",
+          "select_offset",
+          "select_length",
+          "interval_ms",
+          "timeout_ms",
+          "destination"
+        ]
+      },
+      "task": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,30}$"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 31
+          },
+          "stack_size_bytes": {
+            "type": "integer",
+            "minimum": 1024,
+            "maximum": 8192
+          }
+        },
+        "required": [
+          "name",
+          "priority",
+          "stack_size_bytes"
+        ]
+      }
+    },
+    "required": [
+      "device_id",
+      "driver",
+      "descriptor",
+      "enabled",
+      "interface",
+      "behaviour",
+      "task"
+    ]
+  },
+  "bus_schema": {
+    "type": "object",
+    "properties": {
+      "protocol": {
+        "const": "i2c"
+      },
+      "clock_hz": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 400000
+      }
+    }
+  },
+  "execution": {
+    "kind": "periodic",
+    "period_field": "interval_ms",
+    "timeout_field": "timeout_ms",
+    "timeout_unit": "ms"
+  },
+  "routing": {
+    "output_type": "raw_sample",
+    "input_types": []
+  },
+  "resources": {
+    "min_stack_bytes": 3072,
+    "max_instances": 2
+  },
+  "defaults": {
+    "behaviour": {
+      "profile": "periodic_sensor",
+      "operation": "read_register",
+      "register": 0,
+      "read_length": 1,
+      "read_pause_ms": 0,
+      "select_offset": 0,
+      "select_length": 1,
+      "interval_ms": 1000,
+      "timeout_ms": 100,
+      "destination": "telemetry.raw"
+    },
+    "priority": 12,
+    "stack_size_bytes": 3072
+  },
+  "provenance": [
+    "firmware/drivers/generic_i2c/README.md",
+    "https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmp388-ds001.pdf"
+  ]
+}
