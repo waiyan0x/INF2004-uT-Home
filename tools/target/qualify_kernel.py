@@ -38,6 +38,8 @@ RUNTIME_SOURCE_FILES = {
     "firmware/src/network/netbroker.h": "network/netbroker.h",
     "firmware/hal/ports/esp32c3/c3mqtt.c": "hal/c3mqtt.c",
     "firmware/hal/ports/esp32c3/c3mqtt.h": "hal/c3mqtt.h",
+    "firmware/src/network/occwire.c": "network/occwire.c",
+    "firmware/src/network/occwire.h": "network/occwire.h",
     "firmware/src/network/netmqtt.c": "network/netmqtt.c",
     "firmware/src/network/netmqtt.h": "network/netmqtt.h",
     "firmware/src/network/netretry.c": "network/netretry.c",

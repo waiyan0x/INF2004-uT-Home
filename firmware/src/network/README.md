@@ -1554,3 +1554,47 @@ remain the same named service modules; no limits or compatibility gates changed.
 Both builds and all 127 networking, 43 qualification/mode and 14 USB regressions
 passed, with the 351-file C gate. See the qualification index's current-branch
 merge records. No runtime/hardware or Linux CI qualification is inferred.
+
+## Direct ESPHome occupancy (opt-in laboratory image)
+
+Home Assistant connects **to the ESP32-C3 itself**. The application owner reads
+the existing copied target report for device ID `presence_sensor` (the first
+prototype profile). Any present slot in a fresh OK report means occupied;
+zero present slots in a fresh OK report means clear. Missing, wrong-device,
+busy, stale, and fault reports have no valid state. A disconnect makes the
+entity unavailable. The service never opens UART, drains a sensor queue,
+changes a configuration, or controls an output.
+
+**Build and pair.** Use the private Wi-Fi settings file and pinned build command
+above with `--network-services wifi`, a fresh work directory, and
+`--static-net-queues`. Remove the optional `port` field and add the JSON field
+`"esphome_lab": true`. Keep the existing private provisioning fields.
+This option intentionally replaces HTTPS with a single read-only plaintext
+ESPHome native API listener on TCP 6053; there is no Noise encryption or
+authentication. Use an isolated trusted lab LAN only. No mDNS, MQTT broker,
+proxy, or ESPHome installation on the board is needed. With the lab flag
+omitted, HTTPS behaves as before. Use the established USB procedure to apply
+the radar profile. In Home Assistant add the **ESPHome** integration manually,
+enter the board IP and port 6053, and look for **Room occupancy**. Do not flash
+an unqualified image over the team's known-good setup without its backup.
+
+**Budget and acceptance.** One client; 128-byte RX, 128-byte TX, maximum
+125-byte request body. Partial I/O retains offsets; oversize input drops the
+client. Protocol state shares the existing 512-byte HTTPS reply reservation
+(the compile-time size check rejects growth). No new application tasks, queues,
+mutexes, semaphores or allocator calls. The temporary cache copy uses the
+existing owner stack: verify its high-water mark. The lwIP socket path is
+inherited and **not covered by the application-level storage proof**. Before
+claiming AAI13, build the actual lab image with the pinned toolchain, compare
+the map against the existing budgets, and count actual allocation and kernel
+creation calls after startup during pairing, stalled connections, disconnects
+and reconnects. SDK/lwIP/TCP objects are not automatically Wi-Fi-exempt.
+
+Host regression tests compile the board adapter with warnings as errors and
+exercise stale, fault, wrong source, oversize, fragmentation and reconnect.
+With `aioesphomeapi==46.28.0` installed on the test host, the optional loopback
+test drives the same C adapter with the real ESPHome client (only socket I/O
+and radar input are doubled). Run `python -m unittest discover -s tests/target
+-p test_network_esp.py -v` as one command from the repository root. On hardware,
+confirm a person entering/leaving changes state, stopping radar updates gives
+unknown rather than clear, and local sampling continues through a client reconnect.

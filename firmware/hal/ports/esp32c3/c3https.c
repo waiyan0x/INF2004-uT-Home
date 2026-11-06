@@ -32,20 +32,42 @@ typedef struct
     c3https_state_t state;
 } c3https_client_t;
 
-static c3https_client_t     g_clients[2]   = {0};
-static c3https_config_t     g_config       = {0};
-static esp_tls_cfg_server_t g_tls_config   = {0};
-static uint8_t              g_reply[512]   = {0};
-static uint8_t              g_receive[128] = {0};
-static size_t               g_reply_size   = 0U;
-static size_t               g_sent         = 0U;
-static int                  g_writer       = -1;
-static int                  g_uploader     = -1;
-static int                  g_listener     = -1;
-static uint64_t             g_last_ms      = 0U;
-static uint64_t             g_listen_ms    = 0U;
-static bool                 gb_started     = false;
-static bool                 gb_attempted   = false;
+static c3https_client_t     g_clients[2] = {0};
+static c3https_config_t     g_config     = {0};
+static esp_tls_cfg_server_t g_tls_config = {0};
+#if UTHOME_OCCUPANCY_LAB
+#include "occwire.h"
+
+static union
+{
+    uint8_t   reply[512];
+    occwire_t wire;
+} g_reply;
+
+enum
+{
+    C3HTTPS_REPLY_FITS = 1 / (512U == sizeof(g_reply))
+};
+
+#define C3HTTPS_REPLY g_reply.reply
+static int occupancy_step (uint64_t               now_ms,
+                           const netread_info_t * p_info,
+                           netread_capture_t *    p_capture,
+                           void *                 p_context);
+#else
+static uint8_t g_reply[512] = {0};
+#define C3HTTPS_REPLY g_reply
+#endif
+static uint8_t  g_receive[128] = {0};
+static size_t   g_reply_size   = 0U;
+static size_t   g_sent         = 0U;
+static int      g_writer       = -1;
+static int      g_uploader     = -1;
+static int      g_listener     = -1;
+static uint64_t g_last_ms      = 0U;
+static uint64_t g_listen_ms    = 0U;
+static bool     gb_started     = false;
+static bool     gb_attempted   = false;
 static int listen_socket (void);
 static void accept_client (uint64_t now_ms);
 static void close_client (size_t index);
@@ -125,6 +147,9 @@ int c3https_step (uint64_t               now_ms,
     }
     if (0 <= g_listener)
     {
+#if UTHOME_OCCUPANCY_LAB
+        return occupancy_step(now_ms, p_info, p_capture, p_context);
+#endif
         accept_client(now_ms);
     }
     for (size_t index = 0U; index < 2U; ++index)
@@ -156,6 +181,14 @@ int c3https_step (uint64_t               now_ms,
  * untouched. */
 void c3https_stop (void)
 {
+#if UTHOME_OCCUPANCY_LAB
+    if (0 <= g_writer)
+    {
+        (void)close(g_writer);
+        g_writer = -1;
+    }
+    memset(&g_reply, 0, sizeof(g_reply));
+#endif
     for (size_t index = 0U; index < 2U; ++index)
     {
         close_client(index);
@@ -279,7 +312,7 @@ static void client_step (size_t index, uint64_t now_ms)
     if ((int)index == g_writer)
     {
         const ssize_t written = esp_tls_conn_write(
-            p_client->p_tls, &g_reply[g_sent], g_reply_size - g_sent);
+            p_client->p_tls, &C3HTTPS_REPLY[g_sent], g_reply_size - g_sent);
         if ((0 < written) && ((size_t)written <= (g_reply_size - g_sent)))
         {
             g_sent += (size_t)written;
@@ -370,8 +403,8 @@ static int response (size_t                 index,
                            p_info,
                            p_capture,
                            p_context,
-                           g_reply,
-                           sizeof(g_reply),
+                           C3HTTPS_REPLY,
+                           sizeof(C3HTTPS_REPLY),
                            &g_reply_size))
     {
         return -1;
@@ -530,8 +563,8 @@ static int state_reply (const cfgmux_t * p_mux)
                          false,
                          (const uint8_t *)body,
                          (size_t)length,
-                         g_reply,
-                         sizeof(g_reply),
+                         C3HTTPS_REPLY,
+                         sizeof(C3HTTPS_REPLY),
                          &g_reply_size);
 }
 
@@ -567,8 +600,8 @@ static int result_reply (const cfgmux_t * p_mux,
                          false,
                          (const uint8_t *)body,
                          (size_t)length,
-                         g_reply,
-                         sizeof(g_reply),
+                         C3HTTPS_REPLY,
+                         sizeof(C3HTTPS_REPLY),
                          &g_reply_size);
 }
 
@@ -581,9 +614,127 @@ static int error_reply (int status)
                          false,
                          body,
                          sizeof(body) - 1U,
-                         g_reply,
-                         sizeof(g_reply),
+                         C3HTTPS_REPLY,
+                         sizeof(C3HTTPS_REPLY),
                          &g_reply_size);
+}
+#endif
+
+#if UTHOME_OCCUPANCY_LAB
+/** @brief One bounded read, one copied cache lookup, one bounded write per
+ * tick. Exclusive lab mode borrows the normal HTTPS reply reservation and
+ * writer.
+ */
+static int occupancy_step (uint64_t               now_ms,
+                           const netread_info_t * p_info,
+                           netread_capture_t *    p_capture,
+                           void *                 p_context)
+{
+    occwire_t * p_wire = &g_reply.wire;
+    if (0 > g_writer)
+    {
+        g_writer = accept(g_listener, NULL, NULL);
+        if (0 > g_writer)
+        {
+            return 0;
+        }
+        if (0 > fcntl(g_writer, F_SETFL, O_NONBLOCK))
+        {
+            (void)close(g_writer);
+            g_writer = -1;
+            return -1;
+        }
+        memset(p_wire, 0, sizeof(*p_wire));
+        g_clients[0].since_ms = now_ms;
+    }
+    bool b_drop = false;
+    if (0U == p_wire->queued)
+    {
+        if (p_wire->used < sizeof(p_wire->receive))
+        {
+            const int count = recv(g_writer,
+                                   &p_wire->receive[p_wire->used],
+                                   sizeof(p_wire->receive) - p_wire->used,
+                                   0);
+            if (0 < count)
+            {
+                p_wire->used = (uint8_t)(p_wire->used + (size_t)count);
+            }
+            else if ((0 == count) ||
+                     ((EWOULDBLOCK != errno) && (EAGAIN != errno)))
+            {
+                b_drop = true;
+            }
+            else
+            { /* No input this iteration. */
+            }
+        }
+        uint8_t state = 0U;
+        if ((p_wire->b_subscribed) && (NULL != p_capture))
+        {
+            /* The configured source index is discovered by stable device ID;
+             * profile reordering cannot silently bind another radar. */
+            for (uint16_t idx = 0U; idx < UTHOME_SAMPCACHE_SOURCES; ++idx)
+            {
+                sampcache_entry_t entry = {0};
+                uint64_t          stamp = 0U;
+                if ((0 == p_capture(p_context, idx, &entry, &stamp)) &&
+                    (UTHOME_SAMPLE_TARGETS == entry.source.type) &&
+                    (0 == strcmp(entry.source.name, "presence_sensor")))
+                {
+                    if (1U == sampcache_quality(&entry, stamp))
+                    {
+                        state = 1U;
+                        for (size_t slot = 0U; slot < UTHOME_SAMPLE_MAX_TARGETS;
+                             ++slot)
+                        {
+                            if (entry.value.targets.targets[slot].b_present)
+                            {
+                                state = 2U;
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        if (0 != occwire_step(p_wire, p_info->node_id, state))
+        {
+            b_drop = true;
+        }
+    }
+    if ((!b_drop) && (0U < p_wire->queued))
+    {
+        const int count = send(g_writer,
+                               &p_wire->transmit[p_wire->sent],
+                               (size_t)p_wire->queued - p_wire->sent,
+                               0);
+        if (0 < count)
+        {
+            p_wire->sent = (uint8_t)(p_wire->sent + (size_t)count);
+            if (p_wire->sent == p_wire->queued)
+            {
+                p_wire->queued        = 0U;
+                p_wire->sent          = 0U;
+                g_clients[0].since_ms = now_ms;
+                b_drop                = p_wire->b_closing;
+            }
+        }
+        else if ((0 == count) || ((EWOULDBLOCK != errno) && (EAGAIN != errno)))
+        {
+            b_drop = true;
+        }
+        else
+        { /* Socket backpressure: retain the frame. */
+        }
+    }
+    if (b_drop || (90000U <= (now_ms - g_clients[0].since_ms)))
+    {
+        (void)close(g_writer);
+        g_writer = -1;
+        memset(p_wire, 0, sizeof(*p_wire));
+    }
+    return 0;
 }
 #endif
 

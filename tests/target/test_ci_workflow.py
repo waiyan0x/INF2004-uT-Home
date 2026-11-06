@@ -15,7 +15,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_builds_both_images_after_host_gate(self):
         self.assertEqual("c-standard", self.job["needs"])
-        self.assertEqual(["acceptance", "configuration"], self.job["strategy"]["matrix"]["image"])
+        self.assertEqual(["acceptance", "configuration", "esphome-lab"], self.job["strategy"]["matrix"]["image"])
         self.assertEqual("read", self.workflow["permissions"]["contents"])
         self.assertIn("workflow_dispatch", self.workflow["on"])
 

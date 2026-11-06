@@ -605,7 +605,9 @@ class QualificationTests(unittest.TestCase):
             defaults.parent.mkdir(parents=True)
             defaults.write_bytes(b"CONFIG_IDF_TARGET=\"esp32c3\"\n")
             project, sources = qualification.stage_runtime_port(work)
-            self.assertEqual(len(sources), 257)
+            self.assertEqual(len(sources), 259)
+            for name in ("occwire.c", "occwire.h"):
+                self.assertIn("firmware/src/network/" + name, sources)
             for name in ('recinst.c', 'recinst.h'):
                 self.assertIn(f'firmware/drivers/generic_i2c/{name}', sources)
             for name in ('stackmon', 'workcost', 'workmeter'):

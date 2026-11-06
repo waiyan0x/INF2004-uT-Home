@@ -80,7 +80,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [acceptance, configuration]
+        image: [acceptance, configuration, esphome-lab]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -125,7 +125,23 @@ jobs:
           source "$RUNNER_TEMP/esp-idf/export.sh"
           python -m pip install -r tools/c_standard/requirements.txt -r tools/requirements.txt
           args=()
-          if [ "$UTHOME_IMAGE" = configuration ]; then args+=(--configuration-app); fi
+          if [ "$UTHOME_IMAGE" != acceptance ]; then args+=(--configuration-app); fi
+          if [ "$UTHOME_IMAGE" = esphome-lab ]; then
+            # Build-only inputs: never provision a user's SSID, password or key.
+            lab="$RUNNER_TEMP/lab-fixture"
+            mkdir -m 700 "$lab"
+            openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=ci.invalid \
+              -keyout "$lab/key.pem" -out "$lab/cert.pem"
+            python - "$lab/settings.json" <<'PY'
+          import json, secrets, sys
+          from pathlib import Path
+          Path(sys.argv[1]).write_text(json.dumps(dict(
+              ssid="uthome-ci.invalid", password=secrets.token_hex(16),
+              token=secrets.token_hex(24), certificate_file="cert.pem",
+              key_file="key.pem", esphome_lab=True)))
+          PY
+            args+=(--static-net-queues --network-services wifi --network-settings "$lab/settings.json")
+          fi
           python tools/target/qualify_kernel.py build \
             --kernel "$RUNNER_TEMP/uthome-kernel" \
             --sdk "$RUNNER_TEMP/esp-idf" \
@@ -134,6 +150,20 @@ jobs:
             --compat-patch firmware/third_party/patches/0002-esp-idf-6.1-build.patch \
             --resource-patch firmware/third_party/patches/0001-uthome-c3-resources.patch \
             2>&1 | tee "$RUNNER_TEMP/uthome-ci/qualification.log"
+      - name: Verify the lab listener was compiled and linked
+        if: matrix.image == 'esphome-lab'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/uthome-build/build"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows = json.loads(Path("compile_commands.json").read_text())
+          listener, = [r for r in rows if Path(r["file"]).name == "c3https.c"]
+          assert "-DUTHOME_OCCUPANCY_LAB=1" in listener["command"].split()
+          assert any("occwire_step" in m.read_text() for m in Path(".").glob("*.map"))
+          PY
       - name: Preserve build and verification evidence
         if: always()
         uses: actions/upload-artifact@v4

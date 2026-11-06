@@ -37,6 +37,8 @@ SDK_HEADER=r"""
 struct sockaddr { unsigned short sa_family; char sa_data[14]; };
 struct in_addr { uint32_t s_addr; };
 struct sockaddr_in { short sin_family; uint16_t sin_port; struct in_addr sin_addr; };
+int c3fake_recv(int fd,void *data,size_t size,int flags);
+int c3fake_send(int fd,const void *data,size_t size,int flags);
 int c3fake_socket(int domain,int type,int protocol);
 int c3fake_bind(int fd,const struct sockaddr *address,size_t size);
 int c3fake_listen(int fd,int backlog);
@@ -236,6 +238,16 @@ ssize_t esp_tls_conn_write(esp_tls_t *tls,const void *data,size_t size)
   size_t n=size;if(n>(size_t)g_write_limit) { n=(size_t)g_write_limit; }
   if(g_output_size[fd]+n>4096) { return -1; }
   memcpy(g_output[fd]+g_output_size[fd],data,n);g_output_size[fd]+=n;return (ssize_t)n; }
+#if UTHOME_OCCUPANCY_LAB
+#include <errno.h>
+int c3fake_recv(int fd,void *data,size_t size,int flags)
+{ (void)flags; esp_tls_t channel={fd};int n=(int)esp_tls_conn_read(&channel,data,size);
+  if(n<0){errno=EAGAIN;return -1;} return n; }
+int c3fake_send(int fd,const void *data,size_t size,int flags)
+{ (void)flags; esp_tls_t channel={fd};return (int)esp_tls_conn_write(&channel,data,size); }
+static int radar_mode;
+void c3fake_radar(int mode){radar_mode=mode;}
+#endif
 int esp_netif_init(void) { return 0; }
 void *esp_netif_create_default_wifi_sta(void) { return &g_connects; }
 int esp_event_loop_create_default(void) { return 0; }
@@ -288,11 +300,22 @@ static int capture(void *context,uint16_t source,sampcache_entry_t *entry,uint64
   memcpy(entry->source.name,"environment",12);entry->b_expected=true;entry->b_seen=true;
   entry->header.status=1;entry->header.timestamp_ms=100;
   entry->value.environment.pressure_pa=100800;entry->value.environment.temperature_c=26;
+#if UTHOME_OCCUPANCY_LAB
+  if(source!=2)return 1;
+  strcpy(entry->source.name,radar_mode==5?"other":"presence_sensor");
+  entry->source.type=UTHOME_SAMPLE_TARGETS;entry->b_seen=radar_mode!=0;
+  memset(&entry->value,0,sizeof(entry->value));
+  entry->value.targets.targets[2].b_present=radar_mode==2;
+  entry->header.status=radar_mode==4?0:1;entry->source.stale_ms=radar_mode==3?50:1000;
+#endif
   *now=150;return 0; }
 int c3fake_start(void)
 { static const uint8_t cert[]="certificate";static const uint8_t key[]="key";
   static const uint8_t token[]="0123456789abcdef0123456789abcdef";
   c3https_config_t config={cert,key,token,sizeof(cert),sizeof(key),sizeof(token)-1,8443,gp_test_mux};
+#if UTHOME_OCCUPANCY_LAB
+  strcpy(g_info.node_id,"uthome-010203040506");config.port=6053;
+#endif
   return c3https_start(&config); }
 void c3fake_mux(cfgmux_t *mux) { gp_test_mux=mux;g_info.b_configuration_supported=mux!=NULL; }
 int c3fake_drive(uint64_t now,int online)
@@ -376,6 +399,10 @@ class EspBindingTests(unittest.TestCase):
         built=subprocess.run(command,capture_output=True,text=True)
         if built.returncode:
             raise AssertionError(built.stdout+built.stderr)
+        cls.lab_binary=folder/'occupancy.dll'
+        subprocess.run(command[:-2]+['-DUTHOME_OCCUPANCY_LAB=1','-Drecv=c3fake_recv',
+            '-Dsend=c3fake_send',str(ROOT/'firmware/src/network/occwire.c'),
+            '-o',str(cls.lab_binary)],check=True)
         # Compile owner composition against small explicit boundary declarations.
         # These doubles do not replace any production header or native library.
         (folder/'esp_mac.h').write_text('#include "sdk.h"\n')
@@ -408,7 +435,7 @@ class EspBindingTests(unittest.TestCase):
     def setUp(self):
         type(self).next_instance+=1
         path=Path(self.folder.name)/f'instance-{self.next_instance}.dll'
-        shutil.copyfile(self.binary,path)
+        shutil.copyfile(self.lab_binary if self._testMethodName.startswith("test_esphome") else self.binary,path)
         self.lib=c.CDLL(str(path))
         self.addCleanup(self.unload)
         self.lib.c3fake_drive.argtypes=[c.c_uint64,c.c_int]
@@ -470,6 +497,83 @@ class EspBindingTests(unittest.TestCase):
         header,body=output.split(b'\r\n\r\n',1)
         self.assertLessEqual(len(output),512)
         return int(header.split()[1]),json.loads(body),changes
+
+    def test_esphome_real_client(self):
+        # Opt-in host interoperability check; the socket pump replaces only SDK I/O.
+        import asyncio
+        try:
+            from aioesphomeapi import APIClient
+        except ImportError:
+            self.skipTest("install aioesphomeapi for the live client protocol test")
+        self.assertEqual(self.lib.c3fake_start(),0)
+        async def verify():
+            states=asyncio.Queue()
+            finished=asyncio.Event()
+            async def peer(reader,writer):
+                self.lib.c3fake_accept_next(10)
+                sent=now=0
+                try:
+                    while not reader.at_eof():
+                        try:data=await asyncio.wait_for(reader.read(64),0.01)
+                        except asyncio.TimeoutError:data=None
+                        if data==b'':break
+                        if data:self.lib.c3fake_input(10,data,len(data))
+                        now+=10
+                        self.drive(now)
+                        out=self.output()
+                        if len(out)>sent:
+                            writer.write(out[sent:]);await writer.drain();sent=len(out)
+                        if self.lib.c3fake_closed(10):break
+                finally:
+                    writer.close()
+                    finished.set()
+            server=await asyncio.start_server(peer,'127.0.0.1',0)
+            async with server:
+                client=APIClient('127.0.0.1',server.sockets[0].getsockname()[1],None)
+                await client.connect(login=True)
+                try:
+                    info=await client.device_info()
+                    self.assertEqual(info.name,'uthome-010203040506')
+                    entities,_=await client.list_entities_services()
+                    self.assertEqual([(e.name,e.device_class) for e in entities],
+                                     [('Room occupancy','occupancy')])
+                    client.subscribe_states(states.put_nowait)
+                    self.assertTrue((await states.get()).missing_state)
+                    for mode,expected,missing in [(2,True,False),(1,False,False),(3,False,True)]:
+                        self.lib.c3fake_radar(mode)
+                        state=await states.get()
+                        self.assertEqual((state.key,state.state,state.missing_state),
+                                         (entities[0].key,expected,missing))
+                finally:
+                    await client.disconnect()
+                await finished.wait()
+        asyncio.run(asyncio.wait_for(verify(),15))
+
+    def test_esphome_occupancy_from_cache_and_reconnect(self):
+        self.assertEqual(self.lib.c3fake_start(),0)
+        self.lib.c3fake_accept_next(10)
+        self.lib.c3fake_write_limit(3)
+        now=0
+        def step(data=b''):
+            nonlocal now
+            before=len(self.output())
+            if data:self.lib.c3fake_input(10,data,len(data))
+            for _ in range(25):
+                now+=1
+                self.assertEqual(self.drive(now),0)
+            return self.output()[before:]
+        self.assertEqual(step(b'\x00\x00'),b'')  # fragmented hello
+        self.assertIn(b'uthome-010203040506',step(b'\x01'))
+        self.assertIn(b'room_occupancy',step(bytes([0,0,11])))
+        self.assertEqual(step(bytes([0,0,20]))[-2:],bytes([24,1]))
+        for mode,state,missing in [(2,1,0),(1,0,0),(3,0,1),(2,1,0),(4,0,1),(1,0,0),(5,0,1)]:
+            self.lib.c3fake_radar(mode)
+            self.assertEqual(step(),bytes([0,9,21,13,1,0,0,0,16,state,24,missing]))
+        step(bytes([0,126]))  # exceeds receive bound; closes only this client
+        self.assertEqual(self.lib.c3fake_closed(10),1)
+        self.lib.c3fake_accept_next(10)
+        self.assertIn(b'uthome-',step(bytes([0,0,1])))
+        self.assertEqual(self.lib.c3fake_deleted(),0)  # never instantiated TLS
 
     def test_https_configuration_state_and_result_fit_max_width_without_io(self):
         f=self.configuration_fixture()
@@ -822,6 +926,20 @@ class SetupTests(unittest.TestCase):
         path=folder/'private.json'
         path.write_text(json.dumps(values))
         return path,values
+
+    def test_esphome_lab_requires_explicit_private_opt_in(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path,settings=self.configuration(Path(temp))
+            plain,_=self.setup.generate(path)
+            self.assertRegex(plain,rb'#define UTHOME_OCCUPANCY_LAB +\(0U\)')
+            settings['esphome_lab']=True
+            path.write_text(json.dumps(settings))
+            lab,_=self.setup.generate(path)
+            self.assertRegex(lab,rb'#define UTHOME_OCCUPANCY_LAB +\(1U\)')
+            self.assertRegex(lab,rb'#define UTHOME_SETUP_PORT +\(6053U\)')
+            for invalid in [dict(port=8443),dict(esphome_lab="true")]:
+                path.write_text(json.dumps(dict(settings,**invalid)))
+                with self.assertRaises(ValueError):self.setup.generate(path)
 
     def test_private_setup_staging_and_mutation_detection(self):
         with tempfile.TemporaryDirectory() as temporary:
