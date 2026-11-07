@@ -129,6 +129,7 @@
         763,
         822
       ],
+      "batch_note": "Ran in two batches: cycle 1 as a smoke check (applies_ok 2, capacity_rejections 1), then cycles 2-20 as the main run (applies_ok 38, capacity_rejections 19). The lifecycle log's final trailer counts only the main run; successful_applies and capacity_rejections below sum both batches.",
       "cycle_definition": "apply EMPTY; discover bench_i2c and bench_uart while idle (expect complete); apply compact demo; discover both while active (expect busy); apply demo with max_device_tasks=1 (expect REJECTED, active unchanged)",
       "successful_applies": 40,
       "idle_discovery_complete": 40,
