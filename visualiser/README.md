@@ -38,9 +38,20 @@ storage; they are user notes, never measured verification.
 
 The first setup covers placement, ground, and 3.3 V. Other setups cover radar
 alone, BMP388 alone, BMP388/OLED, the original three-module combination, and
-HC-SR04 separately. Each is a complete plan starting from empty wiring;
-switching the dropdown is **not** an instruction to add a sensor to the
-physical setup currently in front of you.
+HC-SR04 separately. Those plans start from empty wiring. The **Add SEN0390 to
+existing setup** plan instead starts with the existing BMP388 + OLED + radar
+connections as references and guides the new leads. Verify that your actual
+assembly and free holes match the reference before using it.
+
+The SEN0390 plan is provisional: its driver, combined profile, required EN
+startup behaviour and hardware acceptance are not complete. It proposes GPIO5
+for EN and a 10 kΩ pull-down to ground; the existing EN lead may currently be
+tied to 3.3 V. Remove all power before moving it, and never connect it to GPIO5
+and 3.3 V at the same time. Confirm
+the cable conductor-to-pin mapping, the 3.3 V rail and shared I2C pull-ups first.
+To prepare for a demonstration, keep unused connector ends insulated and label
+the plug; connect or disconnect peripherals only after removing USB and any
+external power. The plan does not claim powered hot-plug or automatic discovery.
 
 Use **Print this plan** for the connection list and selected view. For a wiring
 overview, choose Overview and All wires first. The browser's print-to-PDF is
@@ -118,3 +129,26 @@ power-net isolation, reserved pins, driver signal mappings against the
 catalogue, and the HC-SR04 divider. They validate the proposed plan, not the
 physical circuit. After changing layout or controls, inspect both overview and
 focus views in a browser, including a narrow viewport.
+
+Server tests launch an isolated loopback process on a temporary available port.
+They check the asset allowlist, GET/HEAD responses, security headers, rejected
+methods and paths, invalid configured ports, and continued service after malformed
+request URLs. They never connect to the ESP.
+Missing-asset tests use an isolated server copy: the browser receives a generic
+500 response, while the local console retains the asset name and original error.
+Restoring that asset must let the same process serve it successfully.
+
+From the repository root, `npm run test:browser -- visualiser.spec.mjs` runs
+the actual browser modules through every setup, endpoint rendering, overview
+and narrow focus views, navigation, persisted progress, invalid saved state
+and unavailable browser storage. Distinct cases cover module close-ups, resistor
+values, placement focus, power instructions and explicit ESP display hints. These checks require the Playwright Chromium
+installation described in the [test guide](../tests/README.md).
+One smoke test also starts the real loopback server on a temporary available port
+and checks initialization, stylesheet loading and navigation under its actual
+Content Security Policy, with no policy violations or browser exceptions.
+
+Endpoint and step variants are documented with JSDoc in `plan.mjs`. Coordinate
+helpers either validate their documented input or require already validated
+coordinates. `showEsp` is the renderer's explicit per-step visibility hint; step
+identifiers are navigation/storage keys, not presentation policy.

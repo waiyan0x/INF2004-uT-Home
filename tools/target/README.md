@@ -5,7 +5,19 @@ patches. It checks clean kernel/SDK revisions and SDK submodules, compiler/tools
 source hashes and compiler profiles. The dependency checkouts stay unchanged.
 No build command opens serial, resets or flashes the board.
 
+Post-build policies live in named `verify_*` functions. In particular,
+`verify_wifi_probe` checks diagnostic settings, `verify_configuration_layout`
+checks the reviewed partition bytes, and `verify_managed_cjson` checks the lock
+version and host/target source identity. The build coordinator sequences these
+checks and retains their evidence; a successful compiler exit is insufficient.
+
 ## Build modes
+
+The CLI keeps the flags below. `build_modes.py` resolves them before any staging
+into one immutable `BuildSelection`, with independent static-queue and BLE
+options. Its mode table owns prerequisites; the selection emits both CMake
+settings and evidence flags. Python callers pass `selection=resolve_mode(...)`
+to `build()`, with compatibility/resource patches supplied by keyword.
 
 Activate the pinned [firmware environment](../../firmware/README.md#pinned-target),
 then run `python tools/target/qualify_kernel.py inspect` from the repository root.
@@ -21,6 +33,9 @@ and paths inside dependencies are rejected, never cleaned. Custom `--sdk` and
 | `--runtime-port` | Project acceptance fixture; no peripheral activation |
 | `--runtime-port --native-uart-fixture` | Isolated native UART ring/fault checks; disconnect external UART senders and receivers before installation |
 | `--runtime-port --configuration-app` | USB/profile/storage application used with the UI and peripherals |
+| `--runtime-port --configuration-app --static-net-queues --model-load-probe` | Test-only varied-goal classifier OFF/ON comparison with active peripherals; command-9 payload is diagnostic-only |
+| `--runtime-port --static-net-queues --senlux-probe` | Isolated SEN0390 and BMP388 read diagnostic; no application workers |
+| `--runtime-port --configuration-app --static-net-queues --senlux-app-probe` | Diagnostic configuration application with the provisional SEN0390 binding enabled |
 
 Diagnostic examples retain their pinned source bytes and get separate build
 records marked `diagnostic_only`. They do not qualify the application, static
@@ -83,6 +98,42 @@ Check a staged project against current owned source before reuse:
 python tools/target/qualify_kernel.py verify-snapshot --project-dir "$env:USERPROFILE/esp/uthome-config-new-build/project"
 python -B -m unittest discover -s tests/target -v
 ```
+
+## Loaded classifier diagnostic
+
+The loaded model probe uses the frozen fixture in
+`tests/target/runtime_port_board/loadmodel/`. It preserves the configuration
+application and substitutes only its workload-observer call. The first command-9
+request starts four 75-second phases: OFF, ON, OFF, ON; phase four stays done.
+Each ON request runs four classifier calls over immutable Python parity vectors.
+No recommendation, Apply, new task or runtime allocation is introduced. The
+large read-only test corpus is diagnostic flash, not model storage.
+
+Diagnostic workload replies use payload version `0x41494C31`. Header words
+20..23 hold phase, cumulative predictions, last batch wall time in microseconds
+and cumulative mismatches. Ordinary host decoders intentionally reject it.
+Use the retained bench reader; do not open Configuration Desk during this image's
+test. The reader validates and retains original frames before adapting a copy
+for the existing workload decoder. Standard telemetry and configuration paths
+remain unchanged. The qualifier checks fixture hashes, observer substitution
+scope and absent diagnostic symbols in ordinary images. Radio/isolated-model
+modes cannot be combined with this probe.
+
+Preserve the running image/profile and full flash backup before installation;
+restore them afterward. Use the reviewed three-peripheral wiring without an
+actuator. Loaded classifier timing is not full adviser/feature/UI latency or
+evidence of model benefit. Compiler stack records and empirical sentinels are
+separate observations, not worst-case stack proofs.
+
+## SEN0390 application diagnostic
+
+`--senlux-app-probe` requires the configuration application and static network
+queues, and cannot be combined with the other probes. The build checks the
+binder's actual compiler flag and marks its evidence `diagnostic_only`; ordinary
+builds keep the light capability disabled. Applying a profile still writes the
+saved configuration. Preserve the complete flash and exact partition layout
+before this test, and restore and verify the original firmware **and** saved
+configuration afterward. A short diagnostic capture is not a release sign-off.
 
 ## Identify or recover the board
 
@@ -180,6 +231,11 @@ counted once; the kernel's internal pool already includes stacks carved from it.
 RAM-resident code is a separate category. A passed fixed-map check never sets
 runtime heap, stack high-water or whole-system qualification to true.
 
+The UART boundary extraction transfers eight bytes of the existing 64-byte
+UART allowance to `c3ukern` for its two native handles; `c3uart` retains 56 bytes.
+All three budget variants keep their aggregate reservations unchanged. Each
+object remains independently bounded, and unlisted writable objects still fail.
+
 Unassigned linker space is not measured free heap or stack headroom. Keep
 per-module limits and actual sizes in the generated budget record. Wireless/AI
 reservations and complete stack evidence are required before combined release.
@@ -209,3 +265,63 @@ It selects the SDK's static NimBLE host-global definitions and verifies the
 effective setting. It is a footprint experiment, not an exemption or proof that
 controller, NPL, task/timer and traffic paths no longer allocate. Use a new build
 folder and the same network memory budget for a meaningful comparison.
+
+## Network observations and flash-size analysis
+
+`python -m tools.target.network_acceptance --help` lists finite read-only HTTPS,
+MQTT and optional BLE capture commands. They require explicit endpoints and
+never flash, read USB, apply configuration or publish MQTT. Reports cannot be
+overwritten; a capture is not whole-system qualification. The implementation
+checks use offline socket/BLE doubles only.
+
+`python -m tools.target.network_size --help` describes read-only flash attribution
+from existing build artifacts; failed builds stay failed. Exact specifications,
+commands, resource requests and acceptance matrix are maintained in the
+[network guide](../../firmware/src/network/README.md#read-only-network-diagnostics-and-client-test-pack).
+
+## Authenticated HTTP configuration client
+
+`python -m tools.target.network_config --help` describes the separate mutating
+client. `network_acceptance` remains read-only. Supply a trusted CA and set
+UTHOME_TOKEN privately in the environment; do not put credentials in shell history.
+These are client examples for a later authorized bench session, not build steps:
+
+```powershell
+python -m tools.target.network_config https://DEVICE:8443 --ca CA.pem --report state-01.json state
+python -m tools.target.network_config https://DEVICE:8443 --ca CA.pem --report apply-01.json apply --request-id 11 --boot-id 0123456789abcdef --request-token operation-11 --revision 8 --expected-revision 7 --profile node.json
+python -m tools.target.network_config https://DEVICE:8443 --ca CA.pem --report result-01.json result --request-id 11 --boot-id 0123456789abcdef --request-token operation-11
+```
+
+Replace every example ID/revision/boot with freshly observed values. Coordinate
+IDs with USB clients. The tool neither allocates IDs nor retries mutations. It
+reserves a new report before contact, validates bounded typed replies, matches
+boot/ID and checks saved revision/CRC/flags. Result GET describes completion,
+possibly historical; query state separately. A lost reply, 404, cache eviction or
+uncertain save does not authorize a fresh Apply. Profile bytes are sent exactly;
+the node performs full schema validation. No flashing, serial access, redirects,
+credential provisioning or MQTT publication occurs. Full transport/error/resource
+specifications are in the maintained network guide.
+
+Reproduce the new routing/client tests with:
+`python -m unittest tests.target.test_network_config tests.target.test_network_config_client`.
+The ESP transport tests are `tests.target.test_network_esp`; use the project's
+pinned compiler/formatter environment. All automated HTTP mutation tests use
+local doubles and fake storage, never a live device.
+
+Configuration-client reports now include an explicit `outcome` in addition to
+controller fields. Interpret it as follows; the client never retries automatically:
+
+| Outcome | Operator action |
+|---|---|
+| saved_at_completion | Save was confirmed at that completion; if historical, query state before assuming it remains current |
+| active_unsaved | Runtime may have changed; persistence is not confirmed. Query state and follow existing USB recovery guidance before another mutation |
+| rejected | Review the original full profile and validation constraints; do not resend unchanged input |
+| stale / conflict | Re-read state, coordinate USB IDs/revisions, then explicitly decide the next operation |
+| recovery_required / storage_error | Inspect state and use the existing controller recovery procedure; do not blindly repeat writes |
+| not_confirmed | Delivery or admission is unknown. Query matching result then state; missing/evicted/rebooted results do not authorize replay |
+| state_observed | Read-only observation, not proof that an earlier Apply succeeded |
+
+Retain the operation's boot ID, request ID, token and exact original profile bytes
+outside the device until resolved. Historical completion is never upgraded to
+current state. The network guide's acceptance checklist separates offline test
+coverage from board observations and Member 1's resource/timing approval.

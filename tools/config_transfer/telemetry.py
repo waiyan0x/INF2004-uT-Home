@@ -1,4 +1,4 @@
-"""Strict decoding of version 1/2/3 typed observations (TELEMETRY.md)."""
+"""Strict decoding of version 1/2/3/4/5 typed observations (TELEMETRY.md)."""
 from dataclasses import dataclass
 import math
 import re
@@ -6,6 +6,11 @@ import struct
 import zlib
 
 from .protocol import Command, HEADER
+from .payloads import (
+    AllocationCounts, ConfigurationState, HealthState, MemoryAudit,
+    Quality, QueueObservation, RadarTarget, RuntimeState, SampleObservation,
+    SampleValue, Unavailable,
+)
 
 
 @dataclass(frozen=True)
@@ -13,15 +18,15 @@ class Snapshot:
     request_id: int
     result: int
     timestamp_ms: int
-    configuration: dict
-    runtime: dict
-    health: dict
-    queues: tuple
-    samples: tuple
-    memory_audit: dict | None = None
+    configuration: ConfigurationState | Unavailable
+    runtime: RuntimeState | Unavailable
+    health: HealthState | Unavailable
+    queues: tuple[QueueObservation, ...]
+    samples: tuple[SampleObservation, ...]
+    memory_audit: MemoryAudit | None = None
 
 
-def signed(value, bits=32):
+def signed(value: int, bits: int = 32) -> int:
     return value - (1 << bits) if value & (1 << (bits - 1)) else value
 
 
@@ -36,9 +41,9 @@ def decode_telemetry(frame: bytes, *, request_id: int) -> Snapshot:
         raise ValueError("telemetry checksum mismatch")
     data = frame[24:]
     h = struct.unpack_from("<40I", data)
-    if h[0] not in (1, 2, 3) or h[1] > 2:
+    if h[0] not in (1, 2, 3, 4, 5) or h[1] > 2:
         raise ValueError("unsupported telemetry version/result")
-    header_size = {1: 160, 2: 320, 3: 352}[h[0]]
+    header_size = {1: 160, 2: 320, 3: 352, 4: 352, 5: 352}[h[0]]
     if len(data) < header_size:
         raise ValueError("truncated telemetry header")
     if h[1]:
@@ -51,16 +56,18 @@ def decode_telemetry(frame: bytes, *, request_id: int) -> Snapshot:
         len(data) != header_size + queues * 32 + samples * 128):
         raise ValueError("invalid snapshot counts/state")
     audit = _decode_audit(data[160:header_size]) if h[0] >= 2 else None
-    queue_rows = []
+    queue_rows: list[QueueObservation] = []
     offset = header_size
     for index in range(queues):
         q = struct.unpack_from("<8I", data, offset)
-        if q[0] != index or not 1 <= q[1] <= 4 or q[5] > q[6] or q[6] > 8 or q[7]:
+        max_kind = 6 if h[0] == 5 else (5 if h[0] == 4 else 4)
+        if q[0] != index or not 1 <= q[1] <= max_kind or q[5] > q[6] or q[6] > 8 or q[7]:
             raise ValueError("invalid queue row")
-        queue_rows.append(dict(zip(("index", "type", "published", "consumed", "dropped",
-                                    "depth", "high_water"), q[:7])))
+        queue_rows.append(dict(index=q[0], type=q[1], published=q[2], consumed=q[3],
+                               dropped=q[4], depth=q[5], high_water=q[6]))
         offset += 32
-    sample_rows = []
+    sample_rows: list[SampleObservation] = []
+    qualities: tuple[Quality, ...] = ("missing", "fresh", "stale", "fault")
     seen = set()
     for _ in range(samples):
         row = data[offset:offset + 128]
@@ -86,17 +93,18 @@ def decode_telemetry(frame: bytes, *, request_id: int) -> Snapshot:
                 raise ValueError("inconsistent freshness")
         elif status == 1 and timestamp <= now:
             raise ValueError("inconsistent sample fault")
-        value = _decode_value(kind, row[72:112])
-        if status != 1 and any(row[72:112]):
+        raw_unavailable = kind == 6 and quality in (0, 3)
+        if (status != 1 or raw_unavailable) and any(row[72:112]):
             raise ValueError("fault values must be zero")
+        value = _decode_value(kind, row[72:112]) if status == 1 and not raw_unavailable else None
         sample_rows.append(dict(queue=queue, type=kind, source_index=source,
-            name=name.decode("ascii"), quality=("missing", "fresh", "stale", "fault")[quality],
+            name=name.decode("ascii"), quality=qualities[quality],
             timestamp_ms=timestamp, sequence=sequence, status=status,
             stale_after_ms=stale, age_ms=None if quality == 0 else age,
-            value=value if status == 1 else None))
+            value=value))
         offset += 128
     return Snapshot(rid, 0, h[2] | h[3] << 32,
-        dict(zip(("active_revision", "saved_revision", "active_crc", "saved_crc", "flags"), h[4:9])),
+        dict(active_revision=h[4], saved_revision=h[5], active_crc=h[6], saved_crc=h[7], flags=h[8]),
         dict(state=h[9], generation=h[10], failed_workers=h[11], retained_instances=h[12],
              service_error=signed(h[13]), apply_error=signed(h[38]), recovery_error=signed(h[39])),
         dict(total_events=h[16], total_suppressed=h[17],
@@ -109,7 +117,7 @@ AUDIT_KINDS = ("task", "mutex", "semaphore", "flag", "mailbox", "message_buffer"
                "fixed_pool", "variable_pool", "rendezvous", "cyclic", "alarm")
 
 
-def _decode_audit(data):
+def _decode_audit(data: bytes) -> MemoryAudit | None:
     words = struct.unpack("<" + str(len(data) // 4) + "I", data)
     flags = words[0]
     if flags & ~7 or words[1] or any(words[30:32]):
@@ -118,7 +126,7 @@ def _decode_audit(data):
         if any(words):
             raise ValueError("unavailable memory audit must be zero")
         return None
-    application = None
+    application: AllocationCounts | None = None
     if len(words) == 48:
         if words[40] > 1 or (not words[40] and (any(words[41:]) or flags & 2)):
             raise ValueError("invalid application-startup boundary")
@@ -139,8 +147,8 @@ def _decode_audit(data):
                             kernel_calls=dict(zip(("malloc", "calloc", "realloc", "free"), words[36:40]))))
 
 
-def _decode_value(kind, data):
-    used = 36 if kind == 2 else 8
+def _decode_value(kind: int, data: bytes) -> SampleValue:
+    used = {2: 36, 5: 4, 6: 20}.get(kind, 8)
     if any(data[used:]):
         raise ValueError("nonzero value padding")
     if kind == 1:
@@ -156,7 +164,17 @@ def _decode_value(kind, data):
         if event >= 8:
             raise ValueError("unknown health event")
         return dict(event=event, occurrences=occurrences)
-    targets = []
+    if kind == 5:
+        millilux, = struct.unpack_from("<I", data)
+        if millilux > 200000000:
+            raise ValueError("invalid illuminance")
+        return dict(millilux=millilux)
+    if kind == 6:
+        length, = struct.unpack_from("<I", data)
+        if not 1 <= length <= 16 or any(data[4 + length:20]):
+            raise ValueError("invalid raw byte length/padding")
+        return {"bytes": list(data[4:4 + length])}
+    targets: list[RadarTarget] = []
     for index in range(3):
         flags, position, speed = struct.unpack_from("<3I", data, index * 12)
         if flags & 0xFFFE or speed > 65535 or (not flags & 1 and (flags or position or speed)):

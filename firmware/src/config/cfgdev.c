@@ -3,6 +3,7 @@
  * @brief Translate reviewed descriptor versions and enforce route resources.
  */
 #include "cfgdev.h"
+#include "uthome/sample.h"
 #include <string.h>
 static bool connection (const cfgjson_value_t * p_value,
                         const cfgplan_t *       p_plan,
@@ -13,16 +14,26 @@ static bool behaviour (const cfgjson_value_t * p_value,
 static bool output (const cfgjson_value_t * p_value,
                     cfgplan_device_t *      p_device);
 static bool radar_frame (const cfgjson_value_t * p_value);
+static bool recipe_address (const cfgjson_value_t * p_value,
+                            uint32_t *              p_address);
+static bool recipe_behaviour (const cfgjson_value_t * p_value,
+                              cfgplan_device_t *      p_device);
 static bool destination (const cfgjson_value_t * p_value,
                          const cfgplan_t *       p_plan,
                          cfgplan_device_t *      p_device);
 static bool sources (const cfgjson_value_t * p_value,
                      const cfgplan_t *       p_plan,
                      cfgplan_device_t *      p_device);
-static const char * const gp_names[] = {
-    "bmp388", "ssd1306_spi", "hlk_ld2450", "hc_sr04", "pwm_output"};
-static const uint32_t g_min_stacks[]    = {3072U, 3072U, 4096U, 3072U, 3072U};
-static const uint32_t g_max_instances[] = {2U, 4U, 1U, 2U, 4U};
+static const char * const gp_names[]     = {"bmp388",
+                                            "ssd1306_spi",
+                                            "hlk_ld2450",
+                                            "hc_sr04",
+                                            "pwm_output",
+                                            "sen0390",
+                                            "i2c_recipe"};
+static const uint32_t     g_min_stacks[] = {
+    3072U, 3072U, 4096U, 3072U, 3072U, 3072U, 3072U};
+static const uint32_t g_max_instances[] = {2U, 4U, 1U, 2U, 4U, 1U, 2U};
 
 /** @brief Return the compiled descriptor name, separate from runtime code. */
 const char * cfgdev_name (cfgplan_driver_t driver)
@@ -151,11 +162,13 @@ bool cfgdev_limits (const cfgplan_t * p_plan)
             {
                 return false;
             }
+            /* Disabled entries still reserve wiring. Every I2C driver shares
+             * this address ledger, including the generic recipe engine. */
             if ((p_old->bus == p_device->bus) &&
-                (p_old->driver == p_device->driver) &&
-                (((CFGPLAN_ENV == p_device->driver) &&
+                ((((0U != p_old->address) && (0U != p_device->address)) &&
                   (p_old->address == p_device->address)) ||
-                 (CFGPLAN_RADAR == p_device->driver)))
+                 ((CFGPLAN_RADAR == p_device->driver) &&
+                  (CFGPLAN_RADAR == p_old->driver))))
             {
                 return false;
             }
@@ -170,7 +183,9 @@ static bool connection (const cfgjson_value_t * p_value,
                         const cfgplan_t *       p_plan,
                         cfgplan_device_t *      p_device)
 {
-    static const char * const p_env_keys[]  = {"ref", "address"};
+    static const char * const p_env_keys[]   = {"ref", "address"};
+    static const char * const p_light_keys[] = {
+        "ref", "address", "enable_gpio"};
     static const char * const p_oled_keys[] = {
         "ref", "cs_gpio", "dc_gpio", "reset_gpio", "cs_pullup_ohms"};
     static const char * const p_radar_keys[] = {"ref"};
@@ -220,6 +235,13 @@ static bool connection (const cfgjson_value_t * p_value,
     }
     p_device->bus = (uint32_t)bus_index; /* At most three interfaces. */
     const cfgplan_bus_t * p_bus = &p_plan->buses[bus_index];
+    if (CFGPLAN_RECIPE == p_device->driver)
+    {
+        return (CFGPLAN_I2C == p_bus->kind) &&
+               (cfgjson_object(p_value, p_env_keys, 2U, 3U)) &&
+               (recipe_address(cfgjson_get(p_value, "address"),
+                               &p_device->address));
+    }
     if (CFGPLAN_ENV == p_device->driver)
     {
         p_device->address =
@@ -229,6 +251,17 @@ static bool connection (const cfgjson_value_t * p_value,
                (cfgjson_object(p_value, p_env_keys, 2U, 3U)) &&
                ((cfgjson_is(cfgjson_get(p_value, "address"), "0x76")) ||
                 (cfgjson_is(cfgjson_get(p_value, "address"), "0x77")));
+    }
+    if (CFGPLAN_LIGHT == p_device->driver)
+    {
+        p_device->address = 0x4AU;
+        return (CFGPLAN_I2C == p_bus->kind) &&
+               (cfgjson_object(p_value, p_light_keys, 3U, 7U)) &&
+               (cfgjson_is(cfgjson_get(p_value, "address"), "0x4a")) &&
+               (cfgjson_uint(cfgjson_get(p_value, "enable_gpio"),
+                             0U,
+                             21U,
+                             &p_device->pin_a));
     }
     if (CFGPLAN_RADAR == p_device->driver)
     {
@@ -274,7 +307,12 @@ static bool destination (const cfgjson_value_t * p_value,
                          const cfgplan_t *       p_plan,
                          cfgplan_device_t *      p_device)
 {
-    const uint32_t types[] = {1U, 0U, 2U, 3U};
+    static const uint32_t types[CFGPLAN_DRIVER_COUNT] = {
+        [CFGPLAN_ENV]      = UTHOME_SAMPLE_ENVIRONMENT,
+        [CFGPLAN_RADAR]    = UTHOME_SAMPLE_TARGETS,
+        [CFGPLAN_DISTANCE] = UTHOME_SAMPLE_DISTANCE,
+        [CFGPLAN_LIGHT]    = UTHOME_SAMPLE_LIGHT,
+        [CFGPLAN_RECIPE]   = UTHOME_SAMPLE_RAW};
     for (size_t index = 0U; index < p_plan->queue_count; ++index)
     {
         if ((cfgjson_is(p_value, p_plan->queues[index].name)))
@@ -335,17 +373,22 @@ static bool behaviour (const cfgjson_value_t * p_value,
     const cfgjson_value_t * p_profile   = cfgjson_get(p_value, "profile");
     const cfgjson_value_t * p_operation = cfgjson_get(p_value, "operation");
     bool                    b_ok        = false;
-    if (CFGPLAN_ENV == p_device->driver)
+    if (CFGPLAN_RECIPE == p_device->driver)
+    {
+        b_ok = recipe_behaviour(p_value, p_device);
+    }
+    else if ((CFGPLAN_ENV == p_device->driver) ||
+             (CFGPLAN_LIGHT == p_device->driver))
     {
         b_ok = (cfgjson_object(p_value, p_env_keys, 5U, 31U)) &&
                (cfgjson_is(p_profile, "periodic_sensor")) &&
                (cfgjson_is(p_operation, "read")) &&
                (cfgjson_uint(cfgjson_get(p_value, "interval_ms"),
-                             200U,
+                             (CFGPLAN_LIGHT == p_device->driver) ? 1000U : 200U,
                              60000U,
                              &p_device->period_ms)) &&
                (cfgjson_uint(cfgjson_get(p_value, "timeout_ms"),
-                             10U,
+                             (CFGPLAN_LIGHT == p_device->driver) ? 30U : 10U,
                              100U,
                              &p_device->timeout_us));
         p_device->timeout_us *= 1000U;
@@ -396,6 +439,93 @@ static bool behaviour (const cfgjson_value_t * p_value,
     }
     return b_ok &&
            (destination(cfgjson_get(p_value, "destination"), p_plan, p_device));
+}
+
+/** @brief Admit only canonical lowercase seven-bit addresses 0x08..0x77. */
+static bool recipe_address (const cfgjson_value_t * p_value,
+                            uint32_t *              p_address)
+{
+    static const char digits[] = "0123456789abcdef";
+    if ((0 == cJSON_IsString(p_value)) ||
+        (4U != strlen(p_value->valuestring)) ||
+        ('0' != p_value->valuestring[0]) || ('x' != p_value->valuestring[1]))
+    {
+        return false;
+    }
+    uint32_t address = 0U;
+    for (size_t index = 2U; index < 4U; ++index)
+    {
+        const char * p_digit = strchr(digits, p_value->valuestring[index]);
+        if (NULL == p_digit)
+        {
+            return false;
+        }
+        /* Both pointers refer to the same 16-character table. */
+        address = (address << 4U) | (uint32_t)(p_digit - digits);
+    }
+    if ((address < 0x08U) || (address > 0x77U))
+    {
+        return false;
+    }
+    *p_address = address;
+    return true;
+}
+
+/** @brief Copy bounded register reads and selected result bytes only. */
+static bool recipe_behaviour (const cfgjson_value_t * p_value,
+                              cfgplan_device_t *      p_device)
+{
+    static const char * const p_keys[] = {"profile",
+                                          "operation",
+                                          "register",
+                                          "read_length",
+                                          "read_pause_ms",
+                                          "select_offset",
+                                          "select_length",
+                                          "interval_ms",
+                                          "timeout_ms",
+                                          "destination"};
+    const bool                b_ok =
+        (cfgjson_object(p_value, p_keys, 10U, 1023U)) &&
+        (cfgjson_is(cfgjson_get(p_value, "profile"), "periodic_sensor")) &&
+        (cfgjson_is(cfgjson_get(p_value, "operation"), "read_register")) &&
+        (cfgjson_uint(cfgjson_get(p_value, "register"),
+                      0U,
+                      255U,
+                      &p_device->recipe_register)) &&
+        (cfgjson_uint(cfgjson_get(p_value, "read_length"),
+                      1U,
+                      16U,
+                      &p_device->read_length)) &&
+        (cfgjson_uint(cfgjson_get(p_value, "read_pause_ms"),
+                      0U,
+                      10U,
+                      &p_device->read_pause_ms)) &&
+        (cfgjson_uint(cfgjson_get(p_value, "select_offset"),
+                      0U,
+                      15U,
+                      &p_device->select_offset)) &&
+        (cfgjson_uint(cfgjson_get(p_value, "select_length"),
+                      1U,
+                      16U,
+                      &p_device->select_length)) &&
+        (cfgjson_uint(cfgjson_get(p_value, "interval_ms"),
+                      200U,
+                      60000U,
+                      &p_device->period_ms)) &&
+        (cfgjson_uint(cfgjson_get(p_value, "timeout_ms"),
+                      10U,
+                      100U,
+                      &p_device->timeout_us));
+    if ((!b_ok) ||
+        ((p_device->select_offset + p_device->select_length) >
+         p_device->read_length) ||
+        (p_device->read_pause_ms >= p_device->timeout_us))
+    {
+        return false;
+    }
+    p_device->timeout_us *= 1000U;
+    return true;
 }
 
 /** @brief Bind zero-start PWM settings; only a validated rule can command duty.

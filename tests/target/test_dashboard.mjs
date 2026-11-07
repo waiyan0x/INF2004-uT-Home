@@ -2,9 +2,16 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { renderProfile, renderTelemetry } from '../../tools/configurator/static/dashboard.js';
 import { renderDiscovery } from '../../tools/configurator/static/discovery.js';
+import { renderDatasheet } from '../../tools/configurator/static/datasheet.js';
 
 // Minimal DOM contract for presentation-only tests; no browser or USB access.
 class Element {
+  constructor(tagName = "div") { this.tagName = tagName; }
+  querySelectorAll(tag) { return this.children.flatMap(child => [child, ...child.querySelectorAll(tag)]).filter(child => child.tagName === tag); }
+  createTHead() { const item = new Element("thead"); this.append(item); return item; }
+  createTBody() { const item = new Element("tbody"); this.append(item); return item; }
+  insertRow() { const item = new Element("tr"); this.append(item); return item; }
+  insertCell() { const item = new Element("td"); this.append(item); return item; }
   children = [];
   dataset = {};
   attributes = {};
@@ -16,14 +23,15 @@ class Element {
   setAttribute(key, value) { this.attributes[key] = value; }
 }
 const elements = new Map();
-globalThis.document = {
+const document = {
   getElementById(id) {
     if (!elements.has(id)) elements.set(id, new Element());
     return elements.get(id);
   },
-  createElement: () => new Element(),
+  createElement: tag => new Element(tag),
   createElementNS: () => new Element(),
 };
+globalThis.document = document;
 const text = id => document.getElementById(id).textContent;
 
 const discoveryReport = () => ({ preset_id: 'bench_i2c', preset_version: '0.2.0', discovery_id: 'test-token',
@@ -35,6 +43,20 @@ const discoveryReport = () => ({ preset_id: 'bench_i2c', preset_version: '0.2.0'
       settings: [{ label: 'Reading interval', value: '500 ms', source: 'bench_observation', reason: 'Bench starting value.' }] } }] });
 const descendants = element => [element, ...element.children.flatMap(descendants)];
 const addButtons = () => descendants(document.getElementById('discovery-results')).filter(node => node.onclick);
+
+test('datasheet facts stay text and show address and unresolved conflicts', () => {
+  const facts = new Element(), issues = new Element();
+  renderDatasheet({draft: {facts: [{name: '<img src=x onerror=alert(1)>', value: '0x94/0x95',
+    status: 'stated', pages: [1, 13], note: 'Check width'}], unresolved: ['Register conflict: 0x02 vs 0x04']},
+    i2c_address_review: {derived_7bit: 0x4a, conflicting: true}}, facts, issues);
+  assert.match(facts.textContent, /<img src=x onerror=alert\(1\)>/);
+  assert.match(facts.textContent, /pages 1, 13/);
+  assert.match(facts.textContent, /0x4a/);
+  assert.match(issues.textContent, /0x02 vs 0x04/);
+  assert.match(issues.textContent, /addresses conflict/);
+  assert.equal(facts.children.length, 2);
+  assert.equal(facts.children[0].children.length, 0);
+});
 
 test('radar candidates require a separate confirmation and never claim verified identity', () => {
   const report = discoveryReport();
@@ -115,8 +137,9 @@ test('profile tiles describe configuration, never simulated hardware status', ()
   ], interfaces: [{ id: 'bus', protocol: 'i2c', sda_gpio: 8, clock_hz: 100000 }],
   queues: [{ id: 'samples', depth: 4, overflow_policy: 'drop_oldest' }] }));
   assert.equal(text('devicesMeta'), '1/2 enabled');
-  assert.match(text('devices'), /configured; not hardware-verified/);
-  assert.match(text('devices'), /disabled/);
+  assert.match(text('devices'), /HC-SR04 · enabled/);
+  assert.match(text('devices'), /PWM output · disabled/);
+  assert.doesNotMatch(text('devices'), /verified|working|connected/);
   assert.match(text('interfaces'), /SDA 8/);
   assert.match(text('queues'), /Capacity 4/);
   renderProfile('{');
@@ -140,16 +163,52 @@ test('live pills retain source identity and freshness, then clear on disconnect'
     { type: 1, name: 'bmp', quality: 'stale', value: { temperature_c: 25, pressure_pa: 101325 } },
     { type: 3, name: 'sonar', quality: 'fresh', value: { distance_mm: 120 } },
     { type: 2, name: 'radar', quality: 'fresh', value: { targets: [{ present: true }, { present: false }] } },
+    { type: 5, name: 'light', quality: 'stale', value: { millilux: 1234 } },
   ], runtime: { failed_workers: 0 }, health: { total_events: 2 },
   configuration: { active_revision: 4, saved_revision: 3 } });
   assert.match(text('pills'), /bmp · Temperature25.0 °Cstale/);
   assert.match(text('pills'), /1013.3 hPa/);
   assert.match(text('pills'), /sonar · Distance120 mm/);
   assert.match(text('pills'), /radar · Presence1 targets/);
+  assert.match(text('pills'), /light · Light1.234 luxstale/);
   assert.match(text('healthTiles'), /Active 4 · saved 3/);
   renderTelemetry(null);
-  assert.doesNotMatch(text('pills'), /25.0|120 mm/);
+  assert.doesNotMatch(text('pills'), /25.0|120 mm|1.234 lux/);
   assert.equal(text('healthTiles'), '');
   renderTelemetry({ result: 1 });
   assert.match(text('pills'), /Snapshot unavailable/);
+});
+
+
+test('missing discovery callbacks stay disabled after local confirmation changes', () => {
+  const report = discoveryReport();
+  report.devices[0] = {observation: {method: 'manual', protocol: 'gpio'},
+    identity: {status: 'candidate', selected: null, candidates: [{id: 'hc_sr04', version: '1'}]},
+    capabilities: {support: 'unchecked'}, recommendation: {status: 'awaiting_identity'}};
+  renderDiscovery(report, null);
+  const checkbox = descendants(document.getElementById('discovery-results')).find(node => node.type === 'checkbox');
+  checkbox.checked = true;
+  checkbox.onchange();
+  assert.equal(addButtons()[0].disabled, true);
+  assert.doesNotThrow(() => addButtons()[0].onclick());
+  renderDiscovery(discoveryReport(), null);
+  assert.equal(addButtons()[0].disabled, true);
+});
+
+test('recipe bytes remain raw, retain freshness and disappear on a fault', () => {
+  const snapshot = {timestamp_ms: 1000, samples: [
+    {type: 6, name: 'chip_id', quality: 'fresh', age_ms: 10, value: {bytes: [80, 0, 255]}},
+  ], runtime: {failed_workers: 0}, health: {total_events: 0},
+  configuration: {active_revision: 2, saved_revision: 2}};
+  renderTelemetry(snapshot);
+  assert.match(text('pills'), /chip_id · Raw bytes50 00 FF/);
+  assert.match(text('readings'), /50 00 FF/);
+  assert.doesNotMatch(text('pills'), /°C|lux|mm/);
+  snapshot.samples[0] = {...snapshot.samples[0], quality: 'stale'};
+  renderTelemetry(snapshot);
+  assert.match(text('pills'), /50 00 FFstale/);
+  snapshot.samples[0] = {...snapshot.samples[0], quality: 'fault', value: null};
+  renderTelemetry(snapshot);
+  assert.doesNotMatch(text('pills'), /50 00 FF/);
+  assert.match(text('readings'), /faultUnavailable/);
 });

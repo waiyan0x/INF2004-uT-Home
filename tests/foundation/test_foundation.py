@@ -60,6 +60,20 @@ class PlannerTests(unittest.TestCase):
             candidate=example(); candidate["runtime"][field]=value
             with self.subTest(field=field), self.assertRaises(ConfigurationError): self.plan(candidate)
 
+    def test_failed_candidate_does_not_retain_wiring_claims(self):
+        valid = example("two-environment-sensors")
+        expected = self.plan(valid)
+        for enabled in (False, True):
+            candidate = deepcopy(valid)
+            candidate["devices"][1]["enabled"] = enabled
+            candidate["devices"][1]["interface"]["address"] = candidate["devices"][0]["interface"]["address"]
+            original = deepcopy(candidate)
+            with self.subTest(enabled=enabled):
+                with self.assertRaisesRegex(ConfigurationError, "Duplicate I2C bus address"):
+                    self.plan(candidate)
+                self.assertEqual(candidate, original)
+                self.assertEqual(self.plan(valid), expected)
+
     def test_invalid_examples_are_rejected(self):
         for path in (ROOT/"configs/invalid").glob("*.json"):
             with self.subTest(path=path.name), self.assertRaises(ConfigurationError): self.plan(load_document(path))
@@ -197,11 +211,14 @@ class PlannerTests(unittest.TestCase):
     def test_json_duplicate_nonfinite_and_size_rejection(self):
         with tempfile.TemporaryDirectory(prefix="uthome-json-") as folder:
             path=Path(folder)/"bad.json"
-            for text in ('{"a":1,"a":2}','{"a":NaN}','[]'):
+            for text in ('{"a":1,"a":2}', '{"a":NaN}', '{"a":Infinity}',
+                         '{"a":-Infinity}', '{"a":1e999}', '{"a":-1e999}', '[]'):
                 path.write_text(text,encoding="utf-8")
                 with self.subTest(text=text),self.assertRaises(ConfigurationError):load_document(path)
             path.write_text('{"a":1}',encoding="utf-8")
             with self.assertRaises(ConfigurationError):load_document(path,3)
+            path.write_text('{"a":1.25e2}', encoding="utf-8")
+            self.assertEqual(load_document(path), {"a":125.0})
 
 
 class Device(ctypes.Structure):

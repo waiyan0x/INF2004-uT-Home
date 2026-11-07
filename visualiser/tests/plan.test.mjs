@@ -110,9 +110,27 @@ test("HC-SR04 echo has the 10k/15k divider and no direct 5 V route to GPIO5", ()
   assert.ok(graph.same("distance:TRIG", "A:j32"));
   assert.ok(graph.same("distance:VCC", "A:j29"));
 });
+test("provisional SEN0390 addition shares I2C and only uses the 3.3 V supply", () => {
+  const plan = PLANS.light, graph = netGraph(plan);
+  assert.equal(plan.steps[plan.initialStep].id, "light-prepare");
+  assert.ok(plan.steps.slice(0, plan.initialStep).every(step => step.phase === "Existing wiring reference"));
+  assert.ok(graph.same("light:SCL", "bmp:SCL"));
+  assert.ok(graph.same("light:SDA", "bmp:SDA"));
+  assert.ok(graph.same("light:SCL", "A:j35"));
+  assert.ok(graph.same("light:SDA", "A:j36"));
+  assert.ok(graph.same("light:VCC", "A:j31"));
+  assert.ok(graph.same("light:EN", "A:b29"));
+  assert.deepEqual(plan.steps.filter(s => s.resistor).map(s => [s.from, s.to, s.resistor]), [["A:a29", "A:a24", 10000]]);
+  assert.ok(graph.same("A:a29", "light:EN"));
+  assert.ok(graph.same("A:a24", "A:j30"));
+  assert.ok(graph.same("light:GND", "A:j30"));
+  assert.ok(!graph.same("light:VCC", "A:j29"));
+  assert.ok(!graph.same("light:EN", "A:j31"));
+  assert.match(plan.steps.at(-1).note, /not yet|no SEN0390 driver/i);
+});
 test("all wire changes are power-off steps; unknown modules receive no wiring", () => {
   for (const plan of Object.values(PLANS)) {
     for (const step of plan.steps.filter(s => s.kind === "wire")) assert.equal(step.power, undefined);
-    assert.ok(plan.modules.every(m => ["radar", "bmp", "oled", "distance"].includes(m)));
+    assert.ok(plan.modules.every(m => ["radar", "bmp", "oled", "distance", "light"].includes(m)));
   }
 });

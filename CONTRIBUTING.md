@@ -9,8 +9,8 @@ Record physical results against the exact image and setup. Scoped USB-core
 results are in the [evidence index](firmware/qualification/README.md); this guide
 does not certify the hardware or establish the board's current state. Full
 hardware acceptance, combined-system memory/object measurements, cleanup-failure
-and power-loss tests remain open. The user-deferred radar absence check stays
-deferred.
+and power-loss tests remain open. A scoped radar absence observation has passed;
+see the dated evidence below.
 
 For the bench: check the inventory and power first, use the wiring tables in
 sections 3–4, then follow the profile-change procedure and test table in
@@ -192,11 +192,12 @@ Face the antenna towards an open test area. Confirm a previously configured
 module still has the expected baud rate/report mode. Move a person or target
 through the area; absence of motion alone is not proof that the link has failed.
 
-**Open bench finding:** The earlier empty-scene test showed unavailable readings
-after the boards/cables were moved. Keep the hardware stationary for a repeat.
-A valid no-target report should stay FRESH with three ABSENT slots; unavailable
-means a fault. Startup timeouts also remain unexplained. Full observations and
-counts are retained in the [bench summary](firmware/qualification/README.md#peripheral-bench-observations).
+The earlier empty-scene test showed unavailable readings after the boards/cables
+were moved. A later [two-minute observation](firmware/qualification/esp32c3-radar-zero-target-20261102.json)
+with stationary hardware and a user-confirmed clear field produced 120 fresh
+reports with three absent slots. Startup timeouts and broader acceptance remain
+open. A valid no-target report is FRESH with three ABSENT slots; unavailable
+means a fault.
 
 ### Separate radar-to-LED test using layout A's pin assignments
 
@@ -442,7 +443,7 @@ this recipe does not install firmware or authorize another wiring layout.
    save**. Confirm active and saved revisions/CRCs agree before proceeding.
 3. In **Live monitor**, observe fresh BMP388/radar samples and physically confirm
    the OLED is readable and updating. Move across the radar view for a positive
-   movement demonstration; the deferred zero-target check is not implied here.
+   movement demonstration; repeat the zero-target check separately if needed.
 4. Disconnect the Desk, leaving the board powered. Read one telemetry and one
    work-cost snapshot with the [USB command-line client](tools/config_transfer/README.md).
    These snapshots expose allocation/object counters, worker costs and empirical
@@ -497,7 +498,7 @@ as passing. Suggested record:
 
 ### Acceptance matrix
 
-Status as of 27 October 2026, including the 27 Oct acceptance session. Statuses are **PASS**, **PARTIAL**, **FAIL**,
+Status based on the dated records below. Statuses are **PASS**, **PARTIAL**, **FAIL**,
 **NOT TESTED**, **BLOCKED** (depends on unfinished work) or **DEFERRED** (by
 the user). A PASS applies only to the image named; repeat it on the release
 image. Update a row only with a new dated record, never by editing old ones.
@@ -528,7 +529,7 @@ same-configuration workcost build's; repeat the image check on the release image
 | Cleanup-failure injection on the board | NOT TESTED | — | Reviewed injection method |
 | Controlled interrupted save / power loss | NOT TESTED | — | Operator and power-cut setup |
 | Combined Wi-Fi/BLE load, broker/AP loss | BLOCKED | Diagnostic images only | Unblocked by README delivery phases 1–3 (static radio resources and on-device MQTT/HTTP/BLE services in the configuration application); owner to be agreed |
-| Radar zero-target | DEFERRED | — | Only on request |
+| Radar zero-target | PASS (scoped) | [2 Nov observation](firmware/qualification/esp32c3-radar-zero-target-20261102.json): 120 fresh empty snapshots in two minutes | Repeat on the selected release image; controlled movement remains separate |
 | Final demonstration script | NOT TESTED | — | Release build and profile CRC to be chosen |
 
 Any C changes made while fixing hardware issues must still follow

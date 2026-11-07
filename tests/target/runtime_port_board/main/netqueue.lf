@@ -7,6 +7,8 @@ entries:
     netring (noflash)
     netpool (noflash)
     c3event (noflash)
+    # This check runs before the adapter can reject cache-off calls.
+    c3ewait:c3ewait_available (noflash)
     # Startup-only work runs with cache enabled and needs no scarce RAM code.
     c3nq:c3nq_init (default)
     c3nq:c3nq_bootstrap (default)

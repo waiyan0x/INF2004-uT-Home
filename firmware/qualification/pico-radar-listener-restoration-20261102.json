@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-11-02T13:14:24.226136+00:00",
+  "scope": "Restore Pico W full flash after temporary radar UART listener",
+  "paired_capture": "esp32c3-pico-radar-comparison-20261102.json",
+  "safety": "User reported GP5 disconnected and ESP/radar powered off before BOOTSEL.",
+  "files": [
+    {
+      "path": "build\\pico-radar-listener-20261102\\pico-before-first.bin",
+      "bytes": 2097152,
+      "sha256": "ed81eb7c23e737be47925e5533b49d129f117bdfa4b6d6d8f60e7c698dc7bfc2"
+    },
+    {
+      "path": "build\\pico-radar-listener-20261102\\pico-before-second.bin",
+      "bytes": 2097152,
+      "sha256": "ed81eb7c23e737be47925e5533b49d129f117bdfa4b6d6d8f60e7c698dc7bfc2"
+    },
+    {
+      "path": "build\\pico-radar-listener-20261102\\pico-after-restore.bin",
+      "bytes": 2097152,
+      "sha256": "ed81eb7c23e737be47925e5533b49d129f117bdfa4b6d6d8f60e7c698dc7bfc2"
+    }
+  ],
+  "byte_for_byte_readback_matches_original": true,
+  "readback_before_reboot": true,
+  "picotool_load_verify": "passed",
+  "pre_reboot_program": "uart_exercise; Pico SDK 1.5.1; pico_w",
+  "post_reboot_usb_identity": "2e8a:000a E6626005A74D2129 on COM3",
+  "limitations": [
+    "USB re-enumeration is not a complete functional test of uart_exercise.",
+    "GP5 role under the restored program is not established; do not reconnect it to the radar without first checking the pin configuration.",
+    "The Windows WinUSB driver installed for RP2 Boot Interface 1 remains installed."
+  ]
+}

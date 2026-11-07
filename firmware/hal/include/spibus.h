@@ -84,10 +84,14 @@ int spibus_release (spibus_device_t * p_device, const void * p_owner);
 int spibus_transfer (spibus_device_t *        p_device,
                      const spibus_request_t * p_request);
 int spibus_now (spibus_t * p_bus, uint64_t * p_now);
+/* INVALID rejects arguments or deadline overflow; IO reports clock failure.
+ * The output is written only on success. */
 int spibus_deadline (spibus_t * p_bus,
                      uint32_t   timeout_ms,
                      uint64_t * p_deadline);
-int spibus_delay (spibus_t * p_bus, uint32_t duration_ms, uint64_t deadline_ms);
+int spibus_delay_ms (spibus_t * p_bus,
+                     uint32_t   duration_ms,
+                     uint64_t   deadline_ms);
 bool spibus_has_devices (const spibus_t * p_bus);
 #endif
 /* End of file. */

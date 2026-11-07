@@ -78,8 +78,29 @@ int telemetry_observe (void *    p_context,
 static void
 encode_header (const telemetry_t * p_context, uint32_t result, uint8_t * p_data)
 {
-    const cfgctrl_t * p_control = p_context->p_control;
-    cfgbytes_put(p_data, 3U);
+    const cfgctrl_view_t view    = cfgctrl_view(p_context->p_control);
+    uint32_t             version = 3U;
+    if (0U == result)
+    {
+        for (size_t index = 0U; index < p_context->capture.queue_count; ++index)
+        {
+            if (UTHOME_SAMPLE_RAW == p_context->capture.queues[index].type)
+            {
+                version = 5U;
+            }
+            else if ((UTHOME_SAMPLE_LIGHT ==
+                      p_context->capture.queues[index].type) &&
+                     (version < 4U))
+            {
+                version = 4U;
+            }
+            else
+            {
+                /* Existing sample formats retain the current wire version. */
+            }
+        }
+    }
+    cfgbytes_put(p_data, version);
     cfgbytes_put(&p_data[4], result);
     if (0U != result)
     {
@@ -89,16 +110,11 @@ encode_header (const telemetry_t * p_context, uint32_t result, uint8_t * p_data)
     const health_snapshot_t * p_health  = &p_capture->health;
     const activate_status_t * p_runtime = &p_context->runtime;
     put_time(&p_data[8], p_capture->timestamp_ms);
-    cfgbytes_put(&p_data[16], p_control->active_revision);
-    cfgbytes_put(&p_data[20], p_control->saved_revision);
-    cfgbytes_put(&p_data[24], p_control->active_crc);
-    cfgbytes_put(&p_data[28], p_control->saved_crc);
-    cfgbytes_put(&p_data[32],
-                 (p_control->b_saved_known ? UTHOME_CFG_DURABLE_KNOWN : 0U) |
-                     (p_control->b_recovery ? UTHOME_CFG_RECOVERY : 0U) |
-                     ((0U != p_control->active_revision)
-                          ? UTHOME_CFG_ACTIVE_KNOWN
-                          : 0U));
+    cfgbytes_put(&p_data[16], view.revision);
+    cfgbytes_put(&p_data[20], view.saved_revision);
+    cfgbytes_put(&p_data[24], view.active_crc);
+    cfgbytes_put(&p_data[28], view.saved_crc);
+    cfgbytes_put(&p_data[32], view.flags);
     /* Enums, counts and size_t fields are bounded by the fixed runtime tables.
      * Negative errors use the C-defined modulo uint32 representation on wire.
      */
@@ -189,6 +205,7 @@ static void encode_sample (const sampcache_entry_t * p_entry,
                            uint8_t *                 p_data)
 {
     const sample_header_t * p_header = &p_entry->header;
+    const uint32_t          quality  = sampcache_quality(p_entry, now_ms);
     uint64_t                age      = UINT32_MAX;
     if ((p_entry->b_seen) && (now_ms >= p_header->timestamp_ms))
     {
@@ -198,14 +215,16 @@ static void encode_sample (const sampcache_entry_t * p_entry,
     cfgbytes_put(p_data, (uint32_t)p_entry->source.h_queue);
     cfgbytes_put(&p_data[4], p_entry->source.type);
     cfgbytes_put(&p_data[8], p_entry->source.source_index);
-    cfgbytes_put(&p_data[12], sampcache_quality(p_entry, now_ms));
+    cfgbytes_put(&p_data[12], quality);
     put_time(&p_data[16], p_header->timestamp_ms);
     cfgbytes_put(&p_data[24], p_header->sequence);
     cfgbytes_put(&p_data[28], p_header->status);
     cfgbytes_put(&p_data[32], p_entry->source.stale_ms);
     cfgbytes_put(&p_data[36], (age < UINT32_MAX) ? (uint32_t)age : UINT32_MAX);
     memcpy(&p_data[40], p_entry->source.name, strlen(p_entry->source.name));
-    if ((p_entry->b_seen) && (UTHOME_SAMPLE_OK == p_header->status))
+    if ((p_entry->b_seen) && (UTHOME_SAMPLE_OK == p_header->status) &&
+        ((UTHOME_SAMPLE_RAW != p_entry->source.type) ||
+         ((1U == quality) || (2U == quality))))
     {
         encode_value(p_entry, &p_data[72]);
     }
@@ -230,6 +249,15 @@ static void encode_value (const sampcache_entry_t * p_entry, uint8_t * p_data)
     {
         cfgbytes_put(p_data, p_value->health.event);
         cfgbytes_put(&p_data[4], p_value->health.occurrences);
+    }
+    else if (UTHOME_SAMPLE_LIGHT == p_entry->source.type)
+    {
+        cfgbytes_put(p_data, p_value->light.millilux);
+    }
+    else if (UTHOME_SAMPLE_RAW == p_entry->source.type)
+    {
+        cfgbytes_put(p_data, p_value->raw.length);
+        memcpy(&p_data[4], p_value->raw.bytes, p_value->raw.length);
     }
     else
     {

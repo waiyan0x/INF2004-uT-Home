@@ -288,8 +288,8 @@ static void delay (uint32_t duration_us, void * p_context)
     bmp388_t * p_sensor = p_context;
     if (0 == p_sensor->bus_error)
     {
-        p_sensor->bus_error =
-            i2cbus_delay(p_sensor->p_bus, duration_us, p_sensor->deadline_ms);
+        p_sensor->bus_error = i2cbus_delay_us(
+            p_sensor->p_bus, duration_us, p_sensor->deadline_ms);
     }
 }
 

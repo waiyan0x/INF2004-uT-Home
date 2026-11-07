@@ -27,8 +27,7 @@ static bool valid_event (health_event_t event);
 
 /**
  * @brief Clear all event counters and rate-limit history.
- * @return Health success, rate-limit indication, or validation error as
- * applicable.
+ * @return UTHOME_HEALTH_OK.
  */
 int health_init (void)
 {
@@ -44,8 +43,8 @@ int health_init (void)
  * @param event Health event code to inspect or record.
  * @param now_ms Monotonic time in milliseconds with unsigned wraparound
  * semantics.
- * @return Health success, rate-limit indication, or validation error as
- * applicable.
+ * @return UTHOME_HEALTH_OK when emission is allowed, UTHOME_HEALTH_RATE_LIMITED
+ * when suppressed, or UTHOME_HEALTH_ERR_INVALID for an invalid event code.
  */
 int health_report (health_event_t event, uint32_t now_ms)
 {
@@ -110,8 +109,7 @@ int health_report (health_event_t event, uint32_t now_ms)
 /**
  * @brief Copy the current health counters to the caller.
  * @param p_snapshot Destination for a copy of the current health snapshot.
- * @return Health success, rate-limit indication, or validation error as
- * applicable.
+ * @return UTHOME_HEALTH_OK, or UTHOME_HEALTH_ERR_INVALID for NULL output.
  */
 int health_get_snapshot (health_snapshot_t * p_snapshot)
 {
@@ -129,8 +127,8 @@ int health_get_snapshot (health_snapshot_t * p_snapshot)
  * @brief Retrieve the occurrence count for one valid event.
  * @param event Health event code to inspect or record.
  * @param p_count Destination for the event occurrence count.
- * @return Health success, rate-limit indication, or validation error as
- * applicable.
+ * @return UTHOME_HEALTH_OK, or UTHOME_HEALTH_ERR_INVALID for an invalid event
+ * code or NULL output.
  */
 int health_get_event_count (health_event_t event, uint32_t * p_count)
 {

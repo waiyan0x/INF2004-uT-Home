@@ -38,6 +38,17 @@ int drvreg_bind (const drvreg_registry_t * p_registry,
                  size_t                    context_capacity,
                  component_t *             p_component);
 
+/* Bind an already-selected descriptor with the same context/output ownership
+ * contract as drvreg_bind. Returns OK or ERR_INVALID; performs no lookup or
+ * I/O. Descriptor callbacks must outlive the instance; the descriptor is not
+ * retained.
+ */
+int drvreg_attach (const drvreg_descriptor_t * p_descriptor,
+                   const char *                p_instance_id,
+                   void *                      p_context,
+                   size_t                      context_capacity,
+                   component_t *               p_component);
+
 #endif
 
 /* End of file. */

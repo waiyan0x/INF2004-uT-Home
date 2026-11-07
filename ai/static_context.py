@@ -7,7 +7,7 @@ passing this structural check alone is not a hardware or memory audit.
 from copy import deepcopy
 from pathlib import Path
 
-from ai.timing import digest, integer_numbers, validate
+from ai.timing import digest, validate_integer_tokens, validate
 from tools.config_validator.planner import ROOT, check, load_document, require
 
 
@@ -21,7 +21,7 @@ REQUIRED_CHECKS = (
 
 
 def validate_context(context):
-    integer_numbers(context)
+    validate_integer_tokens(context)
     check(context, load_document(ROOT / "ai/contracts/execution-context.schema.json"), "execution context")
     workers = context["workers"]
     require(len(workers["stack_bytes"]) == workers["slots"], "Each permanent slot needs its own stack capacity")

@@ -4,6 +4,13 @@ This library is independent of AI and any web framework. It validates a complete
 node against the reviewed catalogue, board limits and explicit build manifest,
 then returns a normalized plan without mutating input or activating hardware.
 
+`documents.py` owns bounded JSON loading and admission diagnostics;
+`catalogue.py` loads reviewed definitions; `wiring.py` checks physical ownership.
+`planner.py` coordinates those checks, typed routes, task budgets and rules.
+Each candidate gets fresh wiring claims, including disabled devices. A rejected
+candidate cannot reserve resources for the next call. Existing imports from
+`tools.config_validator` and `planner` remain supported.
+
 ```powershell
 python -m pip install -r tools/requirements.txt
 python -B -m tools.config_validator configs/nodes/first-prototype.json --build-manifest configs/builds/host-reference.json

@@ -41,9 +41,12 @@ append its own language/warning flags after target settings, so owned source
 options enforce C99 or the approved C11 profile last. Enabled warnings remain
 errors, including classes the SDK otherwise relaxes. The build helper rejects
 an effective language mismatch or remaining warning-error relaxation.
-The C3 `c3i2c.c`, `c3spi.c`, `c3pin.c`, `c3pulse.c` and `c3pwm.c` adapters
+The C3 `c3ihw.c`, `c3shw.c`, `c3pin.c`, `c3pulse.c` and `c3pwm.c` SDK boundaries
 use the GNU99 compiler dialect
-because the pinned external SDK LL headers contain GNU `typeof`. Their owned
+because the pinned external SDK LL headers contain GNU `typeof`. The I2C/SPI
+register calls moved from `c3i2c`/`c3spi` into `c3ihw`/`c3shw`; the transfer
+algorithms now compile as ordinary C99. This relocates the same vendor-header
+compatibility requirement without permitting owned GNU syntax. Their owned
 source remains C99;
 this does not authorize GNU constructs in project code. Vendor headers remain
 outside the owned-code audit. The exact path/profile is recorded by qualification;
@@ -125,8 +128,12 @@ Link exactly one backend. This layout does not license unrelated public names.
 | Queue health observation | `hlthbus_`, `uthome/hlthbus.h` |
 | Heartbeat watchdog | `watchdog_`, `uthome/watchdog.h` |
 | Portable I2C bus | `i2cbus_`, `i2cbus.h` |
+| Generic I2C register-read primitive | `geni2c_`, `geni2c.h` |
+| SEN0390 light-sensor sequence | `senlux_`, `senlux.h` |
+| SEN0390 component instance | `seninst_`, `seninst.h` |
 | C3 I2C backend / host register fake | `c3i2c_` / `i2cfake_`, matching headers |
 | Permanent I2C lock and session lifecycle | `i2cown_`, `i2cown.h` |
+| Shared bus lifecycle transitions | `buslife_`, `buslife.h` |
 | BMP388 driver / instance adapter | `bmp388_` / `bmpinst_`, matching headers |
 | Portable SPI bus / host fake | `spibus_` / `spifake_`, matching headers |
 | Pin ownership / digital output contract | `pinpool_` / `digiout_`, matching headers |
@@ -161,8 +168,20 @@ SDK = software development kit; tk = external T-Kernel interface. Test filename
 prefixes identify their subject (cmp, reg, rt, stats, res, integ, trans, fault).
 I2C = Inter-Integrated Circuit; C3 identifies ESP32-C3; BMP388 is Bosch's part
 identifier; bmpinst identifies that driver's component instance adapter.
+senlux denotes the SEN0390 light-sensor sequence and seninst its component
+instance; both use C99 and no new exception.
 i2cown is I2C bus ownership (permanent lock plus session lifecycle); owntest
 tests it. Both use C99 and add no exception or language scope.
+`buslife` is the common permanent-lock/session state used by I2C and SPI.
+Protocol wrappers retain typed open arguments, device/claim checks and distinct
+result codes. Its start callback receives borrowed settings through `const void *`;
+the matching adapter recovers the type guaranteed by its wrapper, without a
+function-pointer cast. State and callback storage layouts remain unchanged.
+`c3bwait` contains native bus waits and clock access; `c3ihw` and `c3shw`
+contain I2C/SPI hardware register operations. `busfake` injects faults at those
+owned boundaries and `busmain` starts each host scenario with fresh state.
+The transfer algorithms remain in `c3i2c`/`c3spi`; only the two hardware
+boundaries require the existing SDK GNU99 dialect. No deviation is added.
 SPI = Serial Peripheral Interface; CS = chip select; D/C = data/command line;
 OLED = organic light-emitting diode; oledinst identifies its instance adapter;
 MOSI/MISO identify controller-out/controller-in SPI data; FIFO = first in, first
@@ -174,6 +193,11 @@ New abbreviations must be added with their meaning during review.
 `workcost` denotes caller-owned worker/transfer cost counters; `protree` denotes
 the experimental eighteen-input protocol decision tree. Both are C99 modules
 with paired headers and no new deviation or external-interface exception.
+
+The separate loaded diagnostic uses `ailite` for the frozen classifier,
+`aivects` for immutable parity vectors and `aiload` for its bounded workload
+observer. `loadfake` provides its host test clock/observer. These C99 modules
+add no compatibility exception; diagnostic symbols stay out of ordinary images.
 
 `heaptrap` is the host parser test's allocator-call counter and rejection module.
 It uses C99 and ordinary public prefixes; object-level symbol redirection stays
@@ -223,6 +247,12 @@ gate as certification of complete BARR-C conformance or approval of deviations.
 
 ## UART module vocabulary
 
+`c3ukern` contains the pinned native UART calls and permanent handles beneath
+`c3uart`; `ufake` records that owned boundary in host lifecycle tests. `bootonce`
+publishes GPIO startup readiness only after the fixed resource set succeeds.
+All use C99 with paired headers and no new exception. Host object-symbol
+redirection substitutes only owned interfaces, preserving vendor declarations.
+
 Public prefixes `uartio_`, `c3uart_`, `uartfake_`, `ldparse_`, `ld2450_` and
 `ldinst_` belong to matching headers. UART = universal asynchronous
 receiver/transmitter; RX/TX = receive/transmit; LD2450 identifies Hi-Link's
@@ -256,6 +286,11 @@ window. Its constant table is independent of native structure packing. The
 `c3store_region_allowed` SDK boundary is an owned ordinary function; scoped
 compiler substitutions preserve its external Boolean/size ABI without adding
 naming exceptions. See [storage review](firmware/src/config/README.md#static-partition-access).
+
+`cfgslot_` owns fixed-slot layout verification, internal-RAM read chunking and
+overflow-safe slot isolation. Its synchronous callback boundary contains the
+SDK operations in `c3store`; host fault tests use the same portable core.
+It uses C99, fixed caller-owned storage and no additional naming exception.
 
 ## Admission and binding vocabulary
 

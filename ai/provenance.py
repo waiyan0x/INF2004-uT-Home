@@ -13,6 +13,7 @@ import zlib
 from ai.timing import canonical, digest, export_profile
 from tools.config_transfer.capabilities import Capabilities
 from tools.config_transfer.discovery import Discovery
+from tools.config_transfer.identity import configuration_key, capability_key as caps_key
 from tools.config_validator.planner import ROOT, load_document, require
 from tools.device_discovery import identify_i2c
 
@@ -21,12 +22,24 @@ def utc_now():
     return datetime.now(timezone.utc).isoformat()
 
 
-def caps_key(caps):
-    return {k: v for k, v in caps.items() if k != "request_id"}
+def context_fingerprint(experiment):
+    """Hash reviewed device/build/admission context independently of any model."""
+    provenance = experiment["provenance"]
+    reference = experiment["target"]["descriptor"]
+    descriptor = next(item for item in provenance["descriptors"]
+                      if (item["id"], item["version"]) == (reference["id"], reference["version"]))
+    admission = {path: value for path, value in provenance["implementation_sha256"].items()
+                 if path.startswith("tools/config_validator/")}
+    return digest(dict(board=provenance["board"], descriptor=descriptor,
+                       node_schema=provenance["node_schema_sha256"],
+                       descriptor_schema=provenance["descriptor_schema_sha256"],
+                       admission=admission, discovery=provenance["discovery_policy"],
+                       build=provenance["build_manifest_sha256"]))
 
 
 def config_key(config):
-    return [config[k] for k in ("active_revision", "saved_revision", "active_crc", "saved_crc")] + [config["flags"] & 0x70]
+    """Keep the persisted evidence list shape at the serialization boundary."""
+    return list(configuration_key(config))
 
 
 def usb_identity(port):

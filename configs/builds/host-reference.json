@@ -9,7 +9,8 @@
     "ssd1306_spi",
     "hlk_ld2450",
     "hc_sr04",
-    "pwm_output"
+    "pwm_output",
+    "i2c_recipe"
   ],
   "qualification": "Contract/planner fixtures only; no claim that hardware adapters are linked or working."
 }

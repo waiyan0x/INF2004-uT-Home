@@ -9,7 +9,7 @@ import sys
 import tempfile
 import unittest
 
-from ai.protocol_model import predict
+from ai.protocol.model import predict
 from ai.timing import digest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -24,9 +24,10 @@ class ModelFixtureTests(unittest.TestCase):
             raise AssertionError('GCC required')
         cls.temp = tempfile.TemporaryDirectory(prefix='uthome-model-fixture-')
         cls.addClassCleanup(cls.temp.cleanup)
-        library = Path(cls.temp.name) / 'fixture.dll'
+        library = Path(cls.temp.name) / ('fixture.dll' if sys.platform == 'win32' else 'fixture.so')
         subprocess.run([gcc, '-std=c99', '-Wall', '-Wextra', '-Werror', '-pedantic',
-                        '-O2', '-shared', '-Wl,--export-all-symbols', '-I', str(FIXTURE),
+                        '-O2', '-shared', *(['-Wl,--export-all-symbols'] if sys.platform == 'win32' else ['-fPIC']),
+                        '-I', str(FIXTURE),
                         str(FIXTURE/'aifrozen.c'), str(FIXTURE/'aicases.c'),
                         '-o', str(library)], check=True, capture_output=True)
         cls.lib = c.CDLL(str(library))

@@ -395,13 +395,16 @@ static int start_plan (const activate_plan_t * p_plan)
         {
             bool b_running    = false;
             int  worker_error = 0;
-            if ((0 !=
-                 rt_port_task_is_running(g_slots[index].h_task, &b_running)) ||
-                (0 !=
-                 rt_port_task_result(g_slots[index].h_task, &worker_error)) ||
-                (!b_running) || (0 != worker_error))
+            result = rt_port_task_is_running(g_slots[index].h_task, &b_running);
+            if (0 == result)
             {
-                result = -1;
+                result =
+                    rt_port_task_result(g_slots[index].h_task, &worker_error);
+            }
+            if (0 == result)
+            {
+                result =
+                    (0 != worker_error) ? worker_error : (b_running ? 0 : -1);
             }
         }
     }

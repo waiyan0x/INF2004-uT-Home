@@ -85,8 +85,10 @@ correlation/size/CRC, and never automatically retries a mutation.
 
 All fields below are explicitly little-endian. Error words use signed int32
 two's-complement interpretation. Native structure padding never crosses USB.
-Payload version 3 has a 352-byte header. Its first 160 bytes retain the version-1
-layout below except that the payload version is now 3. The host decoder also
+Payload versions 3, 4 and 5 have a 352-byte header. Version 5 is selected when a
+raw-sample queue is configured; otherwise a light-sample queue selects version 4,
+and other captures remain version 3. Its first
+160 bytes retain the version-1 layout apart from the version number. The host decoder also
 accepts version 1 (160-byte header) and version 2 (320-byte header); absent audit data is `null`,
 never evidence of zero allocations. The framing version remains 1.
 
@@ -94,7 +96,7 @@ The first 160 header bytes contain 40 uint32 words:
 
 | Byte offset | Field |
 |---|---|
-| 0, 4 | Payload version 3 (legacy 1/2 accepted); result 0 success, 1 busy, 2 capture error |
+| 0, 4 | Payload version 3, 4 or 5 (legacy 1/2 accepted); result 0 success, 1 busy, 2 capture error |
 | 8, 12 | Snapshot monotonic time, low/high halves |
 | 16, 20 | Active/saved revision |
 | 24, 28 | Active/saved profile CRC |
@@ -110,7 +112,7 @@ The first 160 header bytes contain 40 uint32 words:
 | 120..151 | Eight suppressed counts |
 | 152, 156 | Runtime apply/recovery errors |
 
-Versions 2/3 append a fixed allocation-audit header:
+Versions 2/3/4/5 append a fixed allocation-audit header:
 
 | Byte offset | Field |
 |---|---|
@@ -124,7 +126,7 @@ Versions 2/3 append a fixed allocation-audit header:
 | 288..303 | Four startup kernel allocator entry-attempt counts |
 | 304..319 | Four normal-operation kernel allocator entry-attempt counts |
 
-Version 3 additionally distinguishes application startup from earlier SDK/kernel
+Versions 3, 4 and 5 additionally distinguish application startup from earlier SDK/kernel
 boot without clearing the original counters:
 
 | Byte offset | Field |
@@ -170,6 +172,8 @@ Missing rows have zero sample time/sequence/status/values and age UINT32_MAX
 (shown as null by Python). Types retain `sample.h` IDs: environment 1 has two
 binary32 values (pressure Pa, temperature Celsius); distance 3 has two uint32
 values (distance mm, echo microseconds); health 4 has uint32 event/count.
+In version 4, light type 5 stores uint32 illuminance in millilux at offset 72,
+bounded to 200,000,000, followed by zero padding. Zero is a valid reading.
 Target type 2 uses three 12-byte slots: word 0 is present bit 0 and resolution mm
 in bits 16..31; word 1 contains signed-int16 x/y mm in low/high halves; word 2
 contains signed-int16 speed cm/s in the low half. Unused bits and absent slots
@@ -191,7 +195,7 @@ The current single-consumer admission reservation remains conservative; renderin
 
 Each page shows the device index (or health queue), a shortened uppercase label,
 and MISSING/FRESH/STALE/FAULT. Values include pressure/temperature, distance/echo,
-all three radar slots with signed coordinates/velocity, or historical health
+all three radar slots with signed coordinates/velocity, integer lux, or historical health
 event/count. Health reports do not certify current node health. Missing/faulted
 values clear old numbers; an unavailable snapshot shows WAITING FOR DATA.
 The built-in 5x7 alphabet has 41 glyphs; unsupported label characters are blank.
@@ -353,3 +357,17 @@ review does not establish physical timing, stack peaks or complete compliance
 with every semantic rule on hardware.
 
 Dated build/test/static-size results: [telemetry](../../qualification/esp32c3-telemetry-20260928.json) and [display](../../qualification/esp32c3-display-20260928.json). These are historical measurements, not current free memory.
+
+### Raw register bytes (payload version 5)
+
+Sample type 6 represents `raw_sample`, without measurement units. Its 56-byte
+value region starts with a little-endian uint32 selected length (1..16), followed
+by sixteen byte positions. Positions after the selected length and the remaining
+36 reserved bytes are zero. Missing and fault-quality raw samples have all 56
+value bytes zero, including clock faults; their identity/status fields remain
+available. Stale successful samples may retain their selected bytes and are
+explicitly marked stale. A zero data byte is a valid successful value and must
+not be confused with a missing/fault sample.
+
+Version 5 extends the existing USB observation path. It does not imply that BLE
+or MQTT raw-value transport has been implemented or tested.

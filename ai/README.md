@@ -4,12 +4,90 @@ The six-input simulated-data model and eighteen-input protocol model are
 experimental. Both predict whether a candidate interval meets a freshness goal
 and health criteria. Neither is enabled in ordinary firmware or the UI Apply
 flow; the real-data studies failed their frozen deployment-benefit criteria.
-The primary model has a separate target parity/timing diagnostic.
+Both models have separate target diagnostics; the compact protocol model also
+has a comparison with active peripherals. These diagnostics do not enable advice.
 Device identity, protocol and wiring stay in the reviewed
 [discovery/catalogue flow](../docs/README.md).
 
+The eighteen-input pipeline lives in [`protocol/`](protocol/README.md); its
+modules separate study preparation, capture/resume, training, export and benefit
+assessment. The six-input model and shared recording/provenance tools remain
+in this folder. The earlier `ai.protocol_capture` CLI forwards to
+`ai.protocol.capture` for retained local capture scripts.
+
+## Datasheet-assisted device drafts
+
+`tools.configurator.datasheet` uses an online Gemini model on the PC to extract
+unreviewed device facts and page references from a PDF. It never changes the
+catalogue, creates drivers, accesses serial or applies a profile. Missing or
+conflicting facts must be reviewed against the source. The online service and
+the experimental on-device timing tree serve separate purposes.
+
+Install `tools/requirements.txt`, set `GEMINI_API_KEY` in the process environment
+and optionally set `UTHOME_GEMINI_MODEL` (default `gemini-3.6-flash`), then run:
+
+```powershell
+python -B -m tools.configurator.datasheet 'path/to/datasheet.pdf'
+```
+
+The command sends the PDF to Gemini, then prints an unreviewed JSON draft.
+PDFs over 2 MiB or 60 pages are rejected rather than truncated. Gemini can
+inspect page images, but its facts and page references still need review. The
+local server also exposes a bounded `/api/datasheet` request and a separate
+`datasheet_match` operation for reviewed catalogue-name candidates. The Desk offers
+the same draft flow for reviewed periodic I2C devices with connected drivers.
+Analysis does not hold the USB workflow lock. A live Gemini test, including the
+Desk endpoint, returned unreviewed SEN0390 drafts; see the
+[test record](qualification/datasheet-gemini-sen0390-20261031.json). Formal
+extraction evaluation and SEN0390 hardware support remain open; the generic I2C primitive remains
+[unintegrated](../firmware/drivers/generic_i2c/README.md).
+
+A [targeted source review](qualification/datasheet-sen0390-source-review-20261031.json)
+compares selected claims in both saved Gemini drafts with the original PDF. Both
+identified the address and register discrepancies, but only one flagged the
+EEPROM range and only the other flagged inconsistent light units. The review is
+not a complete draft audit or a general extraction-accuracy evaluation.
+
+A frozen [exploratory evaluation](qualification/datasheet-evaluation-results-20261101.json)
+reviewed selected facts in five Gemini drafts against downloaded PDFs. It found
+missing details and ambiguity around variant addresses; the known BMP388 PDF was
+rejected locally because it is encrypted. The small, single-attempt review does
+not qualify extraction accuracy. The radar name mismatch found in that study is
+now covered by one reviewed alias; unknown spellings are not guessed.
+A [development recheck](qualification/datasheet-development-recheck-20261101.json)
+showed conditional address reporting in two examples but also an incorrect radar
+frame length. The documents were reused and the results are not an independent test.
+
+A previous live Groq connection returned SEN0390 drafts, but the results omitted or
+misstated address evidence and did not identify all known register conflicts.
+The local checks reject address values without page references and flag
+inconsistent address widths; they cannot verify whether a cited page actually
+supports a claim. The [live test record](qualification/datasheet-groq-sen0390-20261030.json)
+does not qualify the extractor or the sensor.
+One later live Groq Desk request was rejected for invalid fact evidence; its local
+record is `build/datasheet-work/desk-live-rejection-evidence.json`. Model
+responses can vary, so a successful connection does not guarantee a usable draft.
+
+`datasheet_prepare_i2c` uses the selected reviewed descriptor, connected driver
+capabilities and explicit pin/address confirmation. It validates the original
+and resulting node profiles, rechecks the board state and returns a draft only.
+AI-generated operations are never used by the builder. The existing review token
+and Apply checks still apply to the complete resulting profile.
+
+Version 0.2.0 of the draft adds bounded, cited conditional I2C address options.
+Options require an unresolved point and cannot coexist with a single scalar
+address, but valid structure does not prove the model found every option or
+correctly described its condition.
+The Desk currently shows model facts and unresolved questions; a dedicated
+options display remains pending. The profile builder selects addresses only
+from the reviewed descriptor, not the model's address fields. Verify the source
+and physical variant; no generic variant detection is claimed.
+A [development probe](qualification/datasheet-address-options-probe-20261101.json)
+exercised the new JSON on three previously used datasheets; it is not an
+independent accuracy or hardware acceptance test.
+
 The [mandatory static-memory change](../firmware/README.md#mandatory-static-memory-change)
-now takes priority before deployment qualification. Preserve both measured
+now takes priority before deployment qualification. Preserve historical measured
 studies as evidence for their original builds. Worker/resource lifecycle changes
 require fresh timing evidence on the compliant firmware; the existing host
 pipeline remains reusable. Budget embedded inference as immutable model data
@@ -27,7 +105,7 @@ belong in [qualification](../firmware/qualification/README.md) and the
 
 The user also requires Wi-Fi and BLE on the ESP. Resolve the
 [wireless integration gate](../firmware/README.md#on-device-wireless-integration-gate)
-before freezing the next training baseline: radio/service tasks, traffic and
+before freezing the deployment training baseline: radio/service tasks, traffic and
 reconnection can change timing and available resources. Count infrastructure
 reservations separately; `active_tasks` continues to mean enabled peripheral
 workloads, not every kernel task. Review whether the eighteen-input contract
@@ -52,7 +130,7 @@ needs the exact running ELF, twenty Apply cycles, all required checks and retain
 evidence whose hashes are verified before the collector opens serial. These
 checks validate a reviewed record; they do not manufacture a memory audit.
 
-New `ai.protocol_capture` CLI calls require `--execution-context` and
+New `ai.protocol.capture` CLI calls require `--execution-context` and
 `--qualification-folder`. The collector rechecks the running ELF before Apply
 and retains `static-bindings.json` alongside existing journals. Its legacy Python
 entry point remains readable for historical tests; it does not grant new static
@@ -71,20 +149,48 @@ are auxiliary measurements, not measured CPU utilization or electrical wire
 time. Missing observations remain unavailable; no new learned feature has been
 introduced or tuned from the held-out results.
 
-To export an existing experimental protocol model without installing it:
+The selected architecture prioritizes low ESP overhead while retaining the
+required trained model: a small integer decision tree trained on the PC, with
+immutable tables and fixed caller-owned buffers on the ESP. Run inference only
+for an explicit advice request through the existing controller, one candidate
+per step and at most four candidates. No additional AI task, on-device training,
+neural-network runtime or larger host/API model is needed for timing advice. Keep input/context
+checks; removing them to save bytes would weaken the supported-domain contract.
+
+The [current compact export](qualification/protocol-varied-goals-compact-export-20261027.json)
+records Python/C parity and ESP32-C3 object measurements for the varied-goal
+model. Its files are local at
+`build/protocol-study-20261027-varied-r1/trained/c-export/`. The model remains
+experimental because its benefit gate failed; low memory use does not change
+that result. The
+[loaded board diagnostic](qualification/protocol-varied-goals-loaded-probe-20261027.json)
+qualifies only bounded classifier batches with the current three peripherals.
+It records timing, empirical stack margins, application-allocation counters and
+AI-off/on worker rates. The original firmware/profile were restored afterwards.
+Feature construction, the complete adviser request, transport and wireless load
+still need integrated measurements before a release claim.
+
+Preserve both bench attempts. The first failed the observation requirements;
+the corrected procedure declared a slower host cadence and measured worker
+stacks after cooperative stop. Active-worker stack readings can be unavailable,
+so missing readings must remain `null`. Test vectors and observer code are
+diagnostic overhead, not model storage. The real build's classifier object uses
+442 bytes of code/read-only data; the standalone `-Os` export uses 400 bytes.
+
+To export an experimental protocol model without installing it:
 
 ```powershell
-python -B -m ai.protocol_export --model build/protocol-study-20261026-r3/trained/model.json --output build/protocol-export-new --cross-compiler PATH_TO_PINNED_RISCV_GCC
+python -B -m ai.protocol.export --model build/protocol-study-20261027-varied-r1/trained/model.json --output build/protocol-export-new --cross-compiler PATH_TO_PINNED_RISCV_GCC
 ```
 
 Set `BARR_CLANG_FORMAT` to pinned 20.1.8 and put host GCC on PATH. The destination
 must not exist. The export retains `deployment_allowed: false`; its C classifier
 does not itself enforce catalogue/build compatibility, candidate selection or
 profile revision. The fixed adviser implements identity/state checks; its transport and release
-model binding still need integration before normal reviewed Apply. This seven-node object measures 400 bytes code/read-only
-data, zero writable globals and compiler-reported zero stack bytes for the
-classifier alone; these are standalone object results, not whole-request or
-linked-firmware measurements. The largest accepted 31-node tree has 764 bytes
+model binding still need integration before normal reviewed Apply. See the
+export record for measured classifier size and stack use; these standalone
+object results exclude caller feature storage, the adviser, transport and the
+complete call stack. The largest accepted 31-node tree has 764 bytes
 of tables. An unseen supported peripheral is still required before claiming
 cross-device accuracy.
 
@@ -92,7 +198,7 @@ cross-device accuracy.
 
 ### Implemented bounded controller preparation
 
-`firmware/src/services/adviser.c/.h` now provides a portable, caller-owned
+`firmware/src/services/advice/adviser.c/.h` now provides a portable, caller-owned
 432-byte state machine with at most four copied eighteen-input candidates.
 It evaluates one candidate per step and returns the longest passing interval.
 Every step and reply checks the profile CRC/revision, session, build and execution
@@ -320,6 +426,50 @@ The complete 96-run collection takes approximately one hour. The 800 ms goal is
 illustrative. Freeze the study before collecting; preserve the sources matching
 its hashes and create a new study if its specification or implementation changes.
 
+The prospective [varied-goal design](examples/protocol-study-varied-goals.json)
+uses study version 0.3.0: `goal_ms` belongs to each family rather than the whole
+study. The 0.2.0 format remains supported. Fifteen workloads are assigned to
+training/validation/test as 9/3/3, with goals of 500, 750 and 1000 ms. Every
+training goal covers all three chosen I2C and SPI speeds; held-out combinations
+stay inside training feature ranges. Duplicate loads are rejected even when
+their goals differ, preventing that change from creating a new independent group.
+
+The four intervals are 200, 500, 1000 and 2000 ms, including the current 500 ms
+setting and descriptor default. Two repetitions, each with 5 s warmup and 60 s
+observation, require about 130 minutes before calibration and Apply overhead.
+The [prospective design record](qualification/protocol-varied-goals-design-20261027.json)
+defines grouping, separate collection sessions, baselines and stop/release gates.
+Collection, training and evaluation are complete for this USB-only study.
+The [evaluation record](qualification/protocol-varied-goals-evaluation-20261027.json)
+records a model that matched the simple timing rule and therefore failed the
+predeclared added-benefit gate. Deployment remains disabled. The
+[completion record](qualification/protocol-varied-goals-completion-20261027.json)
+owns final counts, hashes, restoration evidence and deviations. Local
+`build/protocol-study-20261027-varied-r1/agent-collection-completion.json` and
+`complete-recording-inventory.json` contain the full handoff and maintained
+verifier output. Preserve the frozen sources, calibration and every raw journal.
+The earlier handoff and partial inventories are historical, not current work lists.
+
+Held-out families were collected in order `l, n, j, o, m, k`, instead of planned
+`m, k, l, n, j, o`. Preserve this order deviation when interpreting evaluation;
+do not repeat outcomes to recreate the plan. The failed port-open attempt remains
+separate from valid captures. Exact erroneous reports are retained under
+`superseded-reports-20261027/`; do not use the root `generate_output.py`, whose
+directory assumptions and inventory format are incorrect.
+
+The retained `trained/` folder contains the model, verified dataset, evaluation,
+both benefit gates and environment provenance. The model chose the same intervals
+as the simple rule on every held-out family. It improved on the conservative
+calibrated rule, but that does not satisfy the requirement to beat both rules.
+These outcomes support an experimental demonstration, not a claim that learning
+improves this configuration task or generalizes to unseen peripherals.
+
+Held-out labels are now revealed. Do not tune on them or relabel them as a fresh
+test set. Further development needs a justified use case and new independent
+evaluation data. Do not rerun collection or the old `collect_home.py` and
+`finalize_study.py`, which refer to the stopped session, or rewrite historical
+summaries as successful. This study cannot qualify the final wireless context.
+
 The new dataset rebuilds target labels from verified raw journals and requires
 fresh UART reports after warmup. A zero-target radar report is healthy transport,
 not a presence failure. The OLED reads the latest-sample cache without draining
@@ -334,11 +484,11 @@ The old pilot identity below is historical: replace its paths and use a newly
 frozen study with untouched evaluation groups before collecting:
 
 ```powershell
-& build/ai-venv/Scripts/python.exe -B -m ai.protocol_study prepare --profile build/hardware-acceptance-20261026/restore-combined.json --manifest build/ai-pilot-20261026-074410/manifest.json --specification ai/examples/protocol-study.json --output build/protocol-study.json
-& build/ai-venv/Scripts/python.exe -B -m ai.protocol_capture --study build/protocol-study.json --identity build/ai-pilot-20261026-074410/identity.json --restore-profile build/hardware-acceptance-20261026/restore-combined.json --port COMx --wiring-unchanged --families all --execution-context build/qualified-context.json --qualification-folder build/static-qualification --output build/protocol-capture
+& build/ai-venv/Scripts/python.exe -B -m ai.protocol.study prepare --profile build/hardware-acceptance-20261026/restore-combined.json --manifest build/ai-pilot-20261026-074410/manifest.json --specification ai/examples/protocol-study.json --output build/protocol-study.json
+& build/ai-venv/Scripts/python.exe -B -m ai.protocol.capture --study build/protocol-study.json --identity build/ai-pilot-20261026-074410/identity.json --restore-profile build/hardware-acceptance-20261026/restore-combined.json --port COMx --wiring-unchanged --families all --execution-context build/qualified-context.json --qualification-folder build/static-qualification --output build/protocol-capture
 $runs = (Get-ChildItem build/protocol-capture/*/run-* -Directory).FullName
-& build/ai-venv/Scripts/python.exe -B -m ai.protocol_study dataset --study build/protocol-study.json --output build/protocol-dataset.json @runs
-& build/ai-venv/Scripts/python.exe -B -m ai.protocol_model --study build/protocol-study.json --output build/protocol-trained @runs
+& build/ai-venv/Scripts/python.exe -B -m ai.protocol.study dataset --study build/protocol-study.json --output build/protocol-dataset.json @runs
+& build/ai-venv/Scripts/python.exe -B -m ai.protocol.model --study build/protocol-study.json --output build/protocol-trained @runs
 ```
 
 Enumerate the USB board afresh; `COMx` is a placeholder. Renew identity after
@@ -350,6 +500,29 @@ To stop after the current bounded run, create an empty `stop-requested` file in
 the capture output directory. Individual family IDs may replace `all` to collect
 separate batches; pass all their run directories when rebuilding the dataset.
 
+For a paused batch, `ai.protocol.resume` verifies retained journals and lists
+missing repetitions without accessing the board:
+
+```powershell
+python -B -m ai.protocol.resume --study STUDY.json --identity IDENTITY.json --captures PREVIOUS_CAPTURE_FOLDER --families load-d --measure-costs --output NEW_RESUME_PLAN.json
+```
+
+After renewing the board/wiring checks, add `--resume-from PREVIOUS_CAPTURE_FOLDER`
+to the normal `ai.protocol.capture` command and use a new output directory. Supply
+every earlier batch in the continuation chain. The collector verifies study,
+identity, cadence, cost-observation mode and static bindings before opening serial.
+It skips complete repetitions regardless of their outcome, retains their hashes,
+and applies only intervals with missing runs. Changed files, duplicate attempts,
+omitted history or interrupted/failed batches require review; they are never
+silently retried. Keep resumed repetitions in the original workload split.
+
+Today's immutable `source/` snapshot remains intact. A separately reviewed
+`continuation-source/` under `build/protocol-study-20261027-varied-r1/` retains the
+same recorder, feature construction and label logic with the continuation and
+baseline tools added. Run that study's tools from this directory using the
+existing Python environment and absolute artifact paths. Verify its
+`continuation-source-manifest.json` before reuse; do not rewrite old source hashes.
+
 Training accepts only complete, journal-verified hardware records from the frozen
 study. A depth-four tree with three examples per leaf and a 900/1000 empirical
 pass threshold uses training groups only; validation/test results never affect
@@ -357,6 +530,22 @@ fitting. Evaluation reports goal/health violations, abstentions and the longest
 tested passing interval against current settings, defaults and the simple rule.
 The leaf fraction is not calibrated confidence. This remains a small experiment;
 fieldwise range checks cannot establish that every combination is reliable.
+
+For the varied-goal study, also run the predeclared independent calibration gate
+after all runs and the frozen model are available:
+
+```powershell
+python -B -m ai.protocol.baseline --study STUDY.json --model MODEL.json --calibration-root STUDY_FOLDER --baseline-sha256 FROZEN_BASELINE_HASH --output NEW_CALIBRATED_GATE.json RUN_FOLDER_1 RUN_FOLDER_2
+```
+
+Use the baseline hash retained before labelled collection, not a newly accepted
+hash after changing calibration. The tool replays every calibration journal,
+checks costs and health, recomputes the timing margin, and rejects reuse of those
+journals as labelled trials. It reports each family against the measured rule
+while retaining the current/default/simple-rule comparisons and original gate.
+A passing result needs benefit over both rules without regression; deployment
+remains disabled. These measured maxima are empirical margins, not worst-case
+execution bounds. Missing or unhealthy calibration is never treated as zero cost.
 
 The new contract deliberately cannot enter the old six-input C exporter. Host
 training/evaluation comes first; firmware integration requires a reviewed C
@@ -691,7 +880,7 @@ records under `qualification/`. Use these lessons for the next prospective study
 - Use supported exact clock divisors and admission preflight before freezing a
   study. An activation rejection is not a negative timing label.
 
-`ai.protocol_capture --measure-costs` requires command-9 observations every
+`ai.protocol.capture --measure-costs` requires command-9 observations every
 second, exact firmware/profile/generation identity, monotonic counters, valid
 source bindings and controller/idle stack headroom. Startup/normal allocation
 counters must stay zero. Missing, saturated, changed or reset measurements
@@ -699,14 +888,14 @@ interrupt the run without automatic retry. `load_recording` verifies retained
 work-cost data against raw journals and hashes. Complete goal failures remain
 negative data. Worker cost is wall time, not isolated CPU or electrical wire time.
 
-`ai.protocol_gate` rebuilds verified data and reports family-level violations,
+`ai.protocol.gate` rebuilds verified data and reports family-level violations,
 unnecessary abstentions and benefit against the simple rule. Its existing gain
 definition requires longer passing intervals or safe coverage where the rule
 has none, with no regression against passing rule choices. Both completed
 models failed that frozen definition. Synthetic adversarial labels are tests,
 never measurements, and the gate never enables deployment by itself.
 
-For the next study, first qualify the static/radio context. Independently
+For a deployment study, first qualify the static/radio context. Independently
 calibrate protocol costs and actual rates, predeclare varied goals/candidates
 and keep related goal/session variants together. Compare with current/default
 settings, the simple rule and an analytical protocol-cost baseline. A display's

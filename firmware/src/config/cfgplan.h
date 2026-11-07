@@ -27,6 +27,8 @@ typedef enum
     CFGPLAN_RADAR,
     CFGPLAN_DISTANCE,
     CFGPLAN_PWM,
+    CFGPLAN_LIGHT,
+    CFGPLAN_RECIPE,
     CFGPLAN_DRIVER_COUNT
 } cfgplan_driver_t;
 
@@ -69,6 +71,11 @@ typedef struct
     uint32_t         consumers;
     uint32_t         priority;
     uint32_t         stack_bytes;
+    uint32_t         recipe_register;
+    uint32_t         read_length;
+    uint32_t         read_pause_ms;
+    uint32_t         select_offset;
+    uint32_t         select_length;
 } cfgplan_device_t;
 
 typedef struct

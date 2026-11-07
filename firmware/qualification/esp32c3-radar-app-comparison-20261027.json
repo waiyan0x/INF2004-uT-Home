@@ -1,0 +1,419 @@
+{
+  "record_version": "1.0.0",
+  "recorded_utc": "2026-10-27T06:27:57.202098+00:00",
+  "scope": "Read-only radar telemetry and workcost comparison after user moved radar TX back to Board A b35; not physical UART waveform or occupancy acceptance",
+  "firmware_observation": {
+    "observation": {
+      "request_id": 2240133201,
+      "revision": 737,
+      "active_revision": 737,
+      "result": "busy",
+      "preset_code": 1,
+      "session_id": 7263400441794414919,
+      "started_ms": 0,
+      "elapsed_ms": 0,
+      "build_sha256": "597ae600b7377256f7dcf23978e4c930cd2c9d1036ee5b8bf0471279134ee801",
+      "records": []
+    },
+    "capabilities": {
+      "request_id": 2622468233,
+      "hardware_qualified": false,
+      "max_profile_bytes": 8192,
+      "allowed_gpio_mask": 1275,
+      "max_devices": 8,
+      "max_workers": 4,
+      "features": 7,
+      "board": "esp32-c3-supermini",
+      "node_schema": "2.1.0",
+      "drivers": [
+        "bmp388",
+        "ssd1306_spi",
+        "hlk_ld2450",
+        "hc_sr04",
+        "pwm_output"
+      ]
+    },
+    "before_configuration": {
+      "active_revision": 737,
+      "saved_revision": 737,
+      "active_crc": 3623560383,
+      "saved_crc": 3623560383,
+      "flags": 80
+    },
+    "after_configuration": {
+      "active_revision": 737,
+      "saved_revision": 737,
+      "active_crc": 3623560383,
+      "saved_crc": 3623560383,
+      "flags": 80
+    }
+  },
+  "usb_identity_observed": {
+    "vid": 12346,
+    "pid": 4097,
+    "serial_number": "D4:05:92:E6:C3:BC",
+    "port": "COM8"
+  },
+  "captures": [
+    {
+      "capture": "radar-060604",
+      "phone_app": "user confirmed disconnected",
+      "duration_seconds": 120.27,
+      "telemetry_snapshots": 480,
+      "workcost_snapshots": 120,
+      "radar_quality_counts": {
+        "fresh": 0,
+        "fault": 480,
+        "stale": 0,
+        "missing": 0
+      },
+      "health_delta": [
+        0,
+        0,
+        480,
+        0,
+        840,
+        0,
+        0,
+        0
+      ],
+      "context_stable": true,
+      "configuration": {
+        "active_revision": 737,
+        "saved_revision": 737,
+        "active_crc": 3623560383,
+        "saved_crc": 3623560383,
+        "flags": 80
+      },
+      "uptime_ms_first_last": [
+        336658,
+        456608
+      ],
+      "radar_fresh_max_age_ms": null,
+      "workcost_elapsed_seconds": 119.213005,
+      "workers": [
+        {
+          "source_index": 0,
+          "deltas": {
+            "steps": 238,
+            "elapsed_us": 963920,
+            "transfer_bytes": 2142,
+            "transfers": 476,
+            "timeouts": 0,
+            "errors": 0
+          },
+          "step_rate_hz": 1.996,
+          "delivered_bytes_per_second": 17.968,
+          "mean_step_wall_us": 4050.08
+        },
+        {
+          "source_index": 1,
+          "deltas": {
+            "steps": 477,
+            "elapsed_us": 1657253,
+            "transfer_bytes": 491310,
+            "transfers": 954,
+            "timeouts": 0,
+            "errors": 0
+          },
+          "step_rate_hz": 4.001,
+          "delivered_bytes_per_second": 4121.279,
+          "mean_step_wall_us": 3474.32
+        },
+        {
+          "source_index": 2,
+          "deltas": {
+            "steps": 11921,
+            "elapsed_us": 2255534,
+            "transfer_bytes": 0,
+            "transfers": 11444,
+            "timeouts": 0,
+            "errors": 0
+          },
+          "step_rate_hz": 99.997,
+          "delivered_bytes_per_second": 0.0,
+          "mean_step_wall_us": 189.21
+        }
+      ],
+      "bmp_fresh_snapshots": 480,
+      "raw_journal": "build/member4-today-20261027/radar-060604/journal.jsonl",
+      "raw_journal_sha256": "d2d224404a3f9102dc9692d46ccd00dd239a2696f888234d3f5177d1059e1887",
+      "summary_sha256": "437dcaa820fd0931cb9d194ffc050d452cee9de3dcb331f5173214522edb6dcb"
+    },
+    {
+      "capture": "radar-app-connected-061329",
+      "phone_app": "user confirmed connected and tracking normally",
+      "duration_seconds": 120.28,
+      "telemetry_snapshots": 480,
+      "workcost_snapshots": 120,
+      "radar_quality_counts": {
+        "fresh": 480,
+        "fault": 0,
+        "stale": 0,
+        "missing": 0
+      },
+      "health_delta": [
+        0,
+        0,
+        0,
+        0,
+        2655,
+        0,
+        0,
+        0
+      ],
+      "context_stable": true,
+      "configuration": {
+        "active_revision": 737,
+        "saved_revision": 737,
+        "active_crc": 3623560383,
+        "saved_crc": 3623560383,
+        "flags": 80
+      },
+      "uptime_ms_first_last": [
+        781865,
+        901817
+      ],
+      "radar_fresh_max_age_ms": 59,
+      "workcost_elapsed_seconds": 119.203547,
+      "workers": [
+        {
+          "source_index": 0,
+          "deltas": {
+            "steps": 239,
+            "elapsed_us": 973158,
+            "transfer_bytes": 2151,
+            "transfers": 478,
+            "timeouts": 0,
+            "errors": 0
+          },
+          "step_rate_hz": 2.005,
+          "delivered_bytes_per_second": 18.045,
+          "mean_step_wall_us": 4071.79
+        },
+        {
+          "source_index": 1,
+          "deltas": {
+            "steps": 477,
+            "elapsed_us": 1681534,
+            "transfer_bytes": 491310,
+            "transfers": 954,
+            "timeouts": 0,
+            "errors": 0
+          },
+          "step_rate_hz": 4.002,
+          "delivered_bytes_per_second": 4121.606,
+          "mean_step_wall_us": 3525.23
+        },
+        {
+          "source_index": 2,
+          "deltas": {
+            "steps": 11921,
+            "elapsed_us": 3057793,
+            "transfer_bytes": 68430,
+            "transfers": 11921,
+            "timeouts": 0,
+            "errors": 0
+          },
+          "step_rate_hz": 100.005,
+          "delivered_bytes_per_second": 574.06,
+          "mean_step_wall_us": 256.5
+        }
+      ],
+      "bmp_fresh_snapshots": 480,
+      "raw_journal": "build/member4-today-20261027/radar-app-connected-061329/journal.jsonl",
+      "raw_journal_sha256": "1e024aaaa1eed28a8ae039b5348544b89261ff3c2c93dd9f3fc507bb71c5e476",
+      "summary_sha256": "1977ddc741b1b3f1906279bd8b575c7c47a99ee72cc45124291ceac550ebb911"
+    },
+    {
+      "capture": "radar-061722",
+      "phone_app": "user confirmed disconnected",
+      "duration_seconds": 120.27,
+      "telemetry_snapshots": 480,
+      "workcost_snapshots": 120,
+      "radar_quality_counts": {
+        "fresh": 480,
+        "fault": 0,
+        "stale": 0,
+        "missing": 0
+      },
+      "health_delta": [
+        0,
+        0,
+        0,
+        0,
+        2656,
+        0,
+        0,
+        0
+      ],
+      "context_stable": true,
+      "configuration": {
+        "active_revision": 737,
+        "saved_revision": 737,
+        "active_crc": 3623560383,
+        "saved_crc": 3623560383,
+        "flags": 80
+      },
+      "uptime_ms_first_last": [
+        1014182,
+        1134136
+      ],
+      "radar_fresh_max_age_ms": 59,
+      "workcost_elapsed_seconds": 119.186993,
+      "workers": [
+        {
+          "source_index": 0,
+          "deltas": {
+            "steps": 238,
+            "elapsed_us": 956798,
+            "transfer_bytes": 2142,
+            "transfers": 476,
+            "timeouts": 0,
+            "errors": 0
+          },
+          "step_rate_hz": 1.997,
+          "delivered_bytes_per_second": 17.972,
+          "mean_step_wall_us": 4020.16
+        },
+        {
+          "source_index": 1,
+          "deltas": {
+            "steps": 477,
+            "elapsed_us": 1686705,
+            "transfer_bytes": 491310,
+            "transfers": 954,
+            "timeouts": 0,
+            "errors": 0
+          },
+          "step_rate_hz": 4.002,
+          "delivered_bytes_per_second": 4122.178,
+          "mean_step_wall_us": 3536.07
+        },
+        {
+          "source_index": 2,
+          "deltas": {
+            "steps": 11919,
+            "elapsed_us": 3055514,
+            "transfer_bytes": 68430,
+            "transfers": 11919,
+            "timeouts": 0,
+            "errors": 0
+          },
+          "step_rate_hz": 100.003,
+          "delivered_bytes_per_second": 574.14,
+          "mean_step_wall_us": 256.36
+        }
+      ],
+      "bmp_fresh_snapshots": 480,
+      "raw_journal": "build/member4-today-20261027/radar-061722/journal.jsonl",
+      "raw_journal_sha256": "0c31e16767c105f176715b5a8cc241b7415120d29ad2576cde6a81ebd65e035e",
+      "summary_sha256": "9b1cb8bd067266fac35719dd9f9aceaaef5e2add682ebb77dcd801babb1be337"
+    },
+    {
+      "capture": "radar-stability-062044",
+      "phone_app": "user confirmed disconnected",
+      "duration_seconds": 300.66,
+      "telemetry_snapshots": 1200,
+      "workcost_snapshots": 300,
+      "radar_quality_counts": {
+        "fresh": 1200,
+        "fault": 0,
+        "stale": 0,
+        "missing": 0
+      },
+      "health_delta": [
+        0,
+        0,
+        0,
+        0,
+        6648,
+        0,
+        0,
+        0
+      ],
+      "context_stable": true,
+      "configuration": {
+        "active_revision": 737,
+        "saved_revision": 737,
+        "active_crc": 3623560383,
+        "saved_crc": 3623560383,
+        "flags": 80
+      },
+      "uptime_ms_first_last": [
+        1216865,
+        1517206
+      ],
+      "radar_fresh_max_age_ms": 59,
+      "workcost_elapsed_seconds": 299.591997,
+      "workers": [
+        {
+          "source_index": 0,
+          "deltas": {
+            "steps": 599,
+            "elapsed_us": 2428281,
+            "transfer_bytes": 5391,
+            "transfers": 1198,
+            "timeouts": 0,
+            "errors": 0
+          },
+          "step_rate_hz": 1.999,
+          "delivered_bytes_per_second": 17.994,
+          "mean_step_wall_us": 4053.89
+        },
+        {
+          "source_index": 1,
+          "deltas": {
+            "steps": 1198,
+            "elapsed_us": 4230333,
+            "transfer_bytes": 1233940,
+            "transfers": 2396,
+            "timeouts": 0,
+            "errors": 0
+          },
+          "step_rate_hz": 3.999,
+          "delivered_bytes_per_second": 4118.735,
+          "mean_step_wall_us": 3531.16
+        },
+        {
+          "source_index": 2,
+          "deltas": {
+            "steps": 29959,
+            "elapsed_us": 7691629,
+            "transfer_bytes": 171960,
+            "transfers": 29959,
+            "timeouts": 0,
+            "errors": 0
+          },
+          "step_rate_hz": 99.999,
+          "delivered_bytes_per_second": 573.981,
+          "mean_step_wall_us": 256.74
+        }
+      ],
+      "bmp_fresh_snapshots": 1200,
+      "raw_journal": "build/member4-today-20261027/radar-stability-062044/journal.jsonl",
+      "raw_journal_sha256": "73862299542c141a466338ba0bf46ee8fc93226101a5a1a6b6468816e1121a4c",
+      "summary_sha256": "8c6c7ad58dcb2c4d02af4ce06eadf31fc8bd18224d3eddd1548d9b23f1b31b2f"
+    }
+  ],
+  "user_observations": [
+    "Radar TX moved to Board A b35; OLED displays normally",
+    "App connected and radar tracks movement",
+    "For repeated disconnected capture, only phone app disconnected; wiring and power unchanged"
+  ],
+  "conclusions": [
+    "Initial disconnected capture: no fresh radar reports and no delivered UART bytes despite continued worker execution",
+    "Connected comparison and subsequent disconnected captures were healthy; app connection state alone does not establish the cause",
+    "Five-minute disconnected follow-up passed the prospective collection stability gate; earlier failure and unresolved cause remain recorded",
+    "No UART framing, I/O or receive-overflow increments occurred in these capture windows; application queue overwrites are separate",
+    "Successful USB queries and per-worker counters do not establish the voltage waveform, module-side transmission or absence detection accuracy"
+  ],
+  "root_cause_established": false,
+  "fault_fixed_claimed": false,
+  "firmware_changed": false,
+  "configuration_changed": false,
+  "training_data_collected": false,
+  "deferred_radar_absence_test_performed": false,
+  "serial_closed": true,
+  "next_boundary": "Renew identity/context and calibrate before any frozen study. Pause new trials if unexplained transport silence returns; retain complete failed runs."
+}

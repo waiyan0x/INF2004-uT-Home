@@ -1,11 +1,14 @@
 """Measurement journals reject lost identity, allocation activity and resets."""
 from copy import deepcopy
+from dataclasses import asdict
 import json
 import unittest
+from unittest.mock import patch
 
 from ai import cost_capture
 from ai.recording import load_recording, record_run
 from ai.tests import test_recording
+from tools.config_transfer.identity import configuration_key
 from tools.config_transfer.telemetry import AUDIT_KINDS
 from tools.config_transfer.workcost import WorkcostReply
 from tools.config_validator.planner import ConfigurationError
@@ -51,6 +54,30 @@ class CostCaptureTests(unittest.TestCase):
         result = record_run(f.board, f.experiment, 500, 0, f.identity, f.receipt, folder,
                             clock=f.clock.time, sleep=f.clock.sleep, collect_costs=True)
         return folder, result
+
+    def test_invalid_capture_arguments_fail_before_device_io(self):
+        context = dict(identity=None, profile_hash=None, expected=None,
+                       generation=None, sources=None)
+        cases = [{key: value for key, value in context.items() if key != missing}
+                 for missing in context]
+        cases.append(dict(context, source=None))
+        for arguments in cases:
+            with self.subTest(arguments=tuple(arguments)), self.assertRaises(TypeError):
+                cost_capture.observe(self.fixture.board, **arguments)
+            self.assertEqual(self.cost_calls, 0)
+
+    def test_live_reply_keeps_its_type_and_replay_has_the_same_validated_result(self):
+        reply = self.workcost()
+        context = dict(identity=self.fixture.identity, profile_hash='e' * 64,
+                       expected=configuration_key(self.fixture.board.config),
+                       generation=3, sources={0})
+        with patch.object(self.fixture.board, 'workcost', return_value=reply) as read:
+            observed = cost_capture.observe(self.fixture.board, **context)
+        read.assert_called_once_with()
+        self.assertIs(observed, reply)
+        retained = json.loads(json.dumps(asdict(observed)))
+        self.assertEqual(cost_capture.validate_reply(observed, **context),
+                         cost_capture.decode_record(retained, **context))
 
     def test_journal_and_summary_replay_without_changing_labels(self):
         folder, result = self.record('costs')

@@ -117,7 +117,11 @@ static int transfer (void *                   p_context,
 static int now_ms (void * p_context, uint64_t * p_now)
 {
     const spifake_t * p_fake = p_context;
-    *p_now                   = p_fake->now_ms;
+    if (p_fake->b_clock_fail)
+    {
+        return SPIBUS_IO;
+    }
+    *p_now = p_fake->now_ms;
     return 0;
 }
 

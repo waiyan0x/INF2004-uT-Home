@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+from typing import Any
 
 from tools.config_validator.planner import (
     Catalogue, ConfigurationError, ROOT, build_plan, check, load_document, require,
@@ -16,40 +17,41 @@ SCHEMA = ROOT / "ai/contracts/timing-scenario.schema.json"
 MAX_EXPERIMENT_BYTES = 262144
 
 
-def canonical(value):
+def canonical(value: object) -> bytes:
     """Stable JSON bytes for correlation, independent of source-file formatting."""
     return json.dumps(value, sort_keys=True, separators=(",", ":"),
                       ensure_ascii=True, allow_nan=False).encode("ascii")
 
 
-def digest(value):
+def digest(value: object) -> str:
     return hashlib.sha256(canonical(value)).hexdigest()
 
 
-def integer_numbers(value):
+def validate_integer_tokens(value: object) -> None:
     # JSON Schema considers 500.0 an integer; the firmware requires integer tokens.
     require(not isinstance(value, float), "Numbers must use integer JSON tokens")
     if isinstance(value, dict):
         for item in value.values():
-            integer_numbers(item)
+            validate_integer_tokens(item)
     elif isinstance(value, list):
         for item in value:
-            integer_numbers(item)
+            validate_integer_tokens(item)
 
 
-def variant(profile, instance_id, field, interval):
+def variant(profile: dict[str, Any], instance_id: str, field: str, interval: int) -> dict[str, Any]:
     candidate = deepcopy(profile)
     device = next(item for item in candidate["devices"] if item["device_id"] == instance_id)
     device["behaviour"][field] = interval
     return candidate
 
 
-def prepare(profile, manifest, scenario, catalogue=None):
+def prepare(profile: dict[str, Any], manifest: dict[str, Any], scenario: dict[str, Any],
+            catalogue: Catalogue | None = None) -> dict[str, Any]:
     """Change one instance's period only; validate every full candidate profile."""
     catalogue = catalogue or Catalogue()
-    integer_numbers(profile)
-    integer_numbers(manifest)
-    integer_numbers(scenario)
+    validate_integer_tokens(profile)
+    validate_integer_tokens(manifest)
+    validate_integer_tokens(scenario)
     check(scenario, load_document(SCHEMA), "timing scenario")
     require(isinstance(manifest.get("build_id"), str) and 0 < len(manifest["build_id"]) <= 128,
             "An explicit build_id is required")
@@ -114,7 +116,10 @@ def prepare(profile, manifest, scenario, catalogue=None):
         "implementation_sha256": {
             path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
             for path in ("ai/timing.py", "ai/contracts/timing-scenario.schema.json",
-                         "tools/config_validator/planner.py")
+                         "tools/config_validator/planner.py",
+                         "tools/config_validator/catalogue.py",
+                         "tools/config_validator/documents.py",
+                         "tools/config_validator/wiring.py")
         },
     }
     return deepcopy({
@@ -129,14 +134,14 @@ def prepare(profile, manifest, scenario, catalogue=None):
     })
 
 
-def validate(experiment, catalogue=None):
+def validate(experiment: dict[str, Any], catalogue: Catalogue | None = None) -> dict[str, Any]:
     """Recompute against reviewed sources; reject drift, extra fields and fake labels."""
     require(isinstance(experiment, dict), "Experiment must be an object")
     require(experiment.get("contract") == "uthome.timing-experiment"
             and experiment.get("contract_version") == VERSION, "Unsupported timing experiment contract")
     require(all(isinstance(experiment.get(key), dict) for key in
                 ("profile", "build_manifest", "scenario")), "Missing experiment inputs")
-    integer_numbers(experiment)
+    validate_integer_tokens(experiment)
     expected = prepare(experiment["profile"], experiment["build_manifest"],
                        experiment["scenario"], catalogue)
     require(canonical(experiment) == canonical(expected),
@@ -144,7 +149,8 @@ def validate(experiment, catalogue=None):
     return expected
 
 
-def export_profile(experiment, interval, catalogue=None):
+def export_profile(experiment: dict[str, Any], interval: int,
+                   catalogue: Catalogue | None = None) -> dict[str, Any]:
     checked = validate(experiment, catalogue)
     require(type(interval) is int and any(row["interval_ms"] == interval for row in checked["trials"]),
             "Select an interval already present in the experiment")
@@ -152,7 +158,7 @@ def export_profile(experiment, interval, catalogue=None):
     return variant(checked["profile"], target["instance_id"], target["period_field"], interval)
 
 
-def write_new(path, value, *, compact=False):
+def write_new(path: str | Path, value: object, *, compact: bool = False) -> None:
     # Exclusive creation preserves existing plans/profiles without an overwrite flag.
     raw = canonical(value) if compact else json.dumps(value, indent=2, ensure_ascii=True).encode("ascii")
     require(len(raw) <= MAX_EXPERIMENT_BYTES, "Experiment exceeds the file size limit")
@@ -160,7 +166,7 @@ def write_new(path, value, *, compact=False):
         output.write(raw if compact else raw + b"\n")
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     create = commands.add_parser("prepare", help="Create a plan from a profile, manifest and scenario")

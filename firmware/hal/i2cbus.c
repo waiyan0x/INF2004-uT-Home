@@ -14,6 +14,9 @@ int i2cbus_transfer (i2cbus_t * p_bus, const i2cbus_request_t * p_request)
         (!valid_address(p_request->address)) ||
         (p_request->write_size > UTHOME_I2C_TX_MAX) ||
         (p_request->read_size > UTHOME_I2C_RX_MAX) ||
+        (p_request->read_pause_ms > UTHOME_I2C_PAUSE_MAX_MS) ||
+        ((0U != p_request->read_pause_ms) &&
+         ((0U == p_request->write_size) || (0U == p_request->read_size))) ||
         ((0U == p_request->write_size) && (0U == p_request->read_size)) ||
         ((0U != p_request->write_size) && (NULL == p_request->p_write)) ||
         ((0U != p_request->read_size) && (NULL == p_request->p_read)))
@@ -48,9 +51,16 @@ int i2cbus_deadline (i2cbus_t * p_bus,
                      uint64_t * p_deadline)
 {
     uint64_t now = 0U;
-    if ((NULL == p_deadline) || (0U == timeout_ms) ||
-        (timeout_ms > UINT32_C(2147483647)) || (0 != i2cbus_now(p_bus, &now)) ||
-        (now > (UINT64_MAX - timeout_ms)))
+    if ((!valid_bus(p_bus)) || (NULL == p_deadline) || (0U == timeout_ms) ||
+        (timeout_ms > UINT32_C(2147483647)))
+    {
+        return I2CBUS_INVALID;
+    }
+    if (0 != i2cbus_now(p_bus, &now))
+    {
+        return I2CBUS_IO;
+    }
+    if (now > (UINT64_MAX - timeout_ms))
     {
         return I2CBUS_INVALID;
     }
@@ -59,7 +69,9 @@ int i2cbus_deadline (i2cbus_t * p_bus,
 }
 
 /** @brief Require an actual delay implementation, using the same deadline. */
-int i2cbus_delay (i2cbus_t * p_bus, uint32_t duration_us, uint64_t deadline_ms)
+int i2cbus_delay_us (i2cbus_t * p_bus,
+                     uint32_t   duration_us,
+                     uint64_t   deadline_ms)
 {
     if (!valid_bus(p_bus))
     {

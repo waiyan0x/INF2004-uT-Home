@@ -1,0 +1,176 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_utc": "2026-10-31T12:25:09.175530+00:00",
+  "scope": "Diagnostic-only four-device configuration application using reviewed catalogue, confirmed wiring, review and apply; online model step and GUI interaction not repeated",
+  "diagnostic_binary_sha256": "b705cffacde8d651e82b14fad139c6bd9e0a97a355261cf5d0e5dd8ae8be9929",
+  "diagnostic_elf_sha256": "aba694f119a6469f02382b9f5922f29bb30be2456ecbd052ec87d0955b12720a",
+  "diagnostic_app_probe_enabled": true,
+  "diagnostic_only": true,
+  "backup_local_directory": "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\ESP\\Tribunal1\\sen0390-flash-backup-abbb1c1ab37742eb9449f3aabaf11281",
+  "backup_sha256": "a98aa25765153ca8b8acb555fd13322d3da253c045e572bba7b1a64abf958ada",
+  "backup_matches_second_read": true,
+  "trial_local_directory": "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\ESP\\Tribunal1\\sen0390-flash-backup-abbb1c1ab37742eb9449f3aabaf11281\\combined-app-diagnostic",
+  "telemetry_sha256": "9b5305cc2226c38a4f204bffd9ba677fde3cf76747d8664aa7f2a00ed9fc65db",
+  "draft_sha256": "1a1b7bc2b63f2cb3fa7087fbd41d06936f9978e712e1841f9f12804f6a69a56b",
+  "review_sha256": "df279656a8ab51b7edc506662e2713442a09e493d75e9c35713181327ffae291",
+  "apply_sha256": "e017a2bf3127fe6c932cf506b73206ebd45b8b4651259d7ab27438d0289e9a95",
+  "workcost_sha256": "14bfd8cacd03c6caa939d1226fd7536a30f0caffef28f5dcaacfdcb1c19bcf22",
+  "samples": 120,
+  "elapsed_s": 130.769,
+  "quality_counts": {
+    "environment_sensor": {
+      "fresh": 120
+    },
+    "presence_sensor": {
+      "missing": 1,
+      "fault": 119
+    },
+    "light_sensor": {
+      "missing": 2,
+      "fresh": 118
+    },
+    "health": {
+      "missing": 1,
+      "fresh": 119
+    }
+  },
+  "light_ambient_indices": [
+    5,
+    90
+  ],
+  "light_ambient_median_millilux": 9765.0,
+  "light_flashlight_indices": [
+    105,
+    119
+  ],
+  "light_flashlight_median_millilux": 207648,
+  "light_observed_max_millilux": 713664,
+  "final_health_event_counts": [
+    0,
+    0,
+    523,
+    0,
+    1012,
+    0,
+    0,
+    0
+  ],
+  "normal_runtime_audit": {
+    "allocations": 0,
+    "bytes": 0,
+    "frees": 0,
+    "creates": {
+      "task": 0,
+      "mutex": 0,
+      "semaphore": 0,
+      "flag": 0,
+      "mailbox": 0,
+      "message_buffer": 0,
+      "fixed_pool": 0,
+      "variable_pool": 0,
+      "rendezvous": 0,
+      "cyclic": 0,
+      "alarm": 0
+    },
+    "kernel_calls": {
+      "malloc": 0,
+      "calloc": 0,
+      "realloc": 0,
+      "free": 0
+    }
+  },
+  "startup_audit": {
+    "allocations": 19,
+    "bytes": 1687,
+    "frees": 0,
+    "creates": {
+      "task": 6,
+      "mutex": 41,
+      "semaphore": 50,
+      "flag": 1,
+      "mailbox": 0,
+      "message_buffer": 0,
+      "fixed_pool": 0,
+      "variable_pool": 0,
+      "rendezvous": 0,
+      "cyclic": 0,
+      "alarm": 0
+    },
+    "kernel_calls": {
+      "malloc": 1,
+      "calloc": 0,
+      "realloc": 0,
+      "free": 0
+    }
+  },
+  "light_worker_observation": {
+    "slot": 3,
+    "source_index": 3,
+    "task_handle": 7,
+    "bound": true,
+    "available": true,
+    "stats": {
+      "steps": 132,
+      "elapsed_us": 1952043,
+      "max_elapsed_us": 15053,
+      "max_lateness_us": 0,
+      "bus_wait_us": 120869,
+      "bus_active_us": 1799254,
+      "transfer_bytes": 650,
+      "transfers": 130,
+      "timeouts": 0,
+      "errors": 0,
+      "flags": 0
+    },
+    "stack": {
+      "bytes": 8192,
+      "unused_min": null,
+      "measured": false,
+      "empirical": true
+    }
+  },
+  "linked_memory_budget": {
+    "passed": true,
+    "groups": {
+      "application_fixed": 148809,
+      "kernel_sdk_fixed": 35559,
+      "ram_code": 45784,
+      "total_dram": 230152,
+      "rtc": 60
+    },
+    "budget": "tools/target/network-budget.json",
+    "local_record": "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code\\build\\datasheet-work\\senlux-combined-network-memory-20261031-a1.json",
+    "sha256": "f005e4671eff08d754a7fa19a54f97f12af974e852343ad3bc5489d439f36795",
+    "earlier_default_budget_attempt": {
+      "passed": false,
+      "reason": "Default budget does not include the selected fixed-network-queue objects; retained as a separate local record.",
+      "local_record": "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\Code\\build\\datasheet-work\\senlux-combined-memory-20261031-a1.json",
+      "sha256": "b5486cae50c33dda47777f8822f30daec86ae69a06cda4de930eeeae08e5e5b5"
+    }
+  },
+  "before_source_qualities": {
+    "environment_sensor": "fresh",
+    "presence_sensor": "fault",
+    "health": "fresh"
+  },
+  "after_source_qualities": {
+    "environment_sensor": "fresh",
+    "presence_sensor": "fault",
+    "health": "fresh"
+  },
+  "restored_prefix_and_configuration_match_backup": true,
+  "restored_active_revision": 922,
+  "restored_saved_revision": 922,
+  "restored_active_crc": 3623560383,
+  "restored_saved_crc": 3623560383,
+  "restored_query_sha256": "8e494959143a9793db83435ae817cfc6bdd633aaf6ed2b910dbac3cfd54b8081",
+  "restored_telemetry_sha256": "d343b4b9b02d3c56c3bb9b8b00f7064b0cdf27b8c33d7f66f4d433d2277d0435",
+  "user_observation": "OLED readable and updating under diagnostic profile and after restoration; user shone a phone flashlight at the sensor.",
+  "limitations": [
+    "Radar timed out before, during and after; this is not full four-device acceptance.",
+    "Isolated startup NACK cause remains unknown; a short combined capture cannot prove long-run reliability.",
+    "Light worker stack minimum unavailable; no worst-case stack claim.",
+    "Zero runtime counters cover only instrumented allocation paths; startup SDK and kernel allocations were observed.",
+    "Illuminance is not calibrated; no wireless, API extraction, GUI interaction or power-cycle acceptance in this test."
+  ]
+}

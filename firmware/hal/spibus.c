@@ -140,9 +140,16 @@ int spibus_deadline (spibus_t * p_bus,
                      uint64_t * p_deadline)
 {
     uint64_t now = 0U;
-    if ((NULL == p_deadline) || (0U == timeout_ms) ||
-        (timeout_ms > UINT32_C(2147483647)) || (0 != spibus_now(p_bus, &now)) ||
-        (now > (UINT64_MAX - timeout_ms)))
+    if ((!valid_bus(p_bus)) || (NULL == p_deadline) || (0U == timeout_ms) ||
+        (timeout_ms > UINT32_C(2147483647)))
+    {
+        return SPIBUS_INVALID;
+    }
+    if (0 != spibus_now(p_bus, &now))
+    {
+        return SPIBUS_IO;
+    }
+    if (now > (UINT64_MAX - timeout_ms))
     {
         return SPIBUS_INVALID;
     }
@@ -151,7 +158,9 @@ int spibus_deadline (spibus_t * p_bus,
 }
 
 /** @brief Require a real bounded delay implementation. */
-int spibus_delay (spibus_t * p_bus, uint32_t duration_ms, uint64_t deadline_ms)
+int spibus_delay_ms (spibus_t * p_bus,
+                     uint32_t   duration_ms,
+                     uint64_t   deadline_ms)
 {
     if (!valid_bus(p_bus))
     {

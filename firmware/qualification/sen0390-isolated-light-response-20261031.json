@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0.0",
+  "recorded_utc": "2026-10-31T09:32:48.174462+00:00",
+  "scope": "Isolated SEN0390 fixed GPIO5 enable and shared I2C electrical bench observation; not integrated application acceptance",
+  "diagnostic_build_sha256": "449d7a81df060b620fae3874e108c15d6d3fc7c9ec2bda649c255e5c9bbaa78b",
+  "board": "ESP32-C3 4MB",
+  "wiring": "BMP388, OLED and LD2450 remained connected; application workers did not run during isolated test; SEN0390 EN on GPIO5 with 10k pull-down",
+  "flash_backup_local_directory": "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\ESP\\Tribunal1\\sen0390-flash-backup-d08cfe126eb44970b4edca7fd217f297",
+  "flash_backup_sha256": "a98aa25765153ca8b8acb555fd13322d3da253c045e572bba7b1a64abf958ada",
+  "flash_backup_verified_by_second_full_read": true,
+  "restored_prefix_and_configuration_match_backup": true,
+  "probe_1": {
+    "capture_local_path": "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\ESP\\Tribunal1\\sen0390-flash-backup-d08cfe126eb44970b4edca7fd217f297\\senlux-capture.log",
+    "capture_sha256": "a821a1b1d8484cc9a89d7c66fdae9a0c6fbed5a26ac4964ef66dd6da19454ad1",
+    "samples": 120,
+    "status_counts": {
+      "1": 2,
+      "-3": 2,
+      "0": 116
+    },
+    "nack_indices": [
+      2,
+      20
+    ],
+    "restored_query_sha256": "76253553b54043e7c66f0d9fe45b2064fb43ccec345963d0a95e592aaf203667",
+    "restored_telemetry_sha256": "9887c0c886f880f31d44d472e85ef01e31ae3a1164c2af043c8866db8a3c0d76",
+    "restored_active_revision": 922,
+    "restored_saved_revision": 922,
+    "restored_crc": 3623560383,
+    "restored_source_qualities": {
+      "environment_sensor": "fresh",
+      "presence_sensor": "fresh",
+      "health": "fresh"
+    },
+    "restored_failed_workers": 0
+  },
+  "flashlight_probe_2": {
+    "capture_local_path": "C:\\SIT\\Y2\\T1\\INF2004 - Embedded Systems Programming\\Project\\ESP\\Tribunal1\\sen0390-flash-backup-d08cfe126eb44970b4edca7fd217f297\\light-response-followup\\senlux-capture.log",
+    "capture_sha256": "3cd3e70d8ee5513817ded715920e7b77511501480b6030f75fc12760e11e2630",
+    "samples": 120,
+    "status_counts": {
+      "1": 2,
+      "-3": 1,
+      "0": 117
+    },
+    "nack_indices": [
+      2
+    ],
+    "restored_query_sha256": "8e494959143a9793db83435ae817cfc6bdd633aaf6ed2b910dbac3cfd54b8081",
+    "restored_telemetry_sha256": "e477cc8e4ac0439a40f92a3c900acb536a93fdb69270f3b8d4e7fb40fa457bc1",
+    "restored_active_revision": 922,
+    "restored_saved_revision": 922,
+    "restored_crc": 3623560383,
+    "restored_source_qualities": {
+      "environment_sensor": "fresh",
+      "presence_sensor": "fresh",
+      "health": "fresh"
+    },
+    "restored_failed_workers": 0,
+    "ambient_before": {
+      "index_first": 5,
+      "index_last": 28,
+      "samples": 24,
+      "median_millilux": 8757.0,
+      "min_millilux": 8694,
+      "max_millilux": 8883
+    },
+    "flashlight": {
+      "index_first": 35,
+      "index_last": 75,
+      "samples": 41,
+      "median_millilux": 445536,
+      "min_millilux": 314496,
+      "max_millilux": 536256
+    },
+    "ambient_after": {
+      "index_first": 85,
+      "index_last": 115,
+      "samples": 31,
+      "median_millilux": 8253,
+      "min_millilux": 8190,
+      "max_millilux": 8442
+    }
+  },
+  "user_observation": "User reported OLED readable and updating after each restore; flashlight on and off during second test.",
+  "interpretation": "Clear light response observed; values are not calibrated against a reference. Startup NACK recurred, and one additional NACK occurred in the first run. Their cause is not established.",
+  "not_qualified": [
+    "combined four-device application and rollback",
+    "long-run I2C reliability and bus recovery",
+    "allocation, timing and stack margins with light worker",
+    "illuminance accuracy or calibration",
+    "complete system acceptance"
+  ]
+}

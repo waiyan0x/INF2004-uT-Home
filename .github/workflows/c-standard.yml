@@ -20,16 +20,20 @@ jobs:
           cache-dependency-path: |
             tools/c_standard/requirements.txt
             tools/requirements.txt
+            tools/config_transfer/requirements.txt
+            tools/config_transfer/requirements-dev.txt
             ai/training-requirements.txt
             ai/requirements.txt
       - name: Install pinned formatting and host test dependencies
-        run: python -m pip install -r tools/c_standard/requirements.txt -r tools/requirements.txt -r ai/training-requirements.txt
+        run: python -m pip install -r tools/c_standard/requirements.txt -r tools/requirements.txt -r ai/training-requirements.txt -r tools/config_transfer/requirements.txt -r tools/config_transfer/requirements-dev.txt
       - name: Require the host compiler
         run: gcc --version
       - name: Enforce BARR-C policy
         run: python tools/c_standard/check.py --root .
       - name: Verify the policy checker
         run: python -m unittest discover -s tests/c_standard -p 'test_*.py' -v
+      - name: Verify host data contracts
+        run: python -m mypy --config-file tools/config_transfer/mypy.ini
       - name: Run foundation acceptance
         run: python -m unittest discover -s tests/foundation -p 'test_*.py' -v
       - name: Verify discovery contracts and matching
@@ -40,6 +44,24 @@ jobs:
         run: python -m unittest discover -s tests/runtime -p 'test_*.py' -v
       - name: Run target failure and build-tool tests
         run: python -m unittest discover -s tests/target -p 'test_*.py' -v
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify JavaScript source
+        run: |
+          npm ci --ignore-scripts
+          npm run lint
+      - name: Verify dashboard and wiring visualiser
+        run: |
+          node --test tests/target/test_*.mjs
+          node --test visualiser/tests/*.test.mjs
+
+      - name: Verify real browser composition and asynchronous transitions
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:browser
 
       - name: Run standalone UART/GPIO and optional-output regressions
         run: |
@@ -70,10 +92,8 @@ jobs:
           echo "IDF_TOOLS_PATH=$RUNNER_TEMP/idf-tools" >> "$GITHUB_ENV"
           mkdir -p "$RUNNER_TEMP/uthome-ci"
           python - <<'PY'
-          import importlib.util, os
-          spec = importlib.util.spec_from_file_location("qualification", "tools/target/qualify_kernel.py")
-          module = importlib.util.module_from_spec(spec)
-          spec.loader.exec_module(module)
+          import os
+          from tools.target import qualify_kernel as module
           with open(os.environ["GITHUB_ENV"], "a") as output:
               output.write(f"UTHOME_SDK_REV={module.SDK_REVISION}\n")
               output.write(f"UTHOME_KERNEL_REV={module.KERNEL_REVISION}\n")

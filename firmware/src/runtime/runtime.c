@@ -98,15 +98,15 @@ int runtime_register_device (const runtime_device_t * p_device)
     }
     if (!valid_device(p_device))
     {
-        return -1;
+        return UTHOME_RUNTIME_ERR_INVALID;
     }
     if (g_state.count >= UTHOME_RUNTIME_MAX_DEVICES)
     {
-        return -2;
+        return UTHOME_RUNTIME_ERR_CAPACITY;
     }
     if (find_device(p_device->name) >= 0)
     {
-        return -3;
+        return UTHOME_RUNTIME_ERR_DUPLICATE;
     }
     runtime_entry_t * const p_entry = &g_state.entries[g_state.count++];
     p_entry->device                 = *p_device;
@@ -142,7 +142,7 @@ int runtime_update_device (const char *             p_name,
     if ((index < 0) || (!valid_device(p_device)) ||
         (0 != strcmp(p_name, p_device->name)))
     {
-        return -1;
+        return UTHOME_RUNTIME_ERR_INVALID;
     }
     int result = begin();
     if (0 != result)
@@ -170,11 +170,11 @@ int runtime_rollback_device (const char * p_name)
     const int index = find_device(p_name);
     if (index < 0)
     {
-        return -1;
+        return UTHOME_RUNTIME_ERR_INVALID;
     }
     if (!g_state.entries[index].b_has_rollback)
     {
-        return -2;
+        return UTHOME_RUNTIME_ERR_STATE;
     }
     int result = begin();
     if (0 != result)
@@ -217,7 +217,7 @@ int runtime_record_failure (const char * p_name)
     const int index = find_device(p_name);
     if (index < 0)
     {
-        return -1;
+        return UTHOME_RUNTIME_ERR_INVALID;
     }
     ++g_state.entries[index].status.failure_count;
     g_state.entries[index].status.state = UTHOME_RUNTIME_ERROR;
@@ -230,11 +230,11 @@ int runtime_restart_device (const char * p_name)
     const int index = find_device(p_name);
     if (index < 0)
     {
-        return -1;
+        return UTHOME_RUNTIME_ERR_INVALID;
     }
     if (!g_state.entries[index].device.b_enabled)
     {
-        return -2;
+        return UTHOME_RUNTIME_ERR_STATE;
     }
     int result = begin();
     if (0 != result)
@@ -267,7 +267,7 @@ int runtime_apply_bound_devices (const runtime_device_t *  p_devices,
 {
     if ((0U != count) && (NULL == p_bindings))
     {
-        return -1;
+        return UTHOME_RUNTIME_ERR_INVALID;
     }
     return apply(p_devices, p_bindings, count);
 }
@@ -284,18 +284,18 @@ int runtime_bind_device (const char *              p_name,
     const int index = find_device(p_name);
     if (index < 0)
     {
-        return -1;
+        return UTHOME_RUNTIME_ERR_INVALID;
     }
     runtime_entry_t * const p_entry = &g_state.entries[index];
     if (p_entry->h_port >= 0)
     {
-        return -2;
+        return UTHOME_RUNTIME_ERR_STATE;
     }
     if (NULL != p_binding)
     {
         if (!valid_binding(p_binding, p_name))
         {
-            return -1;
+            return UTHOME_RUNTIME_ERR_INVALID;
         }
         /* The successful lookup makes index nonnegative and at most seven. */
         const size_t selected_index = (size_t)index;
@@ -307,7 +307,7 @@ int runtime_bind_device (const char *              p_name,
                 (g_state.entries[other_index].binding.component.p_context ==
                  p_binding->component.p_context))
             {
-                return -1;
+                return UTHOME_RUNTIME_ERR_INVALID;
             }
         }
         p_entry->binding = *p_binding;
@@ -331,12 +331,12 @@ int runtime_dispatch_device (const char * p_name)
     const int index = find_device(p_name);
     if (index < 0)
     {
-        return -1;
+        return UTHOME_RUNTIME_ERR_INVALID;
     }
     runtime_entry_t * const p_entry = &g_state.entries[index];
     if (UTHOME_RUNTIME_RUNNING != p_entry->status.state)
     {
-        return -2;
+        return UTHOME_RUNTIME_ERR_STATE;
     }
     gb_busy = true;
     result  = dispatch(p_entry);
@@ -376,11 +376,11 @@ int runtime_record_execution (const char * p_name, uint32_t now_ms)
     const int index = find_device(p_name);
     if (index < 0)
     {
-        return -1;
+        return UTHOME_RUNTIME_ERR_INVALID;
     }
     if (UTHOME_RUNTIME_RUNNING != g_state.entries[index].status.state)
     {
-        return -2;
+        return UTHOME_RUNTIME_ERR_STATE;
     }
     record_execution(&g_state.entries[index], now_ms);
     return 0;
@@ -392,7 +392,7 @@ int runtime_get_status (const char * p_name, runtime_status_t * p_status)
     const int index = find_device(p_name);
     if ((index < 0) || (NULL == p_status))
     {
-        return -1;
+        return UTHOME_RUNTIME_ERR_INVALID;
     }
     *p_status = g_state.entries[index].status;
     return 0;
@@ -404,7 +404,7 @@ int runtime_get_device (const char * p_name, runtime_device_t * p_device)
     const int index = find_device(p_name);
     if ((index < 0) || (NULL == p_device))
     {
-        return -1;
+        return UTHOME_RUNTIME_ERR_INVALID;
     }
     *p_device = g_state.entries[index].device;
     return 0;
@@ -415,7 +415,7 @@ int runtime_get_resources (runtime_resource_snapshot_t * p_snapshot)
 {
     if ((NULL == p_snapshot) || (!gb_initialized))
     {
-        return -1;
+        return UTHOME_RUNTIME_ERR_INVALID;
     }
     *p_snapshot = (runtime_resource_snapshot_t){
         .registered_devices = g_state.count,
@@ -588,7 +588,7 @@ static int prepare (runtime_entry_t * p_entry)
 {
     if (!p_entry->device.b_enabled)
     {
-        return -2;
+        return UTHOME_RUNTIME_ERR_STATE;
     }
     if (p_entry->h_port >= 0)
     {
@@ -596,13 +596,13 @@ static int prepare (runtime_entry_t * p_entry)
     }
     if (!stack_fits(p_entry, p_entry->device.stack_size_bytes))
     {
-        return -3;
+        return UTHOME_RUNTIME_ERR_PREPARE;
     }
     const rt_port_task_config_t config = port_config(&p_entry->device);
     rt_port_task_id_t           h_task = -1;
     if (0 != rt_port_task_prepare(&config, &h_task))
     {
-        return -3;
+        return UTHOME_RUNTIME_ERR_PREPARE;
     }
     p_entry->h_port       = h_task;
     p_entry->status.state = UTHOME_RUNTIME_READY;
@@ -614,7 +614,7 @@ static int start (runtime_entry_t * p_entry)
 {
     if (!p_entry->device.b_enabled)
     {
-        return -2;
+        return UTHOME_RUNTIME_ERR_STATE;
     }
     if (UTHOME_RUNTIME_RUNNING == p_entry->status.state)
     {
@@ -655,7 +655,7 @@ static int update (runtime_entry_t * p_entry, const runtime_device_t * p_device)
     if (b_prepared && (p_device->b_enabled) &&
         (!stack_fits(p_entry, p_device->stack_size_bytes)))
     {
-        return -2;
+        return UTHOME_RUNTIME_ERR_CAPACITY;
     }
     if ((!p_device->b_enabled) ||
         (b_prepared &&
@@ -671,7 +671,7 @@ static int update (runtime_entry_t * p_entry, const runtime_device_t * p_device)
         {
             return 0;
         }
-        result = b_prepared ? prepare(p_entry) : 0;
+        result = prepare(p_entry);
         if (0 != result)
         {
             return result;
@@ -702,7 +702,7 @@ static int lifecycle (const char * p_name, runtime_lifecycle_fn_t * p_operation)
     const int index = find_device(p_name);
     if (index < 0)
     {
-        return -1;
+        return UTHOME_RUNTIME_ERR_INVALID;
     }
     int result = begin();
     return (0 != result) ? result
@@ -720,12 +720,12 @@ static int validate_plan (const runtime_device_t *  p_devices,
     {
         if (!valid_device(&p_devices[index]))
         {
-            return -1;
+            return UTHOME_RUNTIME_ERR_INVALID;
         }
         if ((NULL != p_bindings) &&
             (!valid_binding(&p_bindings[index], p_devices[index].name)))
         {
-            return -1;
+            return UTHOME_RUNTIME_ERR_INVALID;
         }
         for (size_t previous_index = 0U; previous_index < index;
              ++previous_index)
@@ -733,13 +733,13 @@ static int validate_plan (const runtime_device_t *  p_devices,
             if (0 ==
                 strcmp(p_devices[index].name, p_devices[previous_index].name))
             {
-                return -3;
+                return UTHOME_RUNTIME_ERR_DUPLICATE;
             }
             if ((NULL != p_bindings) &&
                 (p_bindings[index].component.p_context ==
                  p_bindings[previous_index].component.p_context))
             {
-                return -1;
+                return UTHOME_RUNTIME_ERR_INVALID;
             }
         }
         if (p_devices[index].b_enabled)
@@ -751,7 +751,7 @@ static int validate_plan (const runtime_device_t *  p_devices,
     if ((active > UTHOME_RUNTIME_MAX_DEVICE_TASKS) ||
         (stacks > UTHOME_RUNTIME_DEVICE_STACK_BUDGET))
     {
-        return -2;
+        return UTHOME_RUNTIME_ERR_CAPACITY;
     }
     return 0;
 }
@@ -769,11 +769,11 @@ static int apply (const runtime_device_t *  p_devices,
     }
     if (count > UTHOME_RUNTIME_MAX_DEVICES)
     {
-        return -2;
+        return UTHOME_RUNTIME_ERR_CAPACITY;
     }
     if ((0U != count) && (NULL == p_devices))
     {
-        return -1;
+        return UTHOME_RUNTIME_ERR_INVALID;
     }
     result = validate_plan(p_devices, p_bindings, count);
     if (0 != result)
@@ -847,7 +847,7 @@ static int dispatch (runtime_entry_t * p_entry)
 {
     if (!p_entry->b_bound)
     {
-        return -2;
+        return UTHOME_RUNTIME_ERR_STATE;
     }
     ++p_entry->status.run_count;
     record_execution(p_entry, g_state.clock_ms);

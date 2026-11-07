@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-10-30T08:03:55.766978+00:00",
+  "scope": "Live Groq text extraction and local draft validation only; no device configuration or hardware access",
+  "provider": "groq",
+  "model": "openai/gpt-oss-20b",
+  "pdf_sha256": "e25c86fe30ce4511ff275d2f2051a395a66ef5c13455957e5406b21b5e7a5247",
+  "pdf_pages": 16,
+  "local_result": "build/datasheet-work/sen0390-groq-live-validated.json",
+  "local_result_sha256": "2951dcc6c73f5782c166a243609b2c6cf7d569c029b4289eafe1d2190dc730ba",
+  "outcome": "unreviewed draft returned; address conflict flagged",
+  "observations": [
+    "The model returned 0x94 as both seven-bit address and write byte; local review derived 0x4a and flagged the mismatch.",
+    "Other runs produced different results and one omitted address page references; current validation rejects uncited address values.",
+    "Model output and page citations require human verification; text extraction cannot interpret missing diagrams."
+  ],
+  "hardware_status": "not tested",
+  "acceptance_status": "not qualified"
+}

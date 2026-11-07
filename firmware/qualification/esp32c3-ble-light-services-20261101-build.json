@@ -1,0 +1,1514 @@
+{
+  "schema_version": "1.0.0",
+  "created_utc": "2026-10-31T20:05:37.198824+00:00",
+  "example": "tests/target/runtime_port_board",
+  "diagnostic_only": false,
+  "network_services": "ble",
+  "experimental_network_services": true,
+  "whole_system_static_qualified": false,
+  "configuration_application": true,
+  "native_uart_fixture": false,
+  "static_network_queues": true,
+  "wifi_probe": false,
+  "ble_probe": false,
+  "ble_gatt_probe": false,
+  "ble_static_host": false,
+  "model_probe": false,
+  "model_load_probe": false,
+  "senlux_probe": false,
+  "senlux_app_probe": false,
+  "board_kit": "iote_esp32c3_mini",
+  "target": "esp32c3",
+  "versions": {
+    "kernel_revision": "ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2",
+    "sdk_revision": "fff9895c82d744c7237be8847347bdd1b07c6643",
+    "compiler": "riscv32-esp-elf-gcc.EXE (crosstool-NG esp-15.2.0_20251204) 15.2.0",
+    "idf_version": "ESP-IDF v6.1.0",
+    "python": "3.12.3",
+    "cmake": "cmake version 4.0.3",
+    "ninja": "1.12.1"
+  },
+  "build_status": "passed",
+  "board_status": "not_tested",
+  "application_runtime_status": "not_tested",
+  "artifacts": {
+    "build/uthome_runtime_port.bin": {
+      "sha256": "cdab7e37d376339976d0bed4e134ed8fad2242fec249064b54be4d5214f6dd34",
+      "size_bytes": 645040
+    },
+    "build/uthome_runtime_port.elf": {
+      "sha256": "7978ca06c70bb034cd4c6c79a0157a2c5def13c08782e263fe2d6db092f9a995",
+      "size_bytes": 7253312
+    },
+    "build/uthome_runtime_port.map": {
+      "sha256": "d8c9a876fbb4b2a367e41cf173ef0c298a0c957770722b507540c579821a4078",
+      "size_bytes": 5453350
+    },
+    "build/compile_commands.json": {
+      "sha256": "41460e03ef8d3517a20a1173113297f98ba6f1f5516afdd8344452bf964460ab",
+      "size_bytes": 13222090
+    },
+    "build/bootloader/bootloader.bin": {
+      "sha256": "46f1f51d05d85abbc48e80df9e07014f32cfc53e5fbc1a67294a4ae355ae788c",
+      "size_bytes": 21232
+    },
+    "build/partition_table/partition-table.bin": {
+      "sha256": "7f7b089b96a3f7c3d7c431bd974909909e60a2bb8bdf4bb6802e9edbb6d9167e",
+      "size_bytes": 3072
+    },
+    "build/flasher_args.json": {
+      "sha256": "3d8fa411379da7c602c6163efb550377de6db43de2b55aa679833eaf385dc80f",
+      "size_bytes": 953
+    },
+    "sdkconfig": {
+      "sha256": "10b8025209bdb38a07a5e68cc7558840bd80df32bc713536c0d3b8d8ac8d3b5a",
+      "size_bytes": 102324
+    },
+    "build.log": {
+      "sha256": "2df9e5f23054721370789615e26d2361b4ce739d3bb642a065576a948833e435",
+      "size_bytes": 196149
+    },
+    "project/dependencies.lock": {
+      "sha256": "abfbc8e0e96b4740d37351e3f43cc500e5efab4b1ce7413692a0ffc9abd53c61",
+      "size_bytes": 530
+    },
+    "project/sdkconfig.defaults": {
+      "sha256": "580ea05cca3eb7e09221f23dcf34a9ff93322d79a84c22c21441b81202da7a34",
+      "size_bytes": 741
+    }
+  },
+  "coding_standard": {
+    "status": "passed",
+    "command": [
+      "C:\\Users\\kim97\\Downloads\\INF2004-uT-Home-main\\.esp-env\\tools\\python_env\\idf6.1_py3.12_env\\Scripts\\python.exe",
+      "C:\\Users\\kim97\\Downloads\\INF2004-uT-Home-main\\INF2004-uT-Home-main\\tools\\c_standard\\check.py",
+      "--root",
+      "C:\\Users\\kim97\\Downloads\\INF2004-uT-Home-main\\INF2004-uT-Home-main"
+    ],
+    "output": "C standard gate: 315 files, 0 findings, 0 tool/policy errors."
+  },
+  "kernel_archive_sha256": "25fed956e3ad56e4518d59f4336782f5078da7d07a56451e81e01a399420c7a7",
+  "compatibility_patch": {
+    "name": "0002-esp-idf-6.1-build.patch",
+    "sha256": "ce835addd93fb2f36b5a004971580672702879924566d5271539a59268b4677c"
+  },
+  "resource_patch": {
+    "name": "0001-uthome-c3-resources.patch",
+    "sha256": "917d69ad243eeed7f8fedd76f06f797e8c0a5b88fcc957b3030c7cb8388c90bf"
+  },
+  "project_sources": {
+    "firmware/src/network/netmqtt.c": {
+      "staged_path": "project/network/netmqtt.c",
+      "sha256": "15863641f8f605ebcb4abeaf706cc8c2f831af4aa08099f1da3d644d0a70d021"
+    },
+    "firmware/src/network/netmqtt.h": {
+      "staged_path": "project/network/netmqtt.h",
+      "sha256": "c020503be51e6da61caef4da759356a9bf691907c9351c8585cbe78a3bd7b8a2"
+    },
+    "firmware/src/network/netretry.c": {
+      "staged_path": "project/network/netretry.c",
+      "sha256": "4458f45fd04b492d8d0965954e2d4f3f6e4c7c04c4367ba655840e2aa506ea4f"
+    },
+    "firmware/src/network/netretry.h": {
+      "staged_path": "project/network/netretry.h",
+      "sha256": "e3ede21a7930c81b6ad2efcd2b47ded91e69b24709e3fd0f9022a08d4eeeb4d1"
+    },
+    "firmware/src/network/nethttp.c": {
+      "staged_path": "project/network/nethttp.c",
+      "sha256": "563a0f774ace89b5771e927aeec0b5fbfa963e8ef8ab99c3d3e3e895415e5431"
+    },
+    "firmware/src/network/nethttp.h": {
+      "staged_path": "project/network/nethttp.h",
+      "sha256": "9c93d10e1993a716e891086fb91e414e7e46d1bd7b0efb0340d4e5668d59c312"
+    },
+    "firmware/src/network/netread.c": {
+      "staged_path": "project/network/netread.c",
+      "sha256": "47ec6807a61973fb18ec1a80e4620c1e48a30a49e5bf2c0fac3a262721ca991a"
+    },
+    "firmware/src/network/netread.h": {
+      "staged_path": "project/network/netread.h",
+      "sha256": "9caf932cf48ed333e50fd128c723659e382a25e791be258639fdf4e488a30ddc"
+    },
+    "firmware/src/network/netble.c": {
+      "staged_path": "project/network/netble.c",
+      "sha256": "248d9528650c5abb62116bfa8fc2f999b22fcd709c0c2e39d1633a833ec63f7e"
+    },
+    "firmware/src/network/netble.h": {
+      "staged_path": "project/network/netble.h",
+      "sha256": "78857fdb70ca436dc91369383b85aec9eb118db64b4606b5ce1081eef8fa9c46"
+    },
+    "firmware/hal/ports/esp32c3/c3wsta.c": {
+      "staged_path": "project/hal/c3wsta.c",
+      "sha256": "c02c5cf4da962b2c7ad969ae3644f460808acd33df0e300ad9e9e32639234d50"
+    },
+    "firmware/hal/ports/esp32c3/c3wsta.h": {
+      "staged_path": "project/hal/c3wsta.h",
+      "sha256": "cc98f3dea131ef6913c7cc3d6f091d6dc3d4eda32eaa7328fb3ce713b4a17811"
+    },
+    "firmware/hal/ports/esp32c3/c3https.c": {
+      "staged_path": "project/hal/c3https.c",
+      "sha256": "bd8a5ea0c692a2163a575f94e6c2431dc6bd88b2fc1e293cffb75d8d4573456e"
+    },
+    "firmware/hal/ports/esp32c3/c3https.h": {
+      "staged_path": "project/hal/c3https.h",
+      "sha256": "9149f0c1e95adc8d557289002c36bdfb40234df193cf8057b3bff0ebe8cf5cc2"
+    },
+    "firmware/hal/ports/esp32c3/c3gsvc.c": {
+      "staged_path": "project/hal/c3gsvc.c",
+      "sha256": "4f23e51d6f40272803efa1ae873d88fc17d73df38bf06c0d955d818dfefacc71"
+    },
+    "firmware/hal/ports/esp32c3/c3gsvc.h": {
+      "staged_path": "project/hal/c3gsvc.h",
+      "sha256": "561329de48c9004ca2345b75d89588d9c1a5282bf748458160b13c123c32f260"
+    },
+    "firmware/app/c3net.c": {
+      "staged_path": "project/app/c3net.c",
+      "sha256": "800fe1c18b4a863589fca9d78ee7cf377f04bd7527a38b18acbd0e116af347b3"
+    },
+    "firmware/app/c3net.h": {
+      "staged_path": "project/app/c3net.h",
+      "sha256": "c6e6b619a0f0ddff868cd7a58877b145fc6e93fd37cb100e717ce3bec80fbc6e"
+    },
+    "tests/target/runtime_port_board/network.defaults": {
+      "staged_path": "project/network.defaults",
+      "sha256": "52475dfce95f3f8d80642bd94f211e20f31b093ecb4dec593182ed81196e51ce"
+    },
+    "tools/target/network_setup.py": {
+      "staged_path": "project/network_setup.py",
+      "sha256": "e5aa9a3f54f4092fe2cca412441bafe449d32b9e8ed9406cf706aab51bca3e83"
+    },
+    "tests/target/runtime_port_board/loadmodel/ailite.c": {
+      "staged_path": "project/loadmodel/ailite.c",
+      "sha256": "d366880b89badb09df96c6ff928302a972527b5df085e43fb6b747dff133ee29"
+    },
+    "tests/target/runtime_port_board/loadmodel/ailite.h": {
+      "staged_path": "project/loadmodel/ailite.h",
+      "sha256": "4e1c6287a14278352f478cfbfe22c39f4dd185862d724770c5eb924ad0608ab9"
+    },
+    "tests/target/runtime_port_board/loadmodel/aivects.c": {
+      "staged_path": "project/loadmodel/aivects.c",
+      "sha256": "b005fc4f8be4db34151aaa987c496b7f5cd2963d794a0cb90ace0bf5847e40a2"
+    },
+    "tests/target/runtime_port_board/loadmodel/aivects.h": {
+      "staged_path": "project/loadmodel/aivects.h",
+      "sha256": "72a4c4113b0d757f1fe179962f529a40b253486cad18119facfac8167d012d8f"
+    },
+    "tests/target/runtime_port_board/loadmodel/aiload.c": {
+      "staged_path": "project/loadmodel/aiload.c",
+      "sha256": "13b9bc7ba4516e87d20ae196e669ef7ccf86089ee2bfd51cd6599e9b8663f0bd"
+    },
+    "tests/target/runtime_port_board/loadmodel/aiload.h": {
+      "staged_path": "project/loadmodel/aiload.h",
+      "sha256": "4c133e2080d8cf342e9144645c05afa22dbe8da4a60bdb28e0478ca47ae4678c"
+    },
+    "tests/target/runtime_port_board/loadmodel/model.json": {
+      "staged_path": "project/loadmodel/model.json",
+      "sha256": "c997482544d5ffad691a66ac3c774d63de9b290c115aa657cc8a843c9aa139fe"
+    },
+    "tests/target/runtime_port_board/loadmodel/fixture.json": {
+      "staged_path": "project/loadmodel/fixture.json",
+      "sha256": "faea517d26bd671860b5de4d5f1daa78d61467aa06d1009fb59632d45b83b4ba"
+    },
+    "tests/target/runtime_port_board/ble-static.defaults": {
+      "staged_path": "project/ble-static.defaults",
+      "sha256": "655ffbb4a1abbe46b6911574fd3204de8bc5857ce4a3b8e59a29c7125993584e"
+    },
+    "firmware/hal/ports/esp32c3/c3gatt.c": {
+      "staged_path": "project/hal/c3gatt.c",
+      "sha256": "6a133b3bbd0c2b83025030ae3495168ee9de6f46ad38679f742533e613a5b5a3"
+    },
+    "firmware/hal/ports/esp32c3/c3gatt.h": {
+      "staged_path": "project/hal/c3gatt.h",
+      "sha256": "7832a0b06fb424e604fdef4864302503be447b4d60da86e9f4c9e6a64de3af66"
+    },
+    "tests/target/runtime_port_board/ble-gatt.defaults": {
+      "staged_path": "project/ble-gatt.defaults",
+      "sha256": "13c8b1512e553f6a694c59f78468e50a4870c87f86cf2156624025456c2c3a8a"
+    },
+    "tests/target/runtime_port_board/model/model.json": {
+      "staged_path": "project/model/model.json",
+      "sha256": "82d4d18716f42a0f6602bb4d618cc7dea0df7a898df2b560e4cadbf04a8a763b"
+    },
+    "tests/target/runtime_port_board/model/aifrozen.c": {
+      "staged_path": "project/model/aifrozen.c",
+      "sha256": "246833cbd56854a9f7ae8249e9be1e999551e7881ba4428055ad0ab00cb30cdf"
+    },
+    "tests/target/runtime_port_board/model/aifrozen.h": {
+      "staged_path": "project/model/aifrozen.h",
+      "sha256": "8e59edabebc603a8d0c08c0444351c67b3b557237070b6734eee8879cc9212fd"
+    },
+    "tests/target/runtime_port_board/model/aicases.c": {
+      "staged_path": "project/model/aicases.c",
+      "sha256": "15663db6dda753143f64f01c7d81f657cbfcbbfc1f5f9e28afaaa029c9210c46"
+    },
+    "tests/target/runtime_port_board/model/aicases.h": {
+      "staged_path": "project/model/aicases.h",
+      "sha256": "f276939f91e0f7921e6ef42383904a876b2df963225a753d4b4a32643aa111e8"
+    },
+    "tests/target/runtime_port_board/model/aiprobe.c": {
+      "staged_path": "project/model/aiprobe.c",
+      "sha256": "18984b79a50e3a7b2199b37c3249b952f1f52b4d857ffdc805115b19a9aebbae"
+    },
+    "tests/target/runtime_port_board/model/aiprobe.h": {
+      "staged_path": "project/model/aiprobe.h",
+      "sha256": "85f878870c8c9878636e4a2b627576f4a4f4912bd0c32f8cd44bd9affc27c767"
+    },
+    "tests/target/runtime_port_board/model/fixture.json": {
+      "staged_path": "project/model/fixture.json",
+      "sha256": "3d25dae4a4d3c2b461a152bf4e96fbd836710b767f0b555b0db8f3a799d8566d"
+    },
+    "firmware/hal/ports/esp32c3/c3bport.c": {
+      "staged_path": "project/hal/c3bport.c",
+      "sha256": "88a53fde6310073777f9ee591b632f942333b688915c7142e077d1245917adb8"
+    },
+    "firmware/hal/ports/esp32c3/c3bport.h": {
+      "staged_path": "project/hal/c3bport.h",
+      "sha256": "4c0fff8d8cb517bb02af1dc4a0b0f89198cf5d8dde31d5b66f7cafbacd0551d4"
+    },
+    "tests/target/runtime_port_board/radio/CMakeLists.txt": {
+      "staged_path": "project/components/uthome_radio/CMakeLists.txt",
+      "sha256": "800d41c5c47c1ff1d9afb7d1fb47f5c9e080dc3f9fc6b9d802f2350a932286ab"
+    },
+    "firmware/hal/ports/esp32c3/c3ble.c": {
+      "staged_path": "project/hal/c3ble.c",
+      "sha256": "046b1abed36a14a810ec9b8d6105b95c31b12e1cdb7d46d7fa8b9d9dc72d20b2"
+    },
+    "firmware/hal/ports/esp32c3/c3ble.h": {
+      "staged_path": "project/hal/c3ble.h",
+      "sha256": "9d34576d7f9dc8a47d3b77c49dc74aa93313b8981220772196b01ec749830906"
+    },
+    "tests/target/runtime_port_board/ble.defaults": {
+      "staged_path": "project/ble.defaults",
+      "sha256": "ad014a86e627663378cc522bbc1e6cedbf80685a546931df0893db9f346148fe"
+    },
+    "firmware/hal/ports/esp32c3/c3boot.c": {
+      "staged_path": "project/hal/c3boot.c",
+      "sha256": "6b56bc18ba12feeeae219fba127b0cb297db43756a89ce4f9ca8cd73a374ae41"
+    },
+    "firmware/hal/ports/esp32c3/c3boot.h": {
+      "staged_path": "project/hal/c3boot.h",
+      "sha256": "90549bb149ea2db1cc510227af90ad5ace82c1bdd04152773e7fff6bf4273f85"
+    },
+    "firmware/hal/ports/esp32c3/c3event.c": {
+      "staged_path": "project/hal/c3event.c",
+      "sha256": "be26bb9bf8d5b59f65d0a945685e1bf331a0e0e535b6b9ba5965c8e6f96de169"
+    },
+    "firmware/hal/ports/esp32c3/c3event.h": {
+      "staged_path": "project/hal/c3event.h",
+      "sha256": "3e652ac5e6a0b6ca016d379ad57db3a62ffe0c9d3dd88d01d78e5287eaf8d98c"
+    },
+    "firmware/src/network/netevent.c": {
+      "staged_path": "project/network/netevent.c",
+      "sha256": "7335fef00688ddb64ffc4fc3446a5d7023422942febb2d80f2eb720a1f747a37"
+    },
+    "firmware/src/network/netevent.h": {
+      "staged_path": "project/network/netevent.h",
+      "sha256": "d500f4aeff21ba4e24a9124b59423ab0df345964f2aef84a8d56b85479f510da"
+    },
+    "firmware/hal/ports/esp32c3/c3wifi.c": {
+      "staged_path": "project/hal/c3wifi.c",
+      "sha256": "540cfe76aea68f6c26ae1337bcd2202d605f8b502c8fa5628eaf5b9cd4cdbf22"
+    },
+    "firmware/hal/ports/esp32c3/c3wifi.h": {
+      "staged_path": "project/hal/c3wifi.h",
+      "sha256": "7c72e30d7a47e0e3b8c8d21d02a05cb8d9be54bbd8dd23a33c9ad84248b836f7"
+    },
+    "tests/target/runtime_port_board/wifi.defaults": {
+      "staged_path": "project/wifi.defaults",
+      "sha256": "91248d55c3166842e1b371807c1ad22c70cb1778dfc5940869e938fea3e8ad7c"
+    },
+    "tests/target/runtime_port_board/main/nqcheck.c": {
+      "staged_path": "project/main/nqcheck.c",
+      "sha256": "8bde94c238fb7f9557ed541fb31d37fa6fbfec7fece860dc16661cebbc227617"
+    },
+    "tests/target/runtime_port_board/main/nqcheck.h": {
+      "staged_path": "project/main/nqcheck.h",
+      "sha256": "2e733abceeabd51893d43f1009ff16436a8379125764f4d5206eebde9b3f55d7"
+    },
+    "firmware/src/network/netring.c": {
+      "staged_path": "project/network/netring.c",
+      "sha256": "0c886f73c5e160d6df6dc37a8c4daa12a51bc4bbd507571fe92e89f106d2d0d1"
+    },
+    "firmware/src/network/netring.h": {
+      "staged_path": "project/network/netring.h",
+      "sha256": "611ed2e74ac61666d63316fbcb2471f3c242cd81854326ec7230361190166658"
+    },
+    "firmware/src/network/netwait.c": {
+      "staged_path": "project/network/netwait.c",
+      "sha256": "9c72dff8997dfafe415833c6558d905050499540922d43eacdce4105ffc63533"
+    },
+    "firmware/src/network/netwait.h": {
+      "staged_path": "project/network/netwait.h",
+      "sha256": "5eefea6fdc6f8febd84251d9badf2089799840f89adde1e3da1e20337b163d4d"
+    },
+    "firmware/src/network/netpool.c": {
+      "staged_path": "project/network/netpool.c",
+      "sha256": "bb5d6caf5ffc8651b918aef0b06803857b05be4a3a00671e15e2f3ebd4ea9b52"
+    },
+    "firmware/src/network/netpool.h": {
+      "staged_path": "project/network/netpool.h",
+      "sha256": "4edcbe0911e48edc18df6b1bdaeb1bbef299693191a8b74f96776a368d7c3a4a"
+    },
+    "firmware/hal/ports/esp32c3/c3nq.c": {
+      "staged_path": "project/hal/c3nq.c",
+      "sha256": "7270f21f74a1ad3ed4925133c3c7d098ea548cebad86ad992356a8067303bc53"
+    },
+    "firmware/hal/ports/esp32c3/c3nq.h": {
+      "staged_path": "project/hal/c3nq.h",
+      "sha256": "f73f5c893a0eae14835becfc14d8b82cf4f92c54b78e4adf47fd90cb71b6de4b"
+    },
+    "tests/target/runtime_port_board/main/netqueue.cmake": {
+      "staged_path": "project/main/netqueue.cmake",
+      "sha256": "57d5b5a951d2b507d236136daaf07144cc10991124a88b7c12468059eadab22d"
+    },
+    "tests/target/runtime_port_board/main/netqueue.lf": {
+      "staged_path": "project/main/netqueue.lf",
+      "sha256": "74e9bdf54afebc21f58cc537315987baf77faf25b2c1d385ccb2716e3ddb2a42"
+    },
+    "firmware/src/runtime/stackmon.c": {
+      "staged_path": "project/runtime/stackmon.c",
+      "sha256": "0a94a283694e07acc9a522c86dc0e7e56f46de1d2db0d44692ec4d32d68a8ff8"
+    },
+    "firmware/src/runtime/stackmon.h": {
+      "staged_path": "project/runtime/stackmon.h",
+      "sha256": "f6bd16fe08478560a838af53699083e8720a1ab5488ea3d8e41821bdee84a138"
+    },
+    "firmware/src/runtime/workcost.c": {
+      "staged_path": "project/runtime/workcost.c",
+      "sha256": "ce7cb4889d04dd6c8d6c9c81e3b44e77fece9774b33f33a1aa79f270a0451091"
+    },
+    "firmware/src/runtime/workcost.h": {
+      "staged_path": "project/runtime/workcost.h",
+      "sha256": "a93fb9cacefee806453f1d4482ab2fb17277895c88d20828e354bfafe4ac6bc9"
+    },
+    "firmware/src/runtime/workmeter.c": {
+      "staged_path": "project/runtime/workmeter.c",
+      "sha256": "3766c1aac3d2e4f6139c423492e19b817acf96ac5bdeda6f3652efbb8fc33e28"
+    },
+    "firmware/src/runtime/workmeter.h": {
+      "staged_path": "project/runtime/workmeter.h",
+      "sha256": "c79bb541ef18d48dcdd538ddfcc452cfe29d74e9e44e2dbdbcd8b305bbe93bf2"
+    },
+    "firmware/hal/ports/esp32c3/c3clock.c": {
+      "staged_path": "project/hal/c3clock.c",
+      "sha256": "9d8e6a8271caf26c88f8848e4e3a5fa4dea960f1970ea0afa99491c00fcb1f51"
+    },
+    "firmware/hal/ports/esp32c3/c3clock.h": {
+      "staged_path": "project/hal/c3clock.h",
+      "sha256": "7d190fdc901f825d257237200a998ffaec4277098b30d8660600a1a5ad8ea63f"
+    },
+    "firmware/hal/ports/esp32c3/c3cost.c": {
+      "staged_path": "project/hal/c3cost.c",
+      "sha256": "c47086d9d9cc84cfc6ff112b45c533294dc18ccb25684876013d6f5a1f62c6e6"
+    },
+    "firmware/hal/ports/esp32c3/c3cost.h": {
+      "staged_path": "project/hal/c3cost.h",
+      "sha256": "12e06fc7f2a89a18adab98ef137d168a7b3a13b59420df82254fdba4f2cd7986"
+    },
+    "firmware/src/services/costview.c": {
+      "staged_path": "project/services/costview.c",
+      "sha256": "91e514f39a2fb68422e5cadfc4ff879817d96e61c1a57a89ffd87baeba53bd1f"
+    },
+    "firmware/src/services/costview.h": {
+      "staged_path": "project/services/costview.h",
+      "sha256": "20a02ec1c0933d80ff5eec3cf3a2ea4a6e2a20e17e2528dfb617a0a32ff260fb"
+    },
+    "firmware/src/runtime/memaudit.c": {
+      "staged_path": "project/runtime/memaudit.c",
+      "sha256": "8f4ecc6d43446aeeaff402d343eae0008e114c553c9aa4297fb67edb329ab7f9"
+    },
+    "firmware/src/runtime/memaudit.h": {
+      "staged_path": "project/runtime/memaudit.h",
+      "sha256": "2d0cfef1e8992e112745af48f96d6030efe0798358c159e60ab37d97ce1a8cb4"
+    },
+    "firmware/hal/ports/esp32c3/c3audit.c": {
+      "staged_path": "project/hal/c3audit.c",
+      "sha256": "b4234021b0dac9a79801fad897c09f14fcc28ace728e699d5bfacbadd9f0df53"
+    },
+    "firmware/hal/ports/esp32c3/c3audit.h": {
+      "staged_path": "project/hal/c3audit.h",
+      "sha256": "9c00c3c0d95db4da02f66840a33dca39d71f452e406e72e9892e91e057ae260e"
+    },
+    "tests/target/runtime_port_board/main/audit.lf": {
+      "staged_path": "project/main/audit.lf",
+      "sha256": "73712134a4e1d89ad65fed0a10610d209de26f285fd7fe2b9fae944a90c8be74"
+    },
+    "tests/target/runtime_port_board/audit.defaults": {
+      "staged_path": "project/audit.defaults",
+      "sha256": "09508891a4f51704ee00efb5adef2832921e495f7353bf18c60716981d89c6c6"
+    },
+    "firmware/src/config/cfgpart.c": {
+      "staged_path": "project/config/cfgpart.c",
+      "sha256": "3c82989817cde62bd19bbf9a8811972ad3c7935822553214f4573d6c109c9922"
+    },
+    "firmware/src/config/cfgpart.h": {
+      "staged_path": "project/config/cfgpart.h",
+      "sha256": "8893feb6335de9f95937098dbcd84560f182fbf57e2eaf5eb46dc895644f1051"
+    },
+    "tests/target/runtime_port_board/main/uartcheck.c": {
+      "staged_path": "project/main/uartcheck.c",
+      "sha256": "1ee6eefcc5e50780b7cc30827942483499f0b73345ca6c3b078de968f3a40793"
+    },
+    "tests/target/runtime_port_board/main/uartcheck.h": {
+      "staged_path": "project/main/uartcheck.h",
+      "sha256": "9aa266a90ed78cdd7111caa8021e1a707491b9dd073247902ac23dec5d32e381"
+    },
+    "firmware/hal/ports/esp32c3/c3umem.c": {
+      "staged_path": "project/hal/c3umem.c",
+      "sha256": "fbeb8a8230956569b3993e2eb5556196e46b1a7c4cf9ec40a9fb79b81cd8186d"
+    },
+    "firmware/hal/ports/esp32c3/c3umem.h": {
+      "staged_path": "project/hal/c3umem.h",
+      "sha256": "10587615696d13e785850bf430bc86e51ab91cbffd40d68fd6bbf48ff9d71537"
+    },
+    "firmware/src/discovery/discuart.c": {
+      "staged_path": "project/discovery/discuart.c",
+      "sha256": "5549e254a59022b635c5c9c0bc7ff509503e6606ea48a852b611b48b1926dc96"
+    },
+    "firmware/src/discovery/discuart.h": {
+      "staged_path": "project/discovery/discuart.h",
+      "sha256": "cd42bd12b4e27cfc754d69306727a0b863d91bfe7a92211a7f3304587afb747e"
+    },
+    "firmware/src/discovery/disci2c.c": {
+      "staged_path": "project/discovery/disci2c.c",
+      "sha256": "5a15004f3736574e853c4feec274f5bf38b830deb92b0f4d5e09f23a7009bb14"
+    },
+    "firmware/src/discovery/disci2c.h": {
+      "staged_path": "project/discovery/disci2c.h",
+      "sha256": "dd23841fc6511be99e12bf2e6b4a821b1e153ac18d4d762bad98f2e102f20f44"
+    },
+    "firmware/src/discovery/cfgdisc.c": {
+      "staged_path": "project/discovery/cfgdisc.c",
+      "sha256": "dc0ef16406ed81a4b2bfd981dcba081e39b821792b1a0baa5d2629e786283fe8"
+    },
+    "firmware/src/discovery/cfgdisc.h": {
+      "staged_path": "project/discovery/cfgdisc.h",
+      "sha256": "f157f3d9d3b5a25aad11be2525d4ce7df6212d656f99d51acb61514c7e4165a5"
+    },
+    "firmware/src/services/oledview.c": {
+      "staged_path": "project/services/oledview.c",
+      "sha256": "63bfafc7a2dc1f971e14dca7508fbc0e4a9c63a68442ea35cdebd6ae0dab0a22"
+    },
+    "firmware/src/services/oledview.h": {
+      "staged_path": "project/services/oledview.h",
+      "sha256": "b41cf70e1156229c17a674ac352a17fcf288ebdaec9fba775cad20997252e8fa"
+    },
+    "firmware/src/services/telemetry.c": {
+      "staged_path": "project/services/telemetry.c",
+      "sha256": "ca4186bde9981a53d504f114be0e50db9b34b92f5a8477922c7469909f9d1b82"
+    },
+    "firmware/src/services/telemetry.h": {
+      "staged_path": "project/services/telemetry.h",
+      "sha256": "207622b7c06c15c771c6a740c8522197546097f22ebe033138143d2322302fa4"
+    },
+    "firmware/src/services/statusmon.c": {
+      "staged_path": "project/services/statusmon.c",
+      "sha256": "143ef522bf54049cb9fe41040f3771093a6a4168a20d6195edb6eecf069437b2"
+    },
+    "firmware/src/services/statusmon.h": {
+      "staged_path": "project/services/statusmon.h",
+      "sha256": "75aaf668211a8d8dc9b18d4a842a18fd18b5bd99e517d87cacf549cbd9febcdf"
+    },
+    "firmware/src/services/sampcache.c": {
+      "staged_path": "project/services/sampcache.c",
+      "sha256": "3ef0c7b436c555d8b200593685c3b2678011972c939e2dec5bbc8d1908506b1b"
+    },
+    "firmware/src/services/sampcache.h": {
+      "staged_path": "project/services/sampcache.h",
+      "sha256": "ba6b0a755d4189bce4fd42f1e585d957197a8253373a099c419b3c476bf55335"
+    },
+    "firmware/src/config/cfgpump.c": {
+      "staged_path": "project/config/cfgpump.c",
+      "sha256": "faafab63f681f56572231071abc061a4c4dd60c2306c29d76e0aaf0134ebfe9d"
+    },
+    "firmware/src/config/cfgpump.h": {
+      "staged_path": "project/config/cfgpump.h",
+      "sha256": "39982a2e94c221cf9aa0dd0a604d91afb6ec5aa44a850290e7729abf607a1532"
+    },
+    "firmware/hal/ports/esp32c3/c3usb.c": {
+      "staged_path": "project/hal/c3usb.c",
+      "sha256": "d9eb5ca3a42fe0eac8c5f1cc86d2b740309428c0f76d3dea16e7813bdf364351"
+    },
+    "firmware/hal/ports/esp32c3/c3usb.h": {
+      "staged_path": "project/hal/c3usb.h",
+      "sha256": "192a6b32d00372e2a450ea9db33b1023f3ac4a61bf6231a0b32cabe0e83b7ef8"
+    },
+    "firmware/hal/ports/esp32c3/c3store.c": {
+      "staged_path": "project/hal/c3store.c",
+      "sha256": "6a97a611383a6e79f0aa2119f09c89e80e0ac3114b55c0475639c506c2a2760b"
+    },
+    "firmware/hal/ports/esp32c3/c3store.h": {
+      "staged_path": "project/hal/c3store.h",
+      "sha256": "57b93d3c2c1ee410de052822f9b7a70fd8e0eaa8e348017fa01b8aa43349f607"
+    },
+    "firmware/app/c3app.c": {
+      "staged_path": "project/app/c3app.c",
+      "sha256": "488a19ab01ad8443a4b255ce909f9df41f061a36fe4c83a6f855d9ab7d5cbe13"
+    },
+    "firmware/app/c3app.h": {
+      "staged_path": "project/app/c3app.h",
+      "sha256": "901ae37317062cb27a9c128aa2d30568686dd9cbff07a82da75c5e0d637f6540"
+    },
+    "tests/target/runtime_port_board/configuration.defaults": {
+      "staged_path": "project/configuration.defaults",
+      "sha256": "ecf2b8482e3a52860ab92a0ed1043cb424df6008e4210d40a4de380524f84ee0"
+    },
+    "tests/target/runtime_port_board/configuration.csv": {
+      "staged_path": "project/configuration.csv",
+      "sha256": "6e33e4402b9e59fdf9a42ab6716a8acc5f85faafb0d5dccf6bf248a7b92a5b72"
+    },
+    "firmware/src/config/jsonscan.c": {
+      "staged_path": "project/config/jsonscan.c",
+      "sha256": "87505be6f5d6dcca8cf2d75e7bfcd3dd8dcfdcbca027cca867dcba8a908a557b"
+    },
+    "firmware/src/config/jsonscan.h": {
+      "staged_path": "project/config/jsonscan.h",
+      "sha256": "a1da8ad783bba692e543b7885f9d3f521306fc296e5a0c5c131139d505debb9c"
+    },
+    "firmware/src/config/cfgjson.c": {
+      "staged_path": "project/config/cfgjson.c",
+      "sha256": "e451a4e5483a1917db006fffed263ada71310e9339deaae22893d3c09d7c8499"
+    },
+    "firmware/src/config/cfgjson.h": {
+      "staged_path": "project/config/cfgjson.h",
+      "sha256": "b13715eb32b1c711a0ca29d9e777afe2cd5dae9d217b7dde1d9290ff4a840733"
+    },
+    "firmware/src/config/cfgplan.c": {
+      "staged_path": "project/config/cfgplan.c",
+      "sha256": "d3fd76490ff917ff5207a620b07d7d4c8b0f2d93151a4a79cf575b6fdbfa0548"
+    },
+    "firmware/src/config/cfgplan.h": {
+      "staged_path": "project/config/cfgplan.h",
+      "sha256": "b24f383cae7dda6196bef9789b160065567964f55d6a30d5d8c86ff922c0e44a"
+    },
+    "firmware/src/config/cfgdev.c": {
+      "staged_path": "project/config/cfgdev.c",
+      "sha256": "99601ad2e752b5de2fa2b417998db7c366f7ac43fdfc199af59983b2c82e7d34"
+    },
+    "firmware/src/config/cfgdev.h": {
+      "staged_path": "project/config/cfgdev.h",
+      "sha256": "3e16971b1f8bb6118578c1fc54dd8314fc6e3b0245a8be67b6733a70a62ad1bb"
+    },
+    "firmware/src/config/cfgrule.c": {
+      "staged_path": "project/config/cfgrule.c",
+      "sha256": "56b0b58004208bfd655743e485a1cac611c2ef4102b5719cc4ed60a3a06c1087"
+    },
+    "firmware/src/config/cfgrule.h": {
+      "staged_path": "project/config/cfgrule.h",
+      "sha256": "a55e0e07943d962535964b51b8851c3c1520443e5c2c784fedfbdd44a61e787c"
+    },
+    "firmware/src/automation/rulecalc.c": {
+      "staged_path": "project/automation/rulecalc.c",
+      "sha256": "6065528ab79827333804a10e02a060ff19696ad63c4b684d97aebc73681d2d9b"
+    },
+    "firmware/src/automation/rulecalc.h": {
+      "staged_path": "project/automation/rulecalc.h",
+      "sha256": "13a29ac8c6a92f4b54d903626ba674ca1e4394ae5fd5991bdf469bbf630f64aa"
+    },
+    "firmware/src/config/cfgbind.c": {
+      "staged_path": "project/config/cfgbind.c",
+      "sha256": "872f1d52f6fe19184d51ff22ac392bd679b1a678b243036ebb27d5fe6b4c2da1"
+    },
+    "firmware/src/config/cfgbind.h": {
+      "staged_path": "project/config/cfgbind.h",
+      "sha256": "d71b9ac899d8b647a631f75815d0ee4002357e0c306d93630cdaaf8790868458"
+    },
+    "firmware/hal/ports/esp32c3/c3bind.c": {
+      "staged_path": "project/hal/c3bind.c",
+      "sha256": "95a7662cdbb8eb894acef7bdec2bc497d6591528281e4830b85f82173860e97a"
+    },
+    "firmware/hal/ports/esp32c3/c3bind.h": {
+      "staged_path": "project/hal/c3bind.h",
+      "sha256": "d86586d5849ae1ed4a38b481ceed4a421ee9514ca7a884a5964dfb605846cb26"
+    },
+    "firmware/third_party/cjson/cJSON.c": {
+      "staged_path": "project/third_party/cjson/cJSON.c",
+      "sha256": "607e756460fa0de37d20a7a9181f2de29c97bfb7ce5a0e6c2f548243836cd852"
+    },
+    "firmware/third_party/cjson/cJSON.h": {
+      "staged_path": "project/third_party/cjson/cJSON.h",
+      "sha256": "25b0145150d500498e4d209cec69c18c42cf818bffcc54690be3b895a2a16dee"
+    },
+    "firmware/third_party/cjson/LICENSE": {
+      "staged_path": "project/third_party/cjson/LICENSE",
+      "sha256": "a36dda207c36db5818729c54e7ad4e8b0c6fba847491ba64f372c1a2037b6d5c"
+    },
+    "firmware/third_party/cjson/SOURCE.json": {
+      "staged_path": "project/third_party/cjson/SOURCE.json",
+      "sha256": "88a2aabd998e434821212b4af4d6f0fc9416c499a4452d070be163a732d8655d"
+    },
+    "tests/target/runtime_port_board/main/idf_component.yml": {
+      "staged_path": "project/main/idf_component.yml",
+      "sha256": "a2d6128e29b266f8279a6739c6a73118549d1743b33317d2dddccfb90133c03c"
+    },
+    "tests/target/runtime_port_board/parser.defaults": {
+      "staged_path": "project/parser.defaults",
+      "sha256": "9d18eeafb939e347bbc196c6609e6e4f79659af840e18b1a68c2742dfb280284"
+    },
+    "firmware/src/config/cfgbytes.c": {
+      "staged_path": "project/config/cfgbytes.c",
+      "sha256": "7165edb3296435d83602a7093ee9f262e9fcba29ba610057642c0efbcd648348"
+    },
+    "firmware/src/config/cfgbytes.h": {
+      "staged_path": "project/config/cfgbytes.h",
+      "sha256": "170df9ee707cec7a16e3f64679fa2b62deaeaf44b7607791128fe8658c3c9d8e"
+    },
+    "firmware/src/config/cfgwire.c": {
+      "staged_path": "project/config/cfgwire.c",
+      "sha256": "7e740a82d0cfb18a9a592b32f4df13fcbcb3b0e66ddc064e367323f5e89d4b77"
+    },
+    "firmware/src/config/cfgwire.h": {
+      "staged_path": "project/config/cfgwire.h",
+      "sha256": "01c301ef5e3a6fc519821524895a588a006edb61e045a3038371c6e379896208"
+    },
+    "firmware/src/config/cfgstore.c": {
+      "staged_path": "project/config/cfgstore.c",
+      "sha256": "0f4cbb062374af880ee4fdec16e0ad28a88eeaf4727ab5964ee3c1084c832d28"
+    },
+    "firmware/src/config/cfgstore.h": {
+      "staged_path": "project/config/cfgstore.h",
+      "sha256": "e797a05d92a87f10ef2a1ec0ff1e97e768d452825e71b007e17dfc9e2e7476e1"
+    },
+    "firmware/src/config/cfgctrl.c": {
+      "staged_path": "project/config/cfgctrl.c",
+      "sha256": "b76ae3e3374cbf381a00a470a068a217dccb053e231694ea3bd43671d2521b70"
+    },
+    "firmware/src/config/cfgctrl.h": {
+      "staged_path": "project/config/cfgctrl.h",
+      "sha256": "a3f6bbb3209fe09f6e88f094466d6a8380a6c4c4aa2383e81d70ee9ecca2197b"
+    },
+    "firmware/hal/include/pulseio.h": {
+      "staged_path": "project/hal/include/pulseio.h",
+      "sha256": "6c6e1685b8f38c3c56bcdbfd54aa2b426bd6f9f24c86f021ec09bc6efc7fbdd8"
+    },
+    "firmware/hal/pulseio.c": {
+      "staged_path": "project/hal/pulseio.c",
+      "sha256": "f6c2b20f79f54d2974777686f307b26f9aead5a5540364c7b45bfa7a2b52af77"
+    },
+    "firmware/hal/include/pwmio.h": {
+      "staged_path": "project/hal/include/pwmio.h",
+      "sha256": "6c8a90727e5d2953e1fe20dc12fae63f51a33948480f9d450dd1d3d85500009c"
+    },
+    "firmware/hal/pwmio.c": {
+      "staged_path": "project/hal/pwmio.c",
+      "sha256": "0c3c551f5713626151bd588cb8cae1462db9be7c6bf87106d65a6abd64f5190d"
+    },
+    "firmware/hal/include/digiin.h": {
+      "staged_path": "project/hal/include/digiin.h",
+      "sha256": "976980265f4603fa5fb3408ef089fd79ab930bef13845b24d5739c135e8b78fa"
+    },
+    "firmware/hal/ports/esp32c3/c3pulse.c": {
+      "staged_path": "project/hal/c3pulse.c",
+      "sha256": "295def0113f7137029c7acbae611066cb152328c37bca492baf540613aa3e78e"
+    },
+    "firmware/hal/ports/esp32c3/c3pulse.h": {
+      "staged_path": "project/hal/c3pulse.h",
+      "sha256": "499922f912c7b5fa48c8a2f97574239da76e12fdfb6313a7607b546c3d36ee10"
+    },
+    "firmware/hal/ports/esp32c3/c3pwm.c": {
+      "staged_path": "project/hal/c3pwm.c",
+      "sha256": "1bcf2d2d6e0ae881b725e4a873b61673bbc27425aa8cb351e5c7e6d81ca51c6b"
+    },
+    "firmware/hal/ports/esp32c3/c3pwm.h": {
+      "staged_path": "project/hal/c3pwm.h",
+      "sha256": "53dba8dcdf0e56b818e4e56c6cbd3c73df530415a3077134c7f271c739e9519f"
+    },
+    "firmware/drivers/hc_sr04/hc_sr04.c": {
+      "staged_path": "project/drivers/hc_sr04.c",
+      "sha256": "65de5075156c5ea879a246034571f1efb1b2d3b4a35514ba09dee117b209596f"
+    },
+    "firmware/drivers/hc_sr04/hc_sr04.h": {
+      "staged_path": "project/drivers/hc_sr04.h",
+      "sha256": "991921a64907782ac49d28ec7c6845cc0c86852d00ad8614ceca9e9bd3307282"
+    },
+    "firmware/drivers/hc_sr04/hcinst.c": {
+      "staged_path": "project/drivers/hcinst.c",
+      "sha256": "7dabe81dd3276f396cf4cdbac338234fdde614f0eb1bd6ed3d64d7f027d3379b"
+    },
+    "firmware/drivers/hc_sr04/hcinst.h": {
+      "staged_path": "project/drivers/hcinst.h",
+      "sha256": "0de97e957f3c083396037a903aacb5c4e7701ac579316702feb078e33bd65d2b"
+    },
+    "firmware/drivers/pwm_output/pwminst.c": {
+      "staged_path": "project/drivers/pwminst.c",
+      "sha256": "d7e48a944ae6ce4158bce47eb30b3b5c6f53832e8fd16ac66bc1d96e5c65a6a4"
+    },
+    "firmware/drivers/pwm_output/pwminst.h": {
+      "staged_path": "project/drivers/pwminst.h",
+      "sha256": "23ce52c31bccc03ddc694cd3fede475d800e958000c33a987265a96391979a62"
+    },
+    "firmware/hal/include/uartio.h": {
+      "staged_path": "project/hal/include/uartio.h",
+      "sha256": "9aa5b666aa7634ea313dee365db214f9a4ac4e12631ef4a7565e86e1aa28590a"
+    },
+    "firmware/hal/uartio.c": {
+      "staged_path": "project/hal/uartio.c",
+      "sha256": "7be44137aef513aa537a12d24be73dc8a515029506b918f6b049a83725011b6b"
+    },
+    "firmware/hal/ports/esp32c3/c3uart.h": {
+      "staged_path": "project/hal/c3uart.h",
+      "sha256": "bc35d1e2a6b4c384f19bceba3e2827808dfaa30f4361ab10f33d1f33e066a697"
+    },
+    "firmware/hal/ports/esp32c3/c3uart.c": {
+      "staged_path": "project/hal/c3uart.c",
+      "sha256": "b7044dc2e875e728b2b2b254dd3bba888d6288f64a2ba821dca80f78977edb65"
+    },
+    "firmware/drivers/hlk_ld2450/ldparse.c": {
+      "staged_path": "project/drivers/ldparse.c",
+      "sha256": "704a23faff8f6253c91190b3f5396a3c159d4e84056a4a0c1b6ea2e30fefa87b"
+    },
+    "firmware/drivers/hlk_ld2450/ldparse.h": {
+      "staged_path": "project/drivers/ldparse.h",
+      "sha256": "3f9c3f0e91107a994c5a5ac1c1566bffa89de82f545636adeb2c209f52bb20ec"
+    },
+    "firmware/drivers/hlk_ld2450/ld2450.c": {
+      "staged_path": "project/drivers/ld2450.c",
+      "sha256": "6aef866a3b867c814fc74ef8fbcbd8b294b66fa09fd2de28eb5739094e0f0021"
+    },
+    "firmware/drivers/hlk_ld2450/ld2450.h": {
+      "staged_path": "project/drivers/ld2450.h",
+      "sha256": "2e079510b81a076599d1f9f4ae2d97ec2ec202efabbcfc6e40a46c385e15239f"
+    },
+    "firmware/drivers/hlk_ld2450/ldinst.c": {
+      "staged_path": "project/drivers/ldinst.c",
+      "sha256": "30207fb2a55026611d5ed31fa1956981fea69e605db4d33a1b118db1e0df5825"
+    },
+    "firmware/drivers/hlk_ld2450/ldinst.h": {
+      "staged_path": "project/drivers/ldinst.h",
+      "sha256": "804e1a67d6f5caa297272b631cc38fffa9bb066a937c0028b07fe10f20b471e5"
+    },
+    "tests/target/runtime_port_board/CMakeLists.txt": {
+      "staged_path": "project/CMakeLists.txt",
+      "sha256": "186d415d9ce3b5a77060d6ed1d4345a9e2bd3851e80cea82f2feb79271437928"
+    },
+    "tests/target/runtime_port_board/main/CMakeLists.txt": {
+      "staged_path": "project/main/CMakeLists.txt",
+      "sha256": "17ddce77029b5bc2727b76fe2bbd17792c255419e9fc9b469bb79c47b0a05020"
+    },
+    "tests/target/runtime_port_board/main/main.c": {
+      "staged_path": "project/main/main.c",
+      "sha256": "6e249f6e447e1375cb66915a9fdebf777b7e47b3551e1a0364c28ef3f3a1eb86"
+    },
+    "tests/target/runtime_port_board/main/main.h": {
+      "staged_path": "project/main/main.h",
+      "sha256": "8512e8a568fd58aa0f488112036d61eba47f806ae3fff9e8ccaf9ea70146812b"
+    },
+    "firmware/src/runtime/tkport.h": {
+      "staged_path": "project/runtime/tkport.h",
+      "sha256": "2bc5bf5ce310dc7fe5f712331f5ec5f7de477337d3133f39e27ab4547855cd67"
+    },
+    "firmware/src/runtime/tkport.c": {
+      "staged_path": "project/runtime/tkport.c",
+      "sha256": "afc8db0e88a814f26caeb5aa47a426511fea6e7522eba1e40fca31406a803abb"
+    },
+    "firmware/src/runtime/rt_port.h": {
+      "staged_path": "project/runtime/rt_port.h",
+      "sha256": "347d2d3b0791f2b6ad1a682eaa2322e56180cba233407ff5905dfa2c4fd5576f"
+    },
+    "firmware/src/runtime/workport.h": {
+      "staged_path": "project/runtime/workport.h",
+      "sha256": "53c4448866b8321d40952f0433e2a914fd7a84d429f4400b0150221a3b0fc430"
+    },
+    "firmware/include/uthome/runtime.h": {
+      "staged_path": "project/include/uthome/runtime.h",
+      "sha256": "efde4bbd6b7987e33a9a275c61aa000d9ec852823c9c09101757bbb8143478aa"
+    },
+    "firmware/include/uthome/component.h": {
+      "staged_path": "project/include/uthome/component.h",
+      "sha256": "1a2476082df3264dfa827114a2e043d4335a108238f2740b509ff311717de847"
+    },
+    "firmware/src/runtime/activate.c": {
+      "staged_path": "project/runtime/activate.c",
+      "sha256": "cdc60532b370db21ea4a6345a887c2f70212077f213eb920425f1d395b7da349"
+    },
+    "firmware/src/runtime/activate.h": {
+      "staged_path": "project/runtime/activate.h",
+      "sha256": "45ca17d46559fbb35ee9d863327a971efb0c87c66e5ffe4f40b8662018c1c731"
+    },
+    "firmware/src/runtime/shared.c": {
+      "staged_path": "project/runtime/shared.c",
+      "sha256": "cc99a2e80bca9632a58cdba8cdf9f42eef82b5b38112a042c67e5339083f906d"
+    },
+    "firmware/src/runtime/shared.h": {
+      "staged_path": "project/runtime/shared.h",
+      "sha256": "848c96e6863f327402f46caed5148fa5c7827002077ecc2a166368ad2d8e8dee"
+    },
+    "firmware/src/runtime/component.c": {
+      "staged_path": "project/runtime/component.c",
+      "sha256": "80dd99deeba5a76197f865e2f7ffd0dc180899f7fbf04f5537da51a9c094189b"
+    },
+    "firmware/src/messaging/msgbus.c": {
+      "staged_path": "project/messaging/msgbus.c",
+      "sha256": "7d5f4c325b1af6d53c52a158018d991a2ddd1a10b83874e9e4745e2490f49fcf"
+    },
+    "firmware/src/health/health.c": {
+      "staged_path": "project/health/health.c",
+      "sha256": "24fd829efbe6a12988b4b622e7ee6b7c2ea547758ed6732d548035f2fb740559"
+    },
+    "firmware/src/health/watchdog.c": {
+      "staged_path": "project/health/watchdog.c",
+      "sha256": "769d59fbd69acfca97a7fe8ec223a6e3e364c4fb9a6fcb805b21b5b0205ef935"
+    },
+    "firmware/include/uthome/msgbus.h": {
+      "staged_path": "project/include/uthome/msgbus.h",
+      "sha256": "c03b73a0c34d269e9a9366c42bbf2de77677c18061dfbec5ee6220d56af2d19d"
+    },
+    "firmware/include/uthome/health.h": {
+      "staged_path": "project/include/uthome/health.h",
+      "sha256": "dfa9abbaba6b728de325f7d3110179d2881b74222d500fe69c420e25009e9ac7"
+    },
+    "firmware/include/uthome/watchdog.h": {
+      "staged_path": "project/include/uthome/watchdog.h",
+      "sha256": "e81ee9229b9522ef5a74e123898a7854c833cd8cea74bb88c40dc8622d7e68ae"
+    },
+    "firmware/include/uthome/sample.h": {
+      "staged_path": "project/include/uthome/sample.h",
+      "sha256": "8bcb4e68cf1634b076f7211dadafdfe001e134242ff247774d8ec90d79587866"
+    },
+    "firmware/include/uthome/drvreg.h": {
+      "staged_path": "project/include/uthome/drvreg.h",
+      "sha256": "0ad0a4d891acf85820ea95598e51d4da30fad96590b2dc0987b3ceae187896d8"
+    },
+    "firmware/src/config/drvreg.c": {
+      "staged_path": "project/config/drvreg.c",
+      "sha256": "0c65fe4b39707b97cf1a1ffa305ecd93b0730167ede0a27967292d5751808f41"
+    },
+    "firmware/hal/include/i2cbus.h": {
+      "staged_path": "project/hal/include/i2cbus.h",
+      "sha256": "f7b18abc6d421fd56a876da8d3951f1e2bd4efd6d009fa789c297cc156d8cf76"
+    },
+    "firmware/hal/i2cbus.c": {
+      "staged_path": "project/hal/i2cbus.c",
+      "sha256": "822a9b10a0477d20a4444690ca998ea0539340b0c2a1664c945b14bec8bb47e2"
+    },
+    "firmware/hal/include/i2cown.h": {
+      "staged_path": "project/hal/include/i2cown.h",
+      "sha256": "fdc16aac96d7e1449b06d59ae0040fcfad355261aa891fa4c93bdd44ac9f2791"
+    },
+    "firmware/hal/i2cown.c": {
+      "staged_path": "project/hal/i2cown.c",
+      "sha256": "e0bfbe6e6b81d65c566c06402f88bb3f7fd3d7666c05cea7db383f710f92ebc9"
+    },
+    "firmware/hal/include/pinpool.h": {
+      "staged_path": "project/hal/include/pinpool.h",
+      "sha256": "672c0fceb6ba71cb997a38e42a319965eee42c3a94b5707dfe6636f1e43bb09c"
+    },
+    "firmware/hal/pinpool.c": {
+      "staged_path": "project/hal/pinpool.c",
+      "sha256": "441d3f838f714dc7896cf157a6ac28872e341d499e76a3e61a856ae6173af31c"
+    },
+    "firmware/hal/include/digiout.h": {
+      "staged_path": "project/hal/include/digiout.h",
+      "sha256": "fa00a8cd8c0786313b26eb3bce6eec1b7de58b54060c27d14cac1c26c700c2a5"
+    },
+    "firmware/hal/include/spibus.h": {
+      "staged_path": "project/hal/include/spibus.h",
+      "sha256": "6fd204c611cc5b7af890555402a05d4a4b173b6e9669a8f9b690c44be706af26"
+    },
+    "firmware/hal/spibus.c": {
+      "staged_path": "project/hal/spibus.c",
+      "sha256": "4224dbce3bc139de9c1eca7c29a7cc366d4c83dba16c5a37bc48ba1213da42ab"
+    },
+    "firmware/hal/include/spiown.h": {
+      "staged_path": "project/hal/include/spiown.h",
+      "sha256": "ff025b96fd9860c90bb436f02ae7b36d072a8a98724503891094ffbcaa1a5022"
+    },
+    "firmware/hal/spiown.c": {
+      "staged_path": "project/hal/spiown.c",
+      "sha256": "cdff42c3a4661005563a3ee237a1ccb9302fbdae398b62c0cf0ea1d01da01104"
+    },
+    "firmware/hal/ports/esp32c3/c3pin.h": {
+      "staged_path": "project/hal/c3pin.h",
+      "sha256": "2c13530194a347fedcde76a340ae503092d36f86a8ae12ccfd91ca1b1cd0bf26"
+    },
+    "firmware/hal/ports/esp32c3/c3pin.c": {
+      "staged_path": "project/hal/c3pin.c",
+      "sha256": "bd5cbfc576412ba5ed614e543bce38b59e9549833ac2cc0dfb355a6e7ea9169c"
+    },
+    "firmware/hal/ports/esp32c3/c3spi.h": {
+      "staged_path": "project/hal/c3spi.h",
+      "sha256": "b1d9c815c89f59889f61997118e5b1deaebaf1f2f18711aa4c89c6c5e21c51a8"
+    },
+    "firmware/hal/ports/esp32c3/c3spi.c": {
+      "staged_path": "project/hal/c3spi.c",
+      "sha256": "9e340921444e642c11502e0268f1d1b82c7ce668e20d7ea3fd23cbc5f72e1292"
+    },
+    "firmware/drivers/ssd1306_spi/ssd1306.h": {
+      "staged_path": "project/drivers/ssd1306.h",
+      "sha256": "e072fa598edcac2f5e42b8b4a34d79c42002f5ebe48392b22bb77830a508a1e0"
+    },
+    "firmware/drivers/ssd1306_spi/ssd1306.c": {
+      "staged_path": "project/drivers/ssd1306.c",
+      "sha256": "8d482bcf3e8e11059082064a590c30b29064f2b92f0a96b6c66d2a00933bfe08"
+    },
+    "firmware/drivers/ssd1306_spi/oledinst.h": {
+      "staged_path": "project/drivers/oledinst.h",
+      "sha256": "f2ae13ca633cf368e0fb0d7d4bd5c466119839282e81ad9653f277bd29cf6f39"
+    },
+    "firmware/drivers/ssd1306_spi/oledinst.c": {
+      "staged_path": "project/drivers/oledinst.c",
+      "sha256": "800a944dcfe0315d6dad3ec2a30a61f81ad3314d32455992145103f62ba30fc3"
+    },
+    "firmware/hal/ports/esp32c3/c3i2c.h": {
+      "staged_path": "project/hal/c3i2c.h",
+      "sha256": "2ecafd13500918214ab7787c774d534d79924032e5e93cb2145d202f40da8ea5"
+    },
+    "firmware/hal/ports/esp32c3/c3i2c.c": {
+      "staged_path": "project/hal/c3i2c.c",
+      "sha256": "1cbc9e6b4ac7af8817784ea22af55999173de6df3ced406c2b9f7fd31f1916bb"
+    },
+    "firmware/drivers/generic_i2c/geni2c.h": {
+      "staged_path": "project/drivers/geni2c.h",
+      "sha256": "c966b3af9a78fdd106adde514e898a8e063d73be5d8511ebb9632a6ac1797014"
+    },
+    "firmware/drivers/generic_i2c/geni2c.c": {
+      "staged_path": "project/drivers/geni2c.c",
+      "sha256": "7cf56f14d5ccf5dd3f6da79a146648e17c81454db6670d9b2848a41c9a75ff74"
+    },
+    "firmware/drivers/generic_i2c/senlux.h": {
+      "staged_path": "project/drivers/senlux.h",
+      "sha256": "1e53aaeb4b617ad9da577d3ce8f222b385f70e168ebd34fb1f9d66cd8a22ba94"
+    },
+    "firmware/drivers/generic_i2c/senlux.c": {
+      "staged_path": "project/drivers/senlux.c",
+      "sha256": "199fc0feb21c8d7ef5530a38ba412a454714fd0758f54b20af8cd861ed45657e"
+    },
+    "firmware/drivers/generic_i2c/seninst.h": {
+      "staged_path": "project/drivers/seninst.h",
+      "sha256": "f8fc354a26fef01db1855d49420503a8740e50e850e2490a050e62a601a5c6c8"
+    },
+    "firmware/drivers/generic_i2c/seninst.c": {
+      "staged_path": "project/drivers/seninst.c",
+      "sha256": "5b492cc7eb378555b0cdcd1ff84ade59be19d3d3829fb92805676a8b2b846108"
+    },
+    "firmware/drivers/bmp388/bmp388.h": {
+      "staged_path": "project/drivers/bmp388.h",
+      "sha256": "af9af485540531c3f14359fa6f0bd60de8d1e24844930c32616445b98c48ec3c"
+    },
+    "firmware/drivers/bmp388/bmp388.c": {
+      "staged_path": "project/drivers/bmp388.c",
+      "sha256": "b13bb86a052975aea4260d20fdc2b58b13111b74bbbda54cd8ec1099ee376f72"
+    },
+    "firmware/drivers/bmp388/bmpinst.h": {
+      "staged_path": "project/drivers/bmpinst.h",
+      "sha256": "100411d8fe0783f86a9f2afe2eb8d8b68833196bd3608d038f317f2f24b25049"
+    },
+    "firmware/drivers/bmp388/bmpinst.c": {
+      "staged_path": "project/drivers/bmpinst.c",
+      "sha256": "b903c3b3b2740bd44e1b4fd6a4d5272235d400730bba7328f62b6c1cc09508a9"
+    },
+    "firmware/third_party/bmp3/bmp3.h": {
+      "staged_path": "project/third_party/bmp3/bmp3.h",
+      "sha256": "0659639d8c32dace30aca37f55c7ba05d57e0001931913486f1b972fa843215d"
+    },
+    "firmware/third_party/bmp3/bmp3.c": {
+      "staged_path": "project/third_party/bmp3/bmp3.c",
+      "sha256": "339847299c88b1690f23180bfc27e53bfdc42d519f68b5453b9c0786b7b825ff"
+    },
+    "firmware/third_party/bmp3/bmp3_defs.h": {
+      "staged_path": "project/third_party/bmp3/bmp3_defs.h",
+      "sha256": "9c9507cd45907b36a0f2f0cd5faa4402a2a0503a58123f45fea96dae6e6af51f"
+    },
+    "firmware/third_party/esp32c3-mtk3/examples/tasks/sdkconfig.defaults": {
+      "staged_path": "project/sdkconfig.defaults",
+      "sha256": "580ea05cca3eb7e09221f23dcf34a9ff93322d79a84c22c21441b81202da7a34"
+    }
+  },
+  "source_manifest_sha256": "eb0a788aaf038b8c58b05136301c3db675991ac467183b2572825c9839babffd",
+  "command": [
+    "C:\\Users\\kim97\\Downloads\\INF2004-uT-Home-main\\.esp-env\\tools\\python_env\\idf6.1_py3.12_env\\Scripts\\python.exe",
+    "C:\\Users\\kim97\\Downloads\\INF2004-uT-Home-main\\.esp-env\\sdk\\tools\\idf.py",
+    "-C",
+    "C:\\uTesp-builds\\ble-light-20261101-02\\project",
+    "-B",
+    "C:\\uTesp-builds\\ble-light-20261101-02\\build",
+    "-DIDF_TARGET=esp32c3",
+    "-DMTK_BOARD=iote_esp32c3_mini",
+    "-DSDKCONFIG=C:\\uTesp-builds\\ble-light-20261101-02\\sdkconfig",
+    "-DUTHOME_CONFIGURATION_APP=1",
+    "-DUTHOME_NATIVE_UART_FIXTURE=0",
+    "-DUTHOME_STATIC_NET_QUEUES=1",
+    "-DUTHOME_NETWORK_WIFI=0",
+    "-DUTHOME_NETWORK_BLE=1",
+    "-DUTHOME_WIFI_PROBE=0",
+    "-DUTHOME_BLE_PROBE=0",
+    "-DUTHOME_BLE_GATT_PROBE=0",
+    "-DUTHOME_BLE_STATIC_HOST=0",
+    "-DUTHOME_MODEL_PROBE=0",
+    "-DUTHOME_MODEL_LOAD_PROBE=0",
+    "-DUTHOME_SENLUX_PROBE=0",
+    "-DUTHOME_SENLUX_APP_PROBE=0",
+    "-DUTHOME_SOURCE_ROOT=C:/Users/kim97/Downloads/INF2004-uT-Home-main/INF2004-uT-Home-main",
+    "-DUTHOME_CHECK_PYTHON=C:/Users/kim97/Downloads/INF2004-uT-Home-main/.esp-env/tools/python_env/idf6.1_py3.12_env/Scripts/python.exe",
+    "build"
+  ],
+  "environment_overrides": {
+    "IDF_PATH": "C:/Users/kim97/Downloads/INF2004-uT-Home-main/.esp-env/sdk",
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONUTF8": "1"
+  },
+  "build_exit_code": 0,
+  "compiler_profiles": {
+    "status": "passed",
+    "profiles": {
+      "firmware/src/network/netmqtt.c": "c99",
+      "firmware/src/network/netretry.c": "c99",
+      "firmware/src/network/nethttp.c": "c99",
+      "firmware/src/network/netread.c": "c99",
+      "firmware/src/network/netble.c": "c99",
+      "firmware/hal/ports/esp32c3/c3wsta.c": "c99",
+      "firmware/hal/ports/esp32c3/c3https.c": "c99",
+      "firmware/hal/ports/esp32c3/c3gsvc.c": "c99",
+      "firmware/app/c3net.c": "c99",
+      "tests/target/runtime_port_board/loadmodel/ailite.c": "c99",
+      "tests/target/runtime_port_board/loadmodel/aivects.c": "c99",
+      "tests/target/runtime_port_board/loadmodel/aiload.c": "c99",
+      "firmware/hal/ports/esp32c3/c3gatt.c": "c99",
+      "tests/target/runtime_port_board/model/aifrozen.c": "c99",
+      "tests/target/runtime_port_board/model/aicases.c": "c99",
+      "tests/target/runtime_port_board/model/aiprobe.c": "c99",
+      "firmware/hal/ports/esp32c3/c3bport.c": "c99",
+      "firmware/hal/ports/esp32c3/c3ble.c": "c99",
+      "firmware/hal/ports/esp32c3/c3boot.c": "c99",
+      "firmware/hal/ports/esp32c3/c3event.c": "c99",
+      "firmware/src/network/netevent.c": "c99",
+      "firmware/hal/ports/esp32c3/c3wifi.c": "c99",
+      "tests/target/runtime_port_board/main/nqcheck.c": "c99",
+      "firmware/src/network/netring.c": "c99",
+      "firmware/src/network/netwait.c": "c99",
+      "firmware/src/network/netpool.c": "c99",
+      "firmware/hal/ports/esp32c3/c3nq.c": "c99",
+      "firmware/src/runtime/stackmon.c": "c99",
+      "firmware/src/runtime/workcost.c": "c99",
+      "firmware/src/runtime/workmeter.c": "c99",
+      "firmware/hal/ports/esp32c3/c3clock.c": "c99",
+      "firmware/hal/ports/esp32c3/c3cost.c": "c99",
+      "firmware/src/services/costview.c": "c99",
+      "firmware/src/runtime/memaudit.c": "c99",
+      "firmware/hal/ports/esp32c3/c3audit.c": "c99",
+      "firmware/src/config/cfgpart.c": "c99",
+      "firmware/hal/ports/esp32c3/c3umem.c": "c99",
+      "firmware/src/discovery/discuart.c": "c99",
+      "firmware/src/discovery/disci2c.c": "c99",
+      "firmware/src/discovery/cfgdisc.c": "c99",
+      "firmware/src/services/oledview.c": "c99",
+      "firmware/src/services/telemetry.c": "c99",
+      "firmware/src/services/statusmon.c": "c99",
+      "firmware/src/services/sampcache.c": "c99",
+      "firmware/src/config/cfgpump.c": "c99",
+      "firmware/hal/ports/esp32c3/c3usb.c": "c99",
+      "firmware/hal/ports/esp32c3/c3store.c": "c99",
+      "firmware/app/c3app.c": "c99",
+      "firmware/src/config/jsonscan.c": "c99",
+      "firmware/src/config/cfgjson.c": "c99",
+      "firmware/src/config/cfgplan.c": "c99",
+      "firmware/src/config/cfgdev.c": "c99",
+      "firmware/src/config/cfgrule.c": "c99",
+      "firmware/src/automation/rulecalc.c": "c99",
+      "firmware/src/config/cfgbind.c": "c99",
+      "firmware/hal/ports/esp32c3/c3bind.c": "c99",
+      "firmware/src/config/cfgbytes.c": "c99",
+      "firmware/src/config/cfgwire.c": "c99",
+      "firmware/src/config/cfgstore.c": "c99",
+      "firmware/src/config/cfgctrl.c": "c99",
+      "firmware/hal/pulseio.c": "c99",
+      "firmware/hal/pwmio.c": "c99",
+      "firmware/hal/ports/esp32c3/c3pulse.c": "gnu99",
+      "firmware/hal/ports/esp32c3/c3pwm.c": "gnu99",
+      "firmware/drivers/hc_sr04/hc_sr04.c": "c99",
+      "firmware/drivers/hc_sr04/hcinst.c": "c99",
+      "firmware/drivers/pwm_output/pwminst.c": "c99",
+      "firmware/hal/uartio.c": "c99",
+      "firmware/hal/ports/esp32c3/c3uart.c": "c99",
+      "firmware/drivers/hlk_ld2450/ldparse.c": "c99",
+      "firmware/drivers/hlk_ld2450/ld2450.c": "c99",
+      "firmware/drivers/hlk_ld2450/ldinst.c": "c99",
+      "tests/target/runtime_port_board/main/main.c": "c11",
+      "firmware/src/runtime/tkport.c": "c11",
+      "firmware/src/runtime/activate.c": "c99",
+      "firmware/src/runtime/shared.c": "c99",
+      "firmware/src/runtime/component.c": "c99",
+      "firmware/src/messaging/msgbus.c": "c99",
+      "firmware/src/health/health.c": "c99",
+      "firmware/src/health/watchdog.c": "c99",
+      "firmware/src/config/drvreg.c": "c99",
+      "firmware/hal/i2cbus.c": "c99",
+      "firmware/hal/i2cown.c": "c99",
+      "firmware/hal/pinpool.c": "c99",
+      "firmware/hal/spibus.c": "c99",
+      "firmware/hal/spiown.c": "c99",
+      "firmware/hal/ports/esp32c3/c3pin.c": "gnu99",
+      "firmware/hal/ports/esp32c3/c3spi.c": "gnu99",
+      "firmware/drivers/ssd1306_spi/ssd1306.c": "c99",
+      "firmware/drivers/ssd1306_spi/oledinst.c": "c99",
+      "firmware/hal/ports/esp32c3/c3i2c.c": "gnu99",
+      "firmware/drivers/generic_i2c/geni2c.c": "c99",
+      "firmware/drivers/generic_i2c/senlux.c": "c99",
+      "firmware/drivers/generic_i2c/seninst.c": "c99",
+      "firmware/drivers/bmp388/bmp388.c": "c99",
+      "firmware/drivers/bmp388/bmpinst.c": "c99"
+    },
+    "uart_storage": {
+      "C:\\uTesp-builds\\ble-light-20261101-02\\source\\device\\ser\\ser.c": "serial",
+      "C:\\uTesp-builds\\ble-light-20261101-02\\source\\device\\common\\drvif\\msdrvif.c": "record"
+    },
+    "flash_guard": "C:\\Users\\kim97\\Downloads\\INF2004-uT-Home-main\\.esp-env\\sdk\\components\\spi_flash\\spi_flash_os_func_app.c",
+    "memory_audit": {
+      "C:\\Users\\kim97\\Downloads\\INF2004-uT-Home-main\\.esp-env\\sdk\\components\\heap\\heap_caps_base.c": {
+        "esp_heap_trace_alloc_hook": "c3audit_alloc",
+        "esp_heap_trace_free_hook": "c3audit_free"
+      },
+      "C:\\uTesp-builds\\ble-light-20261101-02\\source\\kernel\\tkernel\\task_manage.c": {
+        "tk_cre_tsk": "c3audit_native_task"
+      },
+      "C:\\uTesp-builds\\ble-light-20261101-02\\source\\kernel\\tkernel\\mutex.c": {
+        "tk_cre_mtx": "c3audit_native_mutex"
+      },
+      "C:\\uTesp-builds\\ble-light-20261101-02\\source\\kernel\\tkernel\\semaphore.c": {
+        "tk_cre_sem": "c3audit_native_sem"
+      },
+      "C:\\uTesp-builds\\ble-light-20261101-02\\source\\kernel\\tkernel\\eventflag.c": {
+        "tk_cre_flg": "c3audit_native_flag"
+      },
+      "C:\\uTesp-builds\\ble-light-20261101-02\\source\\kernel\\tkernel\\mailbox.c": {
+        "tk_cre_mbx": "c3audit_native_mailbox"
+      },
+      "C:\\uTesp-builds\\ble-light-20261101-02\\source\\kernel\\tkernel\\messagebuf.c": {
+        "tk_cre_mbf": "c3audit_native_message"
+      },
+      "C:\\uTesp-builds\\ble-light-20261101-02\\source\\kernel\\tkernel\\mempfix.c": {
+        "tk_cre_mpf": "c3audit_native_fixed_pool"
+      },
+      "C:\\uTesp-builds\\ble-light-20261101-02\\source\\kernel\\tkernel\\mempool.c": {
+        "tk_cre_mpl": "c3audit_native_pool"
+      },
+      "C:\\uTesp-builds\\ble-light-20261101-02\\source\\kernel\\tkernel\\rendezvous.c": {
+        "tk_cre_por": "c3audit_native_port"
+      },
+      "C:\\uTesp-builds\\ble-light-20261101-02\\source\\kernel\\tkernel\\time_calls.c": {
+        "tk_cre_cyc": "c3audit_native_cycle",
+        "tk_cre_alm": "c3audit_native_alarm"
+      },
+      "C:\\uTesp-builds\\ble-light-20261101-02\\source\\kernel\\tkernel\\memory.c": {
+        "knl_Imalloc": "c3audit_native_malloc",
+        "knl_Icalloc": "c3audit_native_calloc",
+        "knl_Irealloc": "c3audit_native_realloc",
+        "knl_Ifree": "c3audit_native_free"
+      }
+    },
+    "compile_commands_sha256": "41460e03ef8d3517a20a1173113297f98ba6f1f5516afdd8344452bf964460ab"
+  },
+  "senlux_app_isolation": {
+    "enabled": false,
+    "diagnostic_only": false
+  },
+  "memory_audit_link": {
+    "status": "passed",
+    "elf_sha256": "7978ca06c70bb034cd4c6c79a0157a2c5def13c08782e263fe2d6db092f9a995",
+    "retained": {
+      "tk_cre_tsk": true,
+      "tk_cre_mtx": true,
+      "tk_cre_sem": true,
+      "tk_cre_flg": true,
+      "tk_cre_mbx": false,
+      "tk_cre_mbf": false,
+      "tk_cre_mpf": false,
+      "tk_cre_mpl": false,
+      "tk_cre_por": false,
+      "tk_cre_cyc": true,
+      "tk_cre_alm": true,
+      "knl_Imalloc": true,
+      "knl_Icalloc": false,
+      "knl_Irealloc": false,
+      "knl_Ifree": true
+    },
+    "symbols": {
+      "__wrap_knl_Icalloc": 0,
+      "__wrap_knl_Irealloc": 0,
+      "__wrap_tk_cre_mbf": 0,
+      "__wrap_tk_cre_mbx": 0,
+      "__wrap_tk_cre_mpf": 0,
+      "__wrap_tk_cre_mpl": 0,
+      "__wrap_tk_cre_por": 0,
+      "__wrap_rtos_int_exit": 1077418450,
+      "__wrap_vPortEnterCritical": 1077418710,
+      "__wrap_vPortExitCritical": 1077418756,
+      "__wrap_xPortInIsrContext": 1077418812,
+      "record_kernel": 1077449818,
+      "record_create": 1077449864,
+      "c3audit_alloc": 1077449910,
+      "c3audit_free": 1077449960,
+      "c3audit_begin": 1077450004,
+      "c3audit_seal": 1077450050,
+      "c3audit_capture": 1077450112,
+      "__wrap_knl_Imalloc": 1077450196,
+      "c3audit_kmalloc": 1077450196,
+      "c3audit_stack_unused": 1077450350,
+      "__wrap_knl_Ifree": 1077450538,
+      "c3audit_kfree": 1077450538,
+      "__wrap_tk_cre_tsk": 1077450570,
+      "c3audit_create_task": 1077450570,
+      "__wrap_tk_cre_mtx": 1077450602,
+      "c3audit_create_mutex": 1077450602,
+      "__wrap_tk_cre_sem": 1077450634,
+      "c3audit_create_sem": 1077450634,
+      "__wrap_tk_cre_flg": 1077450666,
+      "c3audit_create_flag": 1077450666,
+      "__wrap_tk_cre_cyc": 1077450698,
+      "c3audit_create_cycle": 1077450698,
+      "__wrap_tk_cre_alm": 1077450730,
+      "c3audit_create_alarm": 1077450730,
+      "__wrap_xEventGroupCreate": 1077451388,
+      "__wrap_xEventGroupCreateStatic": 1077451464,
+      "__wrap_vEventGroupDelete": 1077451544,
+      "__wrap_xEventGroupSetBits": 1077451626,
+      "__wrap_xEventGroupSetBitsFromISR": 1077451722,
+      "__wrap_xEventGroupClearBits": 1077451848,
+      "__wrap_xEventGroupClearBitsFromISR": 1077451934,
+      "__wrap_xEventGroupGetBits": 1077452026,
+      "__wrap_xEventGroupGetBitsFromISR": 1077452026,
+      "__wrap_xEventGroupWaitBits": 1077452042,
+      "__wrap_xEventGroupSync": 1077452068,
+      "__wrap_xQueueGenericCreate": 1077452856,
+      "__wrap_xQueueGenericCreateStatic": 1077452876,
+      "__wrap_xQueueCreateCountingSemaphore": 1077452900,
+      "__wrap_xQueueCreateCountingSemaphoreStatic": 1077452916,
+      "__wrap_xQueueCreateMutex": 1077452936,
+      "__wrap_xQueueCreateMutexStatic": 1077452980,
+      "__wrap_xQueueGenericSend": 1077453028,
+      "__wrap_xQueueGenericSendFromISR": 1077453104,
+      "__wrap_xQueueReceive": 1077453196,
+      "__wrap_xQueueReceiveFromISR": 1077453258,
+      "__wrap_xQueuePeek": 1077453336,
+      "__wrap_xQueuePeekFromISR": 1077453398,
+      "__wrap_xQueueSemaphoreTake": 1077453454,
+      "__wrap_xQueueGiveFromISR": 1077453472,
+      "__wrap_xQueueTakeMutexRecursive": 1077453492,
+      "__wrap_xQueueGiveMutexRecursive": 1077453546,
+      "__wrap_vQueueDelete": 1077453594,
+      "__wrap_uxQueueMessagesWaiting": 1077453618,
+      "__wrap_uxQueueMessagesWaitingFromISR": 1077453618,
+      "__wrap_uxQueueSpacesAvailable": 1077453656,
+      "__wrap_xQueueIsQueueEmptyFromISR": 1077453694,
+      "__wrap_xQueueReset": 1077453712,
+      "__wrap_xQueueGenericReset": 1077453754,
+      "__wrap_xTaskGetSchedulerState": 1077453774,
+      "add_count": 1107365780,
+      "memaudit_seal": 1077453870,
+      "memaudit_begin": 1077453906,
+      "memaudit_create": 1077453942,
+      "memaudit_heap": 1077454006,
+      "memaudit_kernel": 1077454182,
+      "disint": 1077457850,
+      "enaint": 1077457858,
+      "__wrap___bufio_setvbuf": 1107320834,
+      "__wrap_esp_panic_handler": 1107328138,
+      "c3audit_native_malloc": 1107337112,
+      "c3audit_native_free": 1107337266,
+      "c3audit_native_sem": 1107337850,
+      "c3audit_native_task": 1107339932,
+      "c3audit_native_flag": 1107346558,
+      "c3audit_native_mutex": 1107348398,
+      "__wrap_knl_init_object": 1107349664,
+      "__wrap_xTaskCreatePinnedToCore": 1107349860,
+      "__wrap_vTaskDelete": 1107350350,
+      "__wrap_vTaskDelay": 1107350426,
+      "__wrap_xTaskGetCurrentTaskHandle": 1107350444,
+      "__wrap_xTaskNotifyGiveFromISR": 1107350462,
+      "__wrap_ulTaskNotifyTake": 1107350502,
+      "__wrap_ulTaskGenericNotifyTake": 1107350618,
+      "__wrap_vTaskGenericNotifyGiveFromISR": 1107350636,
+      "__wrap_xTimerCreate": 1107350704,
+      "__wrap_esp_startup_start_app": 1107351730,
+      "c3audit_native_cycle": 1107761766,
+      "c3audit_native_alarm": 1107762088,
+      "__wrap__Unwind_DeleteException": 1107815296
+    }
+  },
+  "network_queue_adapter": {
+    "enabled": true,
+    "status": "linked_abi_verified",
+    "aliases": {
+      "xQueueGenericCreate": {
+        "owned": "c3nq_create",
+        "address": 1077452856
+      },
+      "xQueueGenericCreateStatic": {
+        "owned": "c3nq_static",
+        "address": 1077452876
+      },
+      "xQueueCreateCountingSemaphore": {
+        "owned": "c3nq_counting",
+        "address": 1077452900
+      },
+      "xQueueCreateCountingSemaphoreStatic": {
+        "owned": "c3nq_counting_static",
+        "address": 1077452916
+      },
+      "xQueueCreateMutex": {
+        "owned": "c3nq_mutex",
+        "address": 1077452936
+      },
+      "xQueueCreateMutexStatic": {
+        "owned": "c3nq_mutex_static",
+        "address": 1077452980
+      },
+      "xQueueGenericSend": {
+        "owned": "c3nq_send",
+        "address": 1077453028
+      },
+      "xQueueGenericSendFromISR": {
+        "owned": "c3nq_send_isr",
+        "address": 1077453104
+      },
+      "xQueueReceive": {
+        "owned": "c3nq_receive",
+        "address": 1077453196
+      },
+      "xQueueReceiveFromISR": {
+        "owned": "c3nq_receive_isr",
+        "address": 1077453258
+      },
+      "xQueuePeek": {
+        "owned": "c3nq_peek",
+        "address": 1077453336
+      },
+      "xQueuePeekFromISR": {
+        "owned": "c3nq_peek_isr",
+        "address": 1077453398
+      },
+      "xQueueSemaphoreTake": {
+        "owned": "c3nq_take",
+        "address": 1077453454
+      },
+      "xQueueGiveFromISR": {
+        "owned": "c3nq_give_isr",
+        "address": 1077453472
+      },
+      "xQueueTakeMutexRecursive": {
+        "owned": "c3nq_take_recursive",
+        "address": 1077453492
+      },
+      "xQueueGiveMutexRecursive": {
+        "owned": "c3nq_give_recursive",
+        "address": 1077453546
+      },
+      "vQueueDelete": {
+        "owned": "c3nq_delete",
+        "address": 1077453594
+      },
+      "uxQueueMessagesWaiting": {
+        "owned": "c3nq_waiting",
+        "address": 1077453618
+      },
+      "uxQueueMessagesWaitingFromISR": {
+        "owned": "c3nq_waiting",
+        "address": 1077453618
+      },
+      "uxQueueSpacesAvailable": {
+        "owned": "c3nq_spaces",
+        "address": 1077453656
+      },
+      "xQueueIsQueueEmptyFromISR": {
+        "owned": "c3nq_empty_isr",
+        "address": 1077453694
+      },
+      "xQueueReset": {
+        "owned": "c3nq_reset",
+        "address": 1077453712
+      },
+      "xQueueGenericReset": {
+        "owned": "c3nq_generic_reset",
+        "address": 1077453754
+      },
+      "xTaskGetSchedulerState": {
+        "owned": "c3nq_scheduler_state",
+        "address": 1077453774
+      }
+    },
+    "event_aliases": {
+      "xEventGroupCreate": {
+        "owned": "c3event_create",
+        "address": 1077451388
+      },
+      "xEventGroupCreateStatic": {
+        "owned": "c3event_static",
+        "address": 1077451464
+      },
+      "vEventGroupDelete": {
+        "owned": "c3event_delete",
+        "address": 1077451544
+      },
+      "xEventGroupSetBits": {
+        "owned": "c3event_set",
+        "address": 1077451626
+      },
+      "xEventGroupSetBitsFromISR": {
+        "owned": "c3event_set_isr",
+        "address": 1077451722
+      },
+      "xEventGroupClearBits": {
+        "owned": "c3event_clear",
+        "address": 1077451848
+      },
+      "xEventGroupClearBitsFromISR": {
+        "owned": "c3event_clear_isr",
+        "address": 1077451934
+      },
+      "xEventGroupGetBits": {
+        "owned": "c3event_get",
+        "address": 1077452026
+      },
+      "xEventGroupGetBitsFromISR": {
+        "owned": "c3event_get",
+        "address": 1077452026
+      },
+      "xEventGroupWaitBits": {
+        "owned": "c3event_wait",
+        "address": 1077452042
+      },
+      "xEventGroupSync": {
+        "owned": "c3event_sync",
+        "address": 1077452068
+      }
+    },
+    "resources": {
+      "queue_slots": 8,
+      "queue_bytes_each": 1024,
+      "semaphore_slots": 16,
+      "mutex_slots": 32,
+      "startup_native_semaphores": 48,
+      "startup_native_mutexes": 32,
+      "event_groups": 8,
+      "event_waiters": 16,
+      "native_startup_pool_bytes": 12288
+    },
+    "qualification": "Experimental queue/event/startup scope; cache-off I/O rejects, radio/task/timer paths remain unqualified"
+  },
+  "model_isolation": {
+    "enabled": false,
+    "linked_symbols": [],
+    "deployment_allowed": false,
+    "model_sha256": "6f7bc4e094b8bb35141228494ad85aef6034f47f366e8f44faf2ec1e4f03d7a1",
+    "vectors": 1165,
+    "fixture_sha256": "3d25dae4a4d3c2b461a152bf4e96fbd836710b767f0b555b0db8f3a799d8566d"
+  },
+  "model_load_isolation": {
+    "enabled": false,
+    "linked_symbols": [],
+    "deployment_allowed": false,
+    "model_sha256": "96f73ceff2e7943c4f1b23f3d333252d13bffef9c6eccb16ee7281c07d13bd58",
+    "vectors": 1132,
+    "fixture_sha256": "faea517d26bd671860b5de4d5f1daa78d61467aa06d1009fb59632d45b83b4ba"
+  },
+  "managed_cjson": {
+    "version": "1.7.19~2",
+    "component_hash": "e788323270d90738662d66fffa910bfe1fba019bba087f01557e70c40485b469",
+    "source_sha256": {
+      "cJSON.c": "607e756460fa0de37d20a7a9181f2de29c97bfb7ce5a0e6c2f548243836cd852",
+      "cJSON.h": "25b0145150d500498e4d209cec69c18c42cf818bffcc54690be3b895a2a16dee",
+      "LICENSE": "a36dda207c36db5818729c54e7ad4e8b0c6fba847491ba64f372c1a2037b6d5c"
+    },
+    "lock_sha256": "abfbc8e0e96b4740d37351e3f43cc500e5efab4b1ce7413692a0ffc9abd53c61"
+  }
+}

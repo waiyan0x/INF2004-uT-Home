@@ -47,6 +47,7 @@
 #include "hcinst.h"
 #include "pwminst.h"
 #include "ldinst.h"
+#include "senlux.h"
 
 #define WORKER_LIMIT      4U
 #define ALLOCATION_CYCLES 24U
@@ -106,6 +107,13 @@ static void ble_report (void);
 static aiprobe_report_t g_model_report = {0};
 static void model_report (void);
 #endif
+#if defined(UTHOME_SENLUX_PROBE) && UTHOME_SENLUX_PROBE
+static void senlux_report (void);
+static senlux_t       g_light_probe  = {0};
+static c3pin_output_t g_light_enable = {0};
+static digiout_t      g_light_line   = {0};
+static i2cbus_t *     gp_light_bus   = NULL;
+#endif
 #if UTHOME_WIFI_PROBE || UTHOME_BLE_PROBE
 static void radio_observations (memaudit_t const * p_rows,
                                 uint32_t const *   p_free,
@@ -158,7 +166,8 @@ static const component_operations_t g_plan_operations = {.p_configure =
 EXPORT INT usermain (void)
 {
     CHECK(0 == c3audit_begin());
-#if UTHOME_WIFI_PROBE || UTHOME_BLE_PROBE || UTHOME_MODEL_PROBE
+#if UTHOME_WIFI_PROBE || UTHOME_BLE_PROBE || UTHOME_MODEL_PROBE ||             \
+    UTHOME_SENLUX_PROBE
     start_idle();
     CHECK(0 == rt_port_clock_set(c3clock_now));
     CHECK(0 == rt_port_init());
@@ -168,6 +177,8 @@ EXPORT INT usermain (void)
     wifi_report();
 #elif UTHOME_BLE_PROBE
     ble_report();
+#elif UTHOME_SENLUX_PROBE
+    senlux_report();
 #else
     model_report();
 #endif
@@ -207,6 +218,50 @@ EXPORT INT usermain (void)
     report_success();
     return 0;
 }
+
+#if defined(UTHOME_SENLUX_PROBE) && UTHOME_SENLUX_PROBE
+/** @brief Observe the isolated, fixed SEN0390 sequence without saved writes. */
+static void senlux_report (void)
+{
+    const i2cbus_config_t bus = {
+        .port = 0U, .sda_gpio = 0U, .scl_gpio = 1U, .clock_hz = 100000U};
+    CHECK(0 == c3i2c_init());
+    CHECK(0 == c3i2c_open(&bus, &gp_light_bus));
+    CHECK(0 == c3pin_open(&g_light_enable, 5U, false));
+    g_light_line =
+        (digiout_t){.p_set = c3pin_set, .p_context = &g_light_enable};
+    uint8_t  chip_register = 0U;
+    uint8_t  chip_id       = 0U;
+    uint64_t deadline      = 0U;
+    CHECK(0 == i2cbus_deadline(gp_light_bus, 100U, &deadline));
+    const i2cbus_request_t chip_request = {.address     = 0x77U,
+                                           .p_write     = &chip_register,
+                                           .write_size  = 1U,
+                                           .p_read      = &chip_id,
+                                           .read_size   = 1U,
+                                           .deadline_ms = deadline};
+    const int chip_result = i2cbus_transfer(gp_light_bus, &chip_request);
+    tm_printf((UB *)"[senlux-probe] bmp-preflight status=%d id=%u\n",
+              chip_result,
+              (unsigned)chip_id);
+    CHECK(0 == senlux_open(&g_light_probe, gp_light_bus, &g_light_line, 100U));
+    for (uint32_t index = 0U; index < 120U; ++index)
+    {
+        uint32_t  millilux = 0U;
+        const int result   = senlux_read(&g_light_probe, &millilux);
+        tm_printf((UB *)"[senlux-probe] index=%u status=%d millilux=%u\n",
+                  (unsigned)index,
+                  result,
+                  (unsigned)millilux);
+        CHECK(E_OK == tk_dly_tsk(1000));
+    }
+    CHECK(0 == senlux_close(&g_light_probe));
+    CHECK(0 == c3pin_close(&g_light_enable));
+    CHECK(0 == c3i2c_close(gp_light_bus));
+    gp_light_bus = NULL;
+    tm_printf((UB *)"[senlux-probe] complete\n");
+}
+#endif
 
 #if defined(UTHOME_MODEL_PROBE) && UTHOME_MODEL_PROBE
 /** @brief Report experimental parity/timing without enabling recommendations.

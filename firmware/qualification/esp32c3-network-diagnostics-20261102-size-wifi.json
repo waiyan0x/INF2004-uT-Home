@@ -1,0 +1,61 @@
+{
+  "kind": "flash-size-analysis",
+  "build": "C:\\uTesp-builds\\network-diagnostics-20261102-01",
+  "build_status": "passed",
+  "qualification_result": false,
+  "binary_bytes": 913936,
+  "partition": {
+    "offset": 65536,
+    "size": 1048576,
+    "label": "factory"
+  },
+  "partition_headroom_bytes": 134640,
+  "evidence_sha256": "5b09f5f5ec6d870bc5c7048722dafc6738fa03b711bed91a35118e8cf8fe8a52",
+  "map_sha256": "83ffcc1cfa62b83eecb8c5befcc4c82fb4b1910ccf68e9d1917be5300f4b3345",
+  "binary_sha256": "d079f70603b4898becc98b6adce42983a904be2b62d32ad1b09cf8a780fb705f",
+  "partition_table_sha256": "7f7b089b96a3f7c3d7c431bd974909909e60a2bb8bdf4bb6802e9edbb6d9167e",
+  "largest_archives": [
+    {
+      "archive": "C:/Users/kim97/Downloads/INF2004-uT-Home-main/.esp-env/sdk/components/esp_wifi/lib/esp32c3/libnet80211.a",
+      "flash_mapped_bytes": 138028
+    },
+    {
+      "archive": "esp-idf/mbedtls/mbedtls/tf-psa-crypto/core/libtfpsacrypto.a",
+      "flash_mapped_bytes": 129255
+    },
+    {
+      "archive": "esp-idf/lwip/liblwip.a",
+      "flash_mapped_bytes": 121520
+    },
+    {
+      "archive": "esp-idf/main/libmain.a",
+      "flash_mapped_bytes": 82369
+    },
+    {
+      "archive": "C:/Users/kim97/Downloads/INF2004-uT-Home-main/.esp-env/sdk/components/esp_wifi/lib/esp32c3/libpp.a",
+      "flash_mapped_bytes": 60789
+    },
+    {
+      "archive": "esp-idf/wpa_supplicant/libwpa_supplicant.a",
+      "flash_mapped_bytes": 51047
+    },
+    {
+      "archive": "esp-idf/esp_stdio/libesp_stdio.a",
+      "flash_mapped_bytes": 42975
+    },
+    {
+      "archive": "C:/Users/kim97/Downloads/INF2004-uT-Home-main/.esp-env/sdk/components/esp_phy/lib/esp32c3/libphy.a",
+      "flash_mapped_bytes": 31164
+    },
+    {
+      "archive": "esp-idf/mbedtls/mbedtls/library/libmbedtls.a",
+      "flash_mapped_bytes": 26332
+    },
+    {
+      "archive": "esp-idf/mtkernel/libmtkernel.a",
+      "flash_mapped_bytes": 24172
+    }
+  ],
+  "mapped_flash_total": 842340,
+  "note": "Mapped flash ranking excludes IRAM load copies, image headers and padding. Archive costs are not exact removable bytes; shared dependencies and code versions matter. Failed builds remain failed."
+}

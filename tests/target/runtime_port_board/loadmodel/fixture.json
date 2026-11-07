@@ -1,0 +1,17 @@
+{
+  "model_sha256": "96f73ceff2e7943c4f1b23f3d333252d13bffef9c6eccb16ee7281c07d13bd58",
+  "vectors": 1132,
+  "deployment_allowed": false,
+  "source_model": "build/protocol-study-20261027-varied-r1/trained/model.json",
+  "corpus_sha256": "1094334a4b86e0a32afbc11a472279d97f750a0b21e54be4e71f9a80344f3087",
+  "source_sha256": {
+    "ailite.c": "d366880b89badb09df96c6ff928302a972527b5df085e43fb6b747dff133ee29",
+    "ailite.h": "4e1c6287a14278352f478cfbfe22c39f4dd185862d724770c5eb924ad0608ab9",
+    "aiload.c": "13b9bc7ba4516e87d20ae196e669ef7ccf86089ee2bfd51cd6599e9b8663f0bd",
+    "aiload.h": "4c133e2080d8cf342e9144645c05afa22dbe8da4a60bdb28e0478ca47ae4678c",
+    "aivects.c": "b005fc4f8be4db34151aaa987c496b7f5cd2963d794a0cb90ace0bf5847e40a2",
+    "aivects.h": "72a4c4113b0d757f1fe179962f529a40b253486cad18119facfac8167d012d8f"
+  },
+  "purpose": "Diagnostic classifier parity/latency during peripheral activity; no advice or Apply",
+  "expected_values": "Frozen Python predictions, not ground-truth labels"
+}
