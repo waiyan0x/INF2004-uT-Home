@@ -1,0 +1,13 @@
+# 2026-10-27T07:09:50Z config_transfer query --port COM5 (session start)
+{
+  "command": 2,
+  "request_id": 1,
+  "revision": 0,
+  "status": 0,
+  "active_revision": 759,
+  "saved_revision": 759,
+  "active_crc": 3623560383,
+  "saved_crc": 3623560383,
+  "flags": 81
+}
+exit 0

@@ -27,6 +27,7 @@ retained local artifacts.
 | Cleanup software regression | [Desloppify verification](desloppify-software-20261102.json) | Host, Node and browser regressions; native application build and unchanged aggregate fixed-memory budgets pass. No board actions; wireless/stack/runtime qualification remains open. |
 | Consolidated overnight handoff | [handoff](system-overnight-handoff-20261027.json) | Core stability and AI collection; not a full release |
 | Core lifecycle/scheduler | [core](esp32c3-scheduler-20261027.json) | USB image, rollback/capacity/reboot; combined radio load separate |
+| Acceptance B/C (layout A) | [record](esp32c3-acceptance-20261027.json) | Demo, rollback, lifecycle, reboot, conflicts on 597ae600; radios inactive; not hardware qualification |
 | Radar app-state comparison | [captures](esp32c3-radar-app-comparison-20261027.json) | Initial silence, then healthy connected/disconnected windows; cause unresolved |
 | Radar readout on restored firmware | [capture](esp32c3-radar-readout-20261031.json) | No payload in a 60-s interval; requested phone-app attempts not timestamp-confirmed; cause unresolved |
 | Radar read-only follow-up | [capture](esp32c3-radar-readonly-20261101.json) | Fresh snapshots and received bytes over two minutes; no fault window; cause unresolved |

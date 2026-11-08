@@ -1,0 +1,122 @@
+# 2026-10-27T07:22:46Z layout A end (workcost, after the reboot; the pre-reboot lifecycle counters are in -disconnect.log)
+{
+  "result": 0,
+  "generation": 1,
+  "active_revision": 821,
+  "active_crc": 3623560383,
+  "timestamp_us": 57607854,
+  "capture_us": 582,
+  "controller_stack": {
+    "bytes": 8448,
+    "unused_min": 7280,
+    "measured": true,
+    "empirical": true
+  },
+  "idle_stack": {
+    "bytes": 1024,
+    "unused_min": 896,
+    "measured": true,
+    "empirical": true
+  },
+  "workers": [
+    {
+      "slot": 0,
+      "source_index": 0,
+      "task_handle": 1,
+      "bound": true,
+      "available": true,
+      "stats": {
+        "steps": 116,
+        "elapsed_us": 465513,
+        "max_elapsed_us": 4119,
+        "max_lateness_us": 0,
+        "bus_wait_us": 4163,
+        "bus_active_us": 406997,
+        "transfer_bytes": 1044,
+        "transfers": 232,
+        "timeouts": 0,
+        "errors": 0,
+        "flags": 0
+      },
+      "stack": {
+        "bytes": 8192,
+        "unused_min": null,
+        "measured": false,
+        "empirical": true
+      }
+    },
+    {
+      "slot": 1,
+      "source_index": 1,
+      "task_handle": 2,
+      "bound": true,
+      "available": true,
+      "stats": {
+        "steps": 231,
+        "elapsed_us": 815172,
+        "max_elapsed_us": 4070,
+        "max_lateness_us": 0,
+        "bus_wait_us": 9116,
+        "bus_active_us": 666785,
+        "transfer_bytes": 237930,
+        "transfers": 462,
+        "timeouts": 0,
+        "errors": 0,
+        "flags": 0
+      },
+      "stack": {
+        "bytes": 8192,
+        "unused_min": null,
+        "measured": false,
+        "empirical": true
+      }
+    },
+    {
+      "slot": 2,
+      "source_index": 2,
+      "task_handle": 3,
+      "bound": true,
+      "available": true,
+      "stats": {
+        "steps": 5756,
+        "elapsed_us": 1389148,
+        "max_elapsed_us": 706,
+        "max_lateness_us": 0,
+        "bus_wait_us": 74987,
+        "bus_active_us": 732917,
+        "transfer_bytes": 33060,
+        "transfers": 5756,
+        "timeouts": 0,
+        "errors": 0,
+        "flags": 0
+      },
+      "stack": {
+        "bytes": 8192,
+        "unused_min": null,
+        "measured": false,
+        "empirical": true
+      }
+    },
+    {
+      "slot": 3,
+      "source_index": null,
+      "task_handle": null,
+      "bound": false,
+      "available": false,
+      "stats": null,
+      "stack": {
+        "bytes": 8192,
+        "unused_min": null,
+        "measured": false,
+        "empirical": true
+      }
+    }
+  ],
+  "scheduler": {
+    "elapsed_ms": 57606,
+    "idle_ms": 56752,
+    "tick_ms": 1,
+    "method": "native_tick_attribution"
+  }
+}
+exit 0

@@ -1,0 +1,122 @@
+# 2026-10-27T07:29:29Z session END: workcost
+{
+  "result": 0,
+  "generation": 2,
+  "active_revision": 826,
+  "active_crc": 3623560383,
+  "timestamp_us": 99747800,
+  "capture_us": 565,
+  "controller_stack": {
+    "bytes": 8448,
+    "unused_min": 7088,
+    "measured": true,
+    "empirical": true
+  },
+  "idle_stack": {
+    "bytes": 1024,
+    "unused_min": 896,
+    "measured": true,
+    "empirical": true
+  },
+  "workers": [
+    {
+      "slot": 0,
+      "source_index": 0,
+      "task_handle": 1,
+      "bound": true,
+      "available": true,
+      "stats": {
+        "steps": 8,
+        "elapsed_us": 31781,
+        "max_elapsed_us": 4069,
+        "max_lateness_us": 0,
+        "bus_wait_us": 295,
+        "bus_active_us": 27921,
+        "transfer_bytes": 72,
+        "transfers": 16,
+        "timeouts": 0,
+        "errors": 0,
+        "flags": 0
+      },
+      "stack": {
+        "bytes": 8192,
+        "unused_min": null,
+        "measured": false,
+        "empirical": true
+      }
+    },
+    {
+      "slot": 1,
+      "source_index": 1,
+      "task_handle": 2,
+      "bound": true,
+      "available": true,
+      "stats": {
+        "steps": 16,
+        "elapsed_us": 56560,
+        "max_elapsed_us": 4053,
+        "max_lateness_us": 0,
+        "bus_wait_us": 675,
+        "bus_active_us": 46016,
+        "transfer_bytes": 16480,
+        "transfers": 32,
+        "timeouts": 0,
+        "errors": 0,
+        "flags": 0
+      },
+      "stack": {
+        "bytes": 8192,
+        "unused_min": null,
+        "measured": false,
+        "empirical": true
+      }
+    },
+    {
+      "slot": 2,
+      "source_index": 2,
+      "task_handle": 3,
+      "bound": true,
+      "available": true,
+      "stats": {
+        "steps": 375,
+        "elapsed_us": 90443,
+        "max_elapsed_us": 684,
+        "max_lateness_us": 10000,
+        "bus_wait_us": 4850,
+        "bus_active_us": 47751,
+        "transfer_bytes": 2160,
+        "transfers": 375,
+        "timeouts": 0,
+        "errors": 0,
+        "flags": 0
+      },
+      "stack": {
+        "bytes": 8192,
+        "unused_min": null,
+        "measured": false,
+        "empirical": true
+      }
+    },
+    {
+      "slot": 3,
+      "source_index": null,
+      "task_handle": null,
+      "bound": false,
+      "available": false,
+      "stats": null,
+      "stack": {
+        "bytes": 8192,
+        "unused_min": null,
+        "measured": false,
+        "empirical": true
+      }
+    }
+  ],
+  "scheduler": {
+    "elapsed_ms": 99746,
+    "idle_ms": 99614,
+    "tick_ms": 1,
+    "method": "native_tick_attribution"
+  }
+}
+exit 0
