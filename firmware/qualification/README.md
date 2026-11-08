@@ -93,7 +93,7 @@ procedure; isolate the board for tests that require it. Download-mode recovery,
 large SDK timestamps and kernel time progress do not prove clock accuracy.
 Original raw and any normalized logs have separate hashes; never replace them.
 
-Follow [hardware acceptance](../../CONTRIBUTING.md) for remaining external UART,
+Follow [hardware acceptance](../../HARDWARE_ACCEPTANCE.md) for remaining external UART,
 HC-SR04, PWM/load, controlled power-loss and combined wireless/peripheral tests.
 The paired Pico observation establishes a receive mismatch in one capture;
 signal checks at the actual ESP pin, controlled input and module-side

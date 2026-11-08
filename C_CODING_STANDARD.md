@@ -102,6 +102,12 @@ exception must be reviewed rather than silently carried forward.
 
 ## Module and API conventions
 
+The runtime-rule experiment adds `txrule` (transaction-rule admission and
+selection), `txwire` (transaction wire encoding), `txi2c` (transaction I2C
+adapter), `txsim` (transaction simulator), and `c3rule` (C3 USB rule diagnostic).
+They use C99 without new exceptions. See the
+[manual review](experiments/runtime_rules/README.md#manual-barr-c-review-and-resource-limits).
+
 Use lowercase module names unique in their first eight characters. Every C
 source includes its matching header. Public declarations belong in headers;
 private helpers and state are `static`. Put private prototypes before public
@@ -190,14 +196,8 @@ spiown is SPI bus ownership (permanent lock plus session lifecycle); spowntest
 tests it. Both use C99 and add no exception or language scope.
 New abbreviations must be added with their meaning during review.
 
-`workcost` denotes caller-owned worker/transfer cost counters; `protree` denotes
-the experimental eighteen-input protocol decision tree. Both are C99 modules
-with paired headers and no new deviation or external-interface exception.
-
-The separate loaded diagnostic uses `ailite` for the frozen classifier,
-`aivects` for immutable parity vectors and `aiload` for its bounded workload
-observer. `loadfake` provides its host test clock/observer. These C99 modules
-add no compatibility exception; diagnostic symbols stay out of ordinary images.
+`workcost` denotes caller-owned worker/transfer cost counters. It is a C99 module
+with a paired header and no new deviation or external-interface exception.
 
 `heaptrap` is the host parser test's allocator-call counter and rejection module.
 It uses C99 and ordinary public prefixes; object-level symbol redirection stays
@@ -348,14 +348,6 @@ No exception or language scope changes. See
 `uartdisc` tests that observer and its configuration boundary. They use C99,
 named callbacks and the same serialized owner. No new deviation is introduced.
 
-## Offline timing model vocabulary
-
-`timtree` is the bounded timing-tree classifier template; `tim_main` is its host
-parity test under `tests/ai`. Generated C retains the same public prefix/header.
-These use C99 with no new deviation and are not linked into deployed firmware.
-See [manual review](ai/README.md#c-review). Exported sources receive
-explicit format/lexical/module checks even when generated under ignored `build/`.
-
 ## Network compatibility vocabulary
 
 `netring`, `netwait` and `netpool` denote exact-capacity storage, absolute wait
@@ -400,20 +392,3 @@ fixed service definitions and a twelve-byte stack response. GATT means Generic
 Attribute Profile. It shares the SDK-only component and header-spelling boundary
 with `c3ble`; no owned assembly syntax or new naming exception is introduced.
 The network guide records its ABI, concurrency and bounds review.
-
-`adviser` is the portable, fixed-state controller preparation. It is C99 and
-has no heap, hardware, kernel-object or configuration-Apply calls. See the AI
-guide for the identity/lifetime review and the distinction between object-level
-resource measurements and a deployed, qualified model.
-
-`adfeat` means advice-feature construction. It derives the versioned protocol
-vector from stable, independently admitted typed settings. It has no writable
-globals, dynamic allocation or configuration side effects. Its range, ownership
-and Python/C parity review is recorded in the AI guide. `adfmain` is the host
-test boundary that combines the real fixed parser with that feature builder.
-
-`aifrozen` is the experimental exported tree renamed only to give the isolated
-target fixture its own module/header identity. `aicases` stores immutable Python
-prediction vectors, and `aiprobe` measures parity and bounded inference wall time.
-All are C99 with no new exception; their review and nondeployment boundary are
-documented in the runtime-board guide. Test-vector storage is not model RAM.

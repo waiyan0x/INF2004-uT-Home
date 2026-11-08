@@ -67,7 +67,11 @@ int c3net_start (const cfgctrl_t * p_control, cfgmux_t * p_mux)
     {
         return -1;
     }
+#if UTHOME_OCCUPANCY_LAB
+    g_info.b_configuration_supported = false;
+#else
     g_info.b_configuration_supported = NULL != p_mux;
+#endif
 
     const c3https_config_t https = {.p_certificate = g_setup_certificate,
                                     .p_key         = g_setup_key,

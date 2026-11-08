@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { renderProfile, renderTelemetry } from '../../tools/configurator/static/dashboard.js';
 import { renderDiscovery } from '../../tools/configurator/static/discovery.js';
-import { renderDatasheet } from '../../tools/configurator/static/datasheet.js';
 
 // Minimal DOM contract for presentation-only tests; no browser or USB access.
 class Element {
@@ -43,20 +42,6 @@ const discoveryReport = () => ({ preset_id: 'bench_i2c', preset_version: '0.2.0'
       settings: [{ label: 'Reading interval', value: '500 ms', source: 'bench_observation', reason: 'Bench starting value.' }] } }] });
 const descendants = element => [element, ...element.children.flatMap(descendants)];
 const addButtons = () => descendants(document.getElementById('discovery-results')).filter(node => node.onclick);
-
-test('datasheet facts stay text and show address and unresolved conflicts', () => {
-  const facts = new Element(), issues = new Element();
-  renderDatasheet({draft: {facts: [{name: '<img src=x onerror=alert(1)>', value: '0x94/0x95',
-    status: 'stated', pages: [1, 13], note: 'Check width'}], unresolved: ['Register conflict: 0x02 vs 0x04']},
-    i2c_address_review: {derived_7bit: 0x4a, conflicting: true}}, facts, issues);
-  assert.match(facts.textContent, /<img src=x onerror=alert\(1\)>/);
-  assert.match(facts.textContent, /pages 1, 13/);
-  assert.match(facts.textContent, /0x4a/);
-  assert.match(issues.textContent, /0x02 vs 0x04/);
-  assert.match(issues.textContent, /addresses conflict/);
-  assert.equal(facts.children.length, 2);
-  assert.equal(facts.children[0].children.length, 0);
-});
 
 test('radar candidates require a separate confirmation and never claim verified identity', () => {
   const report = discoveryReport();

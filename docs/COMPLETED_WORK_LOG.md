@@ -791,7 +791,7 @@ The subsequent [study](../ai/qualification/protocol-study-shared-20261026.json) 
 **96 entirely fresh runs**, 24,576 observations and 48 labelled candidates on the
 corrected firmware. It used the eight original development workloads, with two
 new validation and two new test workloads absent from the entire first study.
-The [frozen specification](../ai/examples/protocol-study-postfix.json) retains their
+The frozen specification (`git show 71f750f:ai/examples/protocol-study-postfix.json`) retains their
 selection. Repeated observations are not independent training examples.
 
 The fixed trainer produced a **seven-node tree**. No thresholds or hyperparameters
@@ -1094,7 +1094,7 @@ Bounded cJSON allocation, binder candidate and retained activation plans; use th
 
 ## 28. Work-cost wire integration status
 
-Source: [ai/contracts/README.md](../ai/contracts/README.md).
+Source: `git show 71f750f:ai/contracts/README.md`.
 
 delta window. These fields are not on the current telemetry wire and are not
 new model inputs. Runtime integration and independent calibration remain open.
@@ -1478,7 +1478,7 @@ Source: [docs/github-actions.md](github-actions.md).
 
 ## 47. Obsolete optional-output style blockers
 
-Source: [docs/optional-outputs.md](optional-outputs.md).
+Historical source: `git show 71f750f:docs/optional-outputs.md`.
 
 The current full standard gate reports pre-existing violations in six legacy
 starter files (`pwm_motor.c/h`, `uart_gpio_io.h`, `uart_gpio_host.c/h`, and
@@ -1749,7 +1749,7 @@ firmware lacked the newer I2C/UART discovery feature bits. Current suggested
 
 ## 60. Old heap-parser budget and completed profile checks
 
-Source: [CONTRIBUTING.md](../CONTRIBUTING.md).
+Source: [CONTRIBUTING.md](../HARDWARE_ACCEPTANCE.md).
 
 There is also a parser allocation limit: the attempted A+LED profile passed the
 Python resource planner but exceeded the C parser's **32 KiB allocation budget**.
@@ -1759,32 +1759,32 @@ Python planner during guide preparation; that is not a hardware result.
 
 ## 61. Bench logical stack accounting
 
-Source: [CONTRIBUTING.md](../CONTRIBUTING.md).
+Source: [CONTRIBUTING.md](../HARDWARE_ACCEPTANCE.md).
 
 Combined A uses 10,240 bytes of peripheral task stacks, within the 16 KiB/four-worker
 limit. This calculation does not measure remaining RAM.
 
 ## 62. Remove session-relative acceptance heading
 
-Source: [CONTRIBUTING.md](../CONTRIBUTING.md).
+Source: [CONTRIBUTING.md](../HARDWARE_ACCEPTANCE.md).
 
 #### 7. Run today's acceptance tests in this order
 
 ## 63. Retired hardware checkpoint label
 
-Source: [CONTRIBUTING.md](../CONTRIBUTING.md).
+Source: [CONTRIBUTING.md](../HARDWARE_ACCEPTANCE.md).
 
 ##### Recovery/resource checks before signing off all of checkpoint 8
 
 ## 64. Retired full-acceptance label
 
-Source: [CONTRIBUTING.md](../CONTRIBUTING.md).
+Source: [CONTRIBUTING.md](../HARDWARE_ACCEPTANCE.md).
 
 Passing the wiring tests is useful progress; full checkpoint 8 sign-off also
 
 ## 65. Sign-off terminology
 
-Source: [CONTRIBUTING.md](../CONTRIBUTING.md).
+Source: [CONTRIBUTING.md](../HARDWARE_ACCEPTANCE.md).
 
 Full checkpoint 8 readiness: PASS / FAIL / INCOMPLETE
 
@@ -2207,7 +2207,7 @@ time advanced 101 ms for a requested 100 ms delay: progress, not clock accuracy.
 Still required: radar absence (user-deferred), HC-SR04 pulse/voltage checks, PWM/load
 tests, broader combined-load timing, physical disconnect/recovery, flash interruptions,
 repeat profile/reboot checks and heap/stack high-water measurements. Follow the
-[hardware acceptance guide](../CONTRIBUTING.md) and retain honest PASS / FAIL /
+[hardware acceptance guide](../HARDWARE_ACCEPTANCE.md) and retain honest PASS / FAIL /
 NOT TESTED results. Hardware-qualified remains false until a reviewed sign-off.
 
 
@@ -2383,7 +2383,7 @@ not been merged or published.
 
 ## 83. Unimplemented S3 port and obsolete prototype wiring
 
-Original guide: [firmware/hal/ports/esp32s3/README.md](../firmware/hal/ports/esp32s3/README.md). Historical excerpt follows.
+Original guide: `git show 71f750f:firmware/hal/ports/esp32s3/README.md`. Historical excerpt follows.
 
 #### ESP32-S3 HAL port
 
@@ -2529,7 +2529,7 @@ current contracts; put measured results in dated evidence records.
 
 ## 98. Superseded bench revision and progress summary
 
-Original guide: [CONTRIBUTING.md](../CONTRIBUTING.md). Historical excerpt follows.
+Original guide: [CONTRIBUTING.md](../HARDWARE_ACCEPTANCE.md). Historical excerpt follows.
 
 The latest application has passed software/build checks. Record physical results for each session. Earlier partial results are in the
 [evidence index](../firmware/qualification/README.md);
@@ -2544,7 +2544,7 @@ remain open. The user-deferred radar absence check remains deferred.
 
 ## 99. Undated OLED session wording
 
-Original guide: [CONTRIBUTING.md](../CONTRIBUTING.md). Historical excerpt follows.
+Original guide: [CONTRIBUTING.md](../HARDWARE_ACCEPTANCE.md). Historical excerpt follows.
 
 128x64 output with the existing SSD1306 driver during this session.
 

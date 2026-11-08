@@ -19,7 +19,7 @@ class StoreOps(c.Structure):
     _fields_=[('read',READ),('write',WRITE),('erase',ERASE),('sync',SYNC)]
 class Store(c.Structure):
     _fields_=[('ops',c.c_void_p),('context',c.c_void_p),('slot_bytes',c.c_size_t),
-              ('scratch',c.c_uint8*8192),('busy',c.c_bool)]
+              ('workspace',c.c_void_p),('workspace_size',c.c_size_t),('busy',c.c_bool)]
 class ControlOps(c.Structure):
     _fields_=[('validate',VALIDATE),('activate',ACTION),('recover',ACTION)]
 class Control(c.Structure):
@@ -135,8 +135,9 @@ class Fixture:
         self.store_ops=StoreOps(READ(read),WRITE(write),ERASE(erase),SYNC(sync))
         self.ops=ControlOps(VALIDATE(validate),ACTION(activate),ACTION(recover))
         self.pump_ops=PumpOps(IOREAD(usb_read),IOWRITE(usb_write))
-        self.store=Store(c.addressof(self.store_ops),None,8224)
         self.control=Control();self.pump=Pump();self.mux=Mux()
+        self.store=Store(c.addressof(self.store_ops),None,8224,
+                         c.addressof(self.control.cached),8192)
         assert self.lib.cfgctrl_init(c.byref(self.control),c.byref(self.store),c.byref(self.ops),None)==0
         assert self.lib.cfgpump_init(c.byref(self.pump),c.byref(self.control),c.byref(self.pump_ops),None)==0
         assert self.lib.cfgmux_init(c.byref(self.mux),c.byref(self.control),c.byref(self.pump))==0

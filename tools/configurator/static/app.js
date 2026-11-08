@@ -1,7 +1,6 @@
 "use strict";
 import { renderProfile, renderTelemetry, renderBoardState, renderReviewPlan, setupWorkspace } from './dashboard.js';
 import { renderDiscovery, updateDiscoveryControls } from './discovery.js';
-import { renderDatasheet } from './datasheet.js';
 import { parseRecipeFields, describeRecipe } from './recipes.js';
 const el = id => document.getElementById(id);
 const token = document.querySelector('meta[name="session"]').content;
@@ -10,7 +9,7 @@ let connected = false, busy = false, pendingTelemetry = null, reviewId = null, e
 let draftEdited = false, draftGeneration = 0;
 let discoveryFeatures = 0, recoveryRequired = false, discovered = null;
 let discoveryTimer = null, discoveryGeneration = 0, connections = [];
-let datasheetSelection = null, datasheetBusy = false, datasheetResult = null;
+let datasheetSelection = null;
 let recipeSupported = false, recipeExamples = [], editingRecipeId = '', recipeGeneration = 0;
 const recipeFields = {device_id: 'recipe-device', bus_ref: 'recipe-bus', address: 'recipe-address',
   register: 'recipe-register', read_length: 'recipe-read', read_pause_ms: 'recipe-pause',
@@ -109,8 +108,7 @@ function updateControls() {
   el('review').disabled = busy;
   el('file').disabled = busy;
   el('apply').disabled = !connected || !reviewId || busy;
-  el('datasheet-analyse').disabled = datasheetBusy || !el('datasheet-file').files.length;
-  el('datasheet-generate').disabled = datasheetBusy || busy || !connected || !datasheetSelection || !el('datasheet-confirm').checked;
+  el('datasheet-generate').disabled = busy || !connected || !datasheetSelection || !el('datasheet-confirm').checked;
   updateRecipeControls();
 }
 function invalidateReviewAndDiscovery() {
@@ -252,62 +250,6 @@ for (const id of ['datasheet-device-id', 'datasheet-address', 'datasheet-sda', '
     updateControls();
   });
 }
-el('datasheet-file').onchange = () => {
-  datasheetResult = null;
-  el('datasheet-download').disabled = true;
-  resetDatasheetMatch();
-  el('datasheet-facts').replaceChildren();
-  el('datasheet-uncertainties').replaceChildren();
-  el('datasheet-driver').textContent = 'A name match is only a candidate; confirm the actual module.';
-  el('datasheet-status').textContent = 'Choose Analyse to send this PDF to Google Gemini.';
-  updateControls();
-};
-el('datasheet-analyse').onclick = async () => {
-  const file = el('datasheet-file').files[0];
-  if (!file || datasheetBusy) return;
-  datasheetResult = null;
-  el('datasheet-download').disabled = true;
-  resetDatasheetMatch();
-  el('datasheet-facts').replaceChildren();
-  el('datasheet-uncertainties').replaceChildren();
-  datasheetBusy = true;
-  updateControls();
-  el('datasheet-status').textContent = 'Analysing the PDF. Board monitoring can continue…';
-  try {
-    if (file.size > 2 * 1024 * 1024) throw new Error('Choose a PDF no larger than 2 MiB.');
-    const dataUrl = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error('Could not read the PDF.'));
-      reader.readAsDataURL(file);
-    });
-    const result = await rpc('datasheet', {pdf_base64: dataUrl.split(',', 2)[1]});
-    if (el('datasheet-file').files[0] !== file) return;
-    renderDatasheet(result, el('datasheet-facts'), el('datasheet-uncertainties'));
-    el('datasheet-name').value = result.draft.device_name || '';
-    datasheetResult = result;
-    el('datasheet-download').disabled = false;
-    resetDatasheetMatch();
-    el('datasheet-status').textContent = `Unreviewed AI draft · ${result.pages} pages · source ${result.source_sha256.slice(0, 12)}…`;
-    el('datasheet-driver').textContent = 'Check the reviewed catalogue and connected firmware before generating a profile.';
-  } catch (error) {
-    if (el('datasheet-file').files[0] === file) {
-      el('datasheet-status').textContent = error.message;
-    }
-  } finally {
-    datasheetBusy = false;
-    updateControls();
-  }
-};
-el('datasheet-download').onclick = () => {
-  if (!datasheetResult) return;
-  const url = URL.createObjectURL(new Blob([JSON.stringify(datasheetResult, null, 2) + '\n'], {type: 'application/json'}));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'device-facts-draft.json';
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-};
 el('datasheet-match').onclick = () => runBoardAction(async () => {
   resetDatasheetMatch();
   const name = el('datasheet-name').value.trim();

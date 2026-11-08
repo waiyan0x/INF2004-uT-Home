@@ -115,4 +115,4 @@ was introduced.
 
 
 Current [acceptance status](../../qualification/README.md) and
-[wiring procedure](../../../CONTRIBUTING.md). Keep dated results in the qualification records, separate from current usage.
+[wiring procedure](../../../HARDWARE_ACCEPTANCE.md). Keep dated results in the qualification records, separate from current usage.

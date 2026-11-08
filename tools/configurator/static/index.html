@@ -128,7 +128,7 @@
             <label class="discovery-confirm"><input type="checkbox" id="recipe-confirm">I checked the read instructions, device address and existing wiring against the datasheet.</label>
             <button class="btn" id="recipe-add" type="button" disabled>Add recipe to draft</button>
             <p class="hint" id="recipe-status" role="status" aria-live="polite">Draft only. Validate and review before applying. A device address can have only one owner.</p>
-            <details><summary>What this supports</summary><p class="hint">Bounded register reads return raw bytes, without temperature or light conversion. Devices needing initialization writes or other commands need more operation support. Generic SPI/UART recipes and configurable sensor ML are not implemented yet. AI assistance is optional; the ESP runs applied recipes without an online AI service.</p></details>
+            <details><summary>What this supports</summary><p class="hint">Bounded register reads return raw bytes, without temperature or light conversion. Devices needing initialization writes or other commands need more operation support. Generic SPI/UART recipes and configurable sensor ML are not implemented yet.</p></details>
           </div>
         </section>
         <section class="section" aria-labelledby="devices-heading">
@@ -153,15 +153,9 @@
             </div>
           </details>
           <details class="card datasheet-card" id="datasheet-details" open>
-            <summary><img class="datasheet-icon" src="/assets/datasheet/document.png" alt=""> Datasheet assistant</summary>
+            <summary><img class="datasheet-icon" src="/assets/datasheet/document.png" alt=""> Reviewed catalogue draft</summary>
             <div class="details-body">
-              <p class="hint">Optional preparation only. Analysis sends the PDF to Google Gemini and may incur API charges. Review all facts and page references. This assistant extracts facts; it does not generate communication recipes yet.</p>
-              <div class="field"><label class="field__label" for="datasheet-file">PDF datasheet</label><input class="input" id="datasheet-file" type="file" accept=".pdf,application/pdf"></div>
-              <button class="btn btn--primary" id="datasheet-analyse" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-sparkles"/></svg>Analyse</button>
-              <p class="hint" id="datasheet-status" role="status" aria-live="polite">Choose a PDF to prepare an unreviewed device description.</p>
-              <button class="btn" id="datasheet-download" type="button" disabled>Download device draft JSON</button>
-              <details><summary>Key facts and source pages</summary><div class="details-body" id="datasheet-facts"></div></details>
-              <details><summary>Uncertainties</summary><div class="details-body" id="datasheet-uncertainties"></div></details>
+              <p class="hint">Use a reviewed catalogue entry to prepare a local draft.</p>
               <details><summary>Driver availability and configuration</summary><div class="details-body">
                 <div class="field"><label class="field__label" for="datasheet-name">Reviewed catalogue device ID</label><input class="input" id="datasheet-name" placeholder="e.g. bmp388"></div>
                 <button class="btn" id="datasheet-match" type="button">Check catalogue</button>

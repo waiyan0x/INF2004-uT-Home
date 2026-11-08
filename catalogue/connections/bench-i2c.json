@@ -42,7 +42,7 @@
         "timeout_ms": 100
       },
       "source": "bench_observation",
-      "reason": "Starting values from the BMP388 bench checks in CONTRIBUTING.md; review for your workload."
+      "reason": "Starting values from the BMP388 bench checks in HARDWARE_ACCEPTANCE.md; review for your workload."
     }
   ],
   "notes": "Reviewed bench connection only. Match wiring, supply and pull-ups before requesting; never infer electrical suitability from a response. Pins and register reads are independently allowlisted in cfgdisc.c.",

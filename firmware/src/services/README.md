@@ -6,7 +6,6 @@ snapshots, while `telemetry` and `costview` encode the host-visible reports.
 
 - [Display](display/README.md) owns OLED rendering and worker behavior.
 - [Actuators](actuator/README.md) own PWM and relay control policies.
-- [Advice](advice/README.md) contains the experimental fixed adviser and features.
 
 Sample storage lives beside its serialization owner in
 [`runtime/sampcache`](../runtime/README.md), not in a consumer service. Production

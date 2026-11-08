@@ -17,3 +17,8 @@ tests/target/runtime_port_board/loadmodel/*.json -text whitespace=cr-at-eol
 
 # Preserve networking qualification capture bytes and their historical hashes.
 firmware/qualification/*2026110[123]*.json -text whitespace=cr-at-eol
+
+# Preserve Buddy 1 build inputs and qualification evidence across platforms.
+tools/target/patches/*.patch text eol=lf
+firmware/qualification/buddy1/*.json -text
+reports/buddy1/wireless_stack_budget.csv -text

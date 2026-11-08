@@ -44,6 +44,8 @@ static bool gb_fail_save = false;
 
 static bool gb_reenter = false;
 
+static bool gb_store_reenter = false;
+
 static int read_slot (void *    p_context,
                       unsigned  slot,
                       size_t    offset,
@@ -61,6 +63,7 @@ static int activate (void * p_context);
 static int recover (void * p_context);
 static void reset (void);
 static void verify_store (void);
+static void verify_workspace (void);
 static void verify_faults (void);
 static void verify_control (void);
 static void verify_wire (void);
@@ -100,9 +103,11 @@ static const cfgstore_ops_t g_storage_ops = {.p_read  = read_slot,
                                              .p_erase = erase_slot,
                                              .p_sync  = sync_slots};
 
-static cfgstore_t g_store = {.p_operations = &g_storage_ops,
-                             .p_context    = g_slots,
-                             .slot_bytes   = UTHOME_CFGSTORE_MIN_SLOT};
+static cfgstore_t g_store = {.p_operations   = &g_storage_ops,
+                             .p_context      = g_slots,
+                             .slot_bytes     = UTHOME_CFGSTORE_MIN_SLOT,
+                             .p_workspace    = g_control.cached,
+                             .workspace_size = sizeof(g_control.cached)};
 
 static const cfgctrl_ops_t g_control_ops = {
     .p_validate = validate, .p_activate = activate, .p_recover = recover};
@@ -117,6 +122,7 @@ int main (int argc, char ** pp_argv)
     }
     assert(1 == argc);
     verify_wire();
+    verify_workspace();
     verify_store();
     verify_faults();
     verify_control();
@@ -144,6 +150,40 @@ static void reset (void)
     g_torn         = 0U;
 }
 
+/** @brief Require an external full-size workspace and reject unsafe aliases. */
+static void verify_workspace (void)
+{
+    reset();
+    cfgstore_record_t record  = {0};
+    cfgstore_t        invalid = g_store;
+    invalid.p_workspace       = NULL;
+    assert(CFGSTORE_INVALID ==
+           cfgstore_load(&invalid, g_loaded, sizeof(g_loaded), &record));
+    invalid                = g_store;
+    invalid.workspace_size = UTHOME_CONFIG_BYTES - 1U;
+    assert(CFGSTORE_INVALID ==
+           cfgstore_load(&invalid, g_loaded, sizeof(g_loaded), &record));
+    invalid                = g_store;
+    invalid.p_workspace    = (uint8_t *)&invalid;
+    invalid.workspace_size = UTHOME_CONFIG_BYTES;
+    assert(CFGSTORE_INVALID ==
+           cfgstore_load(&invalid, g_loaded, sizeof(g_loaded), &record));
+    const unsigned calls = g_calls;
+    assert(CFGSTORE_INVALID == cfgstore_load(&g_store,
+                                             &g_store.p_workspace[1],
+                                             g_store.workspace_size - 1U,
+                                             &record));
+    assert(CFGSTORE_INVALID ==
+           cfgstore_save(&g_store, g_store.p_workspace, 1U, 1U));
+    assert(CFGSTORE_INVALID ==
+           cfgstore_save(&g_store, &g_store.p_workspace[1], 1U, 1U));
+    assert(calls == g_calls);
+    gb_store_reenter = true;
+    assert(CFGSTORE_EMPTY ==
+           cfgstore_load(&g_store, g_loaded, sizeof(g_loaded), &record));
+    gb_store_reenter = false;
+}
+
 /** @brief Read exactly one bounded region, or report an observable I/O failure.
  */
 static int read_slot (void *    p_context,
@@ -159,6 +199,12 @@ static int read_slot (void *    p_context,
     if (g_calls == g_fail_at)
     {
         return -1;
+    }
+    if (gb_store_reenter)
+    {
+        cfgstore_record_t nested = {0};
+        assert(CFGSTORE_INVALID ==
+               cfgstore_load(&g_store, g_loaded, sizeof(g_loaded), &nested));
     }
     memcpy(p_data, &g_slots[slot][offset], size);
     return 0;
@@ -236,11 +282,13 @@ static void verify_store (void)
     memset(g_loaded, 0xA5, sizeof(g_loaded));
     assert(CFGSTORE_OK ==
            cfgstore_save(&g_store, g_loaded, sizeof(g_loaded), UINT32_MAX));
-    memset(g_loaded, 0, sizeof(g_loaded));
+    memset(g_store.p_workspace, 0, g_store.workspace_size);
     assert(CFGSTORE_OK ==
-           cfgstore_load(&g_store, g_loaded, sizeof(g_loaded), &record));
+           cfgstore_load(
+               &g_store, g_store.p_workspace, g_store.workspace_size, &record));
     assert((UINT32_MAX == record.revision) && (8192U == record.size));
-    assert((0xA5U == g_loaded[0]) && (0xA5U == g_loaded[8191]));
+    assert((0xA5U == g_store.p_workspace[0]) &&
+           (0xA5U == g_store.p_workspace[8191]));
     assert(CFGSTORE_CONFLICT == cfgstore_save(&g_store, first, 3U, 1U));
 }
 
@@ -357,6 +405,8 @@ static void verify_control (void)
     gb_reenter = true;
     assert(CFGCTRL_SAVED == request(CFGWIRE_APPLY, 1U, 1U, "{\"node\":1}"));
     assert((1U == g_validations) && (1U == g_activations));
+    assert((10U == g_control.cached_size) &&
+           (0 == memcmp(g_control.cached, "{\"node\":1}", 10U)));
     assert(CFGCTRL_SAVED == request(CFGWIRE_APPLY, 1U, 1U, "{\"node\":1}"));
     assert((1U == g_validations) && (1U == g_activations));
     assert(CFGCTRL_CONFLICT == request(CFGWIRE_APPLY, 1U, 1U, "{\"node\":2}"));
@@ -374,6 +424,8 @@ static void verify_control (void)
     gb_fail_save       = true;
     assert(CFGCTRL_UNSAVED == request(CFGWIRE_APPLY, 5U, 2U, "new profile"));
     assert((2U == g_control.active_revision) && (!g_control.b_saved_known));
+    assert((11U == g_control.cached_size) &&
+           (0 == memcmp(g_control.cached, "new profile", 11U)));
     g_fail_at                = 0U;
     gb_fail_save             = false;
     const unsigned activated = g_activations;

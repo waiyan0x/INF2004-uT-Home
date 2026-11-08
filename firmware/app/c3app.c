@@ -3,9 +3,13 @@
  * @brief Compose admission, activation, storage and the USB controller loop.
  */
 #include "c3app.h"
+#include "c3rule.h"
 #include "c3net.h"
 #include "c3audit.h"
 #include "c3clock.h"
+#if defined(UTHOME_STATIC_TASKS) && UTHOME_STATIC_TASKS
+#include "c3task.h"
+#endif
 #include <tk/tkernel.h>
 #include "cfgjson.h"
 #include "c3bind.h"
@@ -39,6 +43,9 @@ int c3app_run (const uint8_t *       p_build_hash,
                costview_stack_fn_t * p_idle,
                costview_cpu_fn_t *   p_cpu)
 {
+#if UTHOME_RULE_PROBE
+    return c3rule_run();
+#endif
     g_cost.p_idle = p_idle;
     g_cost.p_cpu  = p_cpu;
     /* Binary traffic exclusively owns USB after the boot banner. No regular
@@ -55,6 +62,8 @@ int c3app_run (const uint8_t *       p_build_hash,
     (void)c3store_open();
     g_store.p_operations            = c3store_operations();
     g_store.slot_bytes              = UTHOME_C3STORE_SLOT;
+    g_store.p_workspace             = g_control.cached;
+    g_store.workspace_size          = sizeof(g_control.cached);
     const cfgdisc_io_t discovery_io = {.p_open  = c3i2c_open,
                                        .p_close = c3i2c_close,
                                        .p_uart  = c3uart_port(),
@@ -76,7 +85,8 @@ int c3app_run (const uint8_t *       p_build_hash,
         return -1;
     }
 #if UTHOME_NETWORK_WIFI || UTHOME_NETWORK_BLE
-    /* Opt-in transport startup failure never prevents local restore/USB. */
+    /* Dynamic transport failures leave local restore/USB available. A static
+     * build separately requires the complete reviewed task set before seal. */
 #if UTHOME_NETWORK_WIFI
     cfgmux_t * p_upload =
         (0 == cfgmux_init(&g_mux, &g_control, &g_pump)) ? &g_mux : NULL;
@@ -85,6 +95,12 @@ int c3app_run (const uint8_t *       p_build_hash,
 #else
     (void)c3net_start(&g_control, NULL);
 #endif
+#endif
+#if defined(UTHOME_STATIC_TASKS) && UTHOME_STATIC_TASKS
+    if (0 != c3task_seal())
+    {
+        return -1;
+    }
 #endif
     if (0 != c3audit_seal())
     {

@@ -1,7 +1,9 @@
 """Fixed-budget failures must not be mistaken for whole-runtime qualification."""
 from copy import deepcopy
+import json
+from pathlib import Path
 import unittest
-from tools.target.memory_budget import analyze
+from tools.target.memory_budget import analyze, build_is_supported, evidence_matches_budget, module_group
 
 
 class MemoryBudgetTests(unittest.TestCase):
@@ -48,3 +50,82 @@ class MemoryBudgetTests(unittest.TestCase):
         self.assertTrue(result['passed'])
         self.assertEqual(result['groups']['application_fixed'], 12)
         self.assertEqual(result['groups']['kernel_sdk_fixed'], 18)
+
+    def test_network_policy_attributes_the_owned_task_pool(self):
+        path = Path(__file__).resolve().parents[2] / "tools/target/network-budget.json"
+        budget = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual("application_fixed", module_group(
+            "esp-idf/uthome_task/libuthome_task.a:c3task.c.obj", budget))
+
+    def test_distinct_owned_task_group_is_counted_once(self):
+        self.files["esp-idf/uthome_task/libuthome_task.a:task.c.obj"] = {
+            "memory_types": {"DRAM": {"sections": {".dram0.bss": {"size": 7}}}}}
+        self.budget.update(
+            archive_groups={"/uthome_task/libuthome_task.a:": "task_pool_fixed"},
+            module_groups={"task.c.obj": "task_pool_fixed"},
+            module_limits={"worker.c.obj": 16, "task.c.obj": 8},
+            task_pool_fixed_limit=9,
+            total_dram_limit=70,
+            require_all_module_limits=True)
+        result = analyze(self.files, self.summary, self.budget)
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["groups"], dict(application_fixed=10, task_pool_fixed=7,
+                                               kernel_sdk_fixed=13, ram_code=10,
+                                               total_dram=40, rtc=0))
+        self.assertEqual(sum(result["groups"][name] for name in
+                             ("application_fixed", "task_pool_fixed", "kernel_sdk_fixed")), 30)
+        self.assertEqual(result["modules"]["task.c.obj"]["group"], "task_pool_fixed")
+        exceeded = deepcopy(self.budget)
+        exceeded["task_pool_fixed_limit"] = 6
+        self.assertIn("group_budget_exceeded: task_pool_fixed",
+                      analyze(self.files, self.summary, exceeded)["failures"])
+        overreserved = deepcopy(self.budget)
+        overreserved["module_limits"]["task.c.obj"] = 10
+        self.assertIn("module_reservations_exceed_group_limit: task_pool_fixed",
+                      analyze(self.files, self.summary, overreserved)["failures"])
+
+    def test_grouped_policy_rejects_ambiguous_or_mismatched_attribution(self):
+        self.budget.update(archive_groups={"/main/": "task_pool_fixed"},
+                           task_pool_fixed_limit=20)
+        with self.assertRaises(ValueError):
+            analyze(self.files, self.summary, self.budget)
+        self.budget["archive_groups"] = {}
+        self.budget["module_groups"] = {"worker.c.obj": "task_pool_fixed"}
+        self.assertIn("module_group_mismatch: worker.c.obj",
+                      analyze(self.files, self.summary, self.budget)["failures"])
+
+    def test_grouped_policy_rejects_unused_limits_and_every_reservation_overrun(self):
+        self.summary["layout"].append({"name": "RTC SLOW", "used": 1})
+        self.budget["rtc_limit"] = 1
+        self.budget["require_all_module_limits"] = True
+        self.budget["module_limits"]["unused.c.obj"] = 1
+        self.assertIn("reserved_module_not_linked: unused.c.obj",
+                      analyze(self.files, self.summary, self.budget)["failures"])
+        del self.budget["module_limits"]["unused.c.obj"]
+        changes = (("module", lambda b: b["module_limits"].update({"worker.c.obj": 9})),
+                   ("application", lambda b: b.update(application_fixed_limit=9)),
+                   ("kernel", lambda b: b.update(kernel_sdk_fixed_limit=19)),
+                   ("code", lambda b: b.update(ram_code_limit=9)),
+                   ("total", lambda b: b.update(total_dram_limit=39)),
+                   ("rtc", lambda b: b.update(rtc_limit=0)))
+        for name, change in changes:
+            with self.subTest(name=name):
+                budget = deepcopy(self.budget)
+                change(budget)
+                self.assertFalse(analyze(self.files, self.summary, budget)["passed"])
+
+    def test_supported_build_modes_require_a_passed_evidence_record(self):
+        for mode in ("configuration_application", "wifi_probe", "ble_probe"):
+            self.assertTrue(build_is_supported({"build_status": "passed", mode: True}))
+        self.assertFalse(build_is_supported({"build_status": "failed", "wifi_probe": True}))
+        self.assertFalse(build_is_supported({"build_status": "passed", "model_probe": True}))
+
+    def test_station_policy_requires_exact_build_evidence(self):
+        budget = {"required_evidence": {"configuration_application": True,
+                                         "network_services": "wifi",
+                                         "diagnostic_only": False}}
+        evidence = {"configuration_application": True, "network_services": "wifi",
+                    "diagnostic_only": False}
+        self.assertTrue(evidence_matches_budget(evidence, budget))
+        evidence["network_services"] = "ble"
+        self.assertFalse(evidence_matches_budget(evidence, budget))

@@ -90,12 +90,12 @@ also suitable for carrying the guide to the bench.
   module pin labels and cables; do not assume wire colours.
 - HC-SR04 uses the hardware guide's 10 kΩ upper / 15 kΩ lower Echo divider.
   The older `bench-distance.json` text mentions 20 kΩ. This guide deliberately
-  follows `CONTRIBUTING.md` and flags the discrepancy; it changes no catalogue
+  follows `HARDWARE_ACCEPTANCE.md` and flags the discrepancy; it changes no catalogue
   or firmware file.
 
 ## Bench status and limits
 
-The project [hardware guide](../CONTRIBUTING.md) is the main acceptance
+The project [hardware guide](../HARDWARE_ACCEPTANCE.md) is the main acceptance
 procedure. [Discovery documentation](../docs/README.md) explains identification
 limits. The visualiser does not replace electrical checks or a reviewed profile.
 

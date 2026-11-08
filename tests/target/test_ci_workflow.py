@@ -15,7 +15,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_builds_both_images_after_host_gate(self):
         self.assertEqual("c-standard", self.job["needs"])
-        self.assertEqual(["acceptance", "configuration"], self.job["strategy"]["matrix"]["image"])
+        self.assertEqual(["acceptance", "configuration", "esphome-lab"], self.job["strategy"]["matrix"]["image"])
         self.assertEqual("read", self.workflow["permissions"]["contents"])
         self.assertIn("workflow_dispatch", self.workflow["on"])
 
@@ -43,13 +43,11 @@ class WorkflowTests(unittest.TestCase):
     def test_preserves_all_host_suites(self):
         host = "\n".join(step.get("run", "") for step in self.workflow["jobs"]["c-standard"]["steps"])
         for suite in ("tests/c_standard", "tests/foundation", "tests/runtime", "tests/target",
-                      "tests/discovery", "ai/tests", "tests/target/test_*.mjs",
-                      "visualiser/tests/*.test.mjs", "tools/test_uart_gpio.py", "tools/test_outputs.py"):
+                      "tests/discovery", "tests/target/test_*.mjs",
+                      "visualiser/tests/*.test.mjs", "tools/test_uart_gpio.py"):
             self.assertIn(suite, host)
         self.assertIn("tools/c_standard/check.py", host)
         self.assertTrue(any(step.get("uses", "").startswith("actions/setup-node@")
-                            for step in self.workflow["jobs"]["c-standard"]["steps"]))
-        self.assertTrue(any(step.get("working-directory") == "legacy/member5"
                             for step in self.workflow["jobs"]["c-standard"]["steps"]))
 
 

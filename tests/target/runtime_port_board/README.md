@@ -94,58 +94,128 @@ uptime service, with one connection permitted and no configuration commands.
 See the [network guide](../../../firmware/src/network/README.md#read-only-gatt-diagnostic)
 for its contract and C review. SDK allocations remain exposed and unqualified.
 
-## Experimental model resource probe
+## Buddy 1 radio resource acceptance
 
-`--runtime-port --static-net-queues --model-probe` isolates the frozen primary
-study classifier. It retains the inactive USB core and four permanent workers,
-but runs no peripheral traffic, radio, advice service or Apply. The model failed
-its statistical benefit gate; this diagnostic never changes that decision.
-The qualifier rejects model symbols in ordinary/application/radio images and
-rejects radio activation in the model probe. Both source snapshots and the six
-fixture source hashes are verified before accepting a build.
+The Wi-Fi and BLE fixtures now print a common `[radio-task]` resource record and
+`[radio-probe]` allocation/CPU record. The task record includes each fixed stack's
+capacity, measured unused sentinel bytes, committed state, observer creation and
+deletion totals, post-seal rejections, cleanup latency/retries/failures, reaper
+calls and reaper stack headroom. The allocation record separately reports native
+task and notification-semaphore creates after the startup seal. Wi-Fi scan restart
+and BLE advertising restart reuse their existing native tasks; full radio
+deinitialization/reinitialization after sealing is outside this diagnostic's
+supported recovery contract.
 
-`model/fixture.json` binds the experimental model identity and 1,165 immutable
-Python prediction vectors (measured workload vectors, domain/split boundaries,
-out-of-domain inputs and seeded random values). Expected predictions are not
-accuracy labels. The exported module is renamed from `protree` to `aifrozen`
-solely to preserve one paired header per module; its classifier is unchanged.
-The test corpus stays in flash and is separate from inference memory claims.
+Run the following from the repository root in a fresh shell. The work directories
+must not already exist. These commands build only; they do not access a board:
 
-The probe compares every prediction, then times 256 four-candidate batches.
-Timer/call overhead and possible preemption remain included, with a separate
-empty clock-pair observation and no subtraction. Audit counters must remain
-unchanged; batch wall time must stay within 10 ms. Invalid input also rejects.
-This measures an unloaded diagnostic, not loaded request latency or sampling
-interference in the finished application. C compiler stack reports and linked
-model sections are retained separately from test-corpus/harness storage.
+```sh
+source "$HOME/esp/esp-idf/export.sh"
+buddy1_run_root="$(mktemp -d /tmp/uthome-buddy1-radio.XXXXXX)"
+buddy1_wifi="$buddy1_run_root/wifi"
+buddy1_ble="$buddy1_run_root/ble"
 
-Manual BARR-C review (rules 1?8): paired modules, C99, immutable input corpus,
-bounded 1,165-vector/256-batch loops, fixed-width feature words, checked clock
-ordering/narrowing and checked cumulative time. Four-candidate indices remain
-within the corpus; checksum additions cannot exceed 2,048. Native counter fields
-are compared individually, never by structure padding. No heap, kernel-object
-creation, recursive calls, configuration mutation or new deviation is added.
+python tools/target/qualify_kernel.py build \
+  --sdk "$IDF_PATH" \
+  --kernel firmware/third_party/esp32c3-mtk3 \
+  --runtime-port --static-net-queues --wifi-probe \
+  --work-dir "$buddy1_wifi" \
+  --compat-patch tools/target/patches/freertos-systimer.patch \
+  --observer-patch tools/target/patches/freertos-task-observer.patch
+python tools/target/memory_budget.py \
+  --build "$buddy1_wifi" \
+  --output "$buddy1_wifi/memory-budget.json" \
+  --budget tools/target/network-budget.json
 
-## Model comparison with active peripherals
+python tools/target/qualify_kernel.py build \
+  --sdk "$IDF_PATH" \
+  --kernel firmware/third_party/esp32c3-mtk3 \
+  --runtime-port --static-net-queues --ble-probe \
+  --work-dir "$buddy1_ble" \
+  --compat-patch tools/target/patches/freertos-systimer.patch \
+  --observer-patch tools/target/patches/freertos-task-observer.patch
+python tools/target/memory_budget.py \
+  --build "$buddy1_ble" \
+  --output "$buddy1_ble/memory-budget.json" \
+  --budget tools/target/network-budget.json
 
-The separate `--model-load-probe` mode retains the configuration application
-and runs the varied-goal classifier during explicit workload observations.
-Use it with `--runtime-port --configuration-app --static-net-queues`; see the
-[loaded diagnostic procedure](../../../tools/target/README.md#loaded-classifier-diagnostic)
-for phase timing and its diagnostic-only reply contract. `loadmodel/fixture.json`
-binds `ailite`, the immutable `aivects` corpus and the `aiload` observer wrapper.
-Ordinary application builds must exclude all four diagnostic entry points.
+python - "$buddy1_wifi" "$buddy1_ble" <<'PY'
+import hashlib
+import json
+import pathlib
+import sys
 
-Use one serial owner and a sustainable combined-observer cadence. Keep the first
-settling period of each phase out of throughput comparisons. Worker stack
-sentinels are measured only after cooperative stop; retain null live readings
-and capture dormant margins after the timed windows, then restore the original
-profile and firmware. Preserve incomplete attempts and any procedure correction.
-This checks classifier load, not feature construction or full advice latency.
+for root_text in sys.argv[1:]:
+    root = pathlib.Path(root_text)
+    evidence = json.loads((root / "evidence.json").read_text())
+    for relative, expected in evidence["artifacts"].items():
+        payload = (root / relative).read_bytes()
+        assert len(payload) == expected["size_bytes"], relative
+        assert hashlib.sha256(payload).hexdigest() == expected["sha256"], relative
+    print(f"verified {root}")
+PY
+```
 
-Manual BARR-C review: the observer belongs to the existing serialized controller,
-uses fixed scalars, bounded four-call batches and a validated immutable tree.
-Time is checked before narrowing, cumulative counts cannot wrap within an
-accepted batch, and indices stay inside the frozen corpus. Replies use explicit
-word encoding and retain invalid-input checks. No allocator, task, lock, runtime
-model parser, Apply operation or new compatibility exception is introduced.
+Before flashing, follow the project procedure to identify the current port,
+confirm ESP32-C3/4 MB, verify the artifact hashes in `evidence.json`, and take a
+hashed 4 MB backup. Do not substitute an old port or image. With `buddy1_port`
+set to the identified port and all competing serial clients closed, the relevant
+commands are:
+
+```sh
+python -m serial.tools.list_ports -v
+buddy1_port=/dev/cu.usbmodemXXXX
+python -m esptool --chip esp32c3 --port "$buddy1_port" flash-id
+buddy1_backup="$buddy1_run_root/board-before.bin"
+python -m esptool --chip esp32c3 --port "$buddy1_port" \
+  read-flash 0x0 0x400000 "$buddy1_backup"
+test "$(stat -f %z "$buddy1_backup")" -eq 4194304
+shasum -a 256 "$buddy1_backup"
+
+cd "$buddy1_wifi/build"
+python -m esptool --chip esp32c3 --port "$buddy1_port" \
+  --after watchdog-reset write-flash "@flash_args"
+cd -
+script -q "$buddy1_run_root/wifi-boot1.log" \
+  python -m serial.tools.miniterm "$buddy1_port" 115200 --raw
+```
+
+Reset once while capturing the first image, then end miniterm with Control-].
+Capture a second boot in `wifi-boot2.log`. Repeat the same flash and two-log
+sequence with `$buddy1_ble/build`. The PowerShell equivalent, including artifact
+hash verification and reviewed flash options, is in the
+[target tool guide](../../../tools/target/README.md#install-the-configuration-application).
+
+For each boot, preserve the full log and extract the diagnostic lines without
+editing the capture:
+
+```sh
+rg '\[(wifi-probe|ble-probe|radio-probe|radio-task)\]' \
+  "$buddy1_run_root"/*.log
+```
+
+The on-board acceptance checklist is:
+
+- The selected probe prints `completed result=0`; continuing `alive` output is
+  present, and the same result is obtained after reset.
+- `post_seal_task_creates=0` and
+  `post_seal_notification_sem_creates=0` on both boots.
+- Every printed used slot has `committed=1` and nonzero `unused`; reaper
+  `reaper_unused` is nonzero. Record the exact margins rather than imposing a
+  new stack threshold without review.
+- `sealed=1`; the deliberate post-seal exhaustion check increments
+  `post_seal_rejections` and leaves the occupied count unchanged (a failed
+  `CHECK` prevents a successful final report).
+- CPU elapsed is nonzero, idle does not exceed elapsed, and busy permille is at
+  most 1000. Compare both boots and retain the values; a build is not a CPU test.
+- Observer requests/successes/deletions/active/peak and cleanup
+  requests/completions/latency/retries/failures are retained. A normal restart
+  can show no cleanup because the radio workers are reused.
+- No `CHECK failed`, panic, watchdog reset, unexpected reboot or missing stage is
+  present.
+
+The fixture observes cleanup health and verifies sealed resource exhaustion, but
+does not deliberately inject task-deletion or semaphore-deletion failures on a
+physical radio stack. Host sanitizer tests cover those production-patch paths.
+On-board cleanup retry and reclaimed-stack recovery remain **NOT TESTED** until a
+separately reviewed fault-injection image is run.

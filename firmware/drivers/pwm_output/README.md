@@ -45,4 +45,4 @@ Do not increase supply voltage simply because 50% duty fails to start it.
 Powered motor acceptance stays **NOT TESTED** until those supply/module details
 are confirmed; the IR encoder is not part of this open-loop test.
 
-Use the [hardware guide](../../../CONTRIBUTING.md) for common-ground, power-off rewiring and the initial LED test.
+Use the [hardware guide](../../../HARDWARE_ACCEPTANCE.md) for common-ground, power-off rewiring and the initial LED test.

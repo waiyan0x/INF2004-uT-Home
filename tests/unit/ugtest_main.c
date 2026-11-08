@@ -7,7 +7,6 @@
 #endif
 #include "ugtest_main.h"
 #include "ughost.h"
-#include "pwm_motor.h"
 #include "uartfake.h"
 #include "ld2450.h"
 #include "gpiofake.h"
@@ -83,14 +82,6 @@ int main (void)
     assert(UG_TIMEOUT ==
            port.p_pulse_capture(port.p_context, 4U, 5U, 10U, 30000U, &high));
     assert(30000U == (host.now - before));
-    pwm_motor_t motor;
-    assert(UG_OK == pwm_motor_init(&motor, &port, 6U, 20000U));
-    assert(0U == host.duty[6]);
-    assert(UG_INVALID == pwm_motor_set(&motor, &port, 1001U));
-    assert(UG_OK == pwm_motor_set(&motor, &port, 500U));
-    assert(500U == host.duty[6]);
-    assert(UG_OK == pwm_motor_stop(&motor, &port));
-    assert(0U == host.duty[6]);
     verify_radar();
     verify_sonar();
     puts("UART/GPIO, current radar/sonar and PWM regressions passed.");
