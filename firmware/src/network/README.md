@@ -1578,6 +1578,16 @@ on such an image; only removals, state and telemetry fit. Host tests use the
 until a larger limit and its reservation are agreed and reviewed; neither value
 was changed here.
 
+The combined Wi-Fi/discovery source passed a fresh pinned ESP32-C3 build on
+11 November 2026. Its unchanged transaction memory check fails the MQTT module
+reservation: `c3mqtt.c.obj` uses 1,827/1,824 bytes. Aggregate application storage
+is 146,894/147,456 and total DRAM is 276,010/278,528 bytes; those limits pass.
+No budget or buffer limit was raised. This combined image was not flashed;
+the preceding hotspot/native-API bench does not establish its MQTT discovery,
+TLS or owner-stack acceptance. Local build and memory records are outside Git
+under `/Users/waiyan/uthome-tools/builds/wifi-publish-20261111-r1/` and
+`/Users/waiyan/uthome-tools/publish-backups/20261110T184159Z/`.
+
 ## Read-only network diagnostics and client test pack
 
 `GET /v1/status` now includes an additive `mqtt` object under the existing bearer

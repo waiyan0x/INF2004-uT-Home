@@ -16,7 +16,8 @@ Wi-Fi now connects to the tested iPhone hotspot on the C3 using the optional
 8.5 dBm transmit-power cap. The 11 November uT-Kernel application preserves
 active/saved revision 931, provides read-only USB `network` diagnostics and
 passes a native API identity/entity query over Wi-Fi. MQTT TLS acceptance and
-whole-system static-allocation qualification remain open.
+whole-system static-allocation qualification remain open. The combined discovery
+build compiles but exceeds the existing MQTT module reservation by three bytes.
 See [Wi-Fi status and scoped bench results](firmware/src/network/README.md#usb-wi-fi-troubleshooting).
 
 The selected direction is **uT-Kernel firmware with an ESPHome-compatible native
