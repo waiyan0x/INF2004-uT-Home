@@ -1422,6 +1422,29 @@ Retain is an explicit Boolean mapped to defined header constants. No heap, lock,
 task, queue, timer, SDK call or new deviation is added; capture remains the
 existing nondequeuing `shared_source` callback under the same owner.
 
+### Integration with transaction results (2026-11-10)
+
+Merged with the [application-owned transaction commands](#application-owned-transaction-commands).
+A transaction result keeps its priority during a discovery pass. Before the
+cursor drains, a pending packet can only be the discovery step offered last, so
+`c3mqtt_result` replaces it and steps the cursor back by one; that config or
+removal is offered again once the result has been written. A result offered
+while the broker is idle, or while a discovery packet is already being written,
+replaces nothing. Results stay non-retained and telemetry bytes are unchanged.
+`test_mqtt_result_during_discovery_resends_replaced_step` drives this over the
+TLS double: all 56 discovery messages still arrive in order, the result is sent
+once and exactly one pending packet is counted as replaced.
+
+**Open blocker: board payload limit.** The board builds
+(`tests/target/runtime_port_board/main` and `radio`) compile with
+`UTHOME_MQTT_VALUE_BYTES=112` and `UTHOME_MQTT_PACKET_BYTES=384`, and
+`tools/target/transaction-budget.json` reserves `c3mqtt.c.obj` for those sizes.
+Discovery configs are up to 591 bytes, so `netbroker_offer` rejects every config
+on such an image; only removals, state and telemetry fit. Host tests use the
+1024/1280 defaults and do not show this. Discovery does not work on the board
+until a larger limit and its reservation are agreed and reviewed; neither value
+was changed here.
+
 ## Read-only network diagnostics and client test pack
 
 `GET /v1/status` now includes an additive `mqtt` object under the existing bearer
