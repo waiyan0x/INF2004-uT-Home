@@ -8,6 +8,225 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
+
+NATIVE_HEADER = r"""/**
+ * @file native.h
+ * @brief Exact native-call declarations for the owned queue adapter fixture.
+ */
+#ifndef NETWORK_NATIVE_DOUBLE_H
+#define NETWORK_NATIVE_DOUBLE_H
+#include <stdint.h>
+#include <stdbool.h>
+typedef int32_t  ID;
+typedef int32_t  ER;
+typedef int32_t  TMO;
+typedef uint32_t UW;
+
+typedef struct
+{
+    uint32_t sematr;
+    int32_t  isemcnt;
+    int32_t  maxsem;
+} T_CSEM;
+
+typedef struct
+{
+    uint32_t mtxatr;
+} T_CMTX;
+
+typedef struct
+{
+    uint32_t sysstat;
+    ID       runtskid;
+} T_RSYS;
+
+#define TA_TFIFO           0U
+#define TA_INHERIT         1U
+#define E_OK               0
+#define E_TMOUT            (-50)
+#define E_NOMEM            (-10)
+#define TMO_FEVR           (-1)
+#define TMO_POL            0
+#define TSS_TSK            0U
+#define TSS_DDSP           1U
+#define TSS_INDP           2U
+#define CONFIG_FREERTOS_HZ 1000U
+ID tk_cre_sem (const T_CSEM * config);
+ID tk_cre_mtx (const T_CMTX * config);
+ER tk_ref_sys (T_RSYS * state);
+ER tk_wai_sem (ID handle, int32_t count, TMO timeout);
+ER tk_sig_sem (ID handle, int32_t count);
+ER tk_loc_mtx (ID handle, TMO timeout);
+ER tk_unl_mtx (ID handle);
+UW disint (void);
+void enaint (UW saved);
+int64_t esp_timer_get_time (void);
+bool spi_flash_cache_enabled (void);
+void native_owner (ID h_owner);
+uint32_t native_metric (uint32_t index);
+void * native_wifi_mutex_create (void);
+int32_t native_wifi_mutex_lock (void * p_handle);
+int32_t native_wifi_mutex_unlock (void * p_handle);
+#endif
+
+/* End of file. */
+
+"""
+
+NATIVE_SOURCE = r"""/**
+ * @file native.c
+ * @brief Controlled kernel responses below the real owned queue adapter.
+ */
+#include "native.h"
+#include "c3nq.h"
+static uint32_t g_creates      = 0U;
+static uint32_t g_locks        = 0U;
+static uint32_t g_unlocks      = 0U;
+static uint32_t g_depth        = 0U;
+static uint32_t g_violations   = 0U;
+static uint32_t g_clocks       = 0U;
+static ID       g_owner        = 1;
+static ID       g_holders[128] = {0};
+
+ID tk_cre_sem (const T_CSEM * config)
+{
+    (void)config;
+    return (ID)++g_creates;
+}
+
+ID tk_cre_mtx (const T_CMTX * config)
+{
+    if (config->mtxatr != TA_INHERIT)
+    {
+        ++g_violations;
+    }
+    return (ID)++g_creates;
+}
+
+ER tk_ref_sys (T_RSYS * state)
+{
+    state->runtskid = g_owner;
+    state->sysstat  = g_depth ? TSS_DDSP : TSS_TSK;
+    return E_OK;
+}
+
+ER tk_wai_sem (ID handle, int32_t count, TMO timeout)
+{
+    (void)handle;
+    (void)count;
+    (void)timeout;
+    return E_TMOUT;
+}
+
+ER tk_sig_sem (ID handle, int32_t count)
+{
+    (void)handle;
+    (void)count;
+    return E_OK;
+}
+
+ER tk_loc_mtx (ID handle, TMO timeout)
+{
+    (void)timeout;
+    ++g_locks;
+    if (g_depth)
+    {
+        ++g_violations;
+    }
+    if (handle <= 0 || handle >= 128 || g_holders[handle])
+    {
+        return E_TMOUT;
+    }
+    g_holders[handle] = g_owner;
+    return E_OK;
+}
+
+ER tk_unl_mtx (ID handle)
+{
+    ++g_unlocks;
+    if (!g_depth)
+    {
+        ++g_violations;
+    }
+    if (handle <= 0 || handle >= 128 || g_holders[handle] != g_owner)
+    {
+        return E_NOMEM;
+    }
+    g_holders[handle] = 0;
+    return E_OK;
+}
+
+UW disint (void)
+{
+    UW saved = g_depth;
+    ++g_depth;
+    return saved;
+}
+
+void enaint (UW saved)
+{
+    if (saved + 1U != g_depth)
+    {
+        ++g_violations;
+    }
+    g_depth = saved;
+}
+
+int64_t esp_timer_get_time (void)
+{
+    ++g_clocks;
+    return 1000000;
+}
+
+bool spi_flash_cache_enabled (void)
+{
+    return true;
+}
+
+void native_owner (ID owner)
+{
+    g_owner = owner;
+}
+
+uint32_t native_metric (uint32_t index)
+{
+    switch (index)
+    {
+    case 0:
+        return g_creates;
+    case 1:
+        return g_locks;
+    case 2:
+        return g_unlocks;
+    case 3:
+        return g_depth;
+    case 4:
+        return g_violations;
+    default:
+        return g_clocks;
+    }
+}
+
+/* Pinned esp_wifi/esp32c3/esp_adapter.c creates an ordinary mutex, then uses
+ * recursive lock/unlock APIs. Only kernel/clock/cache calls are doubled. */
+void * native_wifi_mutex_create (void)
+{
+    return c3nq_mutex(1U);
+}
+
+int32_t native_wifi_mutex_lock (void * p_handle)
+{
+    return c3nq_take_recursive(p_handle, UINT32_MAX);
+}
+
+int32_t native_wifi_mutex_unlock (void * p_handle)
+{
+    return c3nq_give_recursive(p_handle);
+}
+
+/* End of file. */
+
+"""
 ENTER = c.CFUNCTYPE(c.c_uint32, c.c_void_p)
 LEAVE = c.CFUNCTYPE(None, c.c_void_p, c.c_uint32)
 CLOCK = c.CFUNCTYPE(c.c_int, c.c_void_p, c.POINTER(c.c_uint64))
@@ -38,6 +257,134 @@ class Slot(c.Structure):
 
 class Pool(c.Structure):
     _fields_ = [('ops', Ops), ('slots', Slot * 56), ('storage', c.c_uint8 * 8192), ('hz', c.c_uint32), ('ready', c.c_bool)]
+
+
+class WifiMutexAdapterTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        compiler=shutil.which('gcc')
+        if not compiler:
+            raise AssertionError('GCC required')
+        cls.temp=tempfile.TemporaryDirectory(prefix='uthome-wifi-mutex-')
+        cls.addClassCleanup(cls.temp.cleanup)
+        cls.folder=Path(cls.temp.name)
+        (cls.folder/'native.h').write_text(NATIVE_HEADER)
+        (cls.folder/'native.c').write_text(NATIVE_SOURCE)
+        for name in ('esp_timer.h','esp_private/cache_utils.h','sdkconfig.h',
+                     'tk/tkernel.h','tk/syslib.h'):
+            path=cls.folder/name
+            path.parent.mkdir(exist_ok=True,parents=True)
+            guard='UTHOME_TEST_'+name.upper().replace('/','_').replace('.','_')
+            path.write_text(f'/** @file {path.name}\n'
+                            ' * @brief Forward the controlled native-call declarations. */\n'
+                            f'#ifndef {guard}\n#define {guard}\n'
+                            '#include "native.h"\n#endif\n\n/* End of file. */\n\n')
+        port=ROOT/'firmware/hal/ports/esp32c3/network'
+        cls.binary=cls.folder/'adapter.dll'
+        sources=[port/'c3nq.c',*[ROOT/f'firmware/src/network/{name}.c'
+                                  for name in ('netpool','netring','netwait')]]
+        subprocess.run([compiler,'-std=c99','-Wall','-Wextra','-Werror','-pedantic',
+                        '-shared',*(['-fPIC'] if sys.platform!='win32' else []),
+                        '-I'+str(cls.folder),'-I'+str(port),
+                        '-I'+str(ROOT/'firmware/src/network'),
+                        *map(str,sources),str(cls.folder/'native.c'),
+                        '-o',str(cls.binary)],check=True,capture_output=True)
+
+    def setUp(self):
+        path=self.folder/(self._testMethodName+'.dll')
+        shutil.copyfile(self.binary,path)
+        self.lib=c.CDLL(str(path))
+        if sys.platform=='win32':
+            import _ctypes
+            self.addCleanup(_ctypes.FreeLibrary,self.lib._handle)
+        signatures={
+            'c3nq_init':([],c.c_int),
+            'native_wifi_mutex_create':([],c.c_void_p),
+            'native_wifi_mutex_lock':([c.c_void_p],c.c_int32),
+            'native_wifi_mutex_unlock':([c.c_void_p],c.c_int32),
+            'c3nq_take':([c.c_void_p,c.c_uint32],c.c_int32),
+            'c3nq_send':([c.c_void_p,c.c_void_p,c.c_uint32,c.c_int32],c.c_int32),
+            'c3nq_receive_isr':([c.c_void_p,c.c_void_p,c.POINTER(c.c_int32)],c.c_int32),
+            'c3nq_give_isr':([c.c_void_p,c.POINTER(c.c_int32)],c.c_int32),
+            'c3nq_take_recursive':([c.c_void_p,c.c_uint32],c.c_int32),
+            'c3nq_give_recursive':([c.c_void_p],c.c_int32),
+            'c3nq_mutex':([c.c_uint8],c.c_void_p),
+            'c3nq_create':([c.c_uint32,c.c_uint32,c.c_uint8],c.c_void_p),
+            'native_metric':([c.c_uint32],c.c_uint32),
+            'native_owner':([c.c_int32],None),
+        }
+        for name,(arguments,result) in signatures.items():
+            function=getattr(self.lib,name)
+            function.argtypes,function.restype=arguments,result
+        self.assertEqual(self.lib.c3nq_init(),0)
+        self.creates=self.lib.native_metric(0)
+        self.assertEqual(self.creates,64)
+
+    def tearDown(self):
+        self.assertEqual(self.lib.native_metric(0),self.creates)
+        self.assertEqual(self.lib.native_metric(3),0)
+        self.assertEqual(self.lib.native_metric(4),0)
+
+    def test_pinned_sdk_normal_mutex_supports_recursive_lock_pair(self):
+        handle=self.lib.native_wifi_mutex_create()
+        self.assertTrue(handle)
+        self.assertEqual(self.lib.native_wifi_mutex_lock(handle),1)
+        self.assertEqual(self.lib.native_wifi_mutex_lock(handle),1)
+        self.assertEqual(self.lib.native_metric(1),1)
+        self.assertEqual(self.lib.c3nq_take(handle,0),0)
+        # A nonrecursive Give must not silently consume nested SDK ownership.
+        self.assertEqual(self.lib.c3nq_send(handle,None,0,0),0)
+        self.assertEqual(self.lib.native_metric(2),0)
+        woken=c.c_int32(0)
+        self.assertEqual(self.lib.c3nq_receive_isr(handle,None,c.byref(woken)),0)
+        self.assertEqual(self.lib.c3nq_give_isr(handle,c.byref(woken)),0)
+        self.lib.native_owner(2)
+        self.assertEqual(self.lib.native_wifi_mutex_unlock(handle),0)
+        self.lib.native_owner(1)
+        self.assertEqual(self.lib.native_wifi_mutex_unlock(handle),1)
+        self.assertEqual(self.lib.native_metric(2),0)
+        self.assertEqual(self.lib.native_wifi_mutex_unlock(handle),1)
+        self.assertEqual(self.lib.native_metric(2),1)
+        self.lib.native_owner(2)
+        self.assertEqual(self.lib.native_wifi_mutex_lock(handle),1)
+        self.assertEqual(self.lib.native_wifi_mutex_unlock(handle),1)
+        self.assertEqual(self.lib.native_metric(1),2)
+        self.assertEqual(self.lib.native_metric(2),2)
+        self.assertEqual(self.lib.c3nq_take(handle,0),1)
+        self.assertEqual(self.lib.c3nq_take(handle,0),0)
+        self.assertEqual(self.lib.c3nq_send(handle,None,0,0),1)
+
+    def test_pinned_sdk_startup_mutex_has_no_native_lock_or_clock(self):
+        self.lib.native_owner(0)
+        handle=self.lib.native_wifi_mutex_create()
+        self.assertEqual(self.lib.native_wifi_mutex_lock(handle),1)
+        self.assertEqual(self.lib.native_wifi_mutex_lock(handle),1)
+        self.assertEqual(self.lib.c3nq_take(handle,0),0)
+        self.assertEqual(self.lib.c3nq_send(handle,None,0,0),0)
+        self.assertEqual(self.lib.native_wifi_mutex_unlock(handle),1)
+        self.assertEqual(self.lib.native_wifi_mutex_unlock(handle),1)
+        self.assertEqual(self.lib.c3nq_take(handle,0),1)
+        self.assertEqual(self.lib.c3nq_take(handle,0),0)
+        self.assertEqual(self.lib.c3nq_send(handle,None,0,0),1)
+        self.assertEqual(self.lib.native_metric(1),0)
+        self.assertEqual(self.lib.native_metric(2),0)
+        self.assertEqual(self.lib.native_metric(5),0)
+        self.lib.native_owner(1)
+        self.assertEqual(self.lib.native_wifi_mutex_lock(handle),1)
+        self.assertEqual(self.lib.native_wifi_mutex_unlock(handle),1)
+
+    def test_recursive_api_keeps_queue_semaphore_and_unowned_rejections(self):
+        for kind,size in ((0,4),(3,0),(2,0)):
+            handle=self.lib.c3nq_create(1,size,kind)
+            self.assertTrue(handle)
+            self.assertEqual(self.lib.c3nq_take_recursive(handle,0),0)
+            self.assertEqual(self.lib.c3nq_give_recursive(handle),0)
+        self.assertEqual(self.lib.c3nq_take_recursive(None,0),0)
+        self.assertEqual(self.lib.c3nq_give_recursive(None),0)
+        handle=self.lib.native_wifi_mutex_create()
+        self.assertEqual(self.lib.native_wifi_mutex_unlock(handle),0)
+        self.assertEqual(self.lib.native_metric(1),0)
+        self.assertEqual(self.lib.native_metric(2),0)
 
 
 class NetworkPoolTests(unittest.TestCase):
