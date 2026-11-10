@@ -294,8 +294,16 @@ int ble_gap_adv_start(uint8_t type,const void *address,int duration,
 uint16_t ble_att_mtu(uint16_t connection) { (void)connection;return g_mtu; }
 static netread_info_t g_info={.meta={.boot_id=1,.active_revision=12,.generation=4},
  .saved_revision=11,.runtime_state=1,.b_durable_known=true,.b_wifi_online=true,.node_id="test-node"};
+/* Per-slot capture result for MQTT tests: 0 copies the source, 1 absent,
+ * negative busy/failure. Defaults keep the original all-present fixture. */
+static int g_capture_result[8];
+static int g_capture_failures[8];
+static int g_captures;
 static int capture(void *context,uint16_t source,sampcache_entry_t *entry,uint64_t *now)
-{ (void)context;memset(entry,0,sizeof(*entry));entry->source.type=1;
+{ ++g_captures;
+  if(source<8 && g_capture_failures[source]>0) { --g_capture_failures[source];memset(entry,0,sizeof(*entry));return -1; }
+  if(source<8 && g_capture_result[source]!=0) { memset(entry,0,sizeof(*entry));return g_capture_result[source]; }
+  (void)context;memset(entry,0,sizeof(*entry));entry->source.type=1;
   entry->source.source_index=source;entry->source.stale_ms=1000;
   memcpy(entry->source.name,"environment",12);entry->b_expected=true;entry->b_seen=true;
   entry->header.status=1;entry->header.timestamp_ms=100;
@@ -341,6 +349,12 @@ int c3fake_mqtt_start(void)
  return c3mqtt_start(&cfg,"node"); }
 int c3fake_mqtt_step(uint64_t now,int online)
 { return c3mqtt_step(now,online!=0,&g_info,capture,NULL); }
+void c3fake_capture_result(int slot,int result) { if(slot>=0 && slot<8) { g_capture_result[slot]=result; } }
+void c3fake_capture_failures(int slot,int count) { if(slot>=0 && slot<8) { g_capture_failures[slot]=count; } }
+int c3fake_captures(void) { return g_captures; }
+void c3fake_generation(uint32_t generation) { g_info.meta.generation=generation; }
+size_t c3fake_take_output(int fd,void *output)
+{ size_t size=g_output_size[fd];memcpy(output,g_output[fd],size);g_output_size[fd]=0;return size; }
 int c3fake_ble_start(void) { return c3gsvc_start(&g_info); }
 int c3fake_ble_step(uint64_t now) { return c3gsvc_step(now,&g_info,capture,NULL); }
 void c3fake_gap(int kind,int value)
@@ -381,7 +395,7 @@ class EspBindingTests(unittest.TestCase):
             path.parent.mkdir(parents=True,exist_ok=True)
             path.write_text('#include "sdk.h"\n',encoding='utf-8')
         sources=['firmware/hal/ports/esp32c3/'+name+'.c' for name in ['c3https','c3wsta','c3gsvc','c3mqtt']]
-        sources+=['firmware/src/network/'+name+'.c' for name in ['nethttp','netread','netble','netretry','netbroker','netmqtt']]
+        sources+=['firmware/src/network/'+name+'.c' for name in ['nethttp','netread','netble','netretry','netbroker','netmqtt','mqttdisc']]
         sources+=['firmware/src/runtime/sampcache.c']
         sources+=['firmware/src/config/'+name+'.c' for name in ['cfgmux','cfgctrl','cfgstore','cfgwire','cfgbytes']]
         includes=[folder,ROOT/'firmware/src/config',ROOT/'firmware/include',ROOT/'firmware/src/network',
@@ -585,6 +599,209 @@ class EspBindingTests(unittest.TestCase):
         self.assertIn(b'uthome-', self.output(10))
         self.assertIn(b'online', self.output(0))
         self.assertEqual(self.lib.c3fake_closed(10), 0)
+
+    MQTT_SUFFIXES=[('sensor','temperature'),('sensor','pressure'),('sensor','distance'),
+                   ('sensor','illuminance'),('binary_sensor','occupancy'),
+                   ('sensor','targets'),('sensor','raw')]
+
+    def mqtt_session(self,absent=range(1,8)):
+        """Real c3mqtt over the TLS double; whole-packet writes; slot 0 present."""
+        self.lib.c3fake_mqtt_step.argtypes=[c.c_uint64,c.c_int]
+        self.lib.c3fake_take_output.argtypes=[c.c_int,c.c_void_p]
+        self.lib.c3fake_take_output.restype=c.c_size_t
+        self.lib.c3fake_generation.argtypes=[c.c_uint32]
+        self.lib.c3fake_capture_result.argtypes=[c.c_int,c.c_int]
+        self.lib.c3mqtt_status.argtypes=[c.c_void_p]
+        for slot in absent:
+            self.lib.c3fake_capture_result(slot,1)
+        self.assertEqual(self.lib.c3fake_mqtt_start(),0)
+        self.lib.c3fake_handshake(1)
+        self.lib.c3fake_write_limit(4096)
+        self.mqtt_now=0
+        self.mqtt_stream=bytearray()
+        self.publishes=[]  # (owner time, retain bit, topic, payload)
+        self.mqtt_connects=0
+
+    def mqtt_pump(self,steps,dt=1,online=1):
+        buffer=(c.c_uint8*4096)()
+        for _ in range(steps):
+            self.mqtt_now+=dt
+            # Intended session resets return -1; outcomes are checked on the wire.
+            self.lib.c3fake_mqtt_step(self.mqtt_now,online)
+            size=self.lib.c3fake_take_output(0,buffer)
+            self.mqtt_stream.extend(bytes(buffer[:size]))
+            self.mqtt_parse()
+
+    def mqtt_parse(self):
+        data=self.mqtt_stream
+        while len(data)>=2:
+            length=0
+            shift=0
+            index=1
+            while True:
+                if index>=len(data):
+                    return
+                byte=data[index]
+                length|=(byte&127)<<shift
+                shift+=7
+                index+=1
+                if not byte&128:
+                    break
+            if len(data)<index+length:
+                return
+            packet=bytes(data[:index+length])
+            del data[:index+length]
+            body=packet[index:]
+            kind=packet[0]>>4
+            if kind==1:
+                self.mqtt_connects+=1
+                self.lib.c3fake_input(0,b'\x20\x02\x00\x00',4)
+            elif kind==3:
+                size=int.from_bytes(body[:2],'big')
+                self.publishes.append((self.mqtt_now,packet[0]&1,
+                                       body[2:2+size].decode('ascii'),body[2+size:]))
+            elif kind==12:
+                self.lib.c3fake_input(0,b'\xd0\x00',2)
+            else:
+                self.fail(f'unexpected packet {packet!r}')
+
+    def discovery_order(self):
+        return [f'homeassistant/{component}/node_s{slot}_{suffix}/config'
+                for slot in range(8) for component,suffix in self.MQTT_SUFFIXES]
+
+    def test_mqtt_discovery_retained_paced_then_telemetry_and_state(self):
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0,str(ROOT))
+        from tools.target.network_client import decode_mqtt
+        self.mqtt_session()
+        self.mqtt_pump(400)
+        retained=[p for p in self.publishes if p[1]]
+        self.assertEqual(retained[0][2:],('uthome/v1/node/availability',b'online'))
+        discovery=retained[1:]
+        self.assertEqual([p[2] for p in discovery],self.discovery_order())
+        present={p[2]:p[3] for p in discovery if p[3]}
+        self.assertEqual(sorted(present),['homeassistant/sensor/node_s0_pressure/config',
+                                          'homeassistant/sensor/node_s0_temperature/config'])
+        config=json.loads(present['homeassistant/sensor/node_s0_temperature/config'])
+        self.assertEqual(config['state_topic'],'uthome/v1/node/state/environment')
+        self.assertEqual(config['availability_topic'],'uthome/v1/node/availability')
+        self.assertEqual(config['unit_of_measurement'],'°C')
+        # Availability plus 56 discovery messages precede any other publication.
+        self.assertTrue(all(p[1] for p in self.publishes[:57]))
+        following=self.publishes[57:]
+        self.assertEqual([(p[1],p[2]) for p in following],
+                         [(0,'uthome/v1/node/telemetry/environment'),
+                          (0,'uthome/v1/node/state/environment')])
+        frame=decode_mqtt(following[0][2],following[0][3])
+        self.assertEqual(frame['source_index'],0)
+        self.assertEqual(len(following[0][3]),112)
+        self.assertEqual(following[1][3],b'{"t_c100":2600,"p_pa":100800}')
+        # One completed publication per owner step and nothing replaced unsent.
+        times=[p[0] for p in self.publishes]
+        self.assertEqual(len(times),len(set(times)))
+        view=(c.c_uint32*4)()
+        self.assertEqual(self.lib.c3mqtt_status(view),0)
+        self.assertEqual(list(view),[5,0,0,0])
+        # Rotation: slot 0 again after eight 1 s ticks, both topics, no retain.
+        self.publishes.clear()
+        self.mqtt_pump(900,dt=10)
+        self.assertEqual([(p[1],p[2]) for p in self.publishes],
+                         [(0,'uthome/v1/node/telemetry/environment'),
+                          (0,'uthome/v1/node/state/environment')])
+        self.assertLess(self.publishes[1][0]-self.publishes[0][0],1000)
+
+    def test_mqtt_discovery_capture_failure_retries_and_never_removes(self):
+        self.mqtt_session()
+        self.lib.c3fake_capture_result(0,-1)
+        self.mqtt_pump(60)  # Busy windows stay below the 100-capture retry bound.
+        # The cursor stays at step 0: nothing removed and no telemetry either.
+        self.assertEqual([p[2] for p in self.publishes],['uthome/v1/node/availability'])
+        self.lib.c3fake_capture_result(0,0)
+        self.lib.c3fake_capture_result(3,-1)
+        for _ in range(200):
+            if len([p for p in self.publishes if p[1]])>=22:
+                break
+            self.mqtt_pump(1)
+        self.mqtt_pump(30)
+        discovery=[p for p in self.publishes if p[1]][1:]
+        self.assertEqual([p[2] for p in discovery],self.discovery_order()[:21])
+        self.assertTrue(discovery[0][3])
+        self.lib.c3fake_capture_result(3,1)  # Now genuinely absent: removal is allowed.
+        self.mqtt_pump(200)
+        discovery=[p for p in self.publishes if p[1]][1:]
+        self.assertEqual([p[2] for p in discovery],self.discovery_order())
+        self.assertTrue(all(p[3]==b'' for p in discovery[21:28]))
+
+    def test_mqtt_discovery_restarts_on_plan_change_and_reconnect(self):
+        self.mqtt_session()
+        self.mqtt_pump(30)
+        partial=[p for p in self.publishes if p[1]][1:]
+        self.assertTrue(0<len(partial)<56)
+        for change in ('generation','ip'):
+            self.publishes.clear()
+            if change=='generation':
+                self.lib.c3fake_generation(5)
+            else:
+                self.mqtt_pump(5,online=0)
+            connects=self.mqtt_connects
+            self.mqtt_pump(2500)  # Backoff is 1 s, then 2 s for the second reset.
+            self.assertEqual(self.mqtt_connects,connects+1)
+            retained=[p for p in self.publishes if p[1]]
+            self.assertEqual(retained[0][2],'uthome/v1/node/availability')
+            self.assertEqual([p[2] for p in retained[1:]],self.discovery_order())
+
+    CAPTURE_RETRIES=100  # Mirrors C3MQTT_CAPTURE_RETRIES in c3mqtt.c.
+
+    def retained_topics(self):
+        return [p[2] for p in self.publishes if p[1]][1:]  # Without availability.
+
+    def test_mqtt_discovery_persistent_capture_failure_skips_without_removal(self):
+        self.mqtt_session()
+        self.lib.c3fake_capture_result(3,-1)  # Slot 3 never captures.
+        self.mqtt_pump(1200)
+        self.assertEqual(self.retained_topics(),
+                         [t for t in self.discovery_order() if '_s3_' not in t])
+        self.assertFalse(any('_s3_' in p[2] for p in self.publishes))
+        plain=[p[2] for p in self.publishes if not p[1]]
+        self.assertEqual(plain,['uthome/v1/node/telemetry/environment',
+                                'uthome/v1/node/state/environment'])
+
+    def test_mqtt_discovery_retry_bound_is_exact_and_resets_on_success(self):
+        self.mqtt_session()
+        self.lib.c3fake_capture_failures.argtypes=[c.c_int,c.c_int]
+        self.lib.c3fake_capture_failures(0,self.CAPTURE_RETRIES-1)  # Step 0: one short.
+        self.lib.c3fake_capture_failures(1,self.CAPTURE_RETRIES)    # Step 7: the bound.
+        for _ in range(500):
+            if self.retained_topics():
+                break
+            self.mqtt_pump(1)
+        order=self.discovery_order()
+        self.assertEqual(self.retained_topics(),[order[0]])
+        # Step 1 is already captured; step 2 starts from a counter reset by success.
+        self.lib.c3fake_capture_failures(0,self.CAPTURE_RETRIES-1)
+        self.mqtt_pump(1200)
+        self.assertEqual(self.retained_topics(),order[:7]+order[8:])
+        self.assertFalse(any(p[2]==order[7] for p in self.publishes))
+
+    def test_mqtt_final_discovery_message_precedes_first_telemetry(self):
+        self.mqtt_session()
+        for _ in range(1000):
+            if len(self.retained_topics())==55:
+                break
+            self.mqtt_pump(1)
+        self.assertEqual(len(self.retained_topics()),55)
+        # The 56th message is now pending. A 15 s gap makes the keepalive win the
+        # next step: PINGREQ is queued and the final message stays pending.
+        self.mqtt_pump(1,dt=15000)
+        self.mqtt_pump(50)
+        wire=[(p[1],p[2]) for p in self.publishes]
+        final=wire.index((1,self.discovery_order()[-1]))
+        first=wire.index((0,'uthome/v1/node/telemetry/environment'))
+        self.assertLess(final,first)
+        self.assertEqual(self.retained_topics(),self.discovery_order())
+        view=(c.c_uint32*4)()
+        self.assertEqual(self.lib.c3mqtt_status(view),0)
+        self.assertEqual(view[2],0)  # Nothing replaced.
 
     def test_esphome_occupancy_from_cache_and_reconnect(self):
         self.assertEqual(self.lib.c3fake_start(),0)

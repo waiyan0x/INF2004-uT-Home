@@ -460,8 +460,12 @@ approved allocation policy; available heap is not an approved reservation.
   their separate reservations must be counted. No offline history.
 - BLE application frame <=128 bytes, one active frame and one replaceable pending
   frame per connection. ATT fragmentation overhead is additional.
-- At most one telemetry publication per second per transport. MQTT rotates sources
+- At most one source capture per second per transport. MQTT rotates sources
   fairly; this is a transport rate, not a promise of one reading/source/second.
+  From each MQTT capture the implemented publisher sends binary telemetry and,
+  for a fresh OK sample, JSON state: up to two MQTT publications per second in
+  steady state, plus the 56-message discovery pass after every connect
+  ([details](#home-assistant-mqtt-discovery-2026-11-10)).
 - Proposed application service stack 8192 bytes. This is additional to SDK stacks
   and the permanently reserved 32 KiB peripheral storage. Stack count, priorities,
   periods, CPU budget and high-water margin remain unapproved. No peripheral slot
@@ -1115,6 +1119,8 @@ Implemented wire contract (the earlier production draft remains a proposal):
 |---|---|---|
 | `uthome/v1/{node_id}/availability` | ASCII `online`; Last Will ASCII `offline` | 0 / yes |
 | `uthome/v1/{node_id}/telemetry/{device_id}` | Canonical 112-byte sensor frame v1, types 1..5 including light | 0 / no |
+| `uthome/v1/{node_id}/state/{device_id}` | Integer JSON for Home Assistant; see [discovery](#home-assistant-mqtt-discovery-2026-11-10) | 0 / no |
+| `homeassistant/{component}/{node_id}_s{index}_{suffix}/config` | Discovery config JSON, or empty to remove | 0 / yes |
 
 Client ID is the MAC-derived node ID. CONNECT has username/password, clean session,
 30 s keepalive and a retained QoS0 Will. A successful clean-session CONNACK must
@@ -1136,7 +1142,10 @@ written old-plan packet is never resumed under the new generation. Failures
 saturate a counter. Backoff is 1/2/4/8/16/30 s; stable 60 s resets it.
 
 One sensor position is captured per second while ready, rotating across the eight
-plan positions, including absent positions. Capture uses `shared_source`, never
+plan positions, including absent positions. Since 2026-11-10 that one copy yields
+the binary telemetry frame and, when fresh OK, a JSON state message, so steady
+state is up to two MQTT publications per second; each connect first sends the
+discovery pass. Capture uses `shared_source`, never
 queue consumption; metadata is owned by the same controller. Zero/stale/fault and
 light bounds are identical to HTTP/BLE. No backlog is replayed after reconnect.
 Partial writes expire after 10 s. PINGREQ is queued after 15 s without completed
@@ -1258,6 +1267,154 @@ AP-loss behavior, secure clock/provisioning, BLE security and flash-save/load
 acceptance remain open. Authenticated network mutations still remain disabled
 pending existing-controller USB/HTTP arbitration. No second Apply/save exists.
 
+
+## Home Assistant MQTT discovery (2026-11-10)
+
+Every enabled sensor in the active plan appears in Home Assistant through the
+existing MQTT publisher, with no ESPHome and no Home Assistant YAML. Enable the
+Home Assistant MQTT integration against the same broker; the discovery prefix is
+the default `homeassistant`. `mqttdisc.c/.h` (portable C99, no static RAM) formats
+topics and payloads into caller-owned storage; `c3mqtt.c` owns the cursor and
+the publish order. The binary `telemetry/` topic and its 112-byte frame are
+unchanged. The ESPHome native API (`occwire.c`) is unchanged and not extended.
+
+| Topic | Payload | Retain |
+|---|---|---|
+| `homeassistant/<component>/<node>_s<index>_<suffix>/config` | Entity config JSON, or zero bytes to delete | yes |
+| `uthome/v1/<node>/state/<device_id>` | Integer JSON, fresh OK samples only | no |
+| `uthome/v1/<node>/availability` (existing) | `online` / Last Will `offline` | yes |
+
+`<index>` is the plan position (0..7) and appears only in `unique_id` and the
+discovery topic; the device name is display text and the state-topic segment.
+Admission (`cfgjson_name`, duplicate check in `cfgdev`) already limits names
+to unique `[A-Za-z][A-Za-z0-9_.-]{0,30}`, so names need no JSON escaping;
+`mqttdisc` still rejects anything else, and node IDs outside `[A-Za-z0-9_-]{1,31}`.
+
+| Sample type | Component / suffix | device_class | Unit | state_class | value_template |
+|---|---|---|---|---|---|
+| ENVIRONMENT | sensor `temperature` | temperature | `°C` (sent as `°C`) | measurement | `{{ value_json.t_c100 / 100 }}` |
+| ENVIRONMENT | sensor `pressure` | pressure | `Pa` | measurement | `{{ value_json.p_pa }}` |
+| DISTANCE | sensor `distance` | distance | `mm` | measurement | `{{ value_json.d_mm }}` |
+| LIGHT | sensor `illuminance` | illuminance | `lx` | measurement | `{{ value_json.lx_m / 1000 }}` |
+| TARGETS | binary_sensor `occupancy` | occupancy | none | none | `{{ 'ON' if value_json.n > 0 else 'OFF' }}` |
+| TARGETS | sensor `targets` | none | none | measurement | `{{ value_json.n }}` |
+| RAW | sensor `raw` | none | none | none | `{{ value_json.hex }}` |
+| HEALTH | not exposed | | | | |
+
+Units are those Home Assistant lists for each device class. RAW deliberately has
+no class, unit or state class: its state is text. Every config carries `name`
+(`<device_id> <suffix>`), `unique_id`, `state_topic`, `value_template`, the
+class/unit/state-class fields above when present, `expire_after` 30,
+`availability_topic` and a `device` block (`identifiers` and `name` = node ID,
+`manufacturer` uT-Home, `model` ESP32-C3), so all entities group under one
+device. Example, node `uthome-a4cf12345678`, slot 0 `env1`:
+
+```text
+homeassistant/sensor/uthome-a4cf12345678_s0_temperature/config  (retained)
+{"name":"env1 temperature","unique_id":"uthome-a4cf12345678_s0_temperature","state_topic":"uthome/v1/uthome-a4cf12345678/state/env1","value_template":"{{ value_json.t_c100 / 100 }}","device_class":"temperature","unit_of_measurement":"°C","state_class":"measurement","expire_after":30,"availability_topic":"uthome/v1/uthome-a4cf12345678/availability","device":{"identifiers":["uthome-a4cf12345678"],"name":"uthome-a4cf12345678","manufacturer":"uT-Home","model":"ESP32-C3"}}
+```
+
+State payloads use integers only: `{"t_c100":2512,"p_pa":101325}` (temperature
+rounded half away from zero; published only if finite, |t_c100| <= 100000 and
+0..2000000 Pa), `{"d_mm":1234}`, `{"lx_m":523000}` (<= 200000000 as for the
+frame), `{"n":1}` (present target slots), `{"hex":"0a1bff"}` (RAW, lowercase,
+1..16 bytes). State is published only for `sampcache_quality` 1 (fresh OK).
+Missing, stale, faulted, out-of-range and HEALTH samples publish nothing, and
+`expire_after` then marks the entity unavailable. RAW has never had a binary
+frame (`netble_encode` accepts types 1..5); JSON state is its only publication.
+
+**Discovery and removal.** After every broker connect, the cursor walks 56 steps
+(8 slots x 7 suffixes) and sends one retained message per step: the config when
+the slot's type owns that suffix, otherwise a zero-length retained payload so
+Home Assistant deletes any old entity. No previous plan is remembered. Leaving
+READY resets the cursor; a plan change already resets the session, so discovery
+replays after every JSON Apply. Only a capture result of 1 (absent) may produce
+a removal. A busy or failed capture retries the same step on the next idle
+owner iteration, so a capture failure never deletes an entity. Retry is bounded:
+after 100 consecutive failed captures on one step (about 0.1 s at the 1 ms
+owner delay, against shared copies that normally finish within one iteration)
+that step is skipped with neither a config nor a removal, and any entity it
+previously published stays as it was. The counter resets on a successful
+capture, after a skip and whenever the cursor resets. A pass in which every
+capture fails therefore ends after about 5.6 s and telemetry resumes.
+Retained configs survive a Home Assistant restart on a persistent broker, so
+birth-triggered republish is deferred: it needs SUBSCRIBE/SUBACK and inbound
+PUBLISH parsing (`homeassistant/status`), planned with the rule subscription.
+A node removed permanently leaves its retained configs until they are cleared.
+The broker ACL for the node's user must allow retained writes to its
+`homeassistant/sensor/<node>_s<index>_<suffix>/config` and
+`homeassistant/binary_sensor/...` topics. Mosquitto `+`/`#` match whole levels
+only, so grant `homeassistant/#` or list the 56 topics explicitly.
+
+**Pacing.** The broker keeps one pending packet and a newer offer replaces it, so
+discovery and state are offered only when `netbroker_idle` is true (READY, no
+active or pending packet, no outstanding PINGREQ), at most one offer per owner
+step. Telemetry and state wait until the discovery pass completes, and the first
+telemetry offer of each session also waits for `netbroker_idle`, so the final
+discovery message (for example one held behind a PINGREQ) reaches the wire
+before telemetry can be offered. Later telemetry offers keep the existing
+latest-value replacement and identical bytes. Each message
+takes about two to three owner iterations (offer, take, write) plus TLS write
+time; with the 1 ms owner delay the 56 messages take roughly 0.2 s plus TLS time,
+which is unmeasured. A stalled packet keeps the existing 10 s write deadline,
+then the session resets and discovery restarts, so one successful pass is
+bounded by 56 x 10 s.
+
+**Cadence.** The 1 s rotation over all eight positions is unchanged. Each tick
+copies one position once: binary telemetry is offered as before, then JSON
+state from the same copy when the broker is idle. A state message not sent
+before the next tick is dropped. Each present source therefore gets telemetry
+and state once every 8 s (not halved); broker traffic is up to two publications
+per second. With `expire_after` 30 s (about 3.75 rotations, tolerating two
+missed messages), a stale or faulted source becomes unavailable in Home
+Assistant at most 30 s after its last fresh state.
+
+**Memory impact.** Static RAM: `mqttdisc.c.obj` has no data or BSS (host object:
+0/0); `c3mqtt.c` adds `g_captured_ms`, `g_discovery`, `g_capture_failures`
+(one `uint8_t` retry counter) and `gb_state_due` (about 11 bytes plus padding;
+the host object's BSS stayed at 3168 bytes). The drain wait reuses the cursor
+value 57, so it adds no state. Linked
+target map sizes are not measured, and no budget entry or limit was changed.
+Flash: about 4 KB of `mqttdisc` code/rodata and about 0.7 KB more `c3mqtt` code
+in a host `-Og` build. Stack: `mqttdisc_message_t` is 736 bytes on RV32 (128-byte
+topic, 600-byte payload). Host x86-64 `-fstack-usage` frames at `-Og`: before,
+`c3mqtt_step` 352 bytes (live during the TLS write); after, `c3mqtt_step` 80,
+`publish` 48, `discover` 832, `state_step` 816, `telemetry_step` 336, and the
+deepest formatter chain below `discover` about 410. The deepest application-owned
+chain from `c3mqtt_step` grows from about 544 to about 1370 bytes, but no longer
+sits beneath the TLS write, which now runs with the 80-byte frame. **The added
+owner stack is unverified on hardware**: the 8448-byte owner stack's peak in the
+TLS image is unmeasured, the only recorded headroom predates TLS, and a target
+compiler may inline differently. Measure the owner high-water mark on the Wi-Fi
+image before relying on this.
+
+**Verification (software only).** `tests/target/test_network_disc.py` checks
+exact topic/payload bytes for every sample type, removal, maximum node/name
+(591-byte worst-case payload), unsafe characters, slot mismatch and no state
+for missing/stale/fault/out-of-range samples. `test_network_mqtt.py` and
+`test_network_broker.py` check the retain bit (`0x31` only for retained, all
+other bytes identical) and `netbroker_idle`. `test_network_esp.py` drives the
+real `c3mqtt` over the TLS double: retained availability then 56 ordered
+retained discovery messages, then non-retained telemetry and state, one
+completed publication per step with nothing replaced; capture failure retries
+without removal; 99 failures retry while the 100th skips the step, and success
+resets the count; a persistently failing slot is skipped with no removal and
+telemetry resumes; the final discovery message held behind a PINGREQ reaches
+the wire before the first telemetry; cursor restart after plan change and IP
+loss. Not verified:
+pinned target build, live broker, Home Assistant entity creation, bench or
+hardware acceptance.
+
+Manual BARR-C review (`mqttdisc`, `c3mqtt`, `netmqtt`, `netbroker`): C99, paired
+headers, private helpers `static` and prototyped first; `g_` file-scope tables
+are `const`. Every append is bounded by explicit capacity with an overflow flag,
+never truncation; topics are NUL-terminated within 128 bytes. Float-to-integer
+conversions follow `isfinite` and explicit range checks; signed output avoids
+`INT32_MIN` negation overflow; RAW length is checked before the byte loop. The
+`char` to `const uint8_t *` payload cast is a character-type alias of ASCII text.
+Retain is an explicit Boolean mapped to defined header constants. No heap, lock,
+task, queue, timer, SDK call or new deviation is added; capture remains the
+existing nondequeuing `shared_source` callback under the same owner.
 
 ## Read-only network diagnostics and client test pack
 

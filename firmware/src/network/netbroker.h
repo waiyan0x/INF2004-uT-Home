@@ -71,10 +71,11 @@ typedef struct
 /* Single owner, zero-initialized lifetime storage, immutable config strings.
  * client/user/password: 1..32/64/64 printable ASCII; availability <=128 ASCII
  * without wildcards. Clean session, 30s keepalive, retained QoS0 availability
- * and Last Will ("online"/"offline"), QoS0 binary telemetry, no subscriptions.
- * connect: 1 verified TLS ready, 0 pending, -1 failure. read/write: positive
- * bytes <= requested, 0 would-block, -1 EOF/error. close releases partial TLS.
- * Callbacks must do one nonblocking unit, never wait/DNS/log secrets.
+ * and Last Will ("online"/"offline"), caller-selected QoS0 publications
+ * (retained or not), no subscriptions. connect: 1 verified TLS ready, 0
+ * pending, -1 failure. read/write: positive bytes <= requested, 0 would-block,
+ * -1 EOF/error. close releases partial TLS. Callbacks must do one nonblocking
+ * unit, never wait/DNS/log secrets.
  */
 int netbroker_init (netbroker_t * p_state, const netbroker_config_t * p_config);
 int netbroker_step (netbroker_t * p_state,
@@ -84,11 +85,18 @@ int netbroker_step (netbroker_t * p_state,
                     uint32_t      jitter_ms);
 /* 0 staged, 1 offline/dropped, -1 invalid. One pending plus one active packet;
  * newer offers replace pending only. Disconnect/plan change discards both.
+ * b_retain selects the retained PUBLISH flag; telemetry passes false.
  */
 int netbroker_offer (netbroker_t *   p_state,
                      const char *    p_topic,
                      const uint8_t * p_value,
-                     size_t          size);
+                     size_t          size,
+                     bool            b_retain);
+/* True only when READY with no active packet, no pending packet and no
+ * outstanding PINGREQ, so the next offer cannot replace unsent data. Same
+ * owner as step/offer; reads state only. NULL/uninitialized returns false.
+ */
+bool netbroker_idle (const netbroker_t * p_state);
 /* Same owner as step/offer, copied only: no I/O, counter reset or mutation.
  * Uninitialized state reports UNAVAILABLE. Counters saturate per boot.
  * failures excludes intentional plan changes; replaced counts superseded

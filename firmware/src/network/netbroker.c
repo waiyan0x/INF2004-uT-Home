@@ -149,7 +149,8 @@ int netbroker_step (netbroker_t * p_state,
 int netbroker_offer (netbroker_t *   p_state,
                      const char *    p_topic,
                      const uint8_t * p_value,
-                     size_t          size)
+                     size_t          size,
+                     bool            b_retain)
 {
     size_t length = text_size(p_topic, UTHOME_MQTT_TOPIC_BYTES, true);
     if ((NULL == p_state) || (!p_state->b_initialized) || (0U == length) ||
@@ -162,8 +163,21 @@ int netbroker_offer (netbroker_t *   p_state,
         discard(p_state, 1U);
         return 1;
     }
-    return netmqtt_offer(
-        &p_state->mailbox, p_topic, length, p_value, size, p_state->generation);
+    return netmqtt_offer(&p_state->mailbox,
+                         p_topic,
+                         length,
+                         p_value,
+                         size,
+                         p_state->generation,
+                         b_retain);
+}
+
+/** @brief Report whether an offer would start a new packet, not replace one. */
+bool netbroker_idle (const netbroker_t * p_state)
+{
+    return (NULL != p_state) && (p_state->b_initialized) &&
+           (NETBROKER_READY == p_state->state) && (0U == p_state->size) &&
+           (!p_state->mailbox.b_pending) && (!p_state->b_ping);
 }
 
 /** @brief Copy diagnostics without consuming pending data or resetting
@@ -367,13 +381,13 @@ static int read_packet (netbroker_t * p_state, uint64_t now_ms)
                             strlen(p_state->config.p_availability),
                             (const uint8_t *)"online",
                             6U,
-                            p_state->generation);
+                            p_state->generation,
+                            true);
         (void)netmqtt_take(&p_state->mailbox,
                            p_state->generation,
                            p_state->transmit,
                            sizeof(p_state->transmit),
                            &p_state->size);
-        p_state->transmit[0] |= 1U;
         p_state->state       = NETBROKER_AVAILABLE;
         p_state->deadline_ms = now_ms + 10000U;
     }
