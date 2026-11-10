@@ -1221,7 +1221,7 @@ images and their original evidence, not the latest source's acceptance status.
 
 ## 35. GPIO migration and obsolete build blockers
 
-Source: [docs/gpio-startup-mutexes.md](gpio-startup-mutexes.md).
+Source: [docs/gpio-startup-mutexes.md](hardware/gpio-startup-mutexes.md).
 
 UART, I2C and SPI now also create their resources once at startup (see the
 [C3 port guide](../firmware/hal/ports/esp32c3/README.md)). Dynamic worker tasks
@@ -1253,7 +1253,7 @@ open/close/configuration replacement plus mutex-exhaustion startup on target.
 
 ## 36. UART storage original pending build status
 
-Source: [docs/uart-static-storage.md](uart-static-storage.md).
+Source: [docs/uart-static-storage.md](hardware/uart-static-storage.md).
 
 Update: the standard-gate cleanup and cloud build setup are documented in
 [GitHub Actions setup](github-actions.md). Earlier failed-gate records below
@@ -1266,7 +1266,7 @@ Target compilation, map inspection and board execution remain pending.
 
 ## 37. UART storage failed-gate and unexecuted-test checkpoint
 
-Source: [docs/uart-static-storage.md](uart-static-storage.md).
+Source: [docs/uart-static-storage.md](hardware/uart-static-storage.md).
 
 Fresh local checks: six UART lifecycle source guards plus five compiler-routing
 unit tests pass. The pinned formatter/style gate ran; no new-file findings
@@ -1281,18 +1281,18 @@ state loss on NULL frees. These checks are added, not yet executed.
 
 ## 38. UART storage acceptance boundary
 
-Source: [docs/uart-static-storage.md](uart-static-storage.md).
+Source: [docs/uart-static-storage.md](hardware/uart-static-storage.md).
 
 configuration. Target ABI/build and runtime evidence remain pending.
 
 ## 39. UART retained-handle original review status
 
-Source: [docs/uart-startup-allocation.md](uart-startup-allocation.md).
+Source: [docs/uart-startup-allocation.md](hardware/uart-startup-allocation.md).
 
 #### UART retained-handle adaptation â€” 2026-10-20
 
 Update: the two UART-record heap paths now have a project-owned fixed-storage
-adaptation; see [UART fixed native storage](uart-static-storage.md). Statements
+adaptation; see [UART fixed native storage](hardware/uart-static-storage.md). Statements
 below describing unresolved native Kmalloc are the earlier review record;
 target verification and system-wide compliance remain outstanding.
 
@@ -1302,7 +1302,7 @@ This is not evidence of full AAI13 compliance.
 
 ## 40. Provisional UART RAM table and superseded verification records
 
-Source: [docs/uart-startup-allocation.md](uart-startup-allocation.md).
+Source: [docs/uart-startup-allocation.md](hardware/uart-startup-allocation.md).
 
 #### UART RAM accounting â€” no exemption
 
@@ -1399,7 +1399,7 @@ evidence. Native `Kmalloc` remains a compliance gap, not an exemption.
 
 ## 41. UART acceptance original blocked-status matrix
 
-Source: [docs/uart-acceptance.md](uart-acceptance.md).
+Source: [docs/uart-acceptance.md](hardware/uart-acceptance.md).
 
 #### UART acceptance checklist and fresh evidence
 
@@ -1428,13 +1428,13 @@ claimed. This record distinguishes implemented tests from executed tests.
 
 ## 42. Explicit isolated UART build flag
 
-Source: [docs/uart-acceptance.md](uart-acceptance.md).
+Source: [docs/uart-acceptance.md](hardware/uart-acceptance.md).
 
 Use `tools/target/qualify_kernel.py build --runtime-port`, the pinned kernel and
 
 ## 43. UART acceptance local verification results
 
-Source: [docs/uart-acceptance.md](uart-acceptance.md).
+Source: [docs/uart-acceptance.md](hardware/uart-acceptance.md).
 
 #### Local validation record
 
@@ -1491,7 +1491,7 @@ report whenever changing these modules.
 
 ## 48. Original S3 UART/GPIO starter handoff
 
-Source: [docs/uart-gpio.md](uart-gpio.md).
+Source: [docs/uart-gpio.md](hardware/uart-gpio.md).
 
 #### Member 3: UART and GPIO starter and handoff
 

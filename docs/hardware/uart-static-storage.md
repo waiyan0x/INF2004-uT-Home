@@ -4,7 +4,7 @@ The native UART records use fixed typed storage in project-owned code; the
 pinned dependency remains unchanged. This replaces the earlier record-allocation
 concern in [the retained-handle guide](uart-startup-allocation.md). Target build,
 map and scoped USB-core evidence are indexed in
-[qualification](../firmware/qualification/README.md). Isolated fault injection,
+[qualification](../../firmware/qualification/README.md). Isolated fault injection,
 external baud/framing and complete wireless-system acceptance remain open.
 
 ## Build adaptation

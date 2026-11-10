@@ -12,6 +12,13 @@ implemented and software-tested; complete hardware acceptance remains pending. C
 work and historical evidence before making changes. The five-member ownership
 and handoffs are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+Wi-Fi now connects to the tested iPhone hotspot on the C3 using the optional
+8.5 dBm transmit-power cap. The 11 November uT-Kernel application preserves
+active/saved revision 931, provides read-only USB `network` diagnostics and
+passes a native API identity/entity query over Wi-Fi. MQTT TLS acceptance and
+whole-system static-allocation qualification remain open.
+See [Wi-Fi status and scoped bench results](firmware/src/network/README.md#usb-wi-fi-troubleshooting).
+
 The selected direction is **uT-Kernel firmware with an ESPHome-compatible native
 API interface for Home Assistant display**. The transaction service implements
 bounded generic I2C, SPI writes and UART operations, MQTT rule reception and
@@ -81,6 +88,40 @@ See the [team workload and integration checkpoints](CONTRIBUTING.md) for
 ownership, handoffs and the planned end-to-end demonstration.
 
 ## Start here
+
+### Repository layout
+
+```text
+firmware/       ESP32-C3 application, portable services, drivers and HAL ports
+tools/          Host configuration, USB/network clients, build and C policy tools
+visualiser/     Wiring/plan visualiser and its local server
+catalogue/      Reviewed boards, peripherals and connection presets
+configs/        Example node profiles, scenarios and build selections
+schemas/        JSON contracts used to validate those inputs
+datasheets/     Reviewed peripheral communication notes and source references
+tests/          Software suites, board fixture and hardware test procedures
+docs/           Cross-project guides, hardware notes and development history
+experiments/    Isolated proofs and comparison tools with explicit limitations
+reports/        Scoped resource studies and handoff reports
+ai/             Historical AI qualification and its limitations
+build/          Local generated output and captured evidence; Git-ignored
+```
+
+Add portable firmware logic to the matching `firmware/src/` service, hardware
+access to `firmware/hal/ports/`, and device-specific code to `firmware/drivers/`.
+Keep host workflows in the relevant `tools/` package and tests in their existing
+suite. Extend the area's main README when adding a capability. The
+[documentation index](docs/README.md) and [hardware guide index](docs/hardware/README.md)
+provide navigation without duplicating the implementation guides.
+
+Keep generated builds, private settings and captured board backups separate
+from maintained source. Original briefs, private professor reference code and
+superseded Member 5 planning are stored outside this checkout in the sibling
+`../Project References/` folder on this workstation. Its README records their
+locations. These local reference files are not build inputs or shared project
+requirements; use the current guides below for development.
+
+### Area guides
 
 | Purpose | Guide |
 |---|---|

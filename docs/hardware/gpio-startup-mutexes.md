@@ -33,8 +33,8 @@ services. Startup fails closed if capacity is exhausted. This does not prove
 that the kernel's own creation implementation is heap-free.
 
 UART, I2C and SPI also create their resources at startup. Fixed workers and
-parsing are implemented; see the [C3 port](../firmware/hal/ports/esp32c3/README.md)
-and [system status](../README.md#current-status). Remaining system work concerns
+parsing are implemented; see the [C3 port](../../firmware/hal/ports/esp32c3/README.md)
+and [system status](../../README.md#current-status). Remaining system work concerns
 wireless resources and combined acceptance, not a repeat of the worker migration.
 
 ## Verification
@@ -44,7 +44,7 @@ Structural source checks do not execute kernel/hardware failure paths. The
 board fixture invokes startup twice for idempotence; verify creation counters
 and mutex-exhaustion behavior separately. Physical pulse/PWM timing and output
 loads still require acceptance. Historical failed-gate records are retained in
-the [history log](COMPLETED_WORK_LOG.md); they are not current build blockers.
+the [history log](../COMPLETED_WORK_LOG.md); they are not current build blockers.
 
 Manual BARR-C review: C99-owned syntax and existing SDK dialect boundary kept;
 named paired-header APIs; bounded loops (2/4); positive IDs only retained;
