@@ -99,6 +99,18 @@ usage and cannot isolate interrupts. Version 1 remains supported and reports
 the scheduler observation absent. See [wire details](../../firmware/src/services/TELEMETRY.md)
 and the host measurement validator in `measurements.py`.
 
+## Read-only Wi-Fi status
+
+`python -B -m tools.config_transfer network --port /dev/cu.usbmodem101`
+reads command 10 on a newly built Wi-Fi application. Confirm the current port;
+use its COM name on Windows. The command reports the last SDK stage/error,
+station and retry flags, last disconnect reason, current IPv4 address and the
+absolute board-monotonic retry deadline. A missing IP is `null`. The stage is
+the last SDK operation, not proof of connectivity; use `has_ip` and retry state.
+Reading status does not connect, reset, apply, save, consume mutation IDs or
+expose SSID/passwords. Old and non-Wi-Fi images may time out; no fallback
+configuration request or automatic retry is sent.
+
 ## Compiled capabilities
 
 `python -B -m tools.config_transfer capabilities --port COMx` reads the board,

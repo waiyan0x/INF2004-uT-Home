@@ -73,18 +73,18 @@ int cfgpump_discovery (cfgpump_t *          p_pump,
     return 0;
 }
 
-/** @brief Bind fixed workload observation while the pump is idle. */
-int cfgpump_workcost (cfgpump_t *         p_pump,
-                      cfgpump_observe_t * p_observe,
-                      void *              p_context)
+/** @brief Bind a request-selected diagnostic while the pump is idle. */
+int cfgpump_diagnostics (cfgpump_t *          p_pump,
+                         cfgpump_discover_t * p_observe,
+                         void *               p_context)
 {
     if ((NULL == p_pump) || (NULL == p_pump->p_control) ||
         (NULL == p_observe) || (p_pump->b_busy) || (p_pump->b_pending))
     {
         return -2;
     }
-    p_pump->p_workcost         = p_observe;
-    p_pump->p_workcost_context = p_context;
+    p_pump->p_diagnostic         = p_observe;
+    p_pump->p_diagnostic_context = p_context;
     return 0;
 }
 
@@ -197,15 +197,22 @@ static void discard_transport (cfgpump_t * p_pump)
 /** @brief Observations never consume IDs, call storage or evict retry state. */
 static int make_reply (cfgpump_t * p_pump, const cfgwire_request_t * p_request)
 {
-    if (CFGWIRE_DISCOVER == p_request->command)
+    if ((CFGWIRE_DISCOVER == p_request->command) ||
+        (CFGWIRE_WORKCOST == p_request->command) ||
+        (CFGWIRE_NETWORK == p_request->command))
     {
-        size_t size = 0U;
-        if ((NULL == p_pump->p_discover) ||
-            (0 != p_pump->p_discover(p_pump->p_discovery_context,
-                                     p_request,
-                                     &p_pump->reply[UTHOME_CFGWIRE_HEADER],
-                                     UTHOME_CFGWIRE_PAYLOAD,
-                                     &size)) ||
+        size_t     size       = 0U;
+        const bool b_discover = CFGWIRE_DISCOVER == p_request->command;
+        cfgpump_discover_t * p_observe =
+            b_discover ? p_pump->p_discover : p_pump->p_diagnostic;
+        void * p_context = b_discover ? p_pump->p_discovery_context
+                                      : p_pump->p_diagnostic_context;
+        if ((NULL == p_observe) ||
+            (0 != p_observe(p_context,
+                            p_request,
+                            &p_pump->reply[UTHOME_CFGWIRE_HEADER],
+                            UTHOME_CFGWIRE_PAYLOAD,
+                            &size)) ||
             (0 != cfgwire_observation(
                       p_request, p_pump->reply, sizeof(p_pump->reply), size)))
         {
@@ -215,19 +222,13 @@ static int make_reply (cfgpump_t * p_pump, const cfgwire_request_t * p_request)
         return 0;
     }
     if ((CFGWIRE_TELEMETRY == p_request->command) ||
-        (CFGWIRE_CAPABILITIES == p_request->command) ||
-        (CFGWIRE_WORKCOST == p_request->command))
+        (CFGWIRE_CAPABILITIES == p_request->command))
     {
         const bool          b_caps = CFGWIRE_CAPABILITIES == p_request->command;
         cfgpump_observe_t * p_observe =
             b_caps ? p_pump->p_capabilities : p_pump->p_observe;
         void * p_context =
             b_caps ? p_pump->p_capability_context : p_pump->p_observer;
-        if (CFGWIRE_WORKCOST == p_request->command)
-        {
-            p_observe = p_pump->p_workcost;
-            p_context = p_pump->p_workcost_context;
-        }
         size_t size = 0U;
         if ((NULL == p_observe) ||
             (0 != p_observe(p_context,

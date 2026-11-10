@@ -9,9 +9,10 @@ from .telemetry import Snapshot, decode_telemetry
 from .capabilities import Capabilities, decode_capabilities
 from .discovery import Discovery, decode_discovery, discovery_request
 from .workcost import WorkcostReply, decode_workcost
+from .network import NetworkReply, decode_network
 
 
-Response = Reply | ProbeReply | Snapshot | Capabilities | Discovery | WorkcostReply
+Response = Reply | ProbeReply | Snapshot | Capabilities | Discovery | WorkcostReply | NetworkReply
 
 
 class SerialStream(Protocol):
@@ -79,6 +80,10 @@ class Client:
                  revision: int = 0, profile: bytes = b"") -> WorkcostReply: ...
 
     @overload
+    def exchange(self, command: Literal[Command.NETWORK], request_id: int,
+                 revision: int = 0, profile: bytes = b"") -> NetworkReply: ...
+
+    @overload
     def exchange(self, command: Command, request_id: int, revision: int = 0,
                  profile: bytes = b"") -> Response: ...
 
@@ -117,6 +122,7 @@ class Client:
                 capabilities = command == Command.CAPABILITIES
                 discovery = command == Command.DISCOVER
                 workcost = command == Command.WORKCOST
+                network = command == Command.NETWORK
                 if ((magic, version, received, reserved, rid, rev) !=
                     (b"UTH1", 1, int(command) | 0x80, 0, request_id, revision) or
                     not _valid_payload_size(command, size)):
@@ -136,6 +142,8 @@ class Client:
                                                  revision=revision, payload=profile)
                     elif workcost:
                         reply = decode_workcost(bytes(pending[:length]), request_id=request_id)
+                    elif network:
+                        reply = decode_network(bytes(pending[:length]), request_id=request_id)
                     else:
                         reply = decode_reply(bytes(pending[:length]), command=command,
                                              request_id=request_id, revision=revision)
@@ -161,6 +169,10 @@ class Client:
     def capabilities(self) -> Capabilities:
         """Discover compiled bindings without changing the mutation sequence."""
         return self.exchange(Command.CAPABILITIES, secrets.randbelow(0xFFFFFFFF) + 1)
+
+    def network(self) -> NetworkReply:
+        """Observe Wi-Fi without consuming mutation IDs; unsupported images time out."""
+        return self.exchange(Command.NETWORK, secrets.randbelow(0xFFFFFFFF) + 1)
 
     def query(self) -> Reply:
         """Discover sequence state, then refresh durable and active state."""

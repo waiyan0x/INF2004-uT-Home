@@ -13,6 +13,8 @@
  */
 int c3net_start (const cfgctrl_t * p_control, cfgmux_t * p_mux);
 int c3net_step (const cfgctrl_t * p_control, uint64_t now_ms);
+/* Wi-Fi-only, owner-serialized 24-byte status; no credentials or I/O. */
+int c3net_observe (uint8_t * p_data, size_t capacity, size_t * p_size);
 #endif
 
 /* End of file. */

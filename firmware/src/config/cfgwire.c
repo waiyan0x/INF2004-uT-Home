@@ -138,6 +138,7 @@ int cfgwire_observation (const cfgwire_request_t * p_request,
         ((CFGWIRE_TELEMETRY != p_request->command) &&
          (CFGWIRE_CAPABILITIES != p_request->command) &&
          (CFGWIRE_WORKCOST != p_request->command) &&
+         (CFGWIRE_NETWORK != p_request->command) &&
          (CFGWIRE_DISCOVER != p_request->command)) ||
         (0U == p_request->request_id) ||
         ((CFGWIRE_DISCOVER != p_request->command) &&
@@ -173,14 +174,15 @@ static int accept_header (cfgwire_t * p_receiver)
     const uint8_t   command  = p_header[5];
     if ((1U != p_header[4]) || (0U != p_header[6]) || (0U != p_header[7]) ||
         (0U == cfgbytes_get(&p_header[8])) || (command < CFGWIRE_APPLY) ||
-        (command > CFGWIRE_WORKCOST) || (size > UTHOME_CONFIG_BYTES) ||
+        (command > CFGWIRE_NETWORK) || (size > UTHOME_CONFIG_BYTES) ||
         ((CFGWIRE_APPLY == command) && ((0U == size) || (0U == revision))) ||
         ((CFGWIRE_APPLY != command) && (CFGWIRE_DISCOVER != command) &&
          (0U != size)) ||
         ((CFGWIRE_DISCOVER == command) && (24U != size)) ||
         (((CFGWIRE_QUERY == command) || (CFGWIRE_RECOVER == command) ||
           (CFGWIRE_PROBE == command) || (CFGWIRE_TELEMETRY == command) ||
-          (CFGWIRE_CAPABILITIES == command) || (CFGWIRE_WORKCOST == command)) &&
+          (CFGWIRE_CAPABILITIES == command) || (CFGWIRE_WORKCOST == command) ||
+          (CFGWIRE_NETWORK == command)) &&
          (0U != revision)) ||
         ((CFGWIRE_SAVE == command) && (0U == revision)))
     {

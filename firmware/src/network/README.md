@@ -75,6 +75,15 @@ The native kernel supplies priority inheritance. A successful ISR operation sets
 a conservative wake hint without clearing an earlier hint; the native ISR tail
 makes the actual scheduling decision.
 
+The pinned SDK's Wi-Fi adapter creates ordinary mutexes but calls its recursive
+take/give pair. That pair accepts either mutex lease kind; ordinary take/give
+remains nonrecursive and rejects a give at depth greater than one. Ownership,
+overflow checks, ISR rejection and release pinning remain enforced, including
+startup ownership. Native adapter tests cover the SDK call sequence, nested
+release, foreign owners and failed unlocks. This compatibility fix adds no
+storage or native objects; it did not by itself resolve the hotspot's observed
+authentication timeout.
+
 SDK crypto initialization also takes locks before native tasks exist. The owned
 pool reserves `UINT32_MAX` as a serialized startup owner, distinct from every
 positive native task ID. Startup mutex operations preserve normal/recursive
@@ -864,6 +873,109 @@ The new modules are not in the target build inventory yet; target build and
 combined acceptance are required when integration changes that inventory.
 
 
+## USB Wi-Fi troubleshooting
+
+The Wi-Fi application exposes an explicit read-only USB `network` command;
+see the [host instructions](../../../tools/config_transfer/README.md#read-only-wi-fi-status).
+It remains usable without an AP or DHCP lease. It copies startup stage, last
+SDK return code, station/IP/cancellation/fault flags, retry state/deadline,
+last disconnect reason and current IPv4. It does not expose credentials, scan,
+retry, write flash or print into the binary USB stream. A successful SDK
+`connect` call is only an attempt; IP readiness is reported separately.
+Disconnect, stop and lost-IP events clear the retained address. The disconnect
+reason remains the last observed reason, including after a later connection.
+Firmware built before this command and images without Wi-Fi may time out.
+
+`c3wsta_status` is called by the existing serialized application owner and
+copies event fields under the existing native interrupt guard. Permanent SDK
+event handlers use the pinned API's documented nullable instance output, so
+their three unused global handle slots are replaced by bounded diagnostic
+fields. The USB pump reuses the previous workload callback/context reservation
+for request-selected diagnostics; WORKCOST payloads and mutation retry behavior
+are unchanged. No allocator, task, lock or callback queue is added. A status
+read cannot report a panic that prevents the USB owner from starting; preserve
+the raw boot log in that case.
+
+Manual BARR-C review: C99 and paired module APIs; validated output capacity,
+explicit byte encoding (signed SDK errors modulo 2^32, IPv4 network octets,
+little-endian integer fields), copied SDK payload lifetime, guarded event state,
+one owner for retry state, bounded stack snapshot, checked initialization and
+error returns. No policy/deviation, dependency revision or memory limit changes.
+Host doubles cover startup failure stages, stale-IP clearing and no-I/O reads;
+the pump fixture covers fragmented replies and preservation of mutation IDs
+and cached results. Live association, AP loss/reconnect and runtime stack/heap
+qualification still require an available reviewed network.
+
+Validation on 10 November 2026 passed 455 target tests, the complete 337-file
+pinned-format C gate, strict host typing and a fresh pinned ESP32-C3 build.
+The 847,552-byte application passes the unchanged transaction budget: 275,970
+of 278,528 total DRAM bytes; `c3app` remains 42,400/42,400 and `c3wsta` is
+50/64 bytes. These are link-map quantities, not free runtime heap.
+
+A temporary test-provisioned image on the connected C3 reported successful
+startup and reason 201 (`WIFI_REASON_NO_AP_FOUND`) during a 45-second absent-AP
+retry observation. USB and BMP388 readings continued; no new native objects
+were counted, but 349 SDK allocations and 347 frees occurred after sealing.
+This does **not** pass the whole-system static-allocation requirement. The
+radar reported a fault with both the test image and the restored original image.
+The original full-flash backup was restored and hash-verified; active/saved
+revision 931 and CRC 3623560383 remained intact. Its bytes differ from the
+earlier locally archived image, so that earlier image is not current provenance.
+Actual association, DHCP, AP loss/reconnect and MQTT remain unverified.
+Local evidence is in `build/wifi-20261110/evidence.json`; private images/backups
+stay outside Git under `/Users/waiyan/uthome-tools/wifi-board-20261110/`.
+
+### Hotspot bench on 11 November 2026
+
+The full uT-Kernel application now associates with the tested iPhone hotspot
+and obtains IPv4. Its actual Unicode SSID is preserved byte-for-byte by private
+provisioning. A temporary stock ESP-IDF control reproduced `AUTH_EXPIRE` at the
+default transmit power, then joined with a checked/read-back value of 34
+quarter-dBm (8.5 dBm). The application uses that optional cap on this board;
+this comparison does not identify an antenna or board defect.
+
+The installed `wifi-hotspot-20261111-r5` image is 847,968 bytes and passes the
+unchanged transaction memory policy: total DRAM 275,994/278,528, `c3app`
+42,400/42,400 and `c3wsta` 51/64 bytes. The fixed task pool remains selected.
+USB reported online at `172.20.10.3` within three seconds of the first monitor
+sample, with no station fault. Active/saved revision 931 and CRC 3623560383 are
+unchanged. BMP388 samples remain fresh and no runtime workers failed; the
+radar fault was already present in the original image.
+
+The final target suite passes all 468 tests; the 337-file pinned-format C gate
+and the configured strict typing check (15 files) pass. The single USB session
+captured 228 snapshots with no I/O errors and 504.8 seconds continuously online
+after first IPv4. After the user reported switching the hotspot off for ten
+seconds and back on, a new native API query at the same address verified the
+same device identity and all three entity states. No firmware write or USB
+opening was needed for that check. The radio-loss interval and retry timing
+were not captured. Scoped local evidence is `build/wifi-20261111/evidence.json`,
+with the later result in `build/wifi-20261111/post-hotspot-toggle.json`.
+
+A read-only native API client successfully identified this node and listed
+its three existing occupancy/freshness/transaction entities over port 6053.
+This is protocol evidence, not Home Assistant UI acceptance, and BMP388 is
+not currently a native API entity. The private host MQTT subscriber verifies
+the broker's TLS identity and authenticates, but the ESP's MQTT TLS connection
+has not completed; no node MQTT publication is claimed. SDK allocations still
+occur after sealing, so whole-system static allocation remains unqualified.
+
+MQTT follow-up: `c3mqtt` requests nonblocking ESP-TLS with a 1 ms socket
+timeout. In pinned SDK `components/esp-tls/esp_tls.c`, the connecting-state
+`select` sets are initialized only once; pinned lwIP clears them on timeout.
+A first TCP timeout can therefore leave later polls unable to see readiness.
+This source finding is consistent with the observed 30-second broker-side
+timeouts, but its role in this board capture still needs a TLS-state or packet
+trace. No vendor change or longer blocking timeout was introduced here.
+The temporary broker and capture clients were stopped after the bench; the
+uT-Kernel application remains installed, and port 6053 was reachable afterward.
+
+Private backups, build inputs, raw captures and the installed build are outside
+Git under `/Users/waiyan/uthome-tools/`. Retain the original full-flash backup;
+only bootloader, partition table and application were written, preserving the
+configuration partition. The earlier control with an incorrectly escaped
+SSID is invalid evidence and is excluded from the comparison above.
+
 ## Opt-in ESP transport bindings
 
 The previously portable read path now has owned ESP adapters and an application
@@ -966,15 +1078,37 @@ shape only** (replace placeholders privately, never commit actual credentials):
 }
 ```
 
-Paths are relative to that JSON. SSID <=32 printable ASCII bytes; password 8..63;
-token 32..64 visible ASCII bytes with no whitespace. Port 1..65535. PEM files
+Paths are relative to that JSON. SSIDs use 1..32 UTF-8 bytes of printable text,
+preserving Unicode names such as an iPhone's curly apostrophe without
+normalization. Passwords use 8..63 printable ASCII bytes; tokens use 32..64
+visible ASCII bytes with no whitespace. Port 1..65535. PEM files
 are each <=8191 bytes. Syntax/size checks are not certificate/key validation;
 ESP-TLS validates key material during session initialization. There are no shipped
 credentials, generated default certificates or verification-disable switches.
 
+The optional integer `tx_power_quarter_dbm` accepts 8..84 in the private JSON.
+Omission preserves the SDK transmit-power default. For the connected C3 tested
+on 11 November, `34` requests 8.5 dBm; the SDK quantizes supported values. The
+station applies the cap after Wi-Fi starts and before every connection attempt,
+including reconnects. A failed power-setting call records stage 15 (`tx_power`)
+and uses the existing retry backoff without calling connect. This is a
+board-specific development setting, not a change to runtime sensor profiles.
+
+Manual BARR-C review for this setting: the signed 32-bit interface validates
+zero or 8..84 before its checked narrowing to the SDK's signed 8-bit argument.
+The immutable cap belongs to the serialized station owner. Applying it follows
+the existing station-ready/retry admission guards; failures retain the SDK
+error and return to bounded backoff. Status reads remain passive and stage
+identifiers 0..14 are unchanged. One static byte is added, with no heap path,
+task, native object, policy exception or memory-limit change.
+
 ```console
-python tools/target/qualify_kernel.py build --runtime-port --configuration-app --static-net-queues --network-services both --network-settings C:/private/uthome-network.json --work-dir C:/uthome-builds/network-services-new --compat-patch firmware/third_party/patches/0002-esp-idf-6.1-build.patch --resource-patch firmware/third_party/patches/0001-uthome-c3-resources.patch
+python tools/target/qualify_kernel.py build --runtime-port --configuration-app --static-net-queues --network-services both --network-settings C:/private/uthome-network.json --work-dir C:/uthome-builds/network-services-new --compat-patch firmware/third_party/patches/0002-esp-idf-6.1-build.patch --resource-patch firmware/third_party/patches/0001-uthome-c3-resources.patch --observer-patch tools/target/patches/freertos-task-observer.patch
 ```
+
+The reviewed observer patch selects the fixed task pool used by the station
+memory policy. Keep that selection when rebuilding this application; a service
+image built without it does not qualify against that policy.
 
 `wifi` selects Wi-Fi/HTTPS only; `ble` selects BLE only; `both` requests coexistence,
 which remains unqualified. The builder rejects diagnostic/native-UART/model mode
@@ -982,8 +1116,7 @@ mixes and missing private inputs before build side effects. It snapshots owned
 sources, generates a formatted private netsetup.h and verifies original private
 inputs plus generated bytes on every direct rebuild. Changed inputs require a
 fresh build. **The build directory, generated header, ELF and image contain secrets;
-keep them private.** No actual credentials or PEM material were supplied or generated
-in this implementation run. Do not publish a configured image or its source snapshot.
+keep them private.** Do not publish a configured image or its source snapshot.
 
 This is immutable development provisioning, not a runtime configuration endpoint.
 Runtime profiles and persistence still belong exclusively to cfgctrl. HTTP mutations

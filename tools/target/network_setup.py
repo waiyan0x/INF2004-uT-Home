@@ -34,9 +34,19 @@ def generate(source):
     config=json.loads(raw.decode('utf-8'),object_pairs_hook=unique)
     required={'ssid','password','token','certificate_file','key_file'}
     if (not isinstance(config,dict) or not required<=config.keys() or
-            config.keys()-required-{'port','mqtt','esphome_lab'}):
+            config.keys()-required-{'port','mqtt','esphome_lab','tx_power_quarter_dbm'}):
         raise ValueError('invalid setup fields')
-    for name,minimum,maximum in [('ssid',1,32),('password',8,63),('token',32,64)]:
+    tx_power=config.get('tx_power_quarter_dbm',0)
+    if ('tx_power_quarter_dbm' in config and
+            (type(tx_power) is not int or not 8<=tx_power<=84)):
+        raise ValueError('invalid Wi-Fi TX power')
+    ssid=config['ssid']
+    if not isinstance(ssid,str) or not ssid.isprintable():
+        raise ValueError('invalid SSID text')
+    ssid_bytes=ssid.encode('utf-8')
+    if not 1<=len(ssid_bytes)<=32:
+        raise ValueError('SSID exceeds byte bound')
+    for name,minimum,maximum in [('password',8,63),('token',32,64)]:
         value=config[name]
         if (not isinstance(value,str) or not minimum<=len(value)<=maximum or
                 any(ord(char)<(0x21 if name=='token' else 0x20) or ord(char)>0x7e for char in value)):
@@ -94,9 +104,16 @@ def generate(source):
            '#include <stdint.h>',f'#define UTHOME_SETUP_PORT ({port}U)']
     lines.append(f'#define UTHOME_SETUP_MQTT ({int(mqtt is not None)}U)')
     lines.append(f'#define UTHOME_OCCUPANCY_LAB ({int(lab)}U)')
+    lines.append(f'#define UTHOME_SETUP_TX_POWER ({tx_power}U)')
     if mqtt is not None:
         lines.append(f'#define UTHOME_SETUP_MQTT_PORT ({mqtt["port"]}U)')
-    text_inputs=[('ssid',33,config['ssid']),('password',64,config['password'])]
+    # String-literal escapes preserve UTF-8 bytes in char storage regardless
+    # of compiler char signedness. Adjacent chunks bound generated line length.
+    lines.append('static const char g_setup_ssid[33] =')
+    for start in range(0,len(ssid_bytes),10):
+        lines.append('    "'+''.join(f'\\x{byte:02x}' for byte in ssid_bytes[start:start+10])+'"')
+    lines[-1]+=';'
+    text_inputs=[('password',64,config['password'])]
     text_inputs += [(name,len(value)+1,value) for name,value in mqtt_text.items()]
     for name,size,value in text_inputs:
         data=value.encode('ascii')+b'\0'

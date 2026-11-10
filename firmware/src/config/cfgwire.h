@@ -21,7 +21,8 @@ typedef enum
     CFGWIRE_TELEMETRY    = 6,
     CFGWIRE_CAPABILITIES = 7,
     CFGWIRE_DISCOVER     = 8,
-    CFGWIRE_WORKCOST     = 9
+    CFGWIRE_WORKCOST     = 9,
+    CFGWIRE_NETWORK      = 10
 } cfgwire_command_t;
 
 typedef struct

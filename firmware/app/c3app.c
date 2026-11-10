@@ -25,6 +25,11 @@
 #include "telemetry.h"
 #include "cfgdisc.h"
 static int discovery_wait (void);
+static int diagnostic (void *                    p_context,
+                       const cfgwire_request_t * p_request,
+                       uint8_t *                 p_data,
+                       size_t                    capacity,
+                       size_t *                  p_size);
 #if UTHOME_NETWORK_WIFI
 static cfgmux_t g_mux = {0};
 #endif
@@ -81,7 +86,7 @@ int c3app_run (const uint8_t *       p_build_hash,
         (0 != cfgpump_observe(&g_pump, telemetry_observe, &g_telemetry)) ||
         (0 != cfgpump_capabilities(&g_pump, cfgbind_capabilities, NULL)) ||
         (0 != cfgpump_discovery(&g_pump, cfgdisc_observe, &g_discovery)) ||
-        (0 != cfgpump_workcost(&g_pump, costview_observe, &g_cost)))
+        (0 != cfgpump_diagnostics(&g_pump, diagnostic, &g_cost)))
     {
         return -1;
     }
@@ -143,6 +148,30 @@ int c3app_run (const uint8_t *       p_build_hash,
 static int discovery_wait (void)
 {
     return (E_OK == tk_dly_tsk(1)) ? 0 : -1;
+}
+
+/** @brief Reuse one diagnostic slot without growing application storage. */
+static int diagnostic (void *                    p_context,
+                       const cfgwire_request_t * p_request,
+                       uint8_t *                 p_data,
+                       size_t                    capacity,
+                       size_t *                  p_size)
+{
+    if (NULL == p_request)
+    {
+        return -1;
+    }
+    if (CFGWIRE_WORKCOST == p_request->command)
+    {
+        return costview_observe(p_context, p_data, capacity, p_size);
+    }
+#if UTHOME_NETWORK_WIFI
+    if (CFGWIRE_NETWORK == p_request->command)
+    {
+        return c3net_observe(p_data, capacity, p_size);
+    }
+#endif
+    return -1;
 }
 
 /* End of file. */
