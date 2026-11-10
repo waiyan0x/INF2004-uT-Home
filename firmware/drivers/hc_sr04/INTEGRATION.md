@@ -151,8 +151,8 @@ Sources: [Espressif C3 technical reference](https://documentation.espressif.com/
 and the pinned SDK LL headers plus native kernel SYSTIMER implementation.
 
 Before hardware acceptance, confirm modules, wiring, voltage conversion and
-actuator supply/driver. Follow the [hardware guide](../../../CONTRIBUTING.md).
+actuator supply/driver. Follow the [hardware guide](../../../HARDWARE_ACCEPTANCE.md).
 
 
 Current [acceptance status](../../qualification/README.md) and
-[wiring procedure](../../../CONTRIBUTING.md). Keep dated results in the qualification records, separate from current usage.
+[wiring procedure](../../../HARDWARE_ACCEPTANCE.md). Keep dated results in the qualification records, separate from current usage.

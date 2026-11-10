@@ -7,18 +7,20 @@
 #include "nethttp.h"
 #include "netble.h"
 #include "netbroker.h"
+struct txjob_view;
 
 typedef struct
 {
-    netble_meta_t    meta;
-    uint32_t         saved_revision;
-    uint32_t         runtime_state;
-    bool             b_durable_known;
-    bool             b_wifi_online;
-    char             node_id[32];
-    netbroker_view_t mqtt;
-    bool             b_mqtt_enabled;
-    bool             b_configuration_supported;
+    netble_meta_t             meta;
+    uint32_t                  saved_revision;
+    uint32_t                  runtime_state;
+    bool                      b_durable_known;
+    bool                      b_wifi_online;
+    char                      node_id[32];
+    netbroker_view_t          mqtt;
+    bool                      b_mqtt_enabled;
+    bool                      b_configuration_supported;
+    const struct txjob_view * p_transaction;
 } netread_info_t;
 
 /* Callback copies one registered source and capture time under the existing

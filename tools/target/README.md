@@ -13,6 +13,13 @@ checks and retains their evidence; a successful compiler exit is insufficient.
 
 ## Build modes
 
+The isolated `--runtime-port --configuration-app --static-net-queues
+--rule-probe` mode replaces normal configuration and sensor activity with the
+USB transaction-rule proof. It uses the existing generic I2C driver and fixed
+reviewed BMP388 wiring. See the [experiment guide](../../experiments/runtime_rules/README.md).
+Its link check excludes production configuration/radio paths; it is not MQTT
+or normal application acceptance.
+
 The CLI keeps the flags below. `build_modes.py` resolves them before any staging
 into one immutable `BuildSelection`, with independent static-queue and BLE
 options. Its mode table owns prerequisites; the selection emits both CMake
@@ -33,7 +40,6 @@ and paths inside dependencies are rejected, never cleaned. Custom `--sdk` and
 | `--runtime-port` | Project acceptance fixture; no peripheral activation |
 | `--runtime-port --native-uart-fixture` | Isolated native UART ring/fault checks; disconnect external UART senders and receivers before installation |
 | `--runtime-port --configuration-app` | USB/profile/storage application used with the UI and peripherals |
-| `--runtime-port --configuration-app --static-net-queues --model-load-probe` | Test-only varied-goal classifier OFF/ON comparison with active peripherals; command-9 payload is diagnostic-only |
 | `--runtime-port --static-net-queues --senlux-probe` | Isolated SEN0390 and BMP388 read diagnostic; no application workers |
 | `--runtime-port --configuration-app --static-net-queues --senlux-app-probe` | Diagnostic configuration application with the provisional SEN0390 binding enabled |
 
@@ -98,32 +104,6 @@ Check a staged project against current owned source before reuse:
 python tools/target/qualify_kernel.py verify-snapshot --project-dir "$env:USERPROFILE/esp/uthome-config-new-build/project"
 python -B -m unittest discover -s tests/target -v
 ```
-
-## Loaded classifier diagnostic
-
-The loaded model probe uses the frozen fixture in
-`tests/target/runtime_port_board/loadmodel/`. It preserves the configuration
-application and substitutes only its workload-observer call. The first command-9
-request starts four 75-second phases: OFF, ON, OFF, ON; phase four stays done.
-Each ON request runs four classifier calls over immutable Python parity vectors.
-No recommendation, Apply, new task or runtime allocation is introduced. The
-large read-only test corpus is diagnostic flash, not model storage.
-
-Diagnostic workload replies use payload version `0x41494C31`. Header words
-20..23 hold phase, cumulative predictions, last batch wall time in microseconds
-and cumulative mismatches. Ordinary host decoders intentionally reject it.
-Use the retained bench reader; do not open Configuration Desk during this image's
-test. The reader validates and retains original frames before adapting a copy
-for the existing workload decoder. Standard telemetry and configuration paths
-remain unchanged. The qualifier checks fixture hashes, observer substitution
-scope and absent diagnostic symbols in ordinary images. Radio/isolated-model
-modes cannot be combined with this probe.
-
-Preserve the running image/profile and full flash backup before installation;
-restore them afterward. Use the reviewed three-peripheral wiring without an
-actuator. Loaded classifier timing is not full adviser/feature/UI latency or
-evidence of model benefit. Compiler stack records and empirical sentinels are
-separate observations, not worst-case stack proofs.
 
 ## SEN0390 application diagnostic
 
@@ -203,7 +183,7 @@ try {
 ```
 
 Release BOOT, reset if needed and reconnect on the current port. The app uses
-binary USB traffic; a quiet terminal is normal. Follow the [hardware guide](../../CONTRIBUTING.md)
+binary USB traffic; a quiet terminal is normal. Follow the [hardware guide](../../HARDWARE_ACCEPTANCE.md)
 to apply/save EMPTY before each wiring change and then the matching profile.
 
 ## Capture acceptance results
@@ -244,14 +224,45 @@ Historical map and allocator results are in
 
 The optional fixed-queue/event/startup variant uses `--static-net-queues` and
 `--budget tools/target/network-budget.json` with the memory checker. Its overall
-278,528-byte reservation remains unchanged. The older `netqueue-budget.json`
-describes the preceding queue-only experiment, not the current selected variant.
-The scan-only
-`--wifi-probe` additionally requires that queue option and the isolated runtime
+278,528-byte reservation remains unchanged. The selected limits are 168,192
+bytes of application fixed data, 53,184 bytes of SDK/kernel fixed data and
+57,152 bytes of RAM code. The checker accepts passed configuration-application
+builds and passed isolated Wi-Fi/BLE diagnostics; the resulting record retains
+`whole_system_static_qualified=false`. The older `netqueue-budget.json` describes
+the preceding queue-only experiment, not the current selected variant. The
+scan-only `--wifi-probe` additionally requires that queue option and the isolated runtime
 fixture (without `--configuration-app`). Its explicit noncompliant scope and
 memory observations are described in the [network guide](../../firmware/src/network/README.md).
-Do not install either while the AI collector owns serial. Diagnostic binaries
+Do not install either while another client owns serial. Diagnostic binaries
 are not release candidates and must not be substituted for application acceptance.
+
+The separate `wifi-station-budget.json` applies only to a passed, non-diagnostic
+Wi-Fi configuration application with static network queues and the static task
+pool. It leaves `network-budget.json` unchanged. The station policy attributes
+the project-owned `uthome_task` archive once to `task_pool_fixed`; it is neither
+application data nor external SDK/kernel data. Its group limits are 147,456
+bytes application fixed, 18,560 bytes task-pool fixed, 55,296 bytes external
+SDK/kernel fixed and 57,152 bytes RAM code, under the unchanged 278,528-byte
+total cap. Every reserved module must be linked, and every linked owned module
+must have and remain within its reservation. Run it only against immutable build
+evidence, writing a new result outside that evidence directory.
+
+The station-08 map is the policy basis. Existing reviewed per-object limits are
+retained where the station links the same module. `c3app` receives one additional
+256-byte block above its 42,240-byte measurement; new station objects round
+`c3https` to 3,200 bytes (128-byte boundary), `c3net` to 96 bytes and `c3wsta`
+to 64 bytes (16-byte boundaries). `c3task` retains its reviewed 18,504-byte
+reservation, 35 bytes above the station measurement. Exact-size static pools
+remain exact so any capacity change requires review. BLE-only `c3ble` and
+`c3gatt` are excluded because the policy requires Wi-Fi-only evidence and neither
+object is linked in the reference map.
+
+```sh
+python tools/target/memory_budget.py \
+  --build /tmp/uthome-wifi-station-08 \
+  --output /tmp/uthome-wifi-station-budget-check.json \
+  --budget tools/target/wifi-station-budget.json
+```
 
 `--ble-probe` selects isolated nonconnectable advertising. Adding
 `--ble-gatt-probe` selects the bounded, one-connection, read-only GATT diagnostic

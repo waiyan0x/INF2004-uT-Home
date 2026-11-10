@@ -41,3 +41,10 @@ FlexiEdgePico*/
 *.swp
 .vscode/*
 !.vscode/extensions.json
+
+# Local-only source references, not repository inputs
+/Embedded discussion_summary.txt
+/Embedded discussion_transcript.txt
+/barr_c_coding_standard_2018.pdf
+/consultation_611_summary.txt
+/consultation_611_transcript.txt

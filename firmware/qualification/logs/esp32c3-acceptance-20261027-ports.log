@@ -1,0 +1,5 @@
+# 2026-10-27T07:07:14Z list_ports
+1 ports found
+COM5                
+    desc: USB Serial Device (COM5)
+    hwid: USB VID:PID=303A:1001 SER=D4:05:92:E6:C3:BC LOCATION=1-1:x.0

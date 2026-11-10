@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 from tools.config_transfer.protocol import HEADER, Command, encode_request, decode_reply
 from tools.config_transfer.workcost import decode_workcost
 from tools.config_transfer.client import Client, TransferError
-from ai.measurements import validate_snapshot
+from tools.config_transfer.measurements import validate_snapshot
 from test_usb_client import Stream
 
 

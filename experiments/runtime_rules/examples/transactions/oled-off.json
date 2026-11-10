@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "device": "oled",
+  "revision": 1,
+  "protocol": "spi",
+  "address": 0,
+  "mode": 0,
+  "dc_pin": 3,
+  "dc_level": 0,
+  "cs_pin": 4,
+  "rate": 4000000,
+  "timeout_ms": 100,
+  "write_hex": "AE",
+  "read_length": 0
+}

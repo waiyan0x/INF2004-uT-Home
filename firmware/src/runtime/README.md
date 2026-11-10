@@ -33,9 +33,8 @@ All cumulative additions saturate at UINT32_MAX and set a sticky flag; saturated
 windows are unusable for calibration. A 32-bit microsecond sum can saturate after
 about 71 minutes of accumulated elapsed work, so use short measured windows.
 Invalid observations leave storage unchanged. Caller-owned input/output objects
-must remain valid and non-overlapping for the call. `ai/measurements.py` checks
-snapshot identity, bindings, availability and monotonic counters before producing
-deltas. It does not automatically add outcomes to model inputs.
+must remain valid and non-overlapping for the call. `tools/config_transfer/measurements.py` validates snapshot identity, bindings,
+availability and counters before exposing measurements.
 
 Manual BARR-C review (rules 1-8): new helper/templates use C99, fixed-width
 unsigned arithmetic and checked subtraction, explicit saturation, const input,

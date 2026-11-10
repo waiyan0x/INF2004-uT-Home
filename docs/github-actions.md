@@ -8,10 +8,10 @@ board connection and uses read-only repository permissions.
 
 1. The existing C-standard and host-acceptance job remains mandatory. It runs
    the pinned clang-format 20.1.8 gate, checker tests, foundation, runtime,
-   target-host and preserved Member 5 suites. The standalone UART/GPIO and
-   optional-output suites also run with warnings treated as errors.
-2. Only after that job succeeds, two Ubuntu 24.04 jobs build the acceptance and
-   configuration application images. Hardware tests are compiled, not executed.
+   target-host and Buddy 1 static-task suites. The standalone UART/GPIO suite
+   also runs with warnings treated as errors.
+2. Only after that job succeeds, three Ubuntu 24.04 jobs build the acceptance, configuration and
+   ESPHome laboratory images. Hardware tests are compiled, not executed.
 3. Each job reads the exact revisions from `tools/target/qualify_kernel.py`:
    - ESP-IDF: `fff9895c82d744c7237be8847347bdd1b07c6643` (project's 6.1 pin).
    - Kernel: `ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2`.
@@ -36,7 +36,7 @@ GitHub step log. A host-gate failure prevents target jobs from starting.
 
 The workflow is included on the `system-integration` branch. Pushing a commit
 starts Actions automatically. Open GitHub -> Actions -> "C standard and host
-acceptance" and select the run for this branch, then inspect both ESP32-C3
+acceptance" and select the run for this branch, then inspect all ESP32-C3
 jobs. Manual dispatch is also available once GitHub recognizes the workflow
 on the default branch. Download each image's artifacts after its run.
 
@@ -61,7 +61,6 @@ updated together. These names are not backward-compatible aliases:
 | `uart_gpio_io.h`, `uart_gpio_io` | `ugio.h`, `ugio_t` |
 | `ug_status`, `ug_direction`, `ug_edge`, `ug_uart_config` | `ugio_status_t`, `ugio_direction_t`, `ugio_edge_t`, `ugio_uart_config_t` |
 | `uart_gpio_host.c/h`, `uart_gpio_host_*` | `ughost.c/h`, `ughost_*` |
-| `ug_motor`, `ug_motor_init/set/stop` | `pwm_motor_t`, `pwm_motor_init/set/stop` |
 | `test_uart_gpio.c` | `ugtest_main.c/h` |
 
 Callback fields now use p_ and Boolean fields b_ prefixes. Callback signatures
@@ -78,9 +77,8 @@ failed open, and sonar errors zero outputs. Sensor implementations were not
 changed to satisfy tests. Buffer overflow, fragmented frames, signed values,
 timeouts, rising edges/detach, invalid pins and PWM stop coverage are retained.
 The runtime test discovery now invokes the correct dedicated build scripts
-for both standalone suites, rather than omitting them or using unrelated
-runtime-only includes. The optional-output script now stops immediately on
-standard-gate failure. Existing tests/standard checks were not disabled.
+for the standalone suite, rather than omitting it or using unrelated
+runtime-only includes. The retired optional-output examples have since been removed.
 
 ## Verification limits
 

@@ -90,14 +90,14 @@ It does not query storage, consume mutation IDs, reset counters or change the
 profile. Results distinguish a valid snapshot (exit 0) from BUSY/unavailable
 (exit 2); unavailable data never becomes a zero-cost measurement. The snapshot
 includes profile revision/CRC and binding generation. Compare deltas only within
-one verified image, profile and generation; use the AI recorder for a complete
-identity-bound dataset. Elapsed worker time includes waits and preemption and is
+one verified image, profile and generation; validation preserves identity and
+explicit availability. Elapsed worker time includes waits and preemption and is
 not CPU utilization. Version 2 additionally carries a coherent native idle/tick
 observation. `reply.scheduler_window(previous)` computes sampled non-idle time
 over a verified 100 ms..60 s same-profile window; it is not cycle-accurate CPU
 usage and cannot isolate interrupts. Version 1 remains supported and reports
 the scheduler observation absent. See [wire details](../../firmware/src/services/TELEMETRY.md)
-and [measurement contracts](../../ai/README.md).
+and the host measurement validator in `measurements.py`.
 
 ## Compiled capabilities
 

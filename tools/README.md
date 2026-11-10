@@ -12,13 +12,6 @@
 - [c_standard/](c_standard/README.md): mandatory BARR-C checks and audit evidence.
 
 Follow the [current delivery plan](../README.md#overall-delivery-plan) for
-combined hardware acceptance and AI integration; old checkpoint numbers are retired.
+combined hardware acceptance and runtime-rule integration.
 The local configurator adapts Member 5's cached design; its README records the
 source revision and the retained/replaced pieces.
-
-## Earlier prototype tools
-
-The separate [Member 5 toolkit](../legacy/member5/README.md) retains the original
-S3/schema-1.0 CLI, browser UI, verified filesystem bundles and manual evidence
-runner. Run it from its own directory. Current C3 deployment uses this folder's
-configurator and USB client.

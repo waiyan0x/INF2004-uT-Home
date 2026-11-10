@@ -4,19 +4,17 @@ import logging
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import secrets
-from threading import BoundedSemaphore
 from tools.config_validator.planner import ROOT, load_document, parse_document
 from tools.config_transfer.client import TransferError
 from .workflow import Workflow
 from .discovery import connection_presets
-from .datasheet import analyse, MAX_PDF_BYTES
 from .recipes import recipe_catalogue
 
 STATIC = Path(__file__).with_name("static")
 LOGGER = logging.getLogger(__name__)
 ASSETS = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
           "/style.css": ("style.css", "text/css"), "/dashboard.js": ("dashboard.js", "text/javascript"),
-          "/discovery.js": ("discovery.js", "text/javascript"), "/datasheet.js": ("datasheet.js", "text/javascript"),
+          "/discovery.js": ("discovery.js", "text/javascript"),
           "/recipes.js": ("recipes.js", "text/javascript")}
 # Explicit assets only: restoring the design must not expose the source tree.
 STYLE_FILES = (
@@ -31,7 +29,7 @@ ASSETS.update({"/styles/" + name: ("styles/" + name, "text/css") for name in STY
 ASSETS.update({"/assets/fonts/" + name: ("assets/fonts/" + name, "font/woff2")
                for name in ("roboto-latin.woff2", "roboto-greek.woff2")})
 ASSETS.update({"/assets/datasheet/" + name: ("assets/datasheet/" + name, "image/png")
-               for name in ("document.png", "sparkles.png")})
+               for name in ("document.png",)})
 
 class Handler(BaseHTTPRequestHandler):
     def setup(self):
@@ -92,7 +90,7 @@ class Handler(BaseHTTPRequestHandler):
             # denied. Unread TCP data can otherwise reset the socket on Windows
             # before the client receives our rejection. Never parse or dispatch
             # an unauthorized body; the existing socket timeout still applies.
-            limit = (((MAX_PDF_BYTES + 2) // 3) * 4 + 1024) if self.path == "/api/datasheet" else 65536
+            limit = 65536
             raw = self.read_body(limit)
             if not authorized:
                 self.send(403, {"error": "Local session required"})
@@ -102,15 +100,7 @@ class Handler(BaseHTTPRequestHandler):
             body = parse_document(raw, limit)
             if not self.path.startswith("/api/"):
                 raise ValueError("Unknown operation")
-            if self.path == "/api/datasheet":
-                if not self.server.datasheet_lock.acquire(blocking=False):
-                    raise ValueError("A datasheet analysis is already running")
-                try:
-                    result = analyse(body)
-                finally:
-                    self.server.datasheet_lock.release()
-            else:
-                result = self.server.workflow.dispatch(self.path[5:], body)
+            result = self.server.workflow.dispatch(self.path[5:], body)
             self.send(200, result)
         except (ImportError, OSError, ValueError, TransferError, RecursionError) as error:
             if authorized:
@@ -144,7 +134,6 @@ def make_server(port=8080, workflow=None):
     server = LocalServer(("127.0.0.1", port), Handler)
     server.workflow = workflow or Workflow()
     server.token = secrets.token_urlsafe(32)
-    server.datasheet_lock = BoundedSemaphore(1)
     return server
 
 def serve(port=8080):

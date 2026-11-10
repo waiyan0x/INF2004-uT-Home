@@ -48,8 +48,7 @@ class RuntimeIntegrationTests(unittest.TestCase):
 
 def add_test(source):
     def run(self):
-        standalone = {"outputs_main": "tools/test_outputs.py",
-                      "ugtest_main": "tools/test_uart_gpio.py"}
+        standalone = {"ugtest_main": "tools/test_uart_gpio.py"}
         if Path(source).stem in standalone:
             result = subprocess.run([sys.executable, str(ROOT / standalone[Path(source).stem])],
                                     cwd=ROOT, capture_output=True, text=True)

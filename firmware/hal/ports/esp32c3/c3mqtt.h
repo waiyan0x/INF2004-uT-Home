@@ -29,6 +29,12 @@ int c3mqtt_step (uint64_t               now_ms,
                  void *                 p_context);
 /* Single owner, copied diagnostics only; safe before startup. */
 int c3mqtt_status (netbroker_view_t * p_view);
+/* Enable the node-specific transaction subscription before connecting. */
+int c3mqtt_transactions (void);
+bool c3mqtt_ready (void);
+int c3mqtt_request (uint8_t * p_data, size_t capacity, size_t * p_size);
+/* Priority result mailbox: 1 means backpressure/offline, retain caller copy. */
+int c3mqtt_result (const uint8_t * p_data, size_t size);
 #endif
 
 /* End of file. */

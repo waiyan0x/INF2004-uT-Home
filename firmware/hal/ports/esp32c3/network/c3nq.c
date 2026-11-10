@@ -159,14 +159,24 @@ int c3nq_diagnostic (c3nq_diagnostic_t * p_report)
 }
 #endif
 
-/** @brief Static APIs retain caller storage and use its opaque control key. */
+/** @brief Static APIs retain caller storage and mark accepted control keys. */
 void * c3nq_static (uint32_t  length,
                     uint32_t  item_bytes,
                     uint8_t * p_storage,
                     void *    p_key,
                     uint8_t   kind)
 {
-    return create(length, item_bytes, kind, p_storage, p_key, true);
+    void * p_handle = create(length, item_bytes, kind, p_storage, p_key, true);
+    if (NULL != p_handle)
+    {
+        /* Pinned lwIP treats all-zero StaticSemaphore_t storage as invalid.
+         * Queue state stays in the pool; this byte records initialization.
+         * Caller storage is writable and at least one byte by this ABI.
+         * Failed leases must leave an existing control object untouched. */
+        uint8_t * p_control = p_key;
+        p_control[0]        = 1U;
+    }
+    return p_handle;
 }
 
 /** @brief Counting semaphore limits are explicit, not queue payload sizes. */

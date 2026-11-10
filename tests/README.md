@@ -7,8 +7,8 @@ source you are changing; a previous pass does not qualify a new revision.
 Hardware, wireless/static compliance and model eligibility are separate gates.
 
 Run from the repository root. Install `tools/requirements.txt`, the pinned
-formatter in `tools/c_standard/requirements.txt`, and training dependencies
-for AI tests. Put GCC on PATH; Node is needed for presentation checks.
+formatter in `tools/c_standard/requirements.txt`. Put GCC on PATH; Node is
+needed for presentation checks.
 
 The pinned JavaScript development checks use `package-lock.json`. With Node
 22.13 or later in the 22.x line, or Node 24+, run `npm ci --ignore-scripts` and
@@ -23,11 +23,9 @@ python -B -m unittest discover -s tests/foundation -v
 python -B -m unittest discover -s tests/runtime -v
 python -B -m unittest discover -s tests/target -v
 python -B -m unittest discover -s tests/discovery -v
-python -B -m unittest discover -s ai/tests -v
 node --test tests/target/test_*.mjs
 node --test visualiser/tests/*.test.mjs
 python tools/test_uart_gpio.py
-python tools/test_outputs.py
 ```
 
 | Suite | What it checks |
@@ -37,8 +35,17 @@ python tools/test_outputs.py
 | Runtime | Lifecycle, bound dispatch, retained cleanup, transactions and fault recovery |
 | Target | Build/source guards, fake-kernel lifecycle, drivers, admission, USB/storage, telemetry, rules and UI workflow |
 | Discovery | Reviewed observations/presets, ambiguity, identity limits, driver support and additive drafts |
-| AI | Experiment/run validation, simulated training, deterministic evaluation and generated C parity |
 | Node | Existing dashboard/discovery presentation and interaction checks |
+| Buddy 1 | Static task-pool lifecycle and shim checks; run by CI on Linux with address and undefined-behavior sanitizers |
+
+For the Buddy 1 tests, initialize the pinned kernel submodule first. On Linux,
+run `python -m unittest discover -s tests/buddy1 -p test_fixed_stack_pool.py -v`,
+then each `tests/buddy1/test_shim_*.py`, `test_c3task_static_pool.py`,
+`test_c3task_alignment.py`, `test_c3task_no_static.py`, and
+`test_fixed_stack_stress.py` with Python. Three
+fixtures require a compiler with AddressSanitizer and UndefinedBehaviorSanitizer;
+their existing leak-detection exclusion is not evidence of leak freedom. These
+host checks do not establish on-board scheduling or memory safety.
 
 The target suite also protects the host configuration mutation boundary: SAVE
 uses the active revision, invalidates outstanding reviews and never silently
@@ -99,21 +106,17 @@ single-use review tokens, changed state/capabilities, concurrent asset requests,
 unknown devices and uncertain deployment. USB is faked; no test authorizes a
 physical mutation or proves actual device detection.
 
-The [AI guide](../ai/README.md) covers its separate environment and compiler
-requirements. The preserved Member 5 workflow runs independently with
-`python -B -m unittest discover -s tests -v` from `legacy/member5`; it is the
-legacy schema-1.0 host workflow, not the current C3 deployment path.
-
-`ai.tests.test_loaded_model` checks the frozen diagnostic corpus, integer
-classifier parity, phase boundaries, invalid input and clock reversal with a
-host clock/observer double. Target qualification also checks legal build modes
-and absence of model symbols in ordinary images. These software checks do not
-replace the active-peripheral OFF/ON board comparison.
+The cleanup review of the affected C fixtures checked the board entry's build
+selection, retained startup and ownership paths, callback types, initialization,
+integer and pointer bounds, and failure handling against the manual BARR-C
+checklist. Retired timing-model and optional-output branches were removed with
+their callers; the remaining radar and sonar checks keep active assertions and
+warnings as errors. This review does not replace target or hardware acceptance.
 
 For real kernel execution, use the [board fixture](target/runtime_port_board/README.md).
 Build and captured board outcomes live in the [evidence index](../firmware/qualification/README.md).
 Physical timing, USB interruption, flash power loss, pin voltages, output safety,
-concurrency and RAM/stack measurements require the [hardware procedure](../CONTRIBUTING.md).
+concurrency and RAM/stack measurements require the [hardware procedure](../HARDWARE_ACCEPTANCE.md).
 
 Browser integration uses the real Configuration Desk HTML and ES modules with
 mocked HTTP responses; it never opens serial devices or sends PDFs. Run
@@ -122,7 +125,7 @@ confirmation/addition wiring, busy-state controls, review navigation, stale
 responses, discovery expiry, consumed apply tokens, delayed catalogue delivery
 and failed telemetry clearing. Additional scenarios cover PDF rendering/download,
 stale success/failure after file changes, size/provider errors, asynchronous import
-races, local-failure isolation, network/HTTP error context, datasheet generation
+races, local-failure isolation, network/HTTP error context, catalogue draft generation
 payloads and stale results, and telemetry/mutation serialization. The wiring-guide
 tests exercise every setup, responsive focus views and saved-progress recovery.
 CI installs the same pinned Chromium revision.

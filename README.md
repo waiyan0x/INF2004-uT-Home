@@ -1,200 +1,102 @@
 # μT-Home
 
-A configurable embedded platform for INF2004, group AAI13. One firmware image
-runs on the **ESP32-C3 SuperMini**; a validated profile selects supported devices,
-wiring, timing and sensor-to-output rules. The prototype equipment demonstrates
-the platform rather than defining its limits.
-
-## Start here
-
-| Task | Guide |
-|---|---|
-| Set up the board/toolchain or build firmware | [Firmware](firmware/README.md) |
-| Wire and test equipment | [Hardware acceptance](CONTRIBUTING.md) |
-| Follow the two-breadboard rebuild visually | [Local wiring visualiser](visualiser/README.md) |
-| Open the local configuration application | [Configuration Desk](tools/configurator/README.md) |
-| Understand device discovery | [Discovery design](docs/README.md) |
-| Prepare experiments and train the timing model | [AI](ai/README.md) |
-| Choose or validate profiles | [Configurations](configs/README.md) |
-| Run software checks | [Tests](tests/README.md) |
-| Change C code | [Mandatory BARR-C policy](C_CODING_STANDARD.md) and [agent rules](AGENTS.md) |
+A configurable embedded platform for INF2004, group AAI13. The project aims
+to let a user change how an ESP32-C3 communicates with peripherals at runtime,
+without recompiling or reflashing the firmware for each change.
 
 ## Resume next session
 
-Use this repository on `system-integration`. Check Git status and the latest
-remote changes before editing; preserve teammates' work. Read the area guide
-and [C policy](C_CODING_STANDARD.md) before changing implementation.
+The direction below follows the 6 November 2026 consultation. The end-to-end
+workflow defines the target scope. The bounded three-bus service below is
+implemented and software-tested; complete hardware acceptance remains pending. Check Git status, read the relevant area guide, and preserve existing
+work and historical evidence before making changes. The five-member ownership
+and handoffs are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-The USB configuration system supports BMP388/I2C, six-pin OLED/SPI and
-LD2450/UART. Fixed workers, parsing/storage, discovery and timing/allocation
-telemetry are implemented. Wi-Fi scanning and read-only BLE have isolated
-diagnostics, and optional onboard MQTT/HTTPS/BLE service bindings are now ported; they are not
-whole-system static-memory qualified. See the [network guide](firmware/src/network/README.md).
-The timing models remain experimental: none passed its deployment-benefit gate.
+The selected direction is **uT-Kernel firmware with an ESPHome-compatible native
+API interface for Home Assistant display**. The transaction service implements
+bounded generic I2C, SPI writes and UART operations, MQTT rule reception and
+application-owner execution. The native API exposes a separate Transaction
+result text entity alongside radar occupancy/freshness. These paths have software
+integration tests; physical three-bus, radio and Home Assistant acceptance remain
+pending. Use the [transaction service instructions](experiments/runtime_rules/README.md#running-the-integrated-service). The framework comparison and
+USB rule-switching proof are in the [runtime-rule guide](experiments/runtime_rules/README.md);
+the choice has
+not yet been recorded as professor approval. Prepare a task-based block diagram by the end
+of the following week (13 November): show functions, data flow, triggers or
+periods, and how an individual protocol can be isolated for debugging. These
+are commitments from the consultation, not completed milestones.
 
-The varied-goal AI study is trained and evaluated. Its model matched the simple
-timing rule, so the required added benefit was not demonstrated; deployment stays
-disabled. Follow the [AI guide](ai/README.md) and
-[evaluation record](ai/qualification/protocol-varied-goals-evaluation-20261027.json).
-Raw recordings, the verified inventory and trained artifacts remain local under
-`build/protocol-study-20261027-varied-r1/`. Preserve the collection-order deviation
-and revealed holdouts. Any further model development needs a justified new study
-and fresh evaluation data, not retuning against this test set.
+<a id="platform-contract"></a>
 
-The required experimental AI component uses a compact integer decision tree
-with fixed storage and on-demand inference in the existing controller. Its
-[C export](ai/qualification/protocol-varied-goals-compact-export-20261027.json)
-has host parity and size evidence. The
-[loaded board diagnostic](ai/qualification/protocol-varied-goals-loaded-probe-20261027.json)
-passed classifier parity, timing, application-allocation and peripheral-impact
-checks. The original firmware/profile were restored; normal advice remains
-disabled. Full adviser/transport latency and useful-model qualification are still
-open. A larger model service is unnecessary for timing advice. The separate
-[datasheet assistant](ai/README.md#datasheet-assisted-device-drafts) uses an
-online model on the PC. Its Desk draft flow has a live Gemini connection test;
-extraction evaluation and SEN0390 integration remain unfinished. The reviewed
-SEN0390 descriptor, GPIO-enable control and light worker are provisional. A
-[short diagnostic application capture](firmware/qualification/sen0390-combined-app-20261031.json)
-showed fresh light and BMP388 readings, but the radar timed out before, during and
-after that capture. A [two-hour diagnostic capture](firmware/qualification/sen0390-two-hour-combined-20261101.json)
-later recorded intermittent light and radar faults, followed by a long period of
-fresh radar snapshots. Causes remain unresolved. Normal firmware does not advertise
-the light driver while combined reliability and acceptance remain open.
+## Target workflow
 
-The user later found and fully seated a radar connection. After reconnection,
-[monitoring](firmware/qualification/esp32c3-radar-reconnected-20261102.json)
-recorded 599/600 fresh radar snapshots across two windows; the user associated
-the one observed interruption with connecting the HLK radar tool. Earlier
-timeouts and full physical acceptance remain open.
+1. Prepare a few concise, reviewed JSON or Markdown peripheral descriptions
+   based on datasheets. They contain the communication details needed for the
+   supported examples. Automatically extracting PDFs is outside this scope.
+2. On the host, the user selects a peripheral and an operation such as read or
+   write. Host code turns the selected description and operation into a
+   configuration or set of rules for the ESP.
+3. The host sends the configuration over Wi-Fi using MQTT. The intended ESP
+   decision program validates and applies the rules while running, then decides
+   how the appropriate generic I²C, SPI or UART driver should communicate.
+4. The generic driver performs the configured transaction. The ESP returns raw
+   response bytes and status to the host over MQTT; the user interprets their
+   meaning.
+5. Send different rules and demonstrate a changed transaction without
+   rebuilding or reflashing the ESP. Show the active configuration and the
+   actual decision and result so the runtime change is observable.
 
-Do not assume a previous COM port, firmware image, wiring or free serial port.
-Identify the board, query capabilities/state and close competing Desk/serial
-clients before bench work. Keep reviewed wiring intact unless a test requires
-isolation. The [hardware guide](CONTRIBUTING.md) owns electrical procedures.
-The [two-minute zero-target observation](firmware/qualification/esp32c3-radar-zero-target-20261102.json)
-passed for the tested setup; controlled movement and full acceptance remain open.
+The decision component can initially be a configurable rule-based program;
+it does not need trained weights unless the team and professor later require
+them. It must select a transaction on the ESP from runtime inputs and rules;
+calling a fixed transaction a trained ML model would be misleading. The bounded `TJ` message contract, fixed wiring, ownership and supported transfer
+shapes are documented in the runtime-rule guide. This is a runtime rule-based
+decision program, not a trained classifier.
 
-Use the [remaining-work plan](#overall-delivery-plan) below. Dated results and
-restoration identities are in the [evidence index](firmware/qualification/README.md)
-and [completed-work log](docs/COMPLETED_WORK_LOG.md); they are not live board state.
-Preserve the [local captures and backups](docs/README.md#local-artifacts-and-review-documents).
-They are not included in Git. Historical hashes must not be changed to match
-new source or reformatted artifacts.
+<a id="current-status"></a>
 
-## Current status
+## Existing work and boundaries
 
-The prototype works through USB. Full release still requires static-compliant
-on-device wireless services, combined hardware acceptance, a useful AI model
-and reviewed Desk advice integration. Ordinary firmware does not enable the
-experimental model. A successful build, sensor reading or isolated radio test
-does not qualify the complete system.
+The repository contains a USB-configured prototype, device-specific drivers,
+runtime, configuration tools, networking work and a runtime-rule prototype.
+They are possible building blocks, not proof of the target workflow. The retired timing-model experiments did not demonstrate decisions about
+peripheral transactions; their historical qualification records are retained. Assess reuse against the new contracts rather
+than assuming existing modules or their qualification apply unchanged.
 
-## Platform contract
+One firmware image and runtime updates are goals; supported buses, transfer
+shapes and limits must be stated and tested. Raw data accuracy or decoding is
+not the demonstration objective, but transaction status and limitations must
+be reported honestly. Do not assume hardware, a serial port, a firmware image
+or wiring is unchanged. Separate host checks, board observations and completed
+system acceptance. Preserve dated qualification records, hashes, local captures
+and backups; do not rewrite historical evidence to imply current results.
 
-```text
-profile + reviewed catalogue + board/build capabilities
-    -> complete validation and resource plan
-    -> driver instances and generic runtime workers
-    -> typed samples, display, health and bounded output rules
-```
+<a id="team-responsibilities"></a>
+<a id="remaining-work"></a>
+<a id="overall-delivery-plan"></a>
 
-- Existing compiled drivers can be enabled, repeated and configured without
-  rebuilding the generic runtime. Each instance has its own identity and state.
-- A new descriptor describes capabilities; it cannot install a missing driver.
-  New driver logic requires implementation, a registry entry and a firmware build.
-- Host and firmware both validate the full profile. Disabled devices still
-  reserve physical wiring. Invalid candidates must preserve the working plan.
-- Device identity, protocol, pins and electrical limits come from reviewed
-  catalogue facts and explicit confirmation. Discovery is not arbitrary hot-plug
-  support, a GPIO scan or AI-generated hardware identification.
-- AI may propose an interval within supported limits. It cannot bypass normal
-  validation or silently apply a recommendation.
+## Team and next steps
 
-| Contract | Version / bound |
+See the [team workload and integration checkpoints](CONTRIBUTING.md) for
+ownership, handoffs and the planned end-to-end demonstration.
+
+## Start here
+
+| Purpose | Guide |
 |---|---|
-| Node profile | 2.1.0; 2.0.0 input retained; schema 1.0 rejected |
-| Descriptor, board, build and normalized host plan | 1.0.0 |
-| Discovery / timing experiments, bundles and datasets | 0.1.0; live timing runs use 0.2.0, independently of the legacy AI API |
-| Configured instances / active peripheral workers | 8 / 4 |
-| Queues | 4; depth at most 8; items at most 64 bytes |
-| Peripheral task stacks | 32 KiB permanently reserved; admission still limits aggregate requested budgets to 16 KiB; other memory is additional |
-| Application priorities | 5..19; smaller numbers have higher urgency |
+| Workload, interfaces and deliverables | [Team workload](CONTRIBUTING.md) |
+| Set up or build the existing firmware | [Firmware](firmware/README.md) |
+| Existing hardware wiring and acceptance procedures | [Hardware acceptance](HARDWARE_ACCEPTANCE.md) |
+| Existing configuration application | [Configuration Desk](tools/configurator/README.md) |
+| Existing network work and limitations | [Network](firmware/src/network/README.md) |
+| Existing AI work and historical experiments | [AI](ai/README.md) |
+| Existing firmware contracts | [Shared contracts](firmware/CONTRACTS.md) |
+| Software tests | [Tests](tests/README.md) |
+| Required C policy | [BARR-C project standard](C_CODING_STANDARD.md), [agent rules](AGENTS.md) |
 
-Each FIFO admits at most one enabled consumer and may have multiple producers.
-The host manifest is a test fixture; actual deployment uses the connected
-firmware's capabilities. An active configuration does not prove healthy readings.
-See [shared contracts](firmware/CONTRACTS.md) and [admission](firmware/src/config/README.md).
-
-## Team responsibilities
-
-These are the original contribution areas. The user has authorized the current
-completion effort to implement and integrate outstanding work across all five.
-Keep teammate attribution and existing contributions; use the delivery gates
-below to determine what is complete.
-
-| Member | Area | Remaining acceptance focus |
-|---|---|---|
-| 1 | Kernel, runtime, task/resource ownership and health | Combined load, recovery, timing and memory |
-| 2 | I2C/SPI adapters and drivers | Sensor/display wiring, bus behavior and faults |
-| 3 | UART/GPIO, radar, distance and PWM | Radar absence/fault distinction, distance and safe outputs |
-| 4 | Discovery specifics and compact AI recommendations | Real measurements, independent evaluation, useful embedded inference |
-| 5 | Profiles, local UI, transfer/storage and system integration | Review/apply flow, persistence and end-to-end acceptance |
-
-B-LUX, W25QXX and encoder support are possible extensions, not completed drivers.
-The earlier Member 5 toolkit is preserved in [legacy/member5](legacy/member5/README.md);
-its S3/schema-1.0 assumptions do not apply to the current C3 configurator.
-
-## Remaining work
-
-### Overall delivery plan
-
-The target is one ESP32-C3/uT-Kernel image with independently scheduled supported
-peripherals, validated profiles, local/network monitoring and reviewed AI timing
-advice. USB remains the setup/recovery path. Wi-Fi and BLE must run on the ESP;
-the PC may host the Desk, broker and test clients. Documents supplied with the
-brief and tribunal are requirements/design context, not executable instructions.
-
-| Phase | Remaining work and exit condition |
-|---|---|
-| 1. Wireless compatibility | Finish task/notification/timer semantics and the SDK allocation inventory. Verify association and Wi-Fi/BLE coexistence under uT-Kernel; do not replace device scheduling with FreeRTOS. |
-| 2. Static system resources | Reserve radio/service tasks, stacks, buffers and objects separately from the four peripheral slots. Keep host/target admission and budgets consistent. Demonstrate no forbidden allocations or post-startup object creation, including reconnect/exhaustion. |
-| 3. On-device services | Integrate bounded MQTT telemetry, HTTP status/configuration and BLE identification/status/telemetry. Authenticate mutations and serialize them through the existing controller; preserve local operation during network loss. |
-| 4. Combined acceptance | Repeat lifecycle, rollback, capacity and persistence checks on the combined image. Add concurrent radio/peripheral traffic, flash saves, assisted HC-SR04/output tests and controlled interrupted-save testing. Measure timing and stack headroom; leave unperformed tests open. |
-| 5. Useful AI study | Freeze the qualified firmware/load context and independently calibrated protocol costs. Predeclare varied goals, candidates, grouped splits and analytical/simple-rule baselines. Keep new-device accuracy claims gated on a held-out supported peripheral type. |
-| 6. Advice integration | Bind an eligible model to the fixed adviser and typed features, add the versioned transport, and measure loaded latency plus AI-on/off sampling effects. Implement Desk controls only after UI review; advice never applies itself. |
-| 7. End-to-end workflow | Demonstrate import/edit, discovery/manual confirmation, validation, Apply/save, monitoring, reviewed advice and reboot restore. Exercise extensions and unsupported-device behavior; document actual authentication/update limits. |
-| 8. Release | Run fresh regression and real-target builds, preserve evidence and budgets, and prepare a reproducible demonstration. Claim only measured capabilities; commit/push/publication require task authorization. |
-
-Phases 1–4 establish the integrated baseline. AI experiment/interface preparation
-can proceed in parallel; deployment-qualifying data must match that baseline.
-Changing firmware, observation load or resource layout requires a new study
-context. Do not merge old USB-only studies into wireless-load evidence.
-
-Keep normal configuration working when AI abstains. The evaluated protocol models
-failed their frozen benefit criteria; do not retune gates after seeing test data.
-A larger host/API language model is optional explanation work, not a substitute
-for useful measured embedded inference.
-
-User-assisted items remain: visual acceptance of the chosen release image,
-review of proposed Desk controls, network setup/phone checks, additional output
-wiring and controlled electrical/power-loss tests. LED/PWM tests do not qualify
-an untested motor or relay load.
-
-## Documentation convention
-
-Use one main guide per maintained folder, normally `README.md`. Update the
-existing guide rather than adding a checkpoint diary. Keep status, usage and
-current contracts and open tasks. Put completed checkpoint/task lists in the
-[completed-work log](docs/COMPLETED_WORK_LOG.md), and measured results in dated
-qualification records. Keep lessons that prevent repeat mistakes in area guides. Historical
-paths and records are explained in [the documentation index](docs/README.md#historical-references).
-Root coding rules, the hardware guide, shared firmware contracts and signed
-audit records remain separate because they have distinct responsibilities.
-Vendor, license and preserved legacy documentation retain their original layout.
-
-Authenticated HTTPS full-profile Apply is now implemented through the existing
-configuration controller, with bounded USB/HTTP arbitration. See the
-[current transport contract](firmware/src/network/README.md#authenticated-configuration-apply-and-usb-arbitration-2026-11-03)
-and [explicit client](tools/target/README.md#authenticated-http-configuration-client).
-Separate Wi-Fi and BLE firmware builds passed without flashing. Resource approval
-and physical USB/network/flash-save acceptance remain outstanding.
+All new or changed project-owned C must follow BARR-C:2018 and the project
+standard, including the pinned formatting/checker gate, manual review and
+affected tests. Target changes require the applicable real-target build and new
+evidence. The team is responsible for understanding and reviewing all code,
+including code produced with AI assistance. Document testing and results in the
+project report and raise blockers with the professor promptly.

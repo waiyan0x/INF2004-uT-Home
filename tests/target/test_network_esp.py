@@ -37,6 +37,8 @@ SDK_HEADER=r"""
 struct sockaddr { unsigned short sa_family; char sa_data[14]; };
 struct in_addr { uint32_t s_addr; };
 struct sockaddr_in { short sin_family; uint16_t sin_port; struct in_addr sin_addr; };
+int c3fake_recv(int fd,void *data,size_t size,int flags);
+int c3fake_send(int fd,const void *data,size_t size,int flags);
 int c3fake_socket(int domain,int type,int protocol);
 int c3fake_bind(int fd,const struct sockaddr *address,size_t size);
 int c3fake_listen(int fd,int backlog);
@@ -236,6 +238,16 @@ ssize_t esp_tls_conn_write(esp_tls_t *tls,const void *data,size_t size)
   size_t n=size;if(n>(size_t)g_write_limit) { n=(size_t)g_write_limit; }
   if(g_output_size[fd]+n>4096) { return -1; }
   memcpy(g_output[fd]+g_output_size[fd],data,n);g_output_size[fd]+=n;return (ssize_t)n; }
+#if UTHOME_OCCUPANCY_LAB
+#include <errno.h>
+int c3fake_recv(int fd,void *data,size_t size,int flags)
+{ (void)flags; esp_tls_t channel={fd};int n=(int)esp_tls_conn_read(&channel,data,size);
+  if(n<0){errno=EAGAIN;return -1;} return n; }
+int c3fake_send(int fd,const void *data,size_t size,int flags)
+{ (void)flags; esp_tls_t channel={fd};return (int)esp_tls_conn_write(&channel,data,size); }
+static int radar_mode;
+void c3fake_radar(int mode){radar_mode=mode;}
+#endif
 int esp_netif_init(void) { return 0; }
 void *esp_netif_create_default_wifi_sta(void) { return &g_connects; }
 int esp_event_loop_create_default(void) { return 0; }
@@ -282,17 +294,34 @@ int ble_gap_adv_start(uint8_t type,const void *address,int duration,
 uint16_t ble_att_mtu(uint16_t connection) { (void)connection;return g_mtu; }
 static netread_info_t g_info={.meta={.boot_id=1,.active_revision=12,.generation=4},
  .saved_revision=11,.runtime_state=1,.b_durable_known=true,.b_wifi_online=true,.node_id="test-node"};
+#include "uthome/txjob.h"
+static txjob_view_t g_transaction;
+int c3fake_transaction(const uint8_t *data,size_t size)
+{ if(size!=96) return -1; memcpy(g_transaction.reply,data,size);
+  g_transaction.b_known=true;g_transaction.completed_ms=100;g_transaction.generation=4;
+  ++g_transaction.sequence;g_info.p_transaction=&g_transaction;return 0; }
 static int capture(void *context,uint16_t source,sampcache_entry_t *entry,uint64_t *now)
 { (void)context;memset(entry,0,sizeof(*entry));entry->source.type=1;
   entry->source.source_index=source;entry->source.stale_ms=1000;
   memcpy(entry->source.name,"environment",12);entry->b_expected=true;entry->b_seen=true;
   entry->header.status=1;entry->header.timestamp_ms=100;
   entry->value.environment.pressure_pa=100800;entry->value.environment.temperature_c=26;
+#if UTHOME_OCCUPANCY_LAB
+  if(source!=2)return 1;
+  strcpy(entry->source.name,radar_mode==5?"other":"presence_sensor");
+  entry->source.type=UTHOME_SAMPLE_TARGETS;entry->b_seen=radar_mode!=0;
+  memset(&entry->value,0,sizeof(entry->value));
+  entry->value.targets.targets[2].b_present=radar_mode==2;
+  entry->header.status=radar_mode==4?0:1;entry->source.stale_ms=radar_mode==3?50:1000;
+#endif
   *now=150;return 0; }
 int c3fake_start(void)
 { static const uint8_t cert[]="certificate";static const uint8_t key[]="key";
   static const uint8_t token[]="0123456789abcdef0123456789abcdef";
   c3https_config_t config={cert,key,token,sizeof(cert),sizeof(key),sizeof(token)-1,8443,gp_test_mux};
+#if UTHOME_OCCUPANCY_LAB
+  strcpy(g_info.node_id,"uthome-010203040506");config.port=6053;
+#endif
   return c3https_start(&config); }
 void c3fake_mux(cfgmux_t *mux) { gp_test_mux=mux;g_info.b_configuration_supported=mux!=NULL; }
 int c3fake_drive(uint64_t now,int online)
@@ -359,7 +388,7 @@ class EspBindingTests(unittest.TestCase):
             path.write_text('#include "sdk.h"\n',encoding='utf-8')
         sources=['firmware/hal/ports/esp32c3/'+name+'.c' for name in ['c3https','c3wsta','c3gsvc','c3mqtt']]
         sources+=['firmware/src/network/'+name+'.c' for name in ['nethttp','netread','netble','netretry','netbroker','netmqtt']]
-        sources+=['firmware/src/runtime/sampcache.c']
+        sources+=['firmware/src/runtime/sampcache.c', 'firmware/src/services/transaction/txjob.c']
         sources+=['firmware/src/config/'+name+'.c' for name in ['cfgmux','cfgctrl','cfgstore','cfgwire','cfgbytes']]
         includes=[folder,ROOT/'firmware/src/config',ROOT/'firmware/include',ROOT/'firmware/src/network',
                   ROOT/'firmware/src/services',ROOT/'firmware/src/runtime',
@@ -376,6 +405,10 @@ class EspBindingTests(unittest.TestCase):
         built=subprocess.run(command,capture_output=True,text=True)
         if built.returncode:
             raise AssertionError(built.stdout+built.stderr)
+        cls.lab_binary=folder/'occupancy.dll'
+        subprocess.run(command[:-2]+['-DUTHOME_OCCUPANCY_LAB=1','-Drecv=c3fake_recv',
+            '-Dsend=c3fake_send',str(ROOT/'firmware/src/network/occwire.c'),
+            '-o',str(cls.lab_binary)],check=True)
         # Compile owner composition against small explicit boundary declarations.
         # These doubles do not replace any production header or native library.
         (folder/'esp_mac.h').write_text('#include "sdk.h"\n')
@@ -400,6 +433,9 @@ class EspBindingTests(unittest.TestCase):
                 capture_output=True,text=True)
             if compiled.returncode:
                 raise AssertionError(compiled.stdout+compiled.stderr)
+        fixture_dir = Path(__file__).resolve().parent
+        if str(fixture_dir) not in sys.path:
+            sys.path.insert(0, str(fixture_dir))
         from _network_config_fixture import ConfigLibrary
         cls.config_library=ConfigLibrary()
         cls.addClassCleanup(cls.config_library.close)
@@ -408,7 +444,7 @@ class EspBindingTests(unittest.TestCase):
     def setUp(self):
         type(self).next_instance+=1
         path=Path(self.folder.name)/f'instance-{self.next_instance}.dll'
-        shutil.copyfile(self.binary,path)
+        shutil.copyfile(self.lab_binary if self._testMethodName.startswith("test_esphome") else self.binary,path)
         self.lib=c.CDLL(str(path))
         self.addCleanup(self.unload)
         self.lib.c3fake_drive.argtypes=[c.c_uint64,c.c_int]
@@ -470,6 +506,184 @@ class EspBindingTests(unittest.TestCase):
         header,body=output.split(b'\r\n\r\n',1)
         self.assertLessEqual(len(output),512)
         return int(header.split()[1]),json.loads(body),changes
+
+    def test_esphome_real_client(self):
+        # Mandatory host interoperability check; the socket pump replaces only SDK I/O.
+        import asyncio
+        from aioesphomeapi import APIClient
+        self.assertEqual(self.lib.c3fake_start(),0)
+        async def verify():
+            states=asyncio.Queue()
+            finished=asyncio.Event()
+            async def peer(reader,writer):
+                self.lib.c3fake_accept_next(10)
+                sent=now=0
+                try:
+                    while not reader.at_eof():
+                        try:data=await asyncio.wait_for(reader.read(64),0.01)
+                        except asyncio.TimeoutError:data=None
+                        if data==b'':break
+                        if data:self.lib.c3fake_input(10,data,len(data))
+                        now+=10
+                        self.drive(now)
+                        out=self.output()
+                        if len(out)>sent:
+                            writer.write(out[sent:]);await writer.drain();sent=len(out)
+                        if self.lib.c3fake_closed(10):break
+                finally:
+                    writer.close()
+                    finished.set()
+            server=await asyncio.start_server(peer,'127.0.0.1',0)
+            async with server:
+                client=APIClient('127.0.0.1',server.sockets[0].getsockname()[1],None)
+                await client.connect(login=True)
+                try:
+                    info=await client.device_info()
+                    self.assertEqual(info.name,'uthome-010203040506')
+                    entities,_=await client.list_entities_services()
+                    self.assertEqual([(e.name,e.device_class) for e in entities],
+                                     [('Room occupancy','occupancy'),('Radar data fresh',''),('Transaction result','')])
+                    self.assertEqual(entities[1].entity_category.value,2)
+                    client.subscribe_states(states.put_nowait)
+                    occupancy=await states.get()
+                    self.assertEqual((occupancy.key,occupancy.missing_state),(entities[0].key,True))
+                    initial=await states.get()
+                    self.assertEqual((initial.key,initial.state,initial.missing_state),(2,False,False))
+                    raw_missing=await states.get()
+                    self.assertEqual((raw_missing.key,raw_missing.missing_state),(3,True))
+                    for mode,expected,missing in [(2,True,False),(1,False,False),(3,False,True)]:
+                        self.lib.c3fake_radar(mode)
+                        state=await states.get()
+                        self.assertEqual((state.key,state.state,state.missing_state),
+                                         (entities[0].key,expected,missing))
+                        if mode in (2,3):
+                            fresh=await states.get()
+                            self.assertEqual((fresh.key,fresh.state,fresh.missing_state),
+                                             (entities[1].key,not missing,False))
+                    self.lib.c3fake_transaction.argtypes=[c.c_char_p,c.c_size_t]
+                    reply=bytearray(96);reply[:4]=b'TJ\x01\x02'
+                    reply[44:49]=bytes([1,0,1,1,80])
+                    self.assertEqual(self.lib.c3fake_transaction(bytes(reply),96),0)
+                    result=await states.get()
+                    self.assertEqual(result.key,3)
+                    self.assertFalse(result.missing_state)
+                    self.assertIn('50',result.state)
+                    reply[45]=5;reply[47:80]=bytes(33)
+                    self.lib.c3fake_transaction(bytes(reply),96)
+                    result=await states.get()
+                    self.assertEqual(result.key,3)
+                    self.assertIn('I/O error',result.state)
+                    self.assertNotIn('50',result.state)
+                finally:
+                    await client.disconnect()
+                await finished.wait()
+        asyncio.run(asyncio.wait_for(verify(),15))
+
+    def test_esphome_display_and_mqtt_publisher_share_host_pump(self):
+        # Independent socket doubles; no real radio, TLS handshake or broker.
+        self.assertEqual(self.lib.c3fake_start(), 0)
+        self.assertEqual(self.lib.c3fake_mqtt_start(), 0)
+        self.lib.c3fake_handshake(1)
+        self.lib.c3fake_mqtt_step.argtypes = [c.c_uint64, c.c_int]
+        self.lib.c3mqtt_status.argtypes = [c.c_void_p]
+        self.lib.c3fake_accept_next(10)
+        self.assertEqual(self.drive(1), 0)
+        self.lib.c3fake_input(10, bytes([0, 0, 1]), 3)
+        sent_ack = False
+        view = (c.c_uint32 * 4)()
+        for now in range(2, 250):
+            self.assertEqual(self.drive(now), 0)
+            self.assertEqual(self.lib.c3fake_mqtt_step(now, 1), 0)
+            packet = self.output(0)
+            if (not sent_ack and len(packet) >= 2 and packet[0] == 0x10
+                    and packet[1] < 128 and len(packet) >= 2 + packet[1]):
+                self.lib.c3fake_input(0, bytes([0x20, 2, 0, 0]), 4)
+                sent_ack = True
+            self.assertEqual(self.lib.c3mqtt_status(view), 0)
+            if sent_ack and view[0] == 5 and b'uthome-' in self.output(10):
+                break
+        self.assertTrue(sent_ack)
+        self.assertEqual(view[0], 5)  # NETBROKER_READY
+        self.assertIn(b'uthome-', self.output(10))
+        self.assertIn(b'online', self.output(0))
+        self.assertEqual(self.lib.c3fake_closed(10), 0)
+
+    def test_mqtt_command_subscription_and_priority_result(self):
+        self.assertEqual(self.lib.c3fake_mqtt_start(),0)
+        self.assertEqual(self.lib.c3mqtt_transactions(),0)
+        self.lib.c3fake_handshake(1)
+        self.lib.c3fake_mqtt_step.argtypes=[c.c_uint64,c.c_int]
+        self.lib.c3mqtt_request.argtypes=[c.c_void_p,c.c_size_t,c.POINTER(c.c_size_t)]
+        self.lib.c3mqtt_result.argtypes=[c.c_char_p,c.c_size_t]
+        self.lib.c3mqtt_status.argtypes=[c.c_void_p]
+        view=(c.c_uint32*4)();connack=suback=False
+        for now in range(1,250):
+            self.lib.c3fake_mqtt_step(now,1)
+            output=self.output(0)
+            if not connack and output.startswith(b'\x10'):
+                self.lib.c3fake_input(0,b'\x20\x02\x00\x00',4);connack=True
+            if connack and not suback and b'transaction/request' in output:
+                self.lib.c3fake_input(0,b'\x90\x03\x00\x01\x00',5);suback=True
+            self.lib.c3mqtt_status(view)
+            if suback and view[0]==5:break
+        self.assertTrue(suback)
+        topic=b'uthome/v1/test-node/transaction/request'
+        # c3fake_mqtt_start uses the node identity below, not the HTTP fixture.
+        output=self.output(0)
+        start=output.index(b'uthome/v1/')
+        # Read the explicit subscription from the staged wire packet.
+        end=output.index(b'/transaction/request')+len(b'/transaction/request')
+        start=output.rfind(b'uthome/v1/',0,end)
+        topic=output[start:end]
+        payload=bytes(range(96))
+        body=len(topic).to_bytes(2,'big')+topic+payload
+        packet=b'\x30'+bytes([(len(body)%128)|128,len(body)//128])+body
+        self.lib.c3fake_input(0,packet,len(packet))
+        for tick in range(now+1,now+150):self.lib.c3fake_mqtt_step(tick,1)
+        received=c.create_string_buffer(96);size=c.c_size_t()
+        self.assertEqual(self.lib.c3mqtt_request(received,96,c.byref(size)),0)
+        self.assertEqual(received.raw,payload)
+        self.assertEqual(size.value,96)
+        self.assertEqual(self.lib.c3mqtt_result(payload,96),0)
+        self.assertEqual(self.lib.c3mqtt_result(payload,96),1)
+        for tick in range(now+150,now+350):self.lib.c3fake_mqtt_step(tick,1)
+        output=self.output(0)
+        self.assertIn(b'transaction/result'+payload,output)
+        self.assertEqual(self.lib.c3mqtt_result(payload,97),-1)
+
+    def test_esphome_occupancy_from_cache_and_reconnect(self):
+        self.assertEqual(self.lib.c3fake_start(),0)
+        self.lib.c3fake_accept_next(10)
+        self.lib.c3fake_write_limit(3)
+        now=0
+        def step(data=b''):
+            nonlocal now
+            before=len(self.output())
+            if data:self.lib.c3fake_input(10,data,len(data))
+            for _ in range(50):  # drain two descriptions even at three bytes per tick
+                now+=1
+                self.assertEqual(self.drive(now),0)
+            return self.output()[before:]
+        self.assertEqual(step(b'\x00\x00'),b'')  # fragmented hello
+        self.assertIn(b'uthome-010203040506',step(b'\x01'))
+        self.assertIn(b'room_occupancy',step(bytes([0,0,11])))
+        def packet(key,state,missing):
+            return bytes([0,9,21,13,key,0,0,0,16,state,24,missing])
+        self.assertEqual(step(bytes([0,0,20])),packet(1,0,1)+packet(2,0,0)+bytes([0,9,27,13,3,0,0,0,18,0,24,1]))
+        fresh=False
+        for mode,state,missing in [(2,1,0),(1,0,0),(3,0,1),(2,1,0),(4,0,1),(1,0,0),(5,0,1)]:
+            self.lib.c3fake_radar(mode)
+            expected=packet(1,state,missing)
+            if fresh != (not missing):expected+=packet(2,not missing,0)
+            self.assertEqual(step(),expected)
+            fresh=not missing
+        step(bytes([0,126]))  # exceeds receive bound; closes only this client
+        self.assertEqual(self.lib.c3fake_closed(10),1)
+        self.lib.c3fake_accept_next(10)
+        self.assertIn(b'uthome-',step(bytes([0,0,1])))
+        self.lib.c3fake_radar(1)
+        self.assertEqual(step(bytes([0,0,20])),packet(1,0,0)+packet(2,1,0)+bytes([0,9,27,13,3,0,0,0,18,0,24,1]))
+        self.assertEqual(self.lib.c3fake_deleted(),0)  # never instantiated TLS
 
     def test_https_configuration_state_and_result_fit_max_width_without_io(self):
         f=self.configuration_fixture()
@@ -822,6 +1036,38 @@ class SetupTests(unittest.TestCase):
         path=folder/'private.json'
         path.write_text(json.dumps(values))
         return path,values
+
+    def test_esphome_lab_requires_explicit_private_opt_in(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path,settings=self.configuration(Path(temp))
+            plain,_=self.setup.generate(path)
+            self.assertRegex(plain,rb'#define UTHOME_OCCUPANCY_LAB +\(0U\)')
+            settings['esphome_lab']=True
+            path.write_text(json.dumps(settings))
+            lab,_=self.setup.generate(path)
+            self.assertRegex(lab,rb'#define UTHOME_OCCUPANCY_LAB +\(1U\)')
+            self.assertRegex(lab,rb'#define UTHOME_SETUP_PORT +\(6053U\)')
+            for invalid in [dict(port=8443),dict(esphome_lab="true")]:
+                path.write_text(json.dumps(dict(settings,**invalid)))
+                with self.assertRaises(ValueError):self.setup.generate(path)
+
+    def test_esphome_display_and_mqtt_can_be_provisioned_together(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            path, settings = self.configuration(folder)
+            ca = folder / 'broker-ca.pem'
+            ca.write_bytes(b'-----BEGIN CERTIFICATE-----\nfixture\n-----END CERTIFICATE-----\n')
+            settings['esphome_lab'] = True
+            settings['mqtt'] = dict(address='127.0.0.1', server_name='broker.test',
+                                    port=8883, user='device', password='password',
+                                    ca_file=ca.name)
+            path.write_text(json.dumps(settings))
+            header, record = self.setup.generate(path)
+            self.assertRegex(header, rb'#define UTHOME_OCCUPANCY_LAB +\(1U\)')
+            self.assertRegex(header, rb'#define UTHOME_SETUP_PORT +\(6053U\)')
+            self.assertRegex(header, rb'#define UTHOME_SETUP_MQTT +\(1U\)')
+            self.assertRegex(header, rb'#define UTHOME_SETUP_MQTT_PORT +\(8883U\)')
+            self.assertIn('mqtt_ca_sha256', record)
 
     def test_private_setup_staging_and_mutation_detection(self):
         with tempfile.TemporaryDirectory() as temporary:

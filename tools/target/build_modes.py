@@ -21,8 +21,7 @@ class BuildMode(Enum):
     NATIVE_UART = 'native_uart_fixture'
     WIFI = 'wifi_probe'
     BLE = 'ble_probe'
-    MODEL = 'model_probe'
-    MODEL_LOAD = 'model_load_probe'
+    RULE = 'rule_probe'
     SENLUX = 'senlux_probe'
     SENLUX_APP = 'senlux_app_probe'
 
@@ -37,10 +36,9 @@ class ModeSpec:
 # Mode prerequisites and their emitted CMake flags share this registry. Table
 # order keeps the more specific diagnostic error when incompatible flags coexist.
 PROBES = {
+    BuildMode.RULE: ModeSpec(True, True, 'Rule probe requires configuration app and static queues only'),
     BuildMode.SENLUX_APP: ModeSpec(True, True, 'SEN0390 application probe requires configuration app and static queues only'),
     BuildMode.SENLUX: ModeSpec(False, True, 'SEN0390 probe requires the isolated runtime fixture and static queues'),
-    BuildMode.MODEL_LOAD: ModeSpec(True, True, 'Loaded model probe requires the configuration application and static queues only'),
-    BuildMode.MODEL: ModeSpec(False, True, 'Model probe requires the isolated runtime fixture and static queues'),
     BuildMode.WIFI: ModeSpec(False, True, 'Wi-Fi probe requires the isolated runtime fixture and static queues'),
     BuildMode.BLE: ModeSpec(False, True, 'BLE probe requires the isolated runtime fixture and static queues'),
     BuildMode.NATIVE_UART: ModeSpec(False, False, 'native UART fixture requires runtime-port without application/example'),
@@ -96,8 +94,7 @@ class BuildSelection:
                     ble_probe=self.mode is BuildMode.BLE,
                     ble_gatt_probe=self.ble_gatt_probe,
                     ble_static_host=self.ble_static_host,
-                    model_probe=self.mode is BuildMode.MODEL,
-                    model_load_probe=self.mode is BuildMode.MODEL_LOAD,
+                    rule_probe=self.mode is BuildMode.RULE,
                     senlux_probe=self.mode is BuildMode.SENLUX,
                     senlux_app_probe=self.mode is BuildMode.SENLUX_APP)
 
@@ -121,12 +118,12 @@ class BuildSelection:
 
 def resolve_mode(*, runtime_port=False, configuration_app=False, upstream_example=None,
                  native_uart_fixture=False, static_net_queues=False, wifi_probe=False,
-                 ble_probe=False, model_probe=False, ble_gatt_probe=False, ble_static_host=False,
-                 model_load_probe=False, senlux_probe=False, senlux_app_probe=False, network_services=None):
+                 ble_probe=False, ble_gatt_probe=False, ble_static_host=False,
+                 rule_probe=False, senlux_probe=False, senlux_app_probe=False, network_services=None):
     """Accept the existing CLI vocabulary, rejecting mixed modes before I/O."""
     enabled = dict(native_uart_fixture=native_uart_fixture, wifi_probe=wifi_probe,
-                   ble_probe=ble_probe, model_probe=model_probe, model_load_probe=model_load_probe,
-                   senlux_probe=senlux_probe, senlux_app_probe=senlux_app_probe)
+                   ble_probe=ble_probe,
+                   rule_probe=rule_probe, senlux_probe=senlux_probe, senlux_app_probe=senlux_app_probe)
     selected = [mode for mode in PROBES if enabled[mode.value]]
     if selected:
         mode = selected[0]

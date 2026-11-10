@@ -60,7 +60,7 @@
       "sources": [
         "catalogue/devices/ssd1306_spi.json",
         "firmware/drivers/ssd1306_spi/ssd1306.c",
-        "CONTRIBUTING.md"
+        "HARDWARE_ACCEPTANCE.md"
       ]
     },
     {

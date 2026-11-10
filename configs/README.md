@@ -20,7 +20,7 @@ reference reviewed descriptors and board/build limits in the [catalogue](../cata
 
 The original prototype uses GPIO2 for OLED CS. **Do not wire that assignment:**
 the current backend rejects it. Use the bench profiles below and the
-[hardware guide](../CONTRIBUTING.md) instead. Actual driver support and narrower
+[hardware guide](../HARDWARE_ACCEPTANCE.md) instead. Actual driver support and narrower
 target parser/resource limits must pass connected review before deployment.
 
 `c3-protocol-demo.json` preserves the actual restored bench settings (compact
@@ -56,7 +56,7 @@ cannot all share the current pin budget. Generate eight profiles (empty, BMP,
 BMP/OLED, radar, combined A, radar/LED, distance, distance/LED) with the script
 below. It preserves repository examples, creates a temporary output directory
 and uses a host preflight manifest; it does not qualify or deploy hardware.
-The [hardware guide](../CONTRIBUTING.md) supplies power and wiring instructions.
+The [hardware guide](../HARDWARE_ACCEPTANCE.md) supplies power and wiring instructions.
 
 <details>
 <summary>Generate the bench profiles (PowerShell, from the repository root)</summary>

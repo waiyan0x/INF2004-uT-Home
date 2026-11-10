@@ -1,0 +1,20 @@
+# 2026-10-27T07:09:41Z config_transfer capabilities --port COM5 (retry after watchdog reset)
+{
+  "request_id": 79727467,
+  "hardware_qualified": false,
+  "max_profile_bytes": 8192,
+  "allowed_gpio_mask": 1275,
+  "max_devices": 8,
+  "max_workers": 4,
+  "features": 7,
+  "board": "esp32-c3-supermini",
+  "node_schema": "2.1.0",
+  "drivers": [
+    "bmp388",
+    "ssd1306_spi",
+    "hlk_ld2450",
+    "hc_sr04",
+    "pwm_output"
+  ]
+}
+exit 0

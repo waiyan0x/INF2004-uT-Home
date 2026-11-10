@@ -56,7 +56,7 @@ there is no automatic retry or cancellation of an in-flight bounded probe.
 
 For the tested BMP388, 500 ms / 100 ms timeout are bench starting values. For the
 tested OLED, 250 ms / 20 ms timeout / 4 MHz SPI are bench starting values. They
-are not universal optima. Details: [hardware guide](../CONTRIBUTING.md).
+are not universal optima. Details: [hardware guide](../HARDWARE_ACCEPTANCE.md).
 
 ## Implementation and checks
 
