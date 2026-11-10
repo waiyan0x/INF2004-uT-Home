@@ -1,0 +1,2 @@
+# Host transaction controller only; does not install ESPHome firmware.
+paho-mqtt==1.6.1
