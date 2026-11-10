@@ -3,7 +3,7 @@
 The adapter retains one native UART descriptor and mutex for the boot lifetime.
 Native record storage is fixed by [the storage adapter](uart-static-storage.md).
 Use [UART acceptance](uart-acceptance.md) for unperformed external timing/fault
-tests and [qualification](../firmware/qualification/README.md) for scoped results.
+tests and [qualification](../../firmware/qualification/README.md) for scoped results.
 
 ## Lifecycle and integration
 

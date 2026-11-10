@@ -47,8 +47,8 @@ typedef struct
     void *                p_capability_context;
     cfgpump_discover_t *  p_discover;
     void *                p_discovery_context;
-    cfgpump_observe_t *   p_workcost;
-    void *                p_workcost_context;
+    cfgpump_discover_t *  p_diagnostic;
+    void *                p_diagnostic_context;
     size_t                received_size;
     size_t                received_used;
     size_t                sent;
@@ -89,10 +89,12 @@ int cfgpump_capabilities (cfgpump_t *         p_pump,
 int cfgpump_discovery (cfgpump_t *          p_pump,
                        cfgpump_discover_t * p_discover,
                        void *               p_context);
-/* Independent read-only workload/stack evidence; no mutation retry eviction. */
-int cfgpump_workcost (cfgpump_t *         p_pump,
-                      cfgpump_observe_t * p_observe,
-                      void *              p_context);
+/* Independent read-only workload/network evidence; no mutation retry eviction.
+ * The supplied request selects the diagnostic without reserving a second
+ * callback/context pair. No callback performs hardware discovery. */
+int cfgpump_diagnostics (cfgpump_t *          p_pump,
+                         cfgpump_discover_t * p_observe,
+                         void *               p_context);
 #endif
 /* End of file. */
 

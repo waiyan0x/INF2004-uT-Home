@@ -11,7 +11,8 @@ int netmqtt_offer (netmqtt_t *     p_mqtt,
                    size_t          topic_size,
                    uint8_t const * p_value,
                    size_t          value_size,
-                   uint32_t        generation)
+                   uint32_t        generation,
+                   bool            b_retain)
 {
     size_t remaining = 0U;
     size_t offset    = 1U;
@@ -34,7 +35,8 @@ int netmqtt_offer (netmqtt_t *     p_mqtt,
     }
     remaining          = 2U + topic_size + value_size;
     encoded            = remaining;
-    p_mqtt->pending[0] = 0x30U;
+    p_mqtt->pending[0] = b_retain ? (UTHOME_MQTT_PUBLISH | UTHOME_MQTT_RETAIN)
+                                  : UTHOME_MQTT_PUBLISH;
     do
     {
         uint8_t digit = (uint8_t)(encoded % 128U);

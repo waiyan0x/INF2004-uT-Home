@@ -30,7 +30,7 @@ class MqttServiceTests(unittest.TestCase):
         cls.lib = c.CDLL(str(binary))
         cls.offer = cls.lib.netmqtt_offer
         cls.offer.argtypes = [c.POINTER(Mailbox), c.c_char_p, c.c_size_t,
-                             c.c_char_p, c.c_size_t, c.c_uint32]
+                             c.c_char_p, c.c_size_t, c.c_uint32, c.c_bool]
         cls.take = cls.lib.netmqtt_take
         cls.take.argtypes = [c.POINTER(Mailbox), c.c_uint32, c.c_void_p,
                             c.c_size_t, c.POINTER(c.c_size_t)]
@@ -42,8 +42,8 @@ class MqttServiceTests(unittest.TestCase):
         if sys.platform=='win32':
             _ctypes.FreeLibrary(cls.lib._handle)
 
-    def submit(self, box, topic=b'uthome/v1/node/telemetry/sensor', value=b'{}', generation=1):
-        return self.offer(c.byref(box), topic, len(topic), value, len(value), generation)
+    def submit(self, box, topic=b'uthome/v1/node/telemetry/sensor', value=b'{}', generation=1, retain=False):
+        return self.offer(c.byref(box), topic, len(topic), value, len(value), generation, retain)
 
     def read(self, box, generation=1, capacity=1280):
         output = (c.c_uint8 * 1280)(*([0xDA] * 1280))
@@ -102,13 +102,26 @@ class MqttServiceTests(unittest.TestCase):
 
     def test_empty_payload_null_arguments_and_counter_saturation(self):
         box = Mailbox()
-        self.assertEqual(self.offer(None,b'a',1,b'',0,1), -1)
-        self.assertEqual(self.offer(c.byref(box),b'a',1,None,1,1), -1)
-        self.assertEqual(self.offer(c.byref(box),b'a',1,None,0,1), 0)
+        self.assertEqual(self.offer(None,b'a',1,b'',0,1,False), -1)
+        self.assertEqual(self.offer(c.byref(box),b'a',1,None,1,1,False), -1)
+        self.assertEqual(self.offer(c.byref(box),b'a',1,None,0,1,False), 0)
         box.replaced = 0xffffffff
         self.submit(box, b'a', b'')
         self.assertEqual(box.replaced, 0xffffffff)
         self.assertEqual(self.read(box)[1], b'\x30\x03\x00\x01a')
+
+    def test_retain_flag_changes_only_the_header_bit(self):
+        plain = Mailbox()
+        kept = Mailbox()
+        self.assertEqual(self.submit(plain, b'a/b', b'\x00\xff'), 0)
+        self.assertEqual(self.submit(kept, b'a/b', b'\x00\xff', retain=True), 0)
+        plain_packet = self.read(plain)[1]
+        kept_packet = self.read(kept)[1]
+        self.assertEqual(plain_packet, b'\x30\x07\x00\x03a/b\x00\xff')
+        self.assertEqual(kept_packet, b'\x31' + plain_packet[1:])
+        # A zero-length retained publish is the broker's retained-clear form.
+        self.assertEqual(self.submit(kept, b'a/b', b'', retain=True), 0)
+        self.assertEqual(self.read(kept)[1], b'\x31\x05\x00\x03a/b')
 
 if __name__ == '__main__':
     unittest.main()

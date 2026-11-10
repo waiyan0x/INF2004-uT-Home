@@ -4,6 +4,7 @@ idf_component_register(SRCS "../../hal/c3ble.c" "../../hal/c3gatt.c"
     "../../hal/c3mqtt.c" "../../hal/c3wsta.c" "../../hal/c3https.c" "../../hal/c3gsvc.c"
     "../../network/netbroker.c" "../../network/netmqtt.c" "../../network/occwire.c" "../../network/netretry.c"
     "../../network/nethttp.c" "../../network/netread.c" "../../network/netble.c"
+    "../../network/mqttdisc.c"
     INCLUDE_DIRS "../../config" "../../hal" "../../runtime" "../../network" "../../services" "../../include"
     REQUIRES bt esp_timer esp_hw_support esp_wifi esp_event esp_netif esp-tls lwip
     PRIV_REQUIRES uthome_task)
@@ -23,6 +24,7 @@ set_property(SOURCE "../../hal/c3ble.c" "../../hal/c3gatt.c" "../../hal/c3mqtt.c
 # These sources include no SDK assembly and receive no asm spelling alias.
 set_source_files_properties("../../network/netbroker.c" "../../network/netmqtt.c" "../../network/occwire.c" "../../network/netretry.c"
     "../../network/nethttp.c" "../../network/netread.c" "../../network/netble.c"
+    "../../network/mqttdisc.c"
     PROPERTIES COMPILE_OPTIONS
     "-std=c99;-Wall;-Wextra;-Werror;-Werror=extra;-Werror=unused-function;-Werror=unused-variable;-Werror=unused-but-set-variable;-Werror=deprecated-declarations")
 

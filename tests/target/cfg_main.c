@@ -72,6 +72,11 @@ static void verify_pump_expiry (void);
 static void verify_observation (cfgwire_command_t command);
 static int
 observe (void * p_context, uint8_t * p_data, size_t capacity, size_t * p_size);
+static int diagnostic (void *                    p_context,
+                       const cfgwire_request_t * p_request,
+                       uint8_t *                 p_data,
+                       size_t                    capacity,
+                       size_t *                  p_size);
 static int pump_read (void *    p_context,
                       uint8_t * p_data,
                       size_t    capacity,
@@ -130,6 +135,8 @@ int main (int argc, char ** pp_argv)
     verify_pump_expiry();
     verify_observation(CFGWIRE_TELEMETRY);
     verify_observation(CFGWIRE_CAPABILITIES);
+    verify_observation(CFGWIRE_WORKCOST);
+    verify_observation(CFGWIRE_NETWORK);
     printf("Config framing, torn-save recovery and request retries passed. "
            "contexts=%zu,%zu,%zu\n",
            sizeof(cfgwire_t),
@@ -716,6 +723,7 @@ static void verify_observation (cfgwire_command_t command)
 {
     assert(0 == cfgpump_observe(&g_pump, observe, &g_pump));
     assert(0 == cfgpump_capabilities(&g_pump, observe, &g_pump));
+    assert(0 == cfgpump_diagnostics(&g_pump, diagnostic, &g_pump));
     memset(g_input, 0, 24U);
     memcpy(g_input, "UTH1", 4U);
     g_input[4] = 1U;
@@ -750,6 +758,20 @@ static void verify_observation (cfgwire_command_t command)
     assert(-1 == cfgpump_step(&g_pump, 16001U));
     assert((!g_pump.b_pending) && (7U == g_output_used));
     assert(0 == memcmp(cached, g_control.reply, sizeof(cached)));
+}
+
+/** @brief Dispatch read-only diagnostics without consuming mutation IDs. */
+static int diagnostic (void *                    p_context,
+                       const cfgwire_request_t * p_request,
+                       uint8_t *                 p_data,
+                       size_t                    capacity,
+                       size_t *                  p_size)
+{
+    assert(NULL != p_request);
+    assert((CFGWIRE_WORKCOST == p_request->command) ||
+           (CFGWIRE_NETWORK == p_request->command));
+    assert((0U == p_request->revision) && (0U == p_request->size));
+    return observe(p_context, p_data, capacity, p_size);
 }
 
 /* End of file. */

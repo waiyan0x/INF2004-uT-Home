@@ -3,7 +3,7 @@
 The retained-handle/fixed-storage implementation has target-build and scoped
 USB-core allocation evidence. External baud/framing and the isolated native-ring
 fault suite are separate acceptance work. See
-[qualification](../firmware/qualification/README.md); earlier unavailable-SDK or
+[qualification](../../firmware/qualification/README.md); earlier unavailable-SDK or
 style-gate failures are historical, not current blockers.
 
 ## Required tests
@@ -84,7 +84,7 @@ perform physical communication timing tests separately without breakpoint stops.
 
 ## Review and evidence
 
-The [completed-work log](COMPLETED_WORK_LOG.md) retains earlier local test/build
+The [completed-work log](../COMPLETED_WORK_LOG.md) retains earlier local test/build
 attempts. Fake-GDB tests validate accounting logic, not board execution.
 
 Manual review: new C uses matching headers, C99, fixed stack buffers, bounded

@@ -6,6 +6,8 @@ snapshots, while `telemetry` and `costview` encode the host-visible reports.
 
 - [Display](display/README.md) owns OLED rendering and worker behavior.
 - [Actuators](actuator/README.md) own PWM and relay control policies.
+- [Transactions](transaction/README.md) own bounded runtime rule admission,
+  generic bus execution and result reporting.
 
 Sample storage lives beside its serialization owner in
 [`runtime/sampcache`](../runtime/README.md), not in a consumer service. Production

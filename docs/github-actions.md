@@ -44,7 +44,7 @@ Use this `Code` Git checkout for integration; exclude `build/`, caches and local
 dependencies from publication. Raw captures/backups are local artifacts.
 
 A successful cloud run proves a target build, not board execution, physical
-baud/framing, timing or complete AAI13 compliance. Follow `uart-acceptance.md`
+baud/framing, timing or complete AAI13 compliance. Follow [UART acceptance](hardware/uart-acceptance.md)
 for board tests and actual kernel creation-call counting. Finish RAM accounting
 with the map and stack evidence; do not treat a stable live-object count as
 proof that no creation calls occurred.

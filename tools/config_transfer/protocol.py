@@ -18,6 +18,7 @@ class Command(IntEnum):
     CAPABILITIES = 7
     DISCOVER = 8
     WORKCOST = 9
+    NETWORK = 10
 
 
 @dataclass(frozen=True)
@@ -72,7 +73,8 @@ def encode_request(command: Command, request_id: int, revision: int = 0,
 def decode_reply(frame: bytes, *, command: Command, request_id: int,
                  revision: int) -> Reply | ProbeReply:
     """Reject corrupt, extended or mismatched responses; no implicit retry."""
-    if Command(command) in (Command.TELEMETRY, Command.CAPABILITIES, Command.DISCOVER, Command.WORKCOST):
+    if Command(command) in (Command.TELEMETRY, Command.CAPABILITIES, Command.DISCOVER,
+                            Command.WORKCOST, Command.NETWORK):
         raise ValueError("observation requires its versioned decoder")
     if len(frame) != 48:
         raise ValueError("reply must contain exactly 48 bytes")

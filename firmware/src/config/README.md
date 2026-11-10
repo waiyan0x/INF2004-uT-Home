@@ -136,6 +136,24 @@ complement; `123456789` gives 0xCBF43926. CRC is not authentication.
 | TELEMETRY | 6 | Zero / empty; [observation format](../services/TELEMETRY.md#wire-contract) |
 | CAPABILITIES | 7 | Zero / empty; [capability format](../../../tools/configurator/README.md#read-only-capabilities) |
 | DISCOVER | 8 | Expected active revision / 24-byte reviewed request; [format](../discovery/README.md) |
+| WORKCOST | 9 | Zero / empty; [workload format](../services/TELEMETRY.md) |
+| NETWORK | 10 | Zero / empty; Wi-Fi station observation below |
+
+NETWORK is read-only and bypasses controller mutation IDs/cache. Its response
+has the ordinary version-1 header, command `0x8a`, revision zero and a 24-byte
+payload: version 1 at byte 0; flags at 1; stage at 2; retry state at 3; signed
+32-bit SDK error at 4..7; unsigned 16-bit disconnect reason at 8..9; zero
+reserved bytes at 10..11; network-order IPv4 octets at 12..15; and unsigned
+64-bit absolute monotonic deadline in milliseconds at 16..23. Multibyte integer
+fields use little-endian encoding. Flags bits 0..5 mean startup attempted,
+startup succeeded, station ready, IP present, cancellation pending and terminal
+fault. The address is zero without IP. Retry states are waiting 0, attempt 1
+and online 2. Stages 0..14 are none, netif init, event loop, default station,
+Wi-Fi event registration, got-IP registration, lost-IP registration, Wi-Fi init,
+RAM storage, mode, configuration, start, ready, connect and disconnect.
+Stage 15 is transmit-power configuration; stages 0..14 retain their identifiers.
+The last disconnect reason is historical; a successful connect call does not
+mean association or DHCP succeeded. Old/non-Wi-Fi images may give no reply.
 
 Controller/probe replies total 48 bytes: header plus six uint32 fields **status,
 active revision, saved revision, active CRC, saved CRC, flags**. PROBE substitutes

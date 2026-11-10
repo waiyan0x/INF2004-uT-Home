@@ -1,4 +1,30 @@
-# Device discovery and documentation
+# Project documentation
+
+Start with the [current project direction](../README.md#resume-next-session)
+and [team responsibilities](../CONTRIBUTING.md). Each maintained source folder
+keeps its own implementation guide and contracts.
+
+- [Firmware setup and module map](../firmware/README.md),
+  [shared contracts](../firmware/CONTRACTS.md) and
+  [application entry point](../firmware/app/README.md).
+- [Configuration Desk](../tools/configurator/README.md),
+  [USB transfer tools](../tools/config_transfer/README.md) and
+  [build/qualification tools](../tools/target/README.md).
+- [Networking](../firmware/src/network/README.md) and
+  [runtime transactions](../firmware/src/services/transaction/README.md).
+- [Hardware acceptance and scoped UART/GPIO guides](hardware/README.md).
+- [Software tests](../tests/README.md) and
+  [GitHub Actions](github-actions.md).
+- [Qualification evidence](../firmware/qualification/README.md) and
+  [completed-work history](COMPLETED_WORK_LOG.md).
+
+The discovery workflow below remains the guide for identifying supported
+devices on reviewed connections. Current implementation status belongs in the
+source-folder guides; dated qualification records retain their original meaning.
+
+<a id="device-discovery-and-documentation"></a>
+
+## Device discovery and documentation
 
 Discovery answers which supported device is present on a **reviewed connection**.
 Firmware gathers bounded observations; the computer matches them to catalogue
@@ -89,7 +115,7 @@ today's source. Current manual reviews and relocated guides are mapped below.
 | `INTEGRATION_PLAN.md` | [Guide](../README.md#remaining-work) |
 | `PROJECT_BASELINE.md` | [Guide](../README.md#platform-contract) |
 | `ai/OFFLINE_PIPELINE.md` | [Guide](../ai/README.md) |
-| `ai/TIMING_EXPERIMENTS.md` | [Guide](../ai/README.md#prepare-an-experiment) |
+| `ai/TIMING_EXPERIMENTS.md` | [Guide](../ai/README.md) |
 | `ai/TRAINING_PIPELINE.md` | [Guide](../ai/README.md) |
 | `configs/PROTOTYPE_REFERENCE.md` | [Guide](../configs/README.md#legacy-reference) |
 | `docs/DEVICE_DISCOVERY.md` | [Guide](README.md) |
@@ -111,7 +137,7 @@ today's source. Current manual reviews and relocated guides are mapped below.
 Manual C review sections: [configuration](../firmware/src/config/README.md#verification-and-manual-c-review),
 [runtime](../firmware/src/runtime/README.md#verification-and-limits),
 [display](../firmware/src/services/TELEMETRY.md#display-c-review) and
-[AI export](../ai/README.md#c-review). The signed [audit](../tools/c_standard/AUDIT.md)
+[AI export](../ai/README.md). The signed [audit](../tools/c_standard/AUDIT.md)
 and [approval records](../tools/c_standard/README.md) retain their own files.
 
 ## Local artifacts and review documents

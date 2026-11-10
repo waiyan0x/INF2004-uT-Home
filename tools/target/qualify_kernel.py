@@ -42,6 +42,8 @@ RUNTIME_SOURCE_FILES = {
     "firmware/src/network/occwire.h": "network/occwire.h",
     "firmware/src/network/netmqtt.c": "network/netmqtt.c",
     "firmware/src/network/netmqtt.h": "network/netmqtt.h",
+    "firmware/src/network/mqttdisc.c": "network/mqttdisc.c",
+    "firmware/src/network/mqttdisc.h": "network/mqttdisc.h",
     "firmware/src/network/netretry.c": "network/netretry.c",
     "firmware/src/network/netretry.h": "network/netretry.h",
     "firmware/src/network/nethttp.c": "network/nethttp.c",

@@ -142,7 +142,15 @@ int netpool_receive (netpool_t * p_pool,
                      bool        b_peek,
                      bool        b_isr);
 
-/** @brief Take/give a mutex from task context with explicit recursion mode. */
+/**
+ * @brief Take/give a mutex from task context with explicit recursion mode.
+ *
+ * Pinned ESP Wi-Fi compatibility: its ordinary mutex constructor is paired
+ * with recursive take/give APIs. That pair supports both mutex lease kinds;
+ * ordinary take/give supports only NETPOOL_MUTEX and cannot re-take ownership.
+ * Ordinary give rejects depth greater than one, retaining nested ownership.
+ * This does not authorize arbitrary mixing of API families or other kinds.
+ */
 int netpool_mutex (netpool_t * p_pool,
                    void *      p_key,
                    uint32_t    ticks,

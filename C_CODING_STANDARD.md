@@ -392,3 +392,8 @@ fixed service definitions and a twelve-byte stack response. GATT means Generic
 Attribute Profile. It shares the SDK-only component and header-spelling boundary
 with `c3ble`; no owned assembly syntax or new naming exception is introduced.
 The network guide records its ABI, concurrency and bounds review.
+
+`mqttdisc` formats Home Assistant MQTT discovery and JSON state text into
+caller-owned storage; `c3mqtt` drives it. HA = Home Assistant. It is C99 with a
+paired header, no static RAM and no new exception. See the
+[manual review](firmware/src/network/README.md#home-assistant-mqtt-discovery-2026-11-10).

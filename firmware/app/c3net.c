@@ -84,7 +84,8 @@ int c3net_start (const cfgctrl_t * p_control, cfgmux_t * p_mux)
                                     .port       = UTHOME_SETUP_PORT,
                                     .p_mux      = p_mux};
     gb_https                     = 0 == c3https_start(&https);
-    gb_wifi = 0 == c3wsta_start(g_setup_ssid, g_setup_password);
+    gb_wifi                      = 0 == c3wsta_start(
+                       g_setup_ssid, g_setup_password, UTHOME_SETUP_TX_POWER);
 #if UTHOME_SETUP_MQTT
     const c3mqtt_config_t broker = {.p_address     = g_setup_mqtt_address,
                                     .p_server_name = g_setup_mqtt_server_name,
@@ -163,6 +164,33 @@ int c3net_step (const cfgctrl_t * p_control, uint64_t now_ms)
 #endif
     return result;
 }
+
+#if UTHOME_NETWORK_WIFI
+/** @brief Encode a coherent station snapshot into the USB owner's buffer. */
+int c3net_observe (uint8_t * p_data, size_t capacity, size_t * p_size)
+{
+    c3wsta_status_t status = {0};
+    if ((NULL == p_data) || (NULL == p_size) || (24U > capacity) ||
+        (0 != c3wsta_status(&status)))
+    {
+        return -1;
+    }
+    memset(p_data, 0, 24U);
+    p_data[0] = 1U;
+    p_data[1] = status.flags;
+    p_data[2] = status.stage;
+    p_data[3] = status.retry_state;
+    /* Signed status conversion preserves its modulo-2^32 wire encoding. */
+    cfgbytes_put(&p_data[4], (uint32_t)status.sdk_error);
+    p_data[8] = (uint8_t)(status.disconnect_reason & UINT16_C(0xFF));
+    p_data[9] = (uint8_t)(status.disconnect_reason >> 8U);
+    memcpy(&p_data[12], status.address, sizeof(status.address));
+    cfgbytes_put(&p_data[16], (uint32_t)(status.deadline_ms & UINT32_MAX));
+    cfgbytes_put(&p_data[20], (uint32_t)(status.deadline_ms >> 32U));
+    *p_size = 24U;
+    return 0;
+}
+#endif
 
 /** @brief Never bypass shared serialization or consume display/rule queues. */
 static int capture (void *              p_context,

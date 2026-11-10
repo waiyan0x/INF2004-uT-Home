@@ -15,6 +15,11 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[2]
 
+class WifiStatus(c.Structure):
+    _fields_=[('stage',c.c_uint8),('retry_state',c.c_uint8),('flags',c.c_uint8),
+              ('disconnect_reason',c.c_uint16),('sdk_error',c.c_int32),
+              ('address',c.c_uint8*4),('deadline_ms',c.c_uint64)]
+
 SDK_HEADER=r"""
 #ifndef TEST_ESP_SDK_H
 #define TEST_ESP_SDK_H
@@ -25,6 +30,7 @@ SDK_HEADER=r"""
 #define F_SETFL 4
 #define O_NONBLOCK 0x800
 #define ESP_OK 0
+#define ESP_ERR_NO_MEM 257
 #define ESP_ERR_WIFI_NOT_CONNECT 12290
 #define ESP_TLS_ERR_SSL_WANT_READ -26880
 #define ESP_TLS_ERR_SSL_WANT_WRITE -26752
@@ -82,6 +88,8 @@ typedef struct { bool nvs_enable; } wifi_init_config_t;
 #define WIFI_INIT_CONFIG_DEFAULT() ((wifi_init_config_t){true})
 typedef struct { struct { uint8_t ssid[32]; uint8_t password[64];
  struct { int authmode; } threshold; } sta; } wifi_config_t;
+typedef struct { uint8_t reason; } wifi_event_sta_disconnected_t;
+typedef struct { struct { struct { uint32_t addr; } ip; } ip_info; } ip_event_got_ip_t;
 int esp_netif_init(void);
 void *esp_netif_create_default_wifi_sta(void);
 int esp_event_loop_create_default(void);
@@ -92,6 +100,7 @@ int esp_wifi_set_storage(int storage);
 int esp_wifi_set_mode(int mode);
 int esp_wifi_set_config(int interface_id,const wifi_config_t *config);
 int esp_wifi_start(void);
+int esp_wifi_set_max_tx_power(int8_t power);
 int esp_wifi_connect(void);
 int esp_wifi_disconnect(void);
 uint32_t esp_random(void);
@@ -190,6 +199,12 @@ static int g_connects;
 static int g_disconnects;
 static int g_connect_error;
 static int g_disconnect_error;
+static int g_wifi_fail_stage;
+static int g_wifi_setup_calls;
+static int g_power_calls = 0;
+static int g_power_error = 0;
+static int32_t g_wifi_operations[32] = {0};
+static uint32_t g_wifi_operation_count = 0U;
 static uint16_t g_mtu=23;
 static int g_advertised;
 static int g_notifications;
@@ -248,19 +263,36 @@ int c3fake_send(int fd,const void *data,size_t size,int flags)
 static int radar_mode;
 void c3fake_radar(int mode){radar_mode=mode;}
 #endif
-int esp_netif_init(void) { return 0; }
-void *esp_netif_create_default_wifi_sta(void) { return &g_connects; }
-int esp_event_loop_create_default(void) { return 0; }
+static int wifi_stage(int stage)
+{ ++g_wifi_setup_calls;return stage==g_wifi_fail_stage?0x4321:0; }
+int esp_netif_init(void) { return wifi_stage(1); }
+void *esp_netif_create_default_wifi_sta(void) { return wifi_stage(3)?NULL:&g_connects; }
+int esp_event_loop_create_default(void) { return wifi_stage(2); }
 int esp_event_handler_instance_register(esp_event_base_t base,int32_t id,
  event_handler_t *handler,void *arg,esp_event_handler_instance_t *instance)
-{ (void)base;(void)id;(void)arg;g_event=handler;if(instance) { *instance=&g_event; } return 0; }
-int esp_wifi_init(const wifi_init_config_t *config) { return config->nvs_enable?-1:0; }
-int esp_wifi_set_storage(int storage) { return storage; }
-int esp_wifi_set_mode(int mode) { return mode==WIFI_MODE_STA?0:-1; }
+{ (void)arg;g_event=handler;if(instance) { *instance=&g_event; }
+ return wifi_stage(base==WIFI_EVENT?4:(id==IP_EVENT_STA_GOT_IP?5:6)); }
+int esp_wifi_init(const wifi_init_config_t *config) { return config->nvs_enable?-1:wifi_stage(7); }
+int esp_wifi_set_storage(int storage) { return storage?storage:wifi_stage(8); }
+int esp_wifi_set_mode(int mode) { return mode==WIFI_MODE_STA?wifi_stage(9):-1; }
 int esp_wifi_set_config(int interface_id,const wifi_config_t *config)
-{ (void)interface_id;return config->sta.threshold.authmode==WIFI_AUTH_WPA2_PSK?0:-1; }
-int esp_wifi_start(void) { return 0; }
-int esp_wifi_connect(void) { ++g_connects;return g_connect_error; }
+{ (void)interface_id;return config->sta.threshold.authmode==WIFI_AUTH_WPA2_PSK?wifi_stage(10):-1; }
+static void wifi_operation (int32_t value)
+{
+    if (32U > g_wifi_operation_count)
+    {
+        g_wifi_operations[g_wifi_operation_count] = value;
+        ++g_wifi_operation_count;
+    }
+}
+int esp_wifi_start(void) { wifi_operation(11);return wifi_stage(11); }
+int esp_wifi_set_max_tx_power (int8_t power)
+{
+    ++g_power_calls;
+    wifi_operation(1000 + power);
+    return g_power_error;
+}
+int esp_wifi_connect(void) { wifi_operation(13);++g_connects;return g_connect_error; }
 int esp_wifi_disconnect(void) { ++g_disconnects;return g_disconnect_error; }
 uint32_t esp_random(void) { return 0U; }
 int esp_read_mac(uint8_t *address,int type)
@@ -294,6 +326,11 @@ int ble_gap_adv_start(uint8_t type,const void *address,int duration,
 uint16_t ble_att_mtu(uint16_t connection) { (void)connection;return g_mtu; }
 static netread_info_t g_info={.meta={.boot_id=1,.active_revision=12,.generation=4},
  .saved_revision=11,.runtime_state=1,.b_durable_known=true,.b_wifi_online=true,.node_id="test-node"};
+/* Per-slot capture result for MQTT tests: 0 copies the source, 1 absent,
+ * negative busy/failure. Defaults keep the original all-present fixture. */
+static int g_capture_result[8];
+static int g_capture_failures[8];
+static int g_captures;
 #include "uthome/txjob.h"
 static txjob_view_t g_transaction;
 int c3fake_transaction(const uint8_t *data,size_t size)
@@ -301,7 +338,10 @@ int c3fake_transaction(const uint8_t *data,size_t size)
   g_transaction.b_known=true;g_transaction.completed_ms=100;g_transaction.generation=4;
   ++g_transaction.sequence;g_info.p_transaction=&g_transaction;return 0; }
 static int capture(void *context,uint16_t source,sampcache_entry_t *entry,uint64_t *now)
-{ (void)context;memset(entry,0,sizeof(*entry));entry->source.type=1;
+{ ++g_captures;
+  if(source<8 && g_capture_failures[source]>0) { --g_capture_failures[source];memset(entry,0,sizeof(*entry));return -1; }
+  if(source<8 && g_capture_result[source]!=0) { memset(entry,0,sizeof(*entry));return g_capture_result[source]; }
+  (void)context;memset(entry,0,sizeof(*entry));entry->source.type=1;
   entry->source.source_index=source;entry->source.stale_ms=1000;
   memcpy(entry->source.name,"environment",12);entry->b_expected=true;entry->b_seen=true;
   entry->header.status=1;entry->header.timestamp_ms=100;
@@ -338,6 +378,22 @@ void c3fake_setup_error(int result) { g_fail_setup=result; }
 void c3fake_write_limit(int size) { g_write_limit=size; }
 void c3fake_event(int identifier)
 { g_event(NULL,identifier<=3?WIFI_EVENT:IP_EVENT,identifier,NULL); }
+void c3fake_wifi_failure(int stage) { g_wifi_fail_stage=stage; }
+void c3fake_power_error (int error) { g_power_error = error; }
+int c3fake_power_calls (void) { return g_power_calls; }
+int32_t c3fake_wifi_operation (uint32_t index)
+{
+    return (g_wifi_operation_count > index) ? g_wifi_operations[index] : -1;
+}
+int c3fake_wifi_setup_calls(void) { return g_wifi_setup_calls; }
+void c3fake_wifi_errors(int connect_error,int disconnect_error)
+{ g_connect_error=connect_error;g_disconnect_error=disconnect_error; }
+void c3fake_wifi_ip(uint8_t first,uint8_t second,uint8_t third,uint8_t fourth)
+{ ip_event_got_ip_t data={0};uint8_t address[4]={first,second,third,fourth};
+ memcpy(&data.ip_info.ip.addr,address,sizeof(address));
+ g_event(NULL,IP_EVENT,IP_EVENT_STA_GOT_IP,&data); }
+void c3fake_wifi_disconnected(uint8_t reason)
+{ wifi_event_sta_disconnected_t data={reason};g_event(NULL,WIFI_EVENT,WIFI_EVENT_STA_DISCONNECTED,&data); }
 int c3fake_connects(void) { return g_connects; }
 int c3fake_disconnects(void) { return g_disconnects; }
 int c3fake_mqtt_start(void)
@@ -347,6 +403,12 @@ int c3fake_mqtt_start(void)
  return c3mqtt_start(&cfg,"node"); }
 int c3fake_mqtt_step(uint64_t now,int online)
 { return c3mqtt_step(now,online!=0,&g_info,capture,NULL); }
+void c3fake_capture_result(int slot,int result) { if(slot>=0 && slot<8) { g_capture_result[slot]=result; } }
+void c3fake_capture_failures(int slot,int count) { if(slot>=0 && slot<8) { g_capture_failures[slot]=count; } }
+int c3fake_captures(void) { return g_captures; }
+void c3fake_generation(uint32_t generation) { g_info.meta.generation=generation; }
+size_t c3fake_take_output(int fd,void *output)
+{ size_t size=g_output_size[fd];memcpy(output,g_output[fd],size);g_output_size[fd]=0;return size; }
 int c3fake_ble_start(void) { return c3gsvc_start(&g_info); }
 int c3fake_ble_step(uint64_t now) { return c3gsvc_step(now,&g_info,capture,NULL); }
 void c3fake_gap(int kind,int value)
@@ -387,7 +449,7 @@ class EspBindingTests(unittest.TestCase):
             path.parent.mkdir(parents=True,exist_ok=True)
             path.write_text('#include "sdk.h"\n',encoding='utf-8')
         sources=['firmware/hal/ports/esp32c3/'+name+'.c' for name in ['c3https','c3wsta','c3gsvc','c3mqtt']]
-        sources+=['firmware/src/network/'+name+'.c' for name in ['nethttp','netread','netble','netretry','netbroker','netmqtt']]
+        sources+=['firmware/src/network/'+name+'.c' for name in ['nethttp','netread','netble','netretry','netbroker','netmqtt','mqttdisc']]
         sources+=['firmware/src/runtime/sampcache.c', 'firmware/src/services/transaction/txjob.c']
         sources+=['firmware/src/config/'+name+'.c' for name in ['cfgmux','cfgctrl','cfgstore','cfgwire','cfgbytes']]
         includes=[folder,ROOT/'firmware/src/config',ROOT/'firmware/include',ROOT/'firmware/src/network',
@@ -420,6 +482,7 @@ class EspBindingTests(unittest.TestCase):
             'sampcache_entry_t *entry,uint64_t *now);\n')
         (folder/'netsetup.h').write_text(
             '#include <stdint.h>\n#define UTHOME_SETUP_PORT 8443U\n'
+            '#define UTHOME_SETUP_TX_POWER 0U\n'
             'static const char g_setup_ssid[33]="ap";\n'
             'static const char g_setup_password[64]="password";\n'
             'static const uint8_t g_setup_certificate[]="certificate";\n'
@@ -451,7 +514,7 @@ class EspBindingTests(unittest.TestCase):
         self.lib.c3fake_input.argtypes=[c.c_int,c.c_char_p,c.c_size_t]
         self.lib.c3fake_output.argtypes=[c.c_int,c.c_void_p]
         self.lib.c3fake_output.restype=c.c_size_t
-        self.lib.c3wsta_start.argtypes=[c.c_char_p,c.c_char_p]
+        self.lib.c3wsta_start.argtypes=[c.c_char_p,c.c_char_p,c.c_int32]
         self.lib.c3wsta_step.argtypes=[c.c_uint64]
         self.lib.c3wsta_online.restype=c.c_bool
         self.lib.c3fake_ble_step.argtypes=[c.c_uint64]
@@ -607,6 +670,235 @@ class EspBindingTests(unittest.TestCase):
         self.assertIn(b'uthome-', self.output(10))
         self.assertIn(b'online', self.output(0))
         self.assertEqual(self.lib.c3fake_closed(10), 0)
+
+    MQTT_SUFFIXES=[('sensor','temperature'),('sensor','pressure'),('sensor','distance'),
+                   ('sensor','illuminance'),('binary_sensor','occupancy'),
+                   ('sensor','targets'),('sensor','raw')]
+
+    def mqtt_session(self,absent=range(1,8)):
+        """Real c3mqtt over the TLS double; whole-packet writes; slot 0 present."""
+        self.lib.c3fake_mqtt_step.argtypes=[c.c_uint64,c.c_int]
+        self.lib.c3fake_take_output.argtypes=[c.c_int,c.c_void_p]
+        self.lib.c3fake_take_output.restype=c.c_size_t
+        self.lib.c3fake_generation.argtypes=[c.c_uint32]
+        self.lib.c3fake_capture_result.argtypes=[c.c_int,c.c_int]
+        self.lib.c3mqtt_status.argtypes=[c.c_void_p]
+        for slot in absent:
+            self.lib.c3fake_capture_result(slot,1)
+        self.assertEqual(self.lib.c3fake_mqtt_start(),0)
+        self.lib.c3fake_handshake(1)
+        self.lib.c3fake_write_limit(4096)
+        self.mqtt_now=0
+        self.mqtt_stream=bytearray()
+        self.publishes=[]  # (owner time, retain bit, topic, payload)
+        self.mqtt_connects=0
+
+    def mqtt_pump(self,steps,dt=1,online=1):
+        buffer=(c.c_uint8*4096)()
+        for _ in range(steps):
+            self.mqtt_now+=dt
+            # Intended session resets return -1; outcomes are checked on the wire.
+            self.lib.c3fake_mqtt_step(self.mqtt_now,online)
+            size=self.lib.c3fake_take_output(0,buffer)
+            self.mqtt_stream.extend(bytes(buffer[:size]))
+            self.mqtt_parse()
+
+    def mqtt_parse(self):
+        data=self.mqtt_stream
+        while len(data)>=2:
+            length=0
+            shift=0
+            index=1
+            while True:
+                if index>=len(data):
+                    return
+                byte=data[index]
+                length|=(byte&127)<<shift
+                shift+=7
+                index+=1
+                if not byte&128:
+                    break
+            if len(data)<index+length:
+                return
+            packet=bytes(data[:index+length])
+            del data[:index+length]
+            body=packet[index:]
+            kind=packet[0]>>4
+            if kind==1:
+                self.mqtt_connects+=1
+                self.lib.c3fake_input(0,b'\x20\x02\x00\x00',4)
+            elif kind==3:
+                size=int.from_bytes(body[:2],'big')
+                self.publishes.append((self.mqtt_now,packet[0]&1,
+                                       body[2:2+size].decode('ascii'),body[2+size:]))
+            elif kind==8:
+                self.lib.c3fake_input(0,b'\x90\x03'+body[:2]+b'\x00',5)
+            elif kind==12:
+                self.lib.c3fake_input(0,b'\xd0\x00',2)
+            else:
+                self.fail(f'unexpected packet {packet!r}')
+
+    def discovery_order(self):
+        return [f'homeassistant/{component}/node_s{slot}_{suffix}/config'
+                for slot in range(8) for component,suffix in self.MQTT_SUFFIXES]
+
+    def test_mqtt_discovery_retained_paced_then_telemetry_and_state(self):
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0,str(ROOT))
+        from tools.target.network_client import decode_mqtt
+        self.mqtt_session()
+        self.mqtt_pump(400)
+        retained=[p for p in self.publishes if p[1]]
+        self.assertEqual(retained[0][2:],('uthome/v1/node/availability',b'online'))
+        discovery=retained[1:]
+        self.assertEqual([p[2] for p in discovery],self.discovery_order())
+        present={p[2]:p[3] for p in discovery if p[3]}
+        self.assertEqual(sorted(present),['homeassistant/sensor/node_s0_pressure/config',
+                                          'homeassistant/sensor/node_s0_temperature/config'])
+        config=json.loads(present['homeassistant/sensor/node_s0_temperature/config'])
+        self.assertEqual(config['state_topic'],'uthome/v1/node/state/environment')
+        self.assertEqual(config['availability_topic'],'uthome/v1/node/availability')
+        self.assertEqual(config['unit_of_measurement'],'°C')
+        # Availability plus 56 discovery messages precede any other publication.
+        self.assertTrue(all(p[1] for p in self.publishes[:57]))
+        following=self.publishes[57:]
+        self.assertEqual([(p[1],p[2]) for p in following],
+                         [(0,'uthome/v1/node/telemetry/environment'),
+                          (0,'uthome/v1/node/state/environment')])
+        frame=decode_mqtt(following[0][2],following[0][3])
+        self.assertEqual(frame['source_index'],0)
+        self.assertEqual(len(following[0][3]),112)
+        self.assertEqual(following[1][3],b'{"t_c100":2600,"p_pa":100800}')
+        # One completed publication per owner step and nothing replaced unsent.
+        times=[p[0] for p in self.publishes]
+        self.assertEqual(len(times),len(set(times)))
+        view=(c.c_uint32*4)()
+        self.assertEqual(self.lib.c3mqtt_status(view),0)
+        self.assertEqual(list(view),[5,0,0,0])
+        # Rotation: slot 0 again after eight 1 s ticks, both topics, no retain.
+        self.publishes.clear()
+        self.mqtt_pump(900,dt=10)
+        self.assertEqual([(p[1],p[2]) for p in self.publishes],
+                         [(0,'uthome/v1/node/telemetry/environment'),
+                          (0,'uthome/v1/node/state/environment')])
+        self.assertLess(self.publishes[1][0]-self.publishes[0][0],1000)
+
+    def test_mqtt_discovery_capture_failure_retries_and_never_removes(self):
+        self.mqtt_session()
+        self.lib.c3fake_capture_result(0,-1)
+        self.mqtt_pump(60)  # Busy windows stay below the 100-capture retry bound.
+        # The cursor stays at step 0: nothing removed and no telemetry either.
+        self.assertEqual([p[2] for p in self.publishes],['uthome/v1/node/availability'])
+        self.lib.c3fake_capture_result(0,0)
+        self.lib.c3fake_capture_result(3,-1)
+        for _ in range(200):
+            if len([p for p in self.publishes if p[1]])>=22:
+                break
+            self.mqtt_pump(1)
+        self.mqtt_pump(30)
+        discovery=[p for p in self.publishes if p[1]][1:]
+        self.assertEqual([p[2] for p in discovery],self.discovery_order()[:21])
+        self.assertTrue(discovery[0][3])
+        self.lib.c3fake_capture_result(3,1)  # Now genuinely absent: removal is allowed.
+        self.mqtt_pump(200)
+        discovery=[p for p in self.publishes if p[1]][1:]
+        self.assertEqual([p[2] for p in discovery],self.discovery_order())
+        self.assertTrue(all(p[3]==b'' for p in discovery[21:28]))
+
+    def test_mqtt_discovery_restarts_on_plan_change_and_reconnect(self):
+        self.mqtt_session()
+        self.mqtt_pump(30)
+        partial=[p for p in self.publishes if p[1]][1:]
+        self.assertTrue(0<len(partial)<56)
+        for change in ('generation','ip'):
+            self.publishes.clear()
+            if change=='generation':
+                self.lib.c3fake_generation(5)
+            else:
+                self.mqtt_pump(5,online=0)
+            connects=self.mqtt_connects
+            self.mqtt_pump(2500)  # Backoff is 1 s, then 2 s for the second reset.
+            self.assertEqual(self.mqtt_connects,connects+1)
+            retained=[p for p in self.publishes if p[1]]
+            self.assertEqual(retained[0][2],'uthome/v1/node/availability')
+            self.assertEqual([p[2] for p in retained[1:]],self.discovery_order())
+
+    CAPTURE_RETRIES=100  # Mirrors C3MQTT_CAPTURE_RETRIES in c3mqtt.c.
+
+    def retained_topics(self):
+        return [p[2] for p in self.publishes if p[1]][1:]  # Without availability.
+
+    def test_mqtt_discovery_persistent_capture_failure_skips_without_removal(self):
+        self.mqtt_session()
+        self.lib.c3fake_capture_result(3,-1)  # Slot 3 never captures.
+        self.mqtt_pump(1200)
+        self.assertEqual(self.retained_topics(),
+                         [t for t in self.discovery_order() if '_s3_' not in t])
+        self.assertFalse(any('_s3_' in p[2] for p in self.publishes))
+        plain=[p[2] for p in self.publishes if not p[1]]
+        self.assertEqual(plain,['uthome/v1/node/telemetry/environment',
+                                'uthome/v1/node/state/environment'])
+
+    def test_mqtt_discovery_retry_bound_is_exact_and_resets_on_success(self):
+        self.mqtt_session()
+        self.lib.c3fake_capture_failures.argtypes=[c.c_int,c.c_int]
+        self.lib.c3fake_capture_failures(0,self.CAPTURE_RETRIES-1)  # Step 0: one short.
+        self.lib.c3fake_capture_failures(1,self.CAPTURE_RETRIES)    # Step 7: the bound.
+        for _ in range(500):
+            if self.retained_topics():
+                break
+            self.mqtt_pump(1)
+        order=self.discovery_order()
+        self.assertEqual(self.retained_topics(),[order[0]])
+        # Step 1 is already captured; step 2 starts from a counter reset by success.
+        self.lib.c3fake_capture_failures(0,self.CAPTURE_RETRIES-1)
+        self.mqtt_pump(1200)
+        self.assertEqual(self.retained_topics(),order[:7]+order[8:])
+        self.assertFalse(any(p[2]==order[7] for p in self.publishes))
+
+    def test_mqtt_final_discovery_message_precedes_first_telemetry(self):
+        self.mqtt_session()
+        for _ in range(1000):
+            if len(self.retained_topics())==55:
+                break
+            self.mqtt_pump(1)
+        self.assertEqual(len(self.retained_topics()),55)
+        # The 56th message is now pending. A 15 s gap makes the keepalive win the
+        # next step: PINGREQ is queued and the final message stays pending.
+        self.mqtt_pump(1,dt=15000)
+        self.mqtt_pump(50)
+        wire=[(p[1],p[2]) for p in self.publishes]
+        final=wire.index((1,self.discovery_order()[-1]))
+        first=wire.index((0,'uthome/v1/node/telemetry/environment'))
+        self.assertLess(final,first)
+        self.assertEqual(self.retained_topics(),self.discovery_order())
+        view=(c.c_uint32*4)()
+        self.assertEqual(self.lib.c3mqtt_status(view),0)
+        self.assertEqual(view[2],0)  # Nothing replaced.
+
+    def test_mqtt_result_during_discovery_resends_replaced_step(self):
+        self.mqtt_session()
+        self.assertEqual(self.lib.c3mqtt_transactions(),0)
+        self.lib.c3mqtt_result.argtypes=[c.c_char_p,c.c_size_t]
+        for _ in range(400):
+            self.mqtt_pump(1)
+            if len(self.retained_topics())>=10:
+                break
+        self.assertLess(len(self.retained_topics()),56)
+        payload=bytes(range(96))
+        # A discovery step is pending here: the result takes its place at once.
+        self.assertEqual(self.lib.c3mqtt_result(payload,96),0)
+        self.assertEqual(self.lib.c3mqtt_result(payload,96),1)
+        self.mqtt_pump(400)
+        self.assertEqual(self.retained_topics(),self.discovery_order())
+        results=[p for p in self.publishes if p[2]=='uthome/v1/node/transaction/result']
+        self.assertEqual([(p[1],p[3]) for p in results],[(0,payload)])
+        wire=[p[2] for p in self.publishes]
+        self.assertLess(wire.index('uthome/v1/node/transaction/result'),
+                        wire.index(self.discovery_order()[-1]))
+        view=(c.c_uint32*4)()
+        self.assertEqual(self.lib.c3mqtt_status(view),0)
+        self.assertEqual(view[2],1)  # Only the re-sent discovery step.
 
     def test_mqtt_command_subscription_and_priority_result(self):
         self.assertEqual(self.lib.c3fake_mqtt_start(),0)
@@ -922,7 +1214,7 @@ class EspBindingTests(unittest.TestCase):
         self.assertEqual(self.lib.c3fake_closed(10),1)
 
     def test_wifi_association_ip_loss_and_reconnect(self):
-        self.assertEqual(self.lib.c3wsta_start(b'my-ap',b'password'),0)
+        self.assertEqual(self.lib.c3wsta_start(b'my-ap',b'password',0),0)
         self.assertEqual(self.lib.c3wsta_step(0),0)
         self.assertEqual(self.lib.c3fake_connects(),0)
         self.lib.c3fake_event(1)
@@ -939,9 +1231,153 @@ class EspBindingTests(unittest.TestCase):
         self.assertEqual(self.lib.c3fake_connects(),1)
         self.lib.c3wsta_step(1003)
         self.assertEqual(self.lib.c3fake_connects(),2)
+        self.assertEqual(self.lib.c3fake_power_calls(),0)
+
+    def test_wifi_tx_cap_precedes_connect_and_reapplies_on_reconnect(self):
+        self.assertEqual(self.lib.c3wsta_start(b'my-ap',b'password',34),0)
+        self.assertEqual(self.lib.c3fake_power_calls(),0)
+        self.lib.c3wsta_step(0)
+        self.assertEqual(self.lib.c3fake_power_calls(),0)
+        self.lib.c3fake_event(1)
+        self.lib.c3wsta_step(1)
+        self.assertEqual(self.lib.c3fake_power_calls(),1)
+        self.assertEqual([self.lib.c3fake_wifi_operation(i) for i in range(3)],
+                         [11,1034,13])
+        self.lib.c3fake_event(4)
+        self.lib.c3wsta_step(2)
+        self.assertTrue(self.lib.c3wsta_online())
+        self.lib.c3fake_event(2)
+        self.lib.c3wsta_step(3)
+        self.lib.c3wsta_step(1002)
+        self.assertEqual(self.lib.c3fake_power_calls(),1)
+        self.lib.c3wsta_step(1003)
+        self.assertEqual([self.lib.c3fake_wifi_operation(i) for i in range(5)],
+                         [11,1034,13,1034,13])
+        self.assertEqual(self.lib.c3fake_power_calls(),2)
+        self.assertEqual(self.lib.c3fake_connects(),2)
+
+    def test_wifi_tx_cap_failure_reports_stage_and_retries_without_connect(self):
+        self.lib.c3wsta_start(b'my-ap',b'password',34)
+        self.lib.c3fake_event(1)
+        self.lib.c3fake_power_error(0x4325)
+        self.assertEqual(self.lib.c3wsta_step(0),0)
+        failed=self.wifi_status()
+        self.assertEqual((failed.stage,failed.sdk_error,failed.retry_state,
+                          failed.deadline_ms),(15,0x4325,0,1000))
+        self.assertFalse(failed.flags&32)
+        self.assertEqual(self.lib.c3fake_connects(),0)
+        self.lib.c3wsta_step(999)
+        self.assertEqual(self.lib.c3fake_power_calls(),1)
+        self.lib.c3fake_power_error(0)
+        self.assertEqual(self.lib.c3wsta_step(1000),0)
+        self.assertEqual(self.lib.c3fake_power_calls(),2)
+        self.assertEqual(self.lib.c3fake_connects(),1)
+        self.assertEqual((self.wifi_status().stage,self.wifi_status().sdk_error),(13,0))
+
+    def test_wifi_tx_cap_argument_bounds_preserve_startup_and_signed_sdk_abi(self):
+        for power in (-2**31,-1,1,7,85,128,2**31-1,8,84):
+            with self.subTest(power=power):
+                path=Path(self.folder.name)/f'wifi-cap-{power}.dll'
+                shutil.copyfile(self.binary,path)
+                library=c.CDLL(str(path))
+                try:
+                    library.c3wsta_start.argtypes=[c.c_char_p,c.c_char_p,c.c_int32]
+                    invalid=power not in (8,84)
+                    self.assertEqual(library.c3wsta_start(b'my-ap',b'password',power),
+                                     -1 if invalid else 0)
+                    if invalid:
+                        self.assertEqual(library.c3fake_wifi_setup_calls(),0)
+                        self.assertEqual(self.wifi_status(library).flags,0)
+                        self.assertEqual(library.c3wsta_start(b'my-ap',b'password',0),0)
+                    library.c3fake_event(1)
+                    library.c3wsta_step(0)
+                    self.assertEqual(library.c3fake_power_calls(),0 if invalid else 1)
+                    if not invalid:
+                        self.assertEqual(library.c3fake_wifi_operation(1),1000+power)
+                finally:
+                    if sys.platform=='win32':
+                        import _ctypes
+                        _ctypes.FreeLibrary(library._handle)
+
+    def wifi_status(self,library=None):
+        library=library or self.lib
+        library.c3wsta_status.argtypes=[c.POINTER(WifiStatus)]
+        status=WifiStatus()
+        self.assertEqual(library.c3wsta_status(c.byref(status)),0)
+        return status
+
+    def test_wifi_status_initial_and_successful_start_reads_do_no_sdk_work(self):
+        before=self.wifi_status()
+        self.assertEqual((before.stage,before.flags,before.sdk_error),(0,0,0))
+        self.assertEqual(self.lib.c3wsta_status(None),-1)
+        self.assertEqual(self.lib.c3wsta_start(b'my-ap',b'password',0),0)
+        state=self.wifi_status()
+        self.assertEqual((state.stage,state.flags,state.sdk_error),(12,3,0))
+        calls=self.lib.c3fake_wifi_setup_calls()
+        for _ in range(10):
+            self.assertEqual(bytes(self.wifi_status()),bytes(state))
+        self.assertEqual(self.lib.c3fake_wifi_setup_calls(),calls)
+        self.assertEqual(self.lib.c3fake_connects(),0)
+
+    def test_wifi_status_retains_every_failed_startup_stage(self):
+        for stage in range(1,12):
+            with self.subTest(stage=stage):
+                path=Path(self.folder.name)/f'wifi-failure-{stage}.dll'
+                shutil.copyfile(self.binary,path)
+                library=c.CDLL(str(path))
+                try:
+                    library.c3fake_wifi_failure(stage)
+                    library.c3wsta_start.argtypes=[c.c_char_p,c.c_char_p,c.c_int32]
+                    self.assertEqual(library.c3wsta_start(b'my-ap',b'password',0),-1)
+                    state=self.wifi_status(library)
+                    self.assertEqual(state.stage,stage)
+                    self.assertEqual(state.sdk_error,257 if stage==3 else 0x4321)
+                    self.assertTrue(state.flags&1)
+                    self.assertFalse(state.flags&2)
+                    self.assertTrue(state.flags&32)
+                    self.assertEqual(library.c3fake_wifi_setup_calls(),stage)
+                    self.assertEqual(bytes(self.wifi_status(library)),bytes(state))
+                finally:
+                    if sys.platform=='win32':
+                        import _ctypes
+                        _ctypes.FreeLibrary(library._handle)
+
+    def test_wifi_status_copies_ip_reason_and_clears_stale_addresses(self):
+        self.lib.c3wsta_start(b'my-ap',b'password',0)
+        self.lib.c3fake_event(1)
+        self.lib.c3wsta_step(0)
+        attempt=self.wifi_status()
+        self.assertEqual((attempt.stage,attempt.retry_state,attempt.deadline_ms),(13,1,30000))
+        for event in (5,3,2):
+            self.lib.c3fake_wifi_ip(192,168,4,31)
+            observed=self.wifi_status()
+            self.assertEqual(bytes(observed.address),bytes([192,168,4,31]))
+            self.assertTrue(observed.flags&8)
+            if event==2:
+                self.lib.c3fake_wifi_disconnected(201)
+            else:
+                self.lib.c3fake_event(event)
+            cleared=self.wifi_status()
+            self.assertEqual(bytes(cleared.address),bytes(4))
+            self.assertFalse(cleared.flags&8)
+        self.assertEqual(cleared.disconnect_reason,201)
+
+    def test_wifi_status_retains_connect_and_disconnect_sdk_errors(self):
+        self.lib.c3wsta_start(b'my-ap',b'password',0)
+        self.lib.c3fake_event(1)
+        self.lib.c3fake_wifi_errors(0x4322,0)
+        self.assertEqual(self.lib.c3wsta_step(0),0)
+        failed=self.wifi_status()
+        self.assertEqual((failed.stage,failed.sdk_error,failed.retry_state),(13,0x4322,0))
+        self.lib.c3fake_wifi_errors(0,0x4323)
+        self.lib.c3wsta_step(1000)
+        self.assertEqual(self.lib.c3wsta_step(31000),-1)
+        cancelled=self.wifi_status()
+        self.assertEqual((cancelled.stage,cancelled.sdk_error),(14,0x4323))
+        self.assertTrue(cancelled.flags&32)
 
     def test_wifi_timed_out_attempt_waits_for_cancellation(self):
-        self.lib.c3wsta_start(b'my-ap',b'password')
+        self.lib.c3wsta_start(b'my-ap',b'password',0)
         self.lib.c3fake_event(1)
         self.lib.c3wsta_step(0)
         self.lib.c3wsta_step(30000)
@@ -1036,6 +1472,89 @@ class SetupTests(unittest.TestCase):
         path=folder/'private.json'
         path.write_text(json.dumps(values))
         return path,values
+
+    def test_ssid_utf8_header_preserves_exact_bytes_for_both_char_modes(self):
+        compiler=shutil.which('gcc')
+        self.assertIsNotNone(compiler,'GCC required for generated-header checks')
+        names=['Wai Yan\u2019s iPhone','\u00e9'*16,'\U0001f34e'*8,
+               'e\u0301'*10+'ab','quote"\\network']
+        with tempfile.TemporaryDirectory(prefix='uthome-ssid-utf8-') as temporary:
+            folder=Path(temporary)
+            source,config=self.configuration(folder)
+            for name in names:
+                with self.subTest(ssid=name):
+                    config['ssid']=name
+                    source.write_text(json.dumps(config))
+                    header,_=self.setup.generate(source)
+                    (folder/'netsetup.h').write_bytes(header)
+                    expected=name.encode('utf-8').ljust(33,b'\0')
+                    fixture='''#include "netsetup.h"
+#include <string.h>
+int main(void)
+{
+    const unsigned char expected[33] = {EXPECTED};
+    if ((33U != sizeof(g_setup_ssid)) ||
+        (0 != memcmp(g_setup_ssid, expected, sizeof(expected))))
+    {
+        return 1;
+    }
+    if (('p' != g_setup_password[0]) || ('a' != g_setup_token[0]) ||
+        ('-' != g_setup_certificate[0]) || ('-' != g_setup_key[0]))
+    {
+        return 2;
+    }
+    return 0;
+}
+'''.replace('EXPECTED',','.join(f'0x{byte:02x}U' for byte in expected))
+                    (folder/'main.c').write_text(fixture)
+                    for mode in ('-fsigned-char','-funsigned-char'):
+                        binary=folder/('ssid.exe' if sys.platform=='win32' else 'ssid')
+                        built=subprocess.run([compiler,'-std=c99','-Wall','-Wextra',
+                            '-Werror','-pedantic',mode,str(folder/'main.c'),
+                            '-o',str(binary)],capture_output=True,text=True)
+                        self.assertEqual(built.returncode,0,built.stdout+built.stderr)
+                        observed=subprocess.run([str(binary)],capture_output=True,text=True)
+                        self.assertEqual(observed.returncode,0,observed.stdout+observed.stderr)
+
+    def test_ssid_utf8_bounds_and_nonprintable_are_rejected(self):
+        invalid=['','x'*33,'\u00e9'*16+'a','\U0001f34e'*9,
+                 '\ud800','\udfff','AP\0name','AP\nname','AP\x1fname',
+                 'AP\x7fname','AP\x85name','AP\u2028name','AP\u200bname',None,True]
+        with tempfile.TemporaryDirectory() as temporary:
+            source,config=self.configuration(Path(temporary))
+            for name in invalid:
+                with self.subTest(ssid=repr(name)):
+                    config['ssid']=name
+                    source.write_text(json.dumps(config))
+                    with self.assertRaises(ValueError):
+                        self.setup.generate(source)
+
+    def test_utf8_ssid_does_not_relax_other_ascii_credentials(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder=Path(temporary)
+            source,config=self.configuration(folder)
+            config['ssid']='Wai Yan\u2019s iPhone'
+            self.setup.generate(source)
+            source.write_text(json.dumps(config))
+            self.setup.generate(source)
+            for field,value in [('password','p\u00e9ssword'),('token','\u00e9'*32)]:
+                with self.subTest(field=field):
+                    source.write_text(json.dumps({**config,field:value}))
+                    with self.assertRaises(ValueError):
+                        self.setup.generate(source)
+            ca=folder/'broker-ca.pem'
+            ca.write_bytes(b'-----BEGIN CERTIFICATE-----\nfixture\n-----END CERTIFICATE-----\n')
+            mqtt=dict(address='127.0.0.1',server_name='broker.test',port=8883,
+                      user='device',password='password',ca_file=ca.name)
+            config['mqtt']=mqtt
+            source.write_text(json.dumps(config))
+            self.setup.generate(source)
+            for field in ('server_name','user','password'):
+                with self.subTest(mqtt_field=field):
+                    config['mqtt']={**mqtt,field:'caf\u00e9'}
+                    source.write_text(json.dumps(config))
+                    with self.assertRaises(ValueError):
+                        self.setup.generate(source)
 
     def test_esphome_lab_requires_explicit_private_opt_in(self):
         with tempfile.TemporaryDirectory() as temp:

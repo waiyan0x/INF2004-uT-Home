@@ -34,7 +34,9 @@ class BrokerTests(unittest.TestCase):
         cls.lib.netbroker_init.argtypes=[c.c_void_p,c.POINTER(Config)]
         cls.lib.netbroker_step.argtypes=[c.c_void_p,c.c_uint64,c.c_bool,c.c_uint32,c.c_uint32]
         cls.lib.netbroker_snapshot.argtypes=[c.c_void_p,c.POINTER(View)]
-        cls.lib.netbroker_offer.argtypes=[c.c_void_p,c.c_char_p,c.c_char_p,c.c_size_t]
+        cls.lib.netbroker_offer.argtypes=[c.c_void_p,c.c_char_p,c.c_char_p,c.c_size_t,c.c_bool]
+        cls.lib.netbroker_idle.argtypes=[c.c_void_p]
+        cls.lib.netbroker_idle.restype=c.c_bool
         cls.lib.netbroker_subscribe.argtypes=[c.c_void_p,c.c_char_p]
         cls.lib.netbroker_request.argtypes=[c.c_void_p,c.c_void_p,c.c_size_t,c.POINTER(c.c_size_t)]
         cls.addClassCleanup(cls.unload)
@@ -87,8 +89,8 @@ class BrokerTests(unittest.TestCase):
         self.assertLessEqual(self.operations-before,1)
         return result
 
-    def offer(self,data=b'data'):
-        return self.lib.netbroker_offer(self.state,b'uthome/v1/node/telemetry/light',data,len(data))
+    def offer(self,data=b'data',retain=False):
+        return self.lib.netbroker_offer(self.state,b'uthome/v1/node/telemetry/light',data,len(data),retain)
 
     def online(self):
         self.step()
@@ -194,6 +196,40 @@ class BrokerTests(unittest.TestCase):
         self.assertIn(b'\x00\x04MQTT\x04\xe6\x00\x1e',self.output)
         self.assertIn(b'\x00\x07offline\x00\x04user\x00\x06secret',self.output)
         self.assertIn(b'\x31\x23\x00\x1buthome/v1/node/availabilityonline',self.output)
+
+    def test_retain_argument_sets_only_the_publish_header_bit(self):
+        self.online()
+        for _ in range(4):
+            self.step()
+        self.output.clear()
+        self.assertEqual(self.offer(b'kept',retain=True),0)
+        self.step();self.step()
+        self.assertEqual(bytes(self.output),b'\x31\x24\x00\x1euthome/v1/node/telemetry/lightkept')
+        self.output.clear()
+        self.assertEqual(self.offer(b'kept'),0)
+        self.step();self.step()
+        self.assertEqual(bytes(self.output),b'\x30\x24\x00\x1euthome/v1/node/telemetry/lightkept')
+
+    def test_idle_only_when_ready_with_nothing_active_pending_or_pinging(self):
+        self.assertFalse(self.lib.netbroker_idle(None))
+        self.assertFalse(self.lib.netbroker_idle((c.c_uint64*1024)()))
+        self.assertFalse(self.lib.netbroker_idle(self.state))
+        self.online()                      # Leaves one telemetry offer pending.
+        self.assertFalse(self.lib.netbroker_idle(self.state))
+        self.limit=1
+        self.step()                        # Taken: now active, partially written.
+        self.assertFalse(self.lib.netbroker_idle(self.state))
+        self.limit=4096
+        self.step()                        # Active packet completes.
+        self.assertTrue(self.lib.netbroker_idle(self.state))
+        self.step(self.now+15000);self.step()   # PINGREQ queued then written.
+        self.assertTrue(self.output.endswith(b'\xc0\x00'))
+        self.assertFalse(self.lib.netbroker_idle(self.state))
+        self.input.extend(b'\xd0\x00')
+        self.step()
+        self.assertTrue(self.lib.netbroker_idle(self.state))
+        self.step(generation=2)
+        self.assertFalse(self.lib.netbroker_idle(self.state))
 
     def test_fragmented_connack_and_partial_writes(self):
         self.limit=1

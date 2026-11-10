@@ -144,7 +144,7 @@ permission for application `malloc`.
 The USB core uses fixed parser pools, four permanent caller-owned 8 KiB worker
 stacks, a fixed 1 KiB idle stack, startup HAL locks, retained native UART resources
 and checked nonallocating profile storage. See [parsing/storage](src/config/README.md),
-[workers/audits](src/runtime/README.md) and [UART storage](../docs/uart-static-storage.md).
+[workers/audits](src/runtime/README.md) and [UART storage](../docs/hardware/uart-static-storage.md).
 No application-startup/runtime allocation or late-object calls were observed in
 the scoped core acceptance. Wireless and complete-system qualification remain open.
 

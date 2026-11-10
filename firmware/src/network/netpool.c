@@ -467,7 +467,10 @@ static int mutex_change (netpool_t * p_pool,
     uint32_t         owner        = 0U;
     int              result       = -1;
 
-    if (p_slot->kind != (b_recursive ? NETPOOL_RECURSIVE : NETPOOL_MUTEX))
+    /* The pinned ESP Wi-Fi adapter creates ordinary mutexes but uses the
+     * recursive API pair for them. Keep ordinary API calls nonrecursive. */
+    if ((NETPOOL_MUTEX != p_slot->kind) &&
+        ((!b_recursive) || (NETPOOL_RECURSIVE != p_slot->kind)))
     {
         return -1;
     }
@@ -498,7 +501,11 @@ static int mutex_change (netpool_t * p_pool,
         }
         else if (!b_take)
         {
-            if (1U < p_slot->depth)
+            if ((1U < p_slot->depth) && (!b_recursive))
+            {
+                /* A wrong-family give cannot consume nested SDK ownership. */
+            }
+            else if (1U < p_slot->depth)
             {
                 --p_slot->depth;
                 result = 0;
@@ -568,7 +575,8 @@ static int boot_mutex (netpool_slot_t * p_slot,
             return 0;
         }
     }
-    else if ((NETPOOL_BOOT_OWNER == p_slot->owner) && (0U < p_slot->depth))
+    else if ((NETPOOL_BOOT_OWNER == p_slot->owner) && (0U < p_slot->depth) &&
+             ((b_recursive) || (1U == p_slot->depth)))
     {
         --p_slot->depth;
         if (0U == p_slot->depth)

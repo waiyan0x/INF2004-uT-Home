@@ -75,6 +75,15 @@ The native kernel supplies priority inheritance. A successful ISR operation sets
 a conservative wake hint without clearing an earlier hint; the native ISR tail
 makes the actual scheduling decision.
 
+The pinned SDK's Wi-Fi adapter creates ordinary mutexes but calls its recursive
+take/give pair. That pair accepts either mutex lease kind; ordinary take/give
+remains nonrecursive and rejects a give at depth greater than one. Ownership,
+overflow checks, ISR rejection and release pinning remain enforced, including
+startup ownership. Native adapter tests cover the SDK call sequence, nested
+release, foreign owners and failed unlocks. This compatibility fix adds no
+storage or native objects; it did not by itself resolve the hotspot's observed
+authentication timeout.
+
 SDK crypto initialization also takes locks before native tasks exist. The owned
 pool reserves `UINT32_MAX` as a serialized startup owner, distinct from every
 positive native task ID. Startup mutex operations preserve normal/recursive
@@ -466,8 +475,12 @@ approved allocation policy; available heap is not an approved reservation.
   their separate reservations must be counted. No offline history.
 - BLE application frame <=128 bytes, one active frame and one replaceable pending
   frame per connection. ATT fragmentation overhead is additional.
-- At most one telemetry publication per second per transport. MQTT rotates sources
+- At most one source capture per second per transport. MQTT rotates sources
   fairly; this is a transport rate, not a promise of one reading/source/second.
+  From each MQTT capture the implemented publisher sends binary telemetry and,
+  for a fresh OK sample, JSON state: up to two MQTT publications per second in
+  steady state, plus the 56-message discovery pass after every connect
+  ([details](#home-assistant-mqtt-discovery-2026-11-10)).
 - Proposed application service stack 8192 bytes. This is additional to SDK stacks
   and the permanently reserved 32 KiB peripheral storage. Stack count, priorities,
   periods, CPU budget and high-water margin remain unapproved. No peripheral slot
@@ -860,6 +873,109 @@ The new modules are not in the target build inventory yet; target build and
 combined acceptance are required when integration changes that inventory.
 
 
+## USB Wi-Fi troubleshooting
+
+The Wi-Fi application exposes an explicit read-only USB `network` command;
+see the [host instructions](../../../tools/config_transfer/README.md#read-only-wi-fi-status).
+It remains usable without an AP or DHCP lease. It copies startup stage, last
+SDK return code, station/IP/cancellation/fault flags, retry state/deadline,
+last disconnect reason and current IPv4. It does not expose credentials, scan,
+retry, write flash or print into the binary USB stream. A successful SDK
+`connect` call is only an attempt; IP readiness is reported separately.
+Disconnect, stop and lost-IP events clear the retained address. The disconnect
+reason remains the last observed reason, including after a later connection.
+Firmware built before this command and images without Wi-Fi may time out.
+
+`c3wsta_status` is called by the existing serialized application owner and
+copies event fields under the existing native interrupt guard. Permanent SDK
+event handlers use the pinned API's documented nullable instance output, so
+their three unused global handle slots are replaced by bounded diagnostic
+fields. The USB pump reuses the previous workload callback/context reservation
+for request-selected diagnostics; WORKCOST payloads and mutation retry behavior
+are unchanged. No allocator, task, lock or callback queue is added. A status
+read cannot report a panic that prevents the USB owner from starting; preserve
+the raw boot log in that case.
+
+Manual BARR-C review: C99 and paired module APIs; validated output capacity,
+explicit byte encoding (signed SDK errors modulo 2^32, IPv4 network octets,
+little-endian integer fields), copied SDK payload lifetime, guarded event state,
+one owner for retry state, bounded stack snapshot, checked initialization and
+error returns. No policy/deviation, dependency revision or memory limit changes.
+Host doubles cover startup failure stages, stale-IP clearing and no-I/O reads;
+the pump fixture covers fragmented replies and preservation of mutation IDs
+and cached results. Live association, AP loss/reconnect and runtime stack/heap
+qualification still require an available reviewed network.
+
+Validation on 10 November 2026 passed 455 target tests, the complete 337-file
+pinned-format C gate, strict host typing and a fresh pinned ESP32-C3 build.
+The 847,552-byte application passes the unchanged transaction budget: 275,970
+of 278,528 total DRAM bytes; `c3app` remains 42,400/42,400 and `c3wsta` is
+50/64 bytes. These are link-map quantities, not free runtime heap.
+
+A temporary test-provisioned image on the connected C3 reported successful
+startup and reason 201 (`WIFI_REASON_NO_AP_FOUND`) during a 45-second absent-AP
+retry observation. USB and BMP388 readings continued; no new native objects
+were counted, but 349 SDK allocations and 347 frees occurred after sealing.
+This does **not** pass the whole-system static-allocation requirement. The
+radar reported a fault with both the test image and the restored original image.
+The original full-flash backup was restored and hash-verified; active/saved
+revision 931 and CRC 3623560383 remained intact. Its bytes differ from the
+earlier locally archived image, so that earlier image is not current provenance.
+Actual association, DHCP, AP loss/reconnect and MQTT remain unverified.
+Local evidence is in `build/wifi-20261110/evidence.json`; private images/backups
+stay outside Git under `/Users/waiyan/uthome-tools/wifi-board-20261110/`.
+
+### Hotspot bench on 11 November 2026
+
+The full uT-Kernel application now associates with the tested iPhone hotspot
+and obtains IPv4. Its actual Unicode SSID is preserved byte-for-byte by private
+provisioning. A temporary stock ESP-IDF control reproduced `AUTH_EXPIRE` at the
+default transmit power, then joined with a checked/read-back value of 34
+quarter-dBm (8.5 dBm). The application uses that optional cap on this board;
+this comparison does not identify an antenna or board defect.
+
+The installed `wifi-hotspot-20261111-r5` image is 847,968 bytes and passes the
+unchanged transaction memory policy: total DRAM 275,994/278,528, `c3app`
+42,400/42,400 and `c3wsta` 51/64 bytes. The fixed task pool remains selected.
+USB reported online at `172.20.10.3` within three seconds of the first monitor
+sample, with no station fault. Active/saved revision 931 and CRC 3623560383 are
+unchanged. BMP388 samples remain fresh and no runtime workers failed; the
+radar fault was already present in the original image.
+
+The final target suite passes all 468 tests; the 337-file pinned-format C gate
+and the configured strict typing check (15 files) pass. The single USB session
+captured 228 snapshots with no I/O errors and 504.8 seconds continuously online
+after first IPv4. After the user reported switching the hotspot off for ten
+seconds and back on, a new native API query at the same address verified the
+same device identity and all three entity states. No firmware write or USB
+opening was needed for that check. The radio-loss interval and retry timing
+were not captured. Scoped local evidence is `build/wifi-20261111/evidence.json`,
+with the later result in `build/wifi-20261111/post-hotspot-toggle.json`.
+
+A read-only native API client successfully identified this node and listed
+its three existing occupancy/freshness/transaction entities over port 6053.
+This is protocol evidence, not Home Assistant UI acceptance, and BMP388 is
+not currently a native API entity. The private host MQTT subscriber verifies
+the broker's TLS identity and authenticates, but the ESP's MQTT TLS connection
+has not completed; no node MQTT publication is claimed. SDK allocations still
+occur after sealing, so whole-system static allocation remains unqualified.
+
+MQTT follow-up: `c3mqtt` requests nonblocking ESP-TLS with a 1 ms socket
+timeout. In pinned SDK `components/esp-tls/esp_tls.c`, the connecting-state
+`select` sets are initialized only once; pinned lwIP clears them on timeout.
+A first TCP timeout can therefore leave later polls unable to see readiness.
+This source finding is consistent with the observed 30-second broker-side
+timeouts, but its role in this board capture still needs a TLS-state or packet
+trace. No vendor change or longer blocking timeout was introduced here.
+The temporary broker and capture clients were stopped after the bench; the
+uT-Kernel application remains installed, and port 6053 was reachable afterward.
+
+Private backups, build inputs, raw captures and the installed build are outside
+Git under `/Users/waiyan/uthome-tools/`. Retain the original full-flash backup;
+only bootloader, partition table and application were written, preserving the
+configuration partition. The earlier control with an incorrectly escaped
+SSID is invalid evidence and is excluded from the comparison above.
+
 ## Opt-in ESP transport bindings
 
 The previously portable read path now has owned ESP adapters and an application
@@ -962,15 +1078,37 @@ shape only** (replace placeholders privately, never commit actual credentials):
 }
 ```
 
-Paths are relative to that JSON. SSID <=32 printable ASCII bytes; password 8..63;
-token 32..64 visible ASCII bytes with no whitespace. Port 1..65535. PEM files
+Paths are relative to that JSON. SSIDs use 1..32 UTF-8 bytes of printable text,
+preserving Unicode names such as an iPhone's curly apostrophe without
+normalization. Passwords use 8..63 printable ASCII bytes; tokens use 32..64
+visible ASCII bytes with no whitespace. Port 1..65535. PEM files
 are each <=8191 bytes. Syntax/size checks are not certificate/key validation;
 ESP-TLS validates key material during session initialization. There are no shipped
 credentials, generated default certificates or verification-disable switches.
 
+The optional integer `tx_power_quarter_dbm` accepts 8..84 in the private JSON.
+Omission preserves the SDK transmit-power default. For the connected C3 tested
+on 11 November, `34` requests 8.5 dBm; the SDK quantizes supported values. The
+station applies the cap after Wi-Fi starts and before every connection attempt,
+including reconnects. A failed power-setting call records stage 15 (`tx_power`)
+and uses the existing retry backoff without calling connect. This is a
+board-specific development setting, not a change to runtime sensor profiles.
+
+Manual BARR-C review for this setting: the signed 32-bit interface validates
+zero or 8..84 before its checked narrowing to the SDK's signed 8-bit argument.
+The immutable cap belongs to the serialized station owner. Applying it follows
+the existing station-ready/retry admission guards; failures retain the SDK
+error and return to bounded backoff. Status reads remain passive and stage
+identifiers 0..14 are unchanged. One static byte is added, with no heap path,
+task, native object, policy exception or memory-limit change.
+
 ```console
-python tools/target/qualify_kernel.py build --runtime-port --configuration-app --static-net-queues --network-services both --network-settings C:/private/uthome-network.json --work-dir C:/uthome-builds/network-services-new --compat-patch firmware/third_party/patches/0002-esp-idf-6.1-build.patch --resource-patch firmware/third_party/patches/0001-uthome-c3-resources.patch
+python tools/target/qualify_kernel.py build --runtime-port --configuration-app --static-net-queues --network-services both --network-settings C:/private/uthome-network.json --work-dir C:/uthome-builds/network-services-new --compat-patch firmware/third_party/patches/0002-esp-idf-6.1-build.patch --resource-patch firmware/third_party/patches/0001-uthome-c3-resources.patch --observer-patch tools/target/patches/freertos-task-observer.patch
 ```
+
+The reviewed observer patch selects the fixed task pool used by the station
+memory policy. Keep that selection when rebuilding this application; a service
+image built without it does not qualify against that policy.
 
 `wifi` selects Wi-Fi/HTTPS only; `ble` selects BLE only; `both` requests coexistence,
 which remains unqualified. The builder rejects diagnostic/native-UART/model mode
@@ -978,8 +1116,7 @@ mixes and missing private inputs before build side effects. It snapshots owned
 sources, generates a formatted private netsetup.h and verifies original private
 inputs plus generated bytes on every direct rebuild. Changed inputs require a
 fresh build. **The build directory, generated header, ELF and image contain secrets;
-keep them private.** No actual credentials or PEM material were supplied or generated
-in this implementation run. Do not publish a configured image or its source snapshot.
+keep them private.** Do not publish a configured image or its source snapshot.
 
 This is immutable development provisioning, not a runtime configuration endpoint.
 Runtime profiles and persistence still belong exclusively to cfgctrl. HTTP mutations
@@ -1121,6 +1258,8 @@ Implemented wire contract (the earlier production draft remains a proposal):
 |---|---|---|
 | `uthome/v1/{node_id}/availability` | ASCII `online`; Last Will ASCII `offline` | 0 / yes |
 | `uthome/v1/{node_id}/telemetry/{device_id}` | Canonical 112-byte sensor frame v1, types 1..5 including light | 0 / no |
+| `uthome/v1/{node_id}/state/{device_id}` | Integer JSON for Home Assistant; see [discovery](#home-assistant-mqtt-discovery-2026-11-10) | 0 / no |
+| `homeassistant/{component}/{node_id}_s{index}_{suffix}/config` | Discovery config JSON, or empty to remove | 0 / yes |
 
 Client ID is the MAC-derived node ID. CONNECT has username/password, clean session,
 30 s keepalive and a retained QoS0 Will. A successful clean-session CONNACK must
@@ -1142,7 +1281,10 @@ written old-plan packet is never resumed under the new generation. Failures
 saturate a counter. Backoff is 1/2/4/8/16/30 s; stable 60 s resets it.
 
 One sensor position is captured per second while ready, rotating across the eight
-plan positions, including absent positions. Capture uses `shared_source`, never
+plan positions, including absent positions. Since 2026-11-10 that one copy yields
+the binary telemetry frame and, when fresh OK, a JSON state message, so steady
+state is up to two MQTT publications per second; each connect first sends the
+discovery pass. Capture uses `shared_source`, never
 queue consumption; metadata is owned by the same controller. Zero/stale/fault and
 light bounds are identical to HTTP/BLE. No backlog is replayed after reconnect.
 Partial writes expire after 10 s. PINGREQ is queued after 15 s without completed
@@ -1264,6 +1406,187 @@ AP-loss behavior, secure clock/provisioning, BLE security and flash-save/load
 acceptance remain open. Authenticated network mutations still remain disabled
 pending existing-controller USB/HTTP arbitration. No second Apply/save exists.
 
+
+## Home Assistant MQTT discovery (2026-11-10)
+
+Every enabled sensor in the active plan appears in Home Assistant through the
+existing MQTT publisher, with no ESPHome and no Home Assistant YAML. Enable the
+Home Assistant MQTT integration against the same broker; the discovery prefix is
+the default `homeassistant`. `mqttdisc.c/.h` (portable C99, no static RAM) formats
+topics and payloads into caller-owned storage; `c3mqtt.c` owns the cursor and
+the publish order. The binary `telemetry/` topic and its 112-byte frame are
+unchanged. The ESPHome native API (`occwire.c`) is unchanged and not extended.
+
+| Topic | Payload | Retain |
+|---|---|---|
+| `homeassistant/<component>/<node>_s<index>_<suffix>/config` | Entity config JSON, or zero bytes to delete | yes |
+| `uthome/v1/<node>/state/<device_id>` | Integer JSON, fresh OK samples only | no |
+| `uthome/v1/<node>/availability` (existing) | `online` / Last Will `offline` | yes |
+
+`<index>` is the plan position (0..7) and appears only in `unique_id` and the
+discovery topic; the device name is display text and the state-topic segment.
+Admission (`cfgjson_name`, duplicate check in `cfgdev`) already limits names
+to unique `[A-Za-z][A-Za-z0-9_.-]{0,30}`, so names need no JSON escaping;
+`mqttdisc` still rejects anything else, and node IDs outside `[A-Za-z0-9_-]{1,31}`.
+
+| Sample type | Component / suffix | device_class | Unit | state_class | value_template |
+|---|---|---|---|---|---|
+| ENVIRONMENT | sensor `temperature` | temperature | `°C` (sent as `°C`) | measurement | `{{ value_json.t_c100 / 100 }}` |
+| ENVIRONMENT | sensor `pressure` | pressure | `Pa` | measurement | `{{ value_json.p_pa }}` |
+| DISTANCE | sensor `distance` | distance | `mm` | measurement | `{{ value_json.d_mm }}` |
+| LIGHT | sensor `illuminance` | illuminance | `lx` | measurement | `{{ value_json.lx_m / 1000 }}` |
+| TARGETS | binary_sensor `occupancy` | occupancy | none | none | `{{ 'ON' if value_json.n > 0 else 'OFF' }}` |
+| TARGETS | sensor `targets` | none | none | measurement | `{{ value_json.n }}` |
+| RAW | sensor `raw` | none | none | none | `{{ value_json.hex }}` |
+| HEALTH | not exposed | | | | |
+
+Units are those Home Assistant lists for each device class. RAW deliberately has
+no class, unit or state class: its state is text. Every config carries `name`
+(`<device_id> <suffix>`), `unique_id`, `state_topic`, `value_template`, the
+class/unit/state-class fields above when present, `expire_after` 30,
+`availability_topic` and a `device` block (`identifiers` and `name` = node ID,
+`manufacturer` uT-Home, `model` ESP32-C3), so all entities group under one
+device. Example, node `uthome-a4cf12345678`, slot 0 `env1`:
+
+```text
+homeassistant/sensor/uthome-a4cf12345678_s0_temperature/config  (retained)
+{"name":"env1 temperature","unique_id":"uthome-a4cf12345678_s0_temperature","state_topic":"uthome/v1/uthome-a4cf12345678/state/env1","value_template":"{{ value_json.t_c100 / 100 }}","device_class":"temperature","unit_of_measurement":"°C","state_class":"measurement","expire_after":30,"availability_topic":"uthome/v1/uthome-a4cf12345678/availability","device":{"identifiers":["uthome-a4cf12345678"],"name":"uthome-a4cf12345678","manufacturer":"uT-Home","model":"ESP32-C3"}}
+```
+
+State payloads use integers only: `{"t_c100":2512,"p_pa":101325}` (temperature
+rounded half away from zero; published only if finite, |t_c100| <= 100000 and
+0..2000000 Pa), `{"d_mm":1234}`, `{"lx_m":523000}` (<= 200000000 as for the
+frame), `{"n":1}` (present target slots), `{"hex":"0a1bff"}` (RAW, lowercase,
+1..16 bytes). State is published only for `sampcache_quality` 1 (fresh OK).
+Missing, stale, faulted, out-of-range and HEALTH samples publish nothing, and
+`expire_after` then marks the entity unavailable. RAW has never had a binary
+frame (`netble_encode` accepts types 1..5); JSON state is its only publication.
+
+**Discovery and removal.** After every broker connect, the cursor walks 56 steps
+(8 slots x 7 suffixes) and sends one retained message per step: the config when
+the slot's type owns that suffix, otherwise a zero-length retained payload so
+Home Assistant deletes any old entity. No previous plan is remembered. Leaving
+READY resets the cursor; a plan change already resets the session, so discovery
+replays after every JSON Apply. Only a capture result of 1 (absent) may produce
+a removal. A busy or failed capture retries the same step on the next idle
+owner iteration, so a capture failure never deletes an entity. Retry is bounded:
+after 100 consecutive failed captures on one step (about 0.1 s at the 1 ms
+owner delay, against shared copies that normally finish within one iteration)
+that step is skipped with neither a config nor a removal, and any entity it
+previously published stays as it was. The counter resets on a successful
+capture, after a skip and whenever the cursor resets. A pass in which every
+capture fails therefore ends after about 5.6 s and telemetry resumes.
+Retained configs survive a Home Assistant restart on a persistent broker, so
+birth-triggered republish is deferred: it needs SUBSCRIBE/SUBACK and inbound
+PUBLISH parsing (`homeassistant/status`), planned with the rule subscription.
+A node removed permanently leaves its retained configs until they are cleared.
+The broker ACL for the node's user must allow retained writes to its
+`homeassistant/sensor/<node>_s<index>_<suffix>/config` and
+`homeassistant/binary_sensor/...` topics. Mosquitto `+`/`#` match whole levels
+only, so grant `homeassistant/#` or list the 56 topics explicitly.
+
+**Pacing.** The broker keeps one pending packet and a newer offer replaces it, so
+discovery and state are offered only when `netbroker_idle` is true (READY, no
+active or pending packet, no outstanding PINGREQ), at most one offer per owner
+step. Telemetry and state wait until the discovery pass completes, and the first
+telemetry offer of each session also waits for `netbroker_idle`, so the final
+discovery message (for example one held behind a PINGREQ) reaches the wire
+before telemetry can be offered. Later telemetry offers keep the existing
+latest-value replacement and identical bytes. Each message
+takes about two to three owner iterations (offer, take, write) plus TLS write
+time; with the 1 ms owner delay the 56 messages take roughly 0.2 s plus TLS time,
+which is unmeasured. A stalled packet keeps the existing 10 s write deadline,
+then the session resets and discovery restarts, so one successful pass is
+bounded by 56 x 10 s.
+
+**Cadence.** The 1 s rotation over all eight positions is unchanged. Each tick
+copies one position once: binary telemetry is offered as before, then JSON
+state from the same copy when the broker is idle. A state message not sent
+before the next tick is dropped. Each present source therefore gets telemetry
+and state once every 8 s (not halved); broker traffic is up to two publications
+per second. With `expire_after` 30 s (about 3.75 rotations, tolerating two
+missed messages), a stale or faulted source becomes unavailable in Home
+Assistant at most 30 s after its last fresh state.
+
+**Memory impact.** Static RAM: `mqttdisc.c.obj` has no data or BSS (host object:
+0/0); `c3mqtt.c` adds `g_captured_ms`, `g_discovery`, `g_capture_failures`
+(one `uint8_t` retry counter) and `gb_state_due` (about 11 bytes plus padding;
+the host object's BSS stayed at 3168 bytes). The drain wait reuses the cursor
+value 57, so it adds no state. Linked
+target map sizes are not measured, and no budget entry or limit was changed.
+Flash: about 4 KB of `mqttdisc` code/rodata and about 0.7 KB more `c3mqtt` code
+in a host `-Og` build. Stack: `mqttdisc_message_t` is 736 bytes on RV32 (128-byte
+topic, 600-byte payload). Host x86-64 `-fstack-usage` frames at `-Og`: before,
+`c3mqtt_step` 352 bytes (live during the TLS write); after, `c3mqtt_step` 80,
+`publish` 48, `discover` 832, `state_step` 816, `telemetry_step` 336, and the
+deepest formatter chain below `discover` about 410. The deepest application-owned
+chain from `c3mqtt_step` grows from about 544 to about 1370 bytes, but no longer
+sits beneath the TLS write, which now runs with the 80-byte frame. **The added
+owner stack is unverified on hardware**: the 8448-byte owner stack's peak in the
+TLS image is unmeasured, the only recorded headroom predates TLS, and a target
+compiler may inline differently. Measure the owner high-water mark on the Wi-Fi
+image before relying on this.
+
+**Verification (software only).** `tests/target/test_network_disc.py` checks
+exact topic/payload bytes for every sample type, removal, maximum node/name
+(591-byte worst-case payload), unsafe characters, slot mismatch and no state
+for missing/stale/fault/out-of-range samples. `test_network_mqtt.py` and
+`test_network_broker.py` check the retain bit (`0x31` only for retained, all
+other bytes identical) and `netbroker_idle`. `test_network_esp.py` drives the
+real `c3mqtt` over the TLS double: retained availability then 56 ordered
+retained discovery messages, then non-retained telemetry and state, one
+completed publication per step with nothing replaced; capture failure retries
+without removal; 99 failures retry while the 100th skips the step, and success
+resets the count; a persistently failing slot is skipped with no removal and
+telemetry resumes; the final discovery message held behind a PINGREQ reaches
+the wire before the first telemetry; cursor restart after plan change and IP
+loss. Not verified:
+pinned target build, live broker, Home Assistant entity creation, bench or
+hardware acceptance.
+
+Manual BARR-C review (`mqttdisc`, `c3mqtt`, `netmqtt`, `netbroker`): C99, paired
+headers, private helpers `static` and prototyped first; `g_` file-scope tables
+are `const`. Every append is bounded by explicit capacity with an overflow flag,
+never truncation; topics are NUL-terminated within 128 bytes. Float-to-integer
+conversions follow `isfinite` and explicit range checks; signed output avoids
+`INT32_MIN` negation overflow; RAW length is checked before the byte loop. The
+`char` to `const uint8_t *` payload cast is a character-type alias of ASCII text.
+Retain is an explicit Boolean mapped to defined header constants. No heap, lock,
+task, queue, timer, SDK call or new deviation is added; capture remains the
+existing nondequeuing `shared_source` callback under the same owner.
+
+### Integration with transaction results (2026-11-10)
+
+Merged with the [application-owned transaction commands](#application-owned-transaction-commands).
+A transaction result keeps its priority during a discovery pass. Before the
+cursor drains, a pending packet can only be the discovery step offered last, so
+`c3mqtt_result` replaces it and steps the cursor back by one; that config or
+removal is offered again once the result has been written. A result offered
+while the broker is idle, or while a discovery packet is already being written,
+replaces nothing. Results stay non-retained and telemetry bytes are unchanged.
+`test_mqtt_result_during_discovery_resends_replaced_step` drives this over the
+TLS double: all 56 discovery messages still arrive in order, the result is sent
+once and exactly one pending packet is counted as replaced.
+
+**Open blocker: board payload limit.** The board builds
+(`tests/target/runtime_port_board/main` and `radio`) compile with
+`UTHOME_MQTT_VALUE_BYTES=112` and `UTHOME_MQTT_PACKET_BYTES=384`, and
+`tools/target/transaction-budget.json` reserves `c3mqtt.c.obj` for those sizes.
+Discovery configs are up to 591 bytes, so `netbroker_offer` rejects every config
+on such an image; only removals, state and telemetry fit. Host tests use the
+1024/1280 defaults and do not show this. Discovery does not work on the board
+until a larger limit and its reservation are agreed and reviewed; neither value
+was changed here.
+
+The combined Wi-Fi/discovery source passed a fresh pinned ESP32-C3 build on
+11 November 2026. Its unchanged transaction memory check fails the MQTT module
+reservation: `c3mqtt.c.obj` uses 1,827/1,824 bytes. Aggregate application storage
+is 146,894/147,456 and total DRAM is 276,010/278,528 bytes; those limits pass.
+No budget or buffer limit was raised. This combined image was not flashed;
+the preceding hotspot/native-API bench does not establish its MQTT discovery,
+TLS or owner-stack acceptance. Local build and memory records are outside Git
+under `/Users/waiyan/uthome-tools/builds/wifi-publish-20261111-r1/` and
+`/Users/waiyan/uthome-tools/publish-backups/20261110T184159Z/`.
 
 ## Read-only network diagnostics and client test pack
 
