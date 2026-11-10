@@ -34,7 +34,9 @@ typedef enum
     NETBROKER_ACK,
     NETBROKER_AVAILABLE,
     NETBROKER_READY,
-    NETBROKER_UNAVAILABLE
+    NETBROKER_UNAVAILABLE,
+    NETBROKER_SUBSCRIBE,
+    NETBROKER_SUBACK
 } netbroker_state_t;
 
 typedef struct
@@ -51,7 +53,10 @@ typedef struct
     netretry_t         retry;
     netmqtt_t          mailbox;
     uint8_t            transmit[UTHOME_MQTT_PACKET_BYTES];
-    uint8_t            receive[4];
+    uint8_t            receive[240];
+    uint8_t            request[96];
+    const char *       p_subscription;
+    uint64_t           receive_deadline_ms;
     size_t             size;
     size_t             offset;
     size_t             received;
@@ -66,6 +71,7 @@ typedef struct
     bool               b_initialized;
     bool               b_ping;
     bool               b_telemetry;
+    bool               b_request;
 } netbroker_t;
 
 /* Single owner, zero-initialized lifetime storage, immutable config strings.
@@ -104,6 +110,17 @@ bool netbroker_idle (const netbroker_t * p_state);
  * valid offers while offline. These are not broker delivery acknowledgments.
  */
 int netbroker_snapshot (const netbroker_t * p_state, netbroker_view_t * p_view);
+/* Optional boot-time exact topic, borrowed for the session lifetime. Must be
+ * set while OFF before connecting. Clean-session reconnect subscribes again.
+ * Only non-retained, non-DUP QoS0 payloads of exactly 96 bytes are accepted.
+ * One copied request; a second unread command closes the session. No driver
+ * callback runs in the parser. Request/take share the application owner. */
+int netbroker_subscribe (netbroker_t * p_state, const char * p_topic);
+/* 0 copied, 1 empty, -1 invalid/capacity; short output never consumes input. */
+int netbroker_request (netbroker_t * p_state,
+                       uint8_t *     p_data,
+                       size_t        capacity,
+                       size_t *      p_size);
 #endif
 
 /* End of file. */

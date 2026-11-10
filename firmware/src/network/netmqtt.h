@@ -7,11 +7,15 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#define UTHOME_MQTT_TOPIC_BYTES  128U
-#define UTHOME_MQTT_VALUE_BYTES  1024U
+#define UTHOME_MQTT_TOPIC_BYTES 128U
+#ifndef UTHOME_MQTT_VALUE_BYTES
+#define UTHOME_MQTT_VALUE_BYTES 1024U
+#endif
+#ifndef UTHOME_MQTT_PACKET_BYTES
 #define UTHOME_MQTT_PACKET_BYTES 1280U
-#define UTHOME_MQTT_PUBLISH      0x30U
-#define UTHOME_MQTT_RETAIN       0x01U
+#endif
+#define UTHOME_MQTT_PUBLISH 0x30U
+#define UTHOME_MQTT_RETAIN  0x01U
 
 typedef struct
 {

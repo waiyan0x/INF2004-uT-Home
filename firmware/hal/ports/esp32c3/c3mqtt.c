@@ -22,20 +22,23 @@
  * so the final discovery message can no longer be replaced by telemetry. */
 #define C3MQTT_DISCOVERY_DRAINED (UTHOME_MQTTDISC_STEPS + 1U)
 
-static netbroker_t       g_broker           = {0};
-static c3mqtt_config_t   g_config           = {0};
-static esp_tls_cfg_t     g_tls_config       = {0};
-static esp_tls_t *       gp_tls             = NULL;
-static sampcache_entry_t g_sample           = {0};
-static char              g_node[32]         = {0};
-static char              g_availability[80] = {0};
-static uint64_t          g_next_ms          = 0U;
-static uint64_t          g_captured_ms      = 0U;
-static uint16_t          g_source           = 0U;
-static uint8_t           g_discovery        = 0U;
-static uint8_t           g_capture_failures = 0U;
-static bool              gb_attempted       = false;
-static bool              gb_state_due       = false;
+static netbroker_t       g_broker            = {0};
+static c3mqtt_config_t   g_config            = {0};
+static esp_tls_cfg_t     g_tls_config        = {0};
+static esp_tls_t *       gp_tls              = NULL;
+static sampcache_entry_t g_sample            = {0};
+static char              g_node[32]          = {0};
+static char              g_availability[80]  = {0};
+static uint64_t          g_next_ms           = 0U;
+static uint64_t          g_captured_ms       = 0U;
+static uint16_t          g_source            = 0U;
+static uint8_t           g_discovery         = 0U;
+static uint8_t           g_capture_failures  = 0U;
+static bool              gb_attempted        = false;
+static bool              gb_state_due        = false;
+static char              g_request_topic[80] = {0};
+static char              g_result_topic[80]  = {0};
+static bool              gb_result           = false;
 static bool server_name (const char * p_name);
 static int publish (uint64_t              now_ms,
                     const netble_meta_t * p_meta,
@@ -118,6 +121,18 @@ int c3mqtt_step (uint64_t               now_ms,
         g_discovery        = 0U;
         g_capture_failures = 0U;
         gb_state_due       = false;
+        gb_result          = false;
+    }
+    if (gb_result)
+    {
+        if ((!g_broker.mailbox.b_pending) && (0U == g_broker.size))
+        {
+            gb_result = false;
+        }
+        else
+        {
+            return result;
+        }
     }
     if ((0 != result) || (NETBROKER_READY != g_broker.state))
     {
@@ -260,6 +275,68 @@ static int telemetry_step (uint64_t              now_ms,
         return -1;
     }
     return netbroker_offer(&g_broker, topic, frame, sizeof(frame), false);
+}
+
+/** @brief Subscribe only to this node's fixed bounded command topic. */
+int c3mqtt_transactions (void)
+{
+    const int input  = snprintf(g_request_topic,
+                               sizeof(g_request_topic),
+                               "uthome/v1/%s/transaction/request",
+                               g_node);
+    const int output = snprintf(g_result_topic,
+                                sizeof(g_result_topic),
+                                "uthome/v1/%s/transaction/result",
+                                g_node);
+    if ((!gb_attempted) || (input <= 0) || (output <= 0) ||
+        ((size_t)input >= sizeof(g_request_topic)) ||
+        ((size_t)output >= sizeof(g_result_topic)))
+    {
+        return -1;
+    }
+    return netbroker_subscribe(&g_broker, g_request_topic);
+}
+
+/** @brief Only SUBACK-complete sessions can receive or send transaction work.
+ */
+bool c3mqtt_ready (void)
+{
+    return NETBROKER_READY == g_broker.state;
+}
+
+/** @brief Copy into the application owner's command storage, without I/O. */
+int c3mqtt_request (uint8_t * p_data, size_t capacity, size_t * p_size)
+{
+    return netbroker_request(&g_broker, p_data, capacity, p_size);
+}
+
+/** @brief A result is never replaced by later offers, nor loses discovery. */
+int c3mqtt_result (const uint8_t * p_data, size_t size)
+{
+    if ((size != 96U) || (NULL == p_data))
+    {
+        return -1;
+    }
+    if ((!c3mqtt_ready()) || gb_result || ('\0' == g_result_topic[0]))
+    {
+        return 1;
+    }
+    /* Before the cursor drains, a pending packet can only be the discovery
+     * step offered last. The result keeps its priority and replaces it, so
+     * that step is offered again once the result has been sent. */
+    const bool b_rewind = (C3MQTT_DISCOVERY_DRAINED > g_discovery) &&
+                          (0U != g_discovery) && (g_broker.mailbox.b_pending);
+    const int result =
+        netbroker_offer(&g_broker, g_result_topic, p_data, size, false);
+    if (0 == result)
+    {
+        gb_result = true;
+        if (b_rewind)
+        {
+            --g_discovery;
+        }
+    }
+    return result;
 }
 
 /** @brief Restrict certificate/SNI names without unbounded reads. */

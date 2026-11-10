@@ -102,7 +102,9 @@ class AcceptanceTests(unittest.TestCase):
         self.assertEqual(client.diagnostics(value)['state_name'],'disabled')
         self.assertEqual(client.diagnostics(dict(value,enabled=True,state=6))['state_name'],'unavailable')
         self.assertEqual(client.diagnostics(dict(value,enabled=True,state=5))['state_name'],'ready')
-        for bad in [dict(value,state=7),dict(value,failures=-1),dict(value,replaced=True),dict(value,enabled=1)]:
+        self.assertEqual(client.diagnostics(dict(value,enabled=True,state=7))['state_name'],'subscribe')
+        self.assertEqual(client.diagnostics(dict(value,enabled=True,state=8))['state_name'],'suback')
+        for bad in [dict(value,state=9),dict(value,failures=-1),dict(value,replaced=True),dict(value,enabled=1)]:
             with self.assertRaises(ValueError):
                 client.diagnostics(bad)
 

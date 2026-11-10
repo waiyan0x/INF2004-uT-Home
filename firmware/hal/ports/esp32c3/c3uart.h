@@ -19,6 +19,9 @@
  * retains ownership. Unlock failure poisons the port until reboot. */
 int c3uart_init (void);
 uartio_t * c3uart_port (void);
+/* Nonblocking native software-TX-ring observation for its current owner.
+ * Empty does not imply the hardware FIFO/shift register is empty. */
+int c3uart_tx_empty (const void * p_owner, bool * pb_empty);
 #endif
 /* End of file. */
 

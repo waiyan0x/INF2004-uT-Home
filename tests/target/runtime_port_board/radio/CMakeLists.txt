@@ -9,6 +9,7 @@ idf_component_register(SRCS "../../hal/c3ble.c" "../../hal/c3gatt.c"
     REQUIRES bt esp_timer esp_hw_support esp_wifi esp_event esp_netif esp-tls lwip
     PRIV_REQUIRES uthome_task)
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
+    UTHOME_MQTT_VALUE_BYTES=112 UTHOME_MQTT_PACKET_BYTES=384
     UTHOME_NETWORK_WIFI=$<BOOL:${UTHOME_NETWORK_WIFI}>
     UTHOME_NETWORK_BLE=$<BOOL:${UTHOME_NETWORK_BLE}>
     UTHOME_BLE_PROBE=$<BOOL:${UTHOME_BLE_PROBE}>

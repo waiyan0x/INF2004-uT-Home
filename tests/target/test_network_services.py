@@ -57,7 +57,7 @@ class BrokerView(c.Structure):
 class Info(c.Structure):
     _fields_ = [('meta',Meta),('saved',c.c_uint32),('state',c.c_uint32),
                 ('durable',c.c_bool),('wifi',c.c_bool),('node',c.c_char*32),
-                ('mqtt',BrokerView),('mqtt_enabled',c.c_bool),('configuration',c.c_bool)]
+                ('mqtt',BrokerView),('mqtt_enabled',c.c_bool),('configuration',c.c_bool),('transaction',c.c_void_p)]
 CAPTURE = c.CFUNCTYPE(c.c_int,c.c_void_p,c.c_uint16,c.POINTER(Entry),
                      c.POINTER(c.c_uint64))
 

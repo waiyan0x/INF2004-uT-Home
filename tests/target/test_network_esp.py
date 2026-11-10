@@ -299,6 +299,12 @@ static netread_info_t g_info={.meta={.boot_id=1,.active_revision=12,.generation=
 static int g_capture_result[8];
 static int g_capture_failures[8];
 static int g_captures;
+#include "uthome/txjob.h"
+static txjob_view_t g_transaction;
+int c3fake_transaction(const uint8_t *data,size_t size)
+{ if(size!=96) return -1; memcpy(g_transaction.reply,data,size);
+  g_transaction.b_known=true;g_transaction.completed_ms=100;g_transaction.generation=4;
+  ++g_transaction.sequence;g_info.p_transaction=&g_transaction;return 0; }
 static int capture(void *context,uint16_t source,sampcache_entry_t *entry,uint64_t *now)
 { ++g_captures;
   if(source<8 && g_capture_failures[source]>0) { --g_capture_failures[source];memset(entry,0,sizeof(*entry));return -1; }
@@ -396,7 +402,7 @@ class EspBindingTests(unittest.TestCase):
             path.write_text('#include "sdk.h"\n',encoding='utf-8')
         sources=['firmware/hal/ports/esp32c3/'+name+'.c' for name in ['c3https','c3wsta','c3gsvc','c3mqtt']]
         sources+=['firmware/src/network/'+name+'.c' for name in ['nethttp','netread','netble','netretry','netbroker','netmqtt','mqttdisc']]
-        sources+=['firmware/src/runtime/sampcache.c']
+        sources+=['firmware/src/runtime/sampcache.c', 'firmware/src/services/transaction/txjob.c']
         sources+=['firmware/src/config/'+name+'.c' for name in ['cfgmux','cfgctrl','cfgstore','cfgwire','cfgbytes']]
         includes=[folder,ROOT/'firmware/src/config',ROOT/'firmware/include',ROOT/'firmware/src/network',
                   ROOT/'firmware/src/services',ROOT/'firmware/src/runtime',
@@ -550,13 +556,15 @@ class EspBindingTests(unittest.TestCase):
                     self.assertEqual(info.name,'uthome-010203040506')
                     entities,_=await client.list_entities_services()
                     self.assertEqual([(e.name,e.device_class) for e in entities],
-                                     [('Room occupancy','occupancy'),('Radar data fresh','')])
+                                     [('Room occupancy','occupancy'),('Radar data fresh',''),('Transaction result','')])
                     self.assertEqual(entities[1].entity_category.value,2)
                     client.subscribe_states(states.put_nowait)
                     occupancy=await states.get()
                     self.assertEqual((occupancy.key,occupancy.missing_state),(entities[0].key,True))
                     initial=await states.get()
                     self.assertEqual((initial.key,initial.state,initial.missing_state),(2,False,False))
+                    raw_missing=await states.get()
+                    self.assertEqual((raw_missing.key,raw_missing.missing_state),(3,True))
                     for mode,expected,missing in [(2,True,False),(1,False,False),(3,False,True)]:
                         self.lib.c3fake_radar(mode)
                         state=await states.get()
@@ -566,6 +574,20 @@ class EspBindingTests(unittest.TestCase):
                             fresh=await states.get()
                             self.assertEqual((fresh.key,fresh.state,fresh.missing_state),
                                              (entities[1].key,not missing,False))
+                    self.lib.c3fake_transaction.argtypes=[c.c_char_p,c.c_size_t]
+                    reply=bytearray(96);reply[:4]=b'TJ\x01\x02'
+                    reply[44:49]=bytes([1,0,1,1,80])
+                    self.assertEqual(self.lib.c3fake_transaction(bytes(reply),96),0)
+                    result=await states.get()
+                    self.assertEqual(result.key,3)
+                    self.assertFalse(result.missing_state)
+                    self.assertIn('50',result.state)
+                    reply[45]=5;reply[47:80]=bytes(33)
+                    self.lib.c3fake_transaction(bytes(reply),96)
+                    result=await states.get()
+                    self.assertEqual(result.key,3)
+                    self.assertIn('I/O error',result.state)
+                    self.assertNotIn('50',result.state)
                 finally:
                     await client.disconnect()
                 await finished.wait()
@@ -660,6 +682,8 @@ class EspBindingTests(unittest.TestCase):
                 size=int.from_bytes(body[:2],'big')
                 self.publishes.append((self.mqtt_now,packet[0]&1,
                                        body[2:2+size].decode('ascii'),body[2+size:]))
+            elif kind==8:
+                self.lib.c3fake_input(0,b'\x90\x03'+body[:2]+b'\x00',5)
             elif kind==12:
                 self.lib.c3fake_input(0,b'\xd0\x00',2)
             else:
@@ -803,6 +827,73 @@ class EspBindingTests(unittest.TestCase):
         self.assertEqual(self.lib.c3mqtt_status(view),0)
         self.assertEqual(view[2],0)  # Nothing replaced.
 
+    def test_mqtt_result_during_discovery_resends_replaced_step(self):
+        self.mqtt_session()
+        self.assertEqual(self.lib.c3mqtt_transactions(),0)
+        self.lib.c3mqtt_result.argtypes=[c.c_char_p,c.c_size_t]
+        for _ in range(400):
+            self.mqtt_pump(1)
+            if len(self.retained_topics())>=10:
+                break
+        self.assertLess(len(self.retained_topics()),56)
+        payload=bytes(range(96))
+        # A discovery step is pending here: the result takes its place at once.
+        self.assertEqual(self.lib.c3mqtt_result(payload,96),0)
+        self.assertEqual(self.lib.c3mqtt_result(payload,96),1)
+        self.mqtt_pump(400)
+        self.assertEqual(self.retained_topics(),self.discovery_order())
+        results=[p for p in self.publishes if p[2]=='uthome/v1/node/transaction/result']
+        self.assertEqual([(p[1],p[3]) for p in results],[(0,payload)])
+        wire=[p[2] for p in self.publishes]
+        self.assertLess(wire.index('uthome/v1/node/transaction/result'),
+                        wire.index(self.discovery_order()[-1]))
+        view=(c.c_uint32*4)()
+        self.assertEqual(self.lib.c3mqtt_status(view),0)
+        self.assertEqual(view[2],1)  # Only the re-sent discovery step.
+
+    def test_mqtt_command_subscription_and_priority_result(self):
+        self.assertEqual(self.lib.c3fake_mqtt_start(),0)
+        self.assertEqual(self.lib.c3mqtt_transactions(),0)
+        self.lib.c3fake_handshake(1)
+        self.lib.c3fake_mqtt_step.argtypes=[c.c_uint64,c.c_int]
+        self.lib.c3mqtt_request.argtypes=[c.c_void_p,c.c_size_t,c.POINTER(c.c_size_t)]
+        self.lib.c3mqtt_result.argtypes=[c.c_char_p,c.c_size_t]
+        self.lib.c3mqtt_status.argtypes=[c.c_void_p]
+        view=(c.c_uint32*4)();connack=suback=False
+        for now in range(1,250):
+            self.lib.c3fake_mqtt_step(now,1)
+            output=self.output(0)
+            if not connack and output.startswith(b'\x10'):
+                self.lib.c3fake_input(0,b'\x20\x02\x00\x00',4);connack=True
+            if connack and not suback and b'transaction/request' in output:
+                self.lib.c3fake_input(0,b'\x90\x03\x00\x01\x00',5);suback=True
+            self.lib.c3mqtt_status(view)
+            if suback and view[0]==5:break
+        self.assertTrue(suback)
+        topic=b'uthome/v1/test-node/transaction/request'
+        # c3fake_mqtt_start uses the node identity below, not the HTTP fixture.
+        output=self.output(0)
+        start=output.index(b'uthome/v1/')
+        # Read the explicit subscription from the staged wire packet.
+        end=output.index(b'/transaction/request')+len(b'/transaction/request')
+        start=output.rfind(b'uthome/v1/',0,end)
+        topic=output[start:end]
+        payload=bytes(range(96))
+        body=len(topic).to_bytes(2,'big')+topic+payload
+        packet=b'\x30'+bytes([(len(body)%128)|128,len(body)//128])+body
+        self.lib.c3fake_input(0,packet,len(packet))
+        for tick in range(now+1,now+150):self.lib.c3fake_mqtt_step(tick,1)
+        received=c.create_string_buffer(96);size=c.c_size_t()
+        self.assertEqual(self.lib.c3mqtt_request(received,96,c.byref(size)),0)
+        self.assertEqual(received.raw,payload)
+        self.assertEqual(size.value,96)
+        self.assertEqual(self.lib.c3mqtt_result(payload,96),0)
+        self.assertEqual(self.lib.c3mqtt_result(payload,96),1)
+        for tick in range(now+150,now+350):self.lib.c3fake_mqtt_step(tick,1)
+        output=self.output(0)
+        self.assertIn(b'transaction/result'+payload,output)
+        self.assertEqual(self.lib.c3mqtt_result(payload,97),-1)
+
     def test_esphome_occupancy_from_cache_and_reconnect(self):
         self.assertEqual(self.lib.c3fake_start(),0)
         self.lib.c3fake_accept_next(10)
@@ -821,7 +912,7 @@ class EspBindingTests(unittest.TestCase):
         self.assertIn(b'room_occupancy',step(bytes([0,0,11])))
         def packet(key,state,missing):
             return bytes([0,9,21,13,key,0,0,0,16,state,24,missing])
-        self.assertEqual(step(bytes([0,0,20])),packet(1,0,1)+packet(2,0,0))
+        self.assertEqual(step(bytes([0,0,20])),packet(1,0,1)+packet(2,0,0)+bytes([0,9,27,13,3,0,0,0,18,0,24,1]))
         fresh=False
         for mode,state,missing in [(2,1,0),(1,0,0),(3,0,1),(2,1,0),(4,0,1),(1,0,0),(5,0,1)]:
             self.lib.c3fake_radar(mode)
@@ -834,7 +925,7 @@ class EspBindingTests(unittest.TestCase):
         self.lib.c3fake_accept_next(10)
         self.assertIn(b'uthome-',step(bytes([0,0,1])))
         self.lib.c3fake_radar(1)
-        self.assertEqual(step(bytes([0,0,20])),packet(1,0,0)+packet(2,1,0))
+        self.assertEqual(step(bytes([0,0,20])),packet(1,0,0)+packet(2,1,0)+bytes([0,9,27,13,3,0,0,0,18,0,24,1]))
         self.assertEqual(self.lib.c3fake_deleted(),0)  # never instantiated TLS
 
     def test_https_configuration_state_and_result_fit_max_width_without_io(self):

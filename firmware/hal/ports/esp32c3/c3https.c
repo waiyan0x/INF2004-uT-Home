@@ -698,7 +698,13 @@ static int occupancy_step (uint64_t               now_ms,
                 }
             }
         }
-        if (0 != occwire_step(p_wire, p_info->node_id, state))
+        const txjob_view_t * p_view = p_info->p_transaction;
+        if ((NULL != p_view) && (p_view->generation != p_info->meta.generation))
+        {
+            p_view = NULL;
+        }
+        if (0 !=
+            occwire_transaction(p_wire, p_info->node_id, state, p_view, now_ms))
         {
             b_drop = true;
         }

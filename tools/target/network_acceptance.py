@@ -25,7 +25,7 @@ MAX_PACKET=1154
 IDENTITY='ec441e20-8a4b-4aee-9db3-75b77d880011'
 STATUS='ec441e20-8a4b-4aee-9db3-75b77d880012'
 TELEMETRY='ec441e20-8a4b-4aee-9db3-75b77d880013'
-STATES=('offline','tls','connect','connack','availability','ready','unavailable')
+STATES=('offline','tls','connect','connack','availability','ready','unavailable','subscribe','suback')
 
 
 def diagnostics(value):
