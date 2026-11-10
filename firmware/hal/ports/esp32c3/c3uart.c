@@ -48,6 +48,29 @@ uartio_t * c3uart_port (void)
     return &g_port;
 }
 
+/** @brief Observe the ring under the existing native UART lock. */
+int c3uart_tx_empty (const void * p_owner, bool * pb_empty)
+{
+    if ((NULL == pb_empty) || (NULL == p_owner) ||
+        (g_port.p_owner != p_owner) || (!g_port.b_ready))
+    {
+        return UARTIO_STATE;
+    }
+    *pb_empty        = false;
+    const int locked = lock_port(&g_state);
+    if (0 != locked)
+    {
+        return locked;
+    }
+    size_t    space  = 0U;
+    const int result = c3ukern_available(true, &space);
+    if (0 == result)
+    {
+        *pb_empty = space == c3ukern_capacity() - 1U;
+    }
+    return unlock_port(result);
+}
+
 /** @brief Provision once before configuration restore or worker activation. */
 int c3uart_init (void)
 {

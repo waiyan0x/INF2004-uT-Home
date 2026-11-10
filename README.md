@@ -7,17 +7,18 @@ without recompiling or reflashing the firmware for each change.
 ## Resume next session
 
 The direction below follows the 6 November 2026 consultation. The end-to-end
-workflow is the **target**, not a claim that it is already implemented or
-qualified. Check Git status, read the relevant area guide, and preserve existing
+workflow defines the target scope. The bounded three-bus service below is
+implemented and software-tested; complete hardware acceptance remains pending. Check Git status, read the relevant area guide, and preserve existing
 work and historical evidence before making changes. The five-member ownership
 and handoffs are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 The selected direction is **uT-Kernel firmware with an ESPHome-compatible native
-API interface for Home Assistant display**. Wi-Fi/MQTT remains the intended path
-for rule updates and raw results. The existing native API is a read-only radar
-occupancy laboratory prototype, not yet a general peripheral display. MQTT rule
-subscription, owner-controlled execution, result publication and full-system
-integration remain to be implemented and tested. The framework comparison and
+API interface for Home Assistant display**. The transaction service implements
+bounded generic I2C, SPI writes and UART operations, MQTT rule reception and
+application-owner execution. The native API exposes a separate Transaction
+result text entity alongside radar occupancy/freshness. These paths have software
+integration tests; physical three-bus, radio and Home Assistant acceptance remain
+pending. Use the [transaction service instructions](experiments/runtime_rules/README.md#running-the-integrated-service). The framework comparison and
 USB rule-switching proof are in the [runtime-rule guide](experiments/runtime_rules/README.md);
 the choice has
 not yet been recorded as professor approval. Prepare a task-based block diagram by the end
@@ -48,9 +49,9 @@ are commitments from the consultation, not completed milestones.
 The decision component can initially be a configurable rule-based program;
 it does not need trained weights unless the team and professor later require
 them. It must select a transaction on the ESP from runtime inputs and rules;
-calling a fixed transaction a trained ML model would be misleading. The exact
-representation, message contract, scheduling and supported transactions remain
-to be designed and agreed by the owners.
+calling a fixed transaction a trained ML model would be misleading. The bounded `TJ` message contract, fixed wiring, ownership and supported transfer
+shapes are documented in the runtime-rule guide. This is a runtime rule-based
+decision program, not a trained classifier.
 
 <a id="current-status"></a>
 

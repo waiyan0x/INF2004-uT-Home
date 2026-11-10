@@ -3,6 +3,7 @@
  * @brief Feed live owner metadata and copied samples to actual ESP transports.
  */
 #include "c3net.h"
+#include "c3tx.h"
 #if UTHOME_NETWORK_WIFI || UTHOME_NETWORK_BLE
 #include "activate.h"
 #include "shared.h"
@@ -93,6 +94,10 @@ int c3net_start (const cfgctrl_t * p_control, cfgmux_t * p_mux)
                                     .ca_size       = sizeof(g_setup_mqtt_ca),
                                     .port          = UTHOME_SETUP_MQTT_PORT};
     gb_mqtt                      = 0 == c3mqtt_start(&broker, g_info.node_id);
+    if (gb_mqtt)
+    {
+        gb_mqtt = 0 == c3mqtt_transactions();
+    }
 #endif
     if (!gb_wifi)
     {
@@ -130,7 +135,7 @@ int c3net_step (const cfgctrl_t * p_control, uint64_t now_ms)
             result = -1;
         }
         g_info.b_wifi_online = c3wsta_online();
-        if (gb_https)
+        if ((gb_https) && (!c3tx_busy()))
         {
             const int served = c3https_step(
                 now_ms, g_info.b_wifi_online, &g_info, capture, NULL);
@@ -146,6 +151,7 @@ int c3net_step (const cfgctrl_t * p_control, uint64_t now_ms)
         {
             result = -1;
         }
+        c3tx_step(now_ms, g_info.meta.generation, gb_mqtt && (c3mqtt_ready()));
 #endif
     }
 #endif
@@ -185,6 +191,9 @@ static int metadata (const cfgctrl_t * p_control)
     g_info.saved_revision       = p_control->saved_revision;
     g_info.runtime_state        = (uint32_t)status.state;
     g_info.b_durable_known      = p_control->b_saved_known;
+#if UTHOME_NETWORK_WIFI
+    g_info.p_transaction = c3tx_view();
+#endif
 #if UTHOME_NETWORK_WIFI && UTHOME_SETUP_MQTT
     g_info.b_mqtt_enabled = true;
     if (0 != c3mqtt_status(&g_info.mqtt))

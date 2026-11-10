@@ -5,6 +5,7 @@
 #include "c3app.h"
 #include "c3rule.h"
 #include "c3net.h"
+#include "c3tx.h"
 #include "c3audit.h"
 #include "c3clock.h"
 #if defined(UTHOME_STATIC_TASKS) && UTHOME_STATIC_TASKS
@@ -90,6 +91,7 @@ int c3app_run (const uint8_t *       p_build_hash,
 #if UTHOME_NETWORK_WIFI
     cfgmux_t * p_upload =
         (0 == cfgmux_init(&g_mux, &g_control, &g_pump)) ? &g_mux : NULL;
+    (void)c3tx_start(&g_binding, p_upload);
     /* Failed optional arbitration leaves USB/local operation available. */
     (void)c3net_start(&g_control, p_upload);
 #else
@@ -119,7 +121,7 @@ int c3app_run (const uint8_t *       p_build_hash,
         g_telemetry.service_error = cfgbind_service(&g_binding, now_ms);
         /* A malformed/disconnected transport never stops the active plan. */
 #if UTHOME_NETWORK_WIFI
-        if (!cfgmux_busy(&g_mux))
+        if ((!cfgmux_busy(&g_mux)) && (!c3tx_busy()))
         {
             (void)cfgpump_step(&g_pump, now_ms);
         }

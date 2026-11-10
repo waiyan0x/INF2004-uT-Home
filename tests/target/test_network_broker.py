@@ -35,6 +35,8 @@ class BrokerTests(unittest.TestCase):
         cls.lib.netbroker_step.argtypes=[c.c_void_p,c.c_uint64,c.c_bool,c.c_uint32,c.c_uint32]
         cls.lib.netbroker_snapshot.argtypes=[c.c_void_p,c.POINTER(View)]
         cls.lib.netbroker_offer.argtypes=[c.c_void_p,c.c_char_p,c.c_char_p,c.c_size_t]
+        cls.lib.netbroker_subscribe.argtypes=[c.c_void_p,c.c_char_p]
+        cls.lib.netbroker_request.argtypes=[c.c_void_p,c.c_void_p,c.c_size_t,c.POINTER(c.c_size_t)]
         cls.addClassCleanup(cls.unload)
 
     @classmethod
@@ -102,6 +104,60 @@ class BrokerTests(unittest.TestCase):
         self.assertEqual(self.lib.netbroker_snapshot(self.state,c.byref(value)),0)
         self.assertEqual(bytes(self.state),before)
         return dict((name,getattr(value,name)) for name,_ in View._fields_)
+
+    def subscribed(self):
+        self.topic=b'uthome/v1/node/transaction/request'
+        self.assertEqual(self.lib.netbroker_subscribe(self.state,self.topic),0)
+        self.read_limit=1
+        self.step(); self.step()
+        self.input.extend(b'\x20\x02\x00\x00')
+        for _ in range(12): self.step()
+        self.assertIn(b'\x82',self.output)
+        self.input.extend(b'\x90\x03\x00\x01\x00')
+        for _ in range(8): self.step()
+        self.assertEqual(self.view()['state'],5)
+
+    def publish_request(self, payload, flags=0x30, topic=None):
+        topic=self.topic if topic is None else topic
+        body=len(topic).to_bytes(2,'big')+topic+payload
+        length=len(body)
+        encoded=bytes([length]) if length<128 else bytes([(length%128)|128,length//128])
+        self.input.extend(bytes([flags])+encoded+body)
+
+    def take_request(self):
+        data=c.create_string_buffer(96); size=c.c_size_t()
+        result=self.lib.netbroker_request(self.state,data,96,c.byref(size))
+        return result,data.raw[:size.value]
+
+    def test_subscribes_and_copies_fragmented_binary_request_without_driver_work(self):
+        self.subscribed()
+        payload=bytes(range(96))
+        self.publish_request(payload)
+        for _ in range(145): self.step()
+        self.assertEqual(self.take_request(),(0,payload))
+        self.assertEqual(self.take_request(),(1,b''))
+
+    def test_retained_qos_duplicate_wrong_topic_and_oversized_commands_disconnect(self):
+        for flags,topic,size in [(0x31,None,96),(0x32,None,96),(0x38,None,96),
+                                 (0x30,b'other/topic',96),(0x30,None,97)]:
+            self.setUp(); self.subscribed()
+            self.publish_request(bytes(size),flags,topic)
+            for _ in range(150):
+                if self.step()<0: break
+            self.assertEqual(self.view()['state'],0)
+            self.assertEqual(self.take_request(),(1,b''))
+
+    def test_partial_request_has_absolute_deadline_and_disconnect_discards_inbox(self):
+        self.subscribed()
+        self.input.extend(b'\x30\x7f')
+        self.step(); self.step()
+        self.assertEqual(self.step(self.now+10001),-1)
+        self.assertEqual(self.take_request(),(1,b''))
+        self.setUp(); self.subscribed()
+        self.publish_request(bytes(96))
+        for _ in range(145): self.step()
+        self.step(ip=False)
+        self.assertEqual(self.take_request(),(1,b''))
 
     def test_diagnostics_preserve_counts_across_plan_change_and_failure(self):
         self.assertEqual(self.view(),dict(state=0,failures=0,replaced=0,discarded=0))

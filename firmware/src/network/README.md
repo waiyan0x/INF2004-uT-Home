@@ -28,7 +28,13 @@ not require a clock reading or perform 64-bit division.
 five 1,024-byte and one 2,048-byte partition, tried in ascending size. Sixteen
 semaphore slots and thirty-two mutex slots have separate reservations. External static queues may instead use caller-owned
 storage of the declared size, while consuming one of the eight metadata slots.
-Their opaque control-buffer pointer is retained as the handle, never dereferenced.
+Their control-buffer pointer is retained as the handle. After successful static
+queue admission, `c3nq_static` sets its first byte to a nonzero initialization
+marker: the pinned lwIP port checks `StaticSemaphore_t` against all-zero storage.
+Operational queue/semaphore state remains in the fixed pool; no vendor structure
+fields are interpreted. Failed or duplicate admission leaves caller bytes untouched.
+Callers supply writable control storage of the SDK-declared size and retain it
+for the lease lifetime. lwIP clears its static control storage after deletion.
 The different resource classes have separate capacity limits; mutexes do not
 waste queue payload storage. A queue too large for its selected storage or an
 exhausted class returns failure without a heap fallback.
@@ -1660,10 +1666,10 @@ and reconnects. SDK/lwIP/TCP objects are not automatically Wi-Fi-exempt.
 Host regression tests compile the board adapter with warnings as errors and
 exercise stale, fault, wrong source, oversize, fragmentation and reconnect.
 The selected architecture uses this native API for display and MQTT for rule
-requests/results. The current API only exposes radar entities, while the current
-MQTT session is publisher-only. A host socket/TLS-double test drives the native
-display and MQTT publisher together; it does not prove board coexistence or rule
-subscriptions. See the [integration boundaries](../../../experiments/runtime_rules/README.md#integration-work-remaining).
+requests/results. The API exposes radar entities and the general Transaction result text entity.
+The MQTT session receives bounded rule commands and publishes results. Host
+socket/TLS-double tests exercise both paths; they do not establish live board
+MQTT/Home Assistant acceptance. See the [integration boundaries](../../../experiments/runtime_rules/README.md#integration-acceptance-remaining).
 Install the pinned host client with `python -m pip install -r tests/target/requirements-esphome.txt`.
 The mandatory CI loopback test checks both radar entities and drives the same C adapter with the real ESPHome client (only socket I/O
 and radar input are doubled). Run `python -m unittest discover -s tests/target
@@ -1672,3 +1678,29 @@ confirm a person entering/leaving changes state, stopping radar updates gives
 unknown rather than clear, and local sampling continues through a client reconnect.
 
 **Radar data fresh** is a separate diagnostic binary sensor. It is on for a fresh valid target report (even an empty room), and off for missing, stale, faulty, or mismatched radar data. Both entities become unavailable when Home Assistant loses its connection. Both use the same copied snapshot, existing connection state and 128-byte transmit buffer.
+
+
+## Application-owned transaction commands
+
+The [three-protocol service](../../../experiments/runtime_rules/README.md#running-the-integrated-service)
+extends the existing TLS MQTT session with a node-specific QoS0 subscription.
+`netbroker_subscribe` enables the topic before connecting; `netbroker_request`
+copies one 96-byte command to `c3tx`, which executes it through `txjob`/`txport`
+only while the peripheral plan is idle. SUBSCRIBE/SUBACK use diagnostic state
+values 7/8, preserving values 0..6. Reconnect repeats subscription; malformed,
+retained/DUP/QoS or oversized input closes the session and clears queued input.
+A partial packet has one 10-second absolute receive deadline.
+
+Results use `/transaction/result`, with priority over ordinary telemetry. The
+ESPHome laboratory endpoint now advertises a text sensor named Transaction result
+(key 3), decoded by the pinned real client test. Results are copied and expire
+after 30 seconds; this read-only endpoint never executes a transaction. See the
+service guide for wire fields, fixed pins, exact-retry/unknown-outcome rules,
+private provisioning and physical acceptance still required.
+
+The static-control regression (`test_network_static_control.py`) compiles the
+production `c3nq_static` ABI boundary with pool admission doubled and checks
+pinned lwIP validity, untouched failed leases and null storage. A board boot
+previously reproduced the `tcpip_send_msg_wait_sem` initialization assertion;
+the corrected image boots and returns USB telemetry. The initialization marker
+is an owned adapter compatibility fix; SDK/kernel sources remain unchanged.

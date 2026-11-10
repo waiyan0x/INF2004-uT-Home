@@ -15,6 +15,9 @@ static int fail (netbroker_t * p_state,
 static void discard (netbroker_t * p_state, uint32_t count);
 static int write_packet (netbroker_t * p_state, uint64_t now_ms);
 static int read_packet (netbroker_t * p_state, uint64_t now_ms);
+static int
+subscribed_packet (netbroker_t * p_state, size_t header, size_t length);
+static void subscribe_packet (netbroker_t * p_state);
 
 /** @brief Reject incomplete transport or immutable identity before I/O. */
 int netbroker_init (netbroker_t * p_state, const netbroker_config_t * p_config)
@@ -102,7 +105,8 @@ int netbroker_step (netbroker_t * p_state,
     {
         result = write_packet(p_state, now_ms);
     }
-    else if (NETBROKER_ACK == p_state->state)
+    else if ((NETBROKER_ACK == p_state->state) ||
+             (NETBROKER_SUBACK == p_state->state))
     {
         result = read_packet(p_state, now_ms);
     }
@@ -182,6 +186,45 @@ int netbroker_snapshot (const netbroker_t * p_state, netbroker_view_t * p_view)
         p_view->replaced  = p_state->mailbox.replaced;
         p_view->discarded = p_state->discarded;
     }
+    return 0;
+}
+
+/** @brief Enable a single immutable command topic before network activity. */
+int netbroker_subscribe (netbroker_t * p_state, const char * p_topic)
+{
+    if ((NULL == p_state) || (!p_state->b_initialized) ||
+        (NETBROKER_OFF != p_state->state) ||
+        (0U == text_size(p_topic, 128U, true)))
+    {
+        return -1;
+    }
+    p_state->p_subscription = p_topic;
+    return 0;
+}
+
+/** @brief Hand a copied message to the owner, never execute in the parser. */
+int netbroker_request (netbroker_t * p_state,
+                       uint8_t *     p_data,
+                       size_t        capacity,
+                       size_t *      p_size)
+{
+    if ((NULL == p_state) || (NULL == p_data) || (NULL == p_size))
+    {
+        return -1;
+    }
+    *p_size = 0U;
+    if (!p_state->b_request)
+    {
+        return 1;
+    }
+    if (capacity < sizeof(p_state->request))
+    {
+        return -1;
+    }
+    memcpy(p_data, p_state->request, sizeof(p_state->request));
+    *p_size = sizeof(p_state->request);
+    memset(p_state->request, 0, sizeof(p_state->request));
+    p_state->b_request = false;
     return 0;
 }
 
@@ -271,14 +314,17 @@ static int fail (netbroker_t * p_state,
     discard(p_state,
             (p_state->b_telemetry ? 1U : 0U) +
                 (p_state->mailbox.b_pending ? 1U : 0U));
-    const uint32_t replaced = p_state->mailbox.replaced;
-    p_state->mailbox        = (netmqtt_t){.replaced = replaced};
-    p_state->b_telemetry    = false;
-    p_state->size           = 0U;
-    p_state->offset         = 0U;
-    p_state->received       = 0U;
-    p_state->b_ping         = false;
-    p_state->state          = NETBROKER_OFF;
+    const uint32_t replaced      = p_state->mailbox.replaced;
+    p_state->mailbox             = (netmqtt_t){.replaced = replaced};
+    p_state->b_telemetry         = false;
+    p_state->size                = 0U;
+    p_state->offset              = 0U;
+    p_state->received            = 0U;
+    p_state->receive_deadline_ms = 0U;
+    p_state->b_request           = false;
+    memset(p_state->request, 0, sizeof(p_state->request));
+    p_state->b_ping = false;
+    p_state->state  = NETBROKER_OFF;
     if ((b_failure) && (UINT32_MAX > p_state->failures))
     {
         ++p_state->failures;
@@ -317,7 +363,20 @@ static int write_packet (netbroker_t * p_state, uint64_t now_ms)
         }
         else if (NETBROKER_AVAILABLE == p_state->state)
         {
-            p_state->state = NETBROKER_READY;
+            if (NULL == p_state->p_subscription)
+            {
+                p_state->state = NETBROKER_READY;
+            }
+            else
+            {
+                subscribe_packet(p_state);
+                p_state->state       = NETBROKER_SUBSCRIBE;
+                p_state->deadline_ms = now_ms + 10000U;
+            }
+        }
+        else if (NETBROKER_SUBSCRIBE == p_state->state)
+        {
+            p_state->state = NETBROKER_SUBACK;
         }
         else
         {
@@ -330,23 +389,81 @@ static int write_packet (netbroker_t * p_state, uint64_t now_ms)
 /** @brief Only CONNACK and solicited PINGRESP are legal on this publisher. */
 static int read_packet (netbroker_t * p_state, uint64_t now_ms)
 {
-    const size_t expected  = (NETBROKER_ACK == p_state->state) ? 4U : 2U;
+    size_t     expected = (NETBROKER_ACK == p_state->state) ? 4U : 2U;
+    size_t     header   = 2U;
+    size_t     length   = 0U;
+    const bool b_subscriber =
+        (NULL != p_state->p_subscription) && (NETBROKER_ACK != p_state->state);
+    if ((0U != p_state->received) && (now_ms >= p_state->receive_deadline_ms))
+    {
+        return -1;
+    }
+    if (b_subscriber && (p_state->received >= 2U))
+    {
+        length = p_state->receive[1] & 0x7fU;
+        if (0U != (p_state->receive[1] & 0x80U))
+        {
+            header = 3U;
+            if (p_state->received < header)
+            {
+                expected = header;
+            }
+            else
+            {
+                if ((0U == p_state->receive[2]) ||
+                    (0U != (p_state->receive[2] & 0x80U)))
+                {
+                    return -1;
+                }
+                length += (size_t)p_state->receive[2] * 128U;
+                expected = header + length;
+            }
+        }
+        else
+        {
+            expected = header + length;
+        }
+        if (expected > sizeof(p_state->receive))
+        {
+            return -1;
+        }
+    }
     const size_t remaining = expected - p_state->received;
-    const int    count =
-        p_state->config.p_read(p_state->config.p_context,
-                               &p_state->receive[p_state->received],
-                               remaining);
+    int          count     = 0;
+    if (0U != remaining)
+    {
+        count = p_state->config.p_read(p_state->config.p_context,
+                                       &p_state->receive[p_state->received],
+                                       remaining);
+    }
     if ((0 > count) || ((size_t)count > remaining))
     {
         return -1;
     }
-    if ((2U == expected) && (0 < count) && (!p_state->b_ping))
+    if ((0U == p_state->received) && (0 < count))
+    {
+        p_state->receive_deadline_ms = now_ms + 10000U;
+    }
+    p_state->received += (size_t)count;
+    if (b_subscriber)
+    {
+        /* Header acquired this iteration: decode its body on the next tick. */
+        if ((p_state->received < 2U) || ((2U == expected) && (0 < count)) ||
+            ((3U == header) && (3U == expected)) ||
+            (p_state->received != expected))
+        {
+            return 0;
+        }
+        const int result  = subscribed_packet(p_state, header, length);
+        p_state->received = 0U;
+        return result;
+    }
+    if ((0U != p_state->received) &&
+        (p_state->receive[0] != ((4U == expected) ? 0x20U : 0xd0U)))
     {
         return -1;
     }
-    p_state->received += (size_t)count;
-    if ((0U != p_state->received) &&
-        (p_state->receive[0] != ((4U == expected) ? 0x20U : 0xd0U)))
+    if ((2U == expected) && (0 < count) && (!p_state->b_ping))
     {
         return -1;
     }
@@ -386,6 +503,65 @@ static int read_packet (netbroker_t * p_state, uint64_t now_ms)
         p_state->b_ping = false;
     }
     p_state->received = 0U;
+    return 0;
+}
+
+/** @brief Encode one QoS0 subscription, packet identifier one per session. */
+static void subscribe_packet (netbroker_t * p_state)
+{
+    const size_t topic   = strlen(p_state->p_subscription);
+    const size_t length  = topic + 5U;
+    size_t       offset  = 2U;
+    p_state->transmit[0] = 0x82U;
+    p_state->transmit[1] = (uint8_t)(length & 0x7fU);
+    if (length >= 128U)
+    {
+        p_state->transmit[1] |= 0x80U;
+        p_state->transmit[2] = (uint8_t)(length / 128U);
+        offset               = 3U;
+    }
+    p_state->transmit[offset++] = 0U;
+    p_state->transmit[offset++] = 1U;
+    field(p_state->transmit, &offset, p_state->p_subscription);
+    p_state->transmit[offset++] = 0U;
+    p_state->size               = offset;
+}
+
+/** @brief Accept only the subscribed QoS0 command or a solicited PINGRESP. */
+static int
+subscribed_packet (netbroker_t * p_state, size_t header, size_t length)
+{
+    const uint8_t * p_body = &p_state->receive[header];
+    const uint8_t   kind   = p_state->receive[0];
+    if (NETBROKER_SUBACK == p_state->state)
+    {
+        if ((0x90U != kind) || (3U != length) || (0U != p_body[0]) ||
+            (1U != p_body[1]) || (0U != p_body[2]))
+        {
+            return -1;
+        }
+        p_state->state = NETBROKER_READY;
+        return 0;
+    }
+    if ((0xd0U == kind) && (0U == length) && (p_state->b_ping))
+    {
+        p_state->b_ping = false;
+        return 0;
+    }
+    if ((NETBROKER_READY != p_state->state) || (0x30U != kind) ||
+        (length < 2U) || (p_state->b_request))
+    {
+        return -1;
+    }
+    const size_t topic = (size_t)p_body[0] * 256U + p_body[1];
+    if ((topic != strlen(p_state->p_subscription)) ||
+        ((topic + 2U + sizeof(p_state->request)) != length) ||
+        (0 != memcmp(&p_body[2], p_state->p_subscription, topic)))
+    {
+        return -1;
+    }
+    memcpy(p_state->request, &p_body[2U + topic], sizeof(p_state->request));
+    p_state->b_request = true;
     return 0;
 }
 

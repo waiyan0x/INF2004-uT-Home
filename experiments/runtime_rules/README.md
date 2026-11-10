@@ -27,39 +27,27 @@ storage. Runtime rule changes are feasible without regenerating YAML; that
 alone does not establish compatibility with the project's kernel, driver,
 language or memory requirements. Present this comparison to the professor.
 
-The teammate's native API is a **read-only occupancy connectivity reference**.
-It does not yet display general transaction results. MQTT handles rule updates
-and raw results; the current MQTT client is a publisher only and does not
-subscribe to commands. The USB proof is not evidence of MQTT integration.
+The native API now exposes **Transaction result** as a text sensor in addition
+to the original radar entities. MQTT subscribes to a bounded node-specific
+transaction topic, and the same application owner runs the fixed C decision
+engine and generic HAL adapters. Only an explicitly idle peripheral plan admits
+transactions. USB/HTTP plan changes are deferred while asynchronous UART or
+failed cleanup retains hardware ownership. The legacy USB experiment below and
+its immutable evidence are retained separately.
 
-Private lab setup accepts both the ESPHome native API and MQTT settings at once.
-A host test drives the native display and MQTT publisher state machines together
-using separate socket/TLS doubles. The existing real ESPHome client test separately
-exercises the display endpoint through loopback. Neither demonstrates on-board
-coexistence or an MQTT command subscriber. The existing native listener is
-plaintext and unauthenticated; deployment security and resource costs remain open.
+The native listener remains the existing opt-in plaintext laboratory endpoint.
+Use the existing verified TLS MQTT transport and a broker ACL limiting command
+publication to the controller. Code and client/loopback tests do not establish
+physical radio/peripheral coexistence or whole-system static-allocation safety.
 
-### Integration work remaining
+### Integration acceptance remaining
 
-1. Extend the MQTT session to subscribe to a bounded, device-specific rule topic,
-   assemble complete requests, reject unsupported packets and re-subscribe after
-   reconnect. The present publisher only accepts CONNACK and PINGRESP; it cannot
-   receive a rule. Preserve TLS and the existing single-owner service model.
-2. Deliver a copied request to the application/configuration owner. Resolve the
-   actual bus and device, serialize against apply and affected workers, then call
-   `txwire` and the generic driver. Define bounded backpressure and what happens
-   when a plan changes, a reply cannot be sent, or a request is repeated.
-3. Publish the complete 65-byte result via MQTT and expose a copied, bounded
-   display snapshot through the native API. Define entity names, unavailable and
-   stale behavior with Member 3; the current entities only describe radar status.
-4. Verify independent native API clients, MQTT fragmentation, invalid updates,
-   A->B switching, failures and reconnects in host tests. Build a real target
-   image under the C standard gate; then measure resources and test both services
-   together on hardware before claiming the integrated path works.
-
-These are implementation tasks, not existing capabilities. The experimental MQTT
-topic names and QoS-zero wire format below are provisional until agreed with the
-networking and integration owners.
+- Install a qualified private-settings image after preserving the board backup.
+- Verify fixed wiring, explicit empty-plan transition, I2C/SPI/UART A->B rule
+  changes and fault/reconnect behavior on the actual ESP and peripherals.
+- Add the device to a real Home Assistant instance and observe raw result,
+  failure, expiry and disconnected/unavailable behavior alongside MQTT traffic.
+- Measure combined timing, stack high-water and SDK heap paths on hardware.
 
 | Question | Actual ESPHome experiment | Existing firmware experiment |
 |---|---|---|
@@ -98,13 +86,12 @@ callback. A rejected update leaves the previous rule active. No state persists
 over reboot. The requester must supply the intended device/revision; mismatches
 produce an explicit error and no I/O. Zero response bytes are valid data.
 
-For production uT-Kernel integration, Member 2's network service should deliver
-a copied, bounded rule request to Member 5's existing configuration owner.
-That owner must arbitrate with configuration apply and stop/quiesce affected
-workers before changing bus claims. It then owns `txrule_load`/`txrule_execute`
-and hands copied replies back for MQTT publication. Do not execute bus calls
-from a competing network callback or consume another worker's sensor FIFO.
-This experiment does not implement that production integration or add a task.
+The integrated service uses `c3tx` in the existing application owner, `txjob`
+for copied rule decisions and `txport` for claimed generic HAL operations.
+`netbroker` copies bounded commands; it never calls a driver. `c3tx` requires
+`cfgbind_discovery_ready` and an unleased configuration upload before admitting
+work. It does not stop an active plan automatically or consume a sensor FIFO.
+The legacy `txrule`/`txwire` USB proof remains a separate backward-compatible path.
 
 ## Provisional contract v1
 
@@ -317,3 +304,145 @@ References: [ESPHome architecture](https://developers.esphome.io/architecture/ov
 [MQTT component](https://esphome.io/components/mqtt/). The built version's
 `esp32/core.cpp` and MQTT dispatch code were also inspected for actual task
 ownership; framework behavior is not inferred from an occupancy display.
+
+## Three-protocol service contract
+
+The integrated transaction service uses a separate `TJ` version-1 envelope;
+legacy `TR` rules and USB configuration profiles retain their existing formats.
+A node subscribes to `uthome/v1/<node>/transaction/request` over its existing
+verified MQTT TLS connection. Only non-retained, non-DUP QoS0 messages of
+exactly 96 bytes are admitted. Results use the corresponding `/result` topic.
+One application owner validates, executes and publishes; no network callback
+runs a driver. There is one pending command and no automatic replay.
+
+Rules select fixed reviewed board buses: I2C0 SDA0/SCL1, SPI2 MOSI6/SCLK7
+(write only), or UART1 RX20/TX21 (8N1). SPI selects a separate ordinary CS and
+optional data/command output. No pin scanning or automatic device identification
+is performed. Reads/writes are raw operations, with at most 30 transmitted and
+32 received bytes and a 10–1000 ms deadline. UART work is advanced incrementally;
+partial writes are reported and are never automatically repeated. SPI receive
+is explicitly unsupported by this board service. Every operation requires an
+idle peripheral plan; users stop the old plan explicitly using normal Apply.
+
+A rule update commits copied instructions without bus access. Execution names
+that rule and revision and supplies the current plan generation. Invalid updates
+preserve the previous rule. Request IDs increase per boot; an exact repeat of
+the last completed request returns its saved result without repeating I/O, while
+changed or older IDs are rejected. Plan changes invalidate active instructions.
+Disconnect cancels unfinished work, attempts checked cleanup, and discards queued
+transport commands; it never silently resumes an uncertain write.
+
+Request bytes: `TJ`, version 1, kind (1 update / 2 execute); little-endian u32
+request ID at 4 and revision at 8; zero-padded device name at 12..43; protocol
+(1 I2C / 2 SPI / 3 UART) at 44; I2C address at 45; SPI mode at 46; optional SPI
+DC pin at 47 (255 = absent); clock/baud u32 at 48; timeout u16 at 52; TX/RX
+lengths at 54/55; SPI CS at 56 (255 for other buses); DC level at 57; reserved
+zeros at 58..59; 30 TX bytes at 60..89 (unused bytes zero); expected plan
+generation u32 at 90; reserved zeros at 94..95. Execute requests zero bytes
+44..89. Device names use 1–31 ASCII letters/digits/underscore/hyphen.
+
+Replies are also 96 bytes: same magic/version/kind/ID and active revision/name;
+protocol at 44, status at 45, accepted TX length at 46, successful RX length at
+47, up to 32 response bytes at 48..79, active address/mode/CS at 80..82, reserved
+zero at 83, rate u32 at 84, timeout u16 at 88, plan generation u32 at 90 and
+reserved zeros at 94..95. Statuses are 0 OK, 1 invalid, 2 unconfigured,
+3 mismatch, 4 timeout, 5 I/O, 6 busy, 7 unsupported, 8 stale ID, 9 cancelled.
+Failed results never retain earlier RX bytes. Receipt of a SPI write reports
+controller completion; UART reports bytes accepted by the native driver, not
+confirmation from the peripheral.
+
+
+## Running the integrated service
+
+The existing website continues to configure USB peripheral plans. The new
+three-bus service uses the host command below and its separate transaction JSON;
+do not upload a `TJ` rule as a schema-2 node profile.
+
+1. Provision the existing private Wi-Fi/MQTT settings with a verified broker CA,
+   node credentials and `esphome_lab: true`. Keep credentials, generated headers
+   and binaries private. See the network guide for build/provisioning details.
+   Build the application with `--runtime-port --configuration-app
+   --static-net-queues --network-services wifi --network-settings PRIVATE.json
+   --observer-patch tools/target/patches/freertos-task-observer.patch` plus the
+   standard compatibility/resource patches. No rule-probe image is needed.
+2. On unchanged reviewed wiring, use the normal USB Desk review/apply flow to
+   apply an empty hardware plan explicitly. This replaces its saved startup
+   profile; preserve the original profile for restoration. Do not rewire while
+   powered. Queries and failed commands never stop the current plan for you.
+3. Obtain the current plan generation and the MAC-derived node ID from current
+   board metadata. Set `UTHOME_MQTT_USER` and `UTHOME_MQTT_PASSWORD` privately on
+   the laptop, then install `tools/target/requirements-mqtt.txt` into the host
+   environment. The controller verifies the broker CA and hostname.
+4. Compile offline, or send an update and explicit execution. Use increasing
+   request IDs per boot; each `--execute` run consumes two IDs. Substitute the
+   actual generation, broker, certificate path and node identity:
+
+```sh
+python -m tools.target.transaction experiments/runtime_rules/examples/transactions/bmp-id.json --generation 4 --request-id 1 --execute --output build/bmp-commands.json
+python -m tools.target.transaction experiments/runtime_rules/examples/transactions/bmp-id.json --generation 4 --request-id 1 --execute --broker broker.example --ca broker-ca.pem --node uthome-0123456789ab
+```
+
+The first command performs no network or hardware access. The second sends one
+update and, only after OK, one execute. Transport failure is an **unknown outcome**;
+no new request ID is automatically generated and no write is automatically
+repeated. The Python codec supports explicit exact-ID retry of the last request.
+Plan changes invalidate active instructions; updates are volatile across reboot.
+
+The six JSON examples cover BMP388 chip ID/raw pressure, SSD1306 display-off/on
+commands and LD2450 raw UART reads of 16/32 bytes. OLED examples use CS4 reserved
+(unwired on the supplied six-pin panel) and D/C3, and assume the controller is
+already initialized and out of reset. The generic engine does not render a
+framebuffer or drive OLED reset10. The UART examples return unaligned raw chunks,
+not validated LD2450 target frames. Use the retained device-specific profiles
+when compensated measurements, display rendering or radar parsing are needed.
+
+5. In Home Assistant, add the **ESPHome** integration for the device's current
+   IP on port 6053. Besides radar occupancy/freshness, **Transaction result**
+   shows protocol, status, accepted TX count, RX count and hexadecimal bytes.
+   A rule update is labelled `rule updated`; it is not a sensor reading. Missing,
+   stale (30 seconds), old-plan and disconnected results become unavailable.
+
+### Verification and fixed memory
+
+- `test_txjob.py`: independent C admission, rule replacement, generation/identity,
+  exact-retry, timeout/fault/cancellation and retained cleanup.
+- `test_tx_owner.py`: real `c3tx`/`txport` and HAL implementations with explicit
+  I2C/SPI/UART doubles; tests byte changes, incremental UART, idle gating,
+  software-ring/FIFO settling and stale result text.
+- `test_network_broker.py` and `test_network_esp.py`: fragmented subscription and
+  command reception, malformed/retained/QoS/DUP/oversized rejection, absolute
+  deadlines, priority result publication and a real `aioesphomeapi` client
+  decoding the third entity and raw/failure state.
+- `transaction_loopback.py`: an explicit local TLS Mosquitto bench connecting
+  the real host controller to compiled C owner/HAL doubles. It runs all six
+  examples, rejects an invalid update and checks no-I/O exact retry. It starts
+  no persistent broker service and makes no physical-hardware claim.
+
+```sh
+python -B -m unittest discover -s tests/target -p 'test_tx*.py' -v
+python -B -m unittest discover -s tests/target -p test_transaction_client.py -v
+python tests/target/transaction_loopback.py --mosquitto PATH_TO_MOSQUITTO --passwd PATH_TO_MOSQUITTO_PASSWD --openssl PATH_TO_OPENSSL --output build/transaction-loopback.json
+```
+
+The target MQTT transport reserves 112 payload bytes and 384 packet bytes in
+both main and radio components; existing 112-byte telemetry and 96-byte commands
+fit. Portable codecs retain their default 1024/1280 bounds for other builds.
+The target bound also holds the maximum reviewed CONNECT packet. No new
+application allocator, RTOS worker or kernel object is added. UART writes wait
+for the existing native software ring to empty, then a conservative 128-byte
+FIFO plus one shift-register byte to serialize (8N1, no flow control), within
+the original transaction deadline. Hardware timing still requires measurement.
+
+The image-specific `tools/target/transaction-budget.json` retains every existing
+station group/aggregate cap and tightens unchanged module reservations to their
+linked aligned sizes, allowing explicit new module reservations inside the same
+RAM envelope. Original station budgets and all historical evidence remain intact.
+A fixed-map pass never substitutes for runtime heap/stack qualification.
+
+Manual BARR-C review: copied settings and canonical unused bytes, bounded wire
+and bus buffers, validated casts/ranges, one serialized owner, no ISR work,
+checked resource cleanup retaining failed ownership, strict deadlines, and fault
+RX clearing. Existing USB profiles, TR framing and registry remain unchanged.
+The UART ring observer uses the existing lock and native handle. MQTT accepts
+only one complete bounded command at a time and re-subscribes on reconnect.
+Target compilation and the complete pinned C gate are required for changes.

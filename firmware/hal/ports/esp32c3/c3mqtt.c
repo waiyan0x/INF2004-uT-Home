@@ -12,16 +12,19 @@
 #include <stdio.h>
 #include <string.h>
 
-static netbroker_t       g_broker           = {0};
-static c3mqtt_config_t   g_config           = {0};
-static esp_tls_cfg_t     g_tls_config       = {0};
-static esp_tls_t *       gp_tls             = NULL;
-static sampcache_entry_t g_sample           = {0};
-static char              g_node[32]         = {0};
-static char              g_availability[80] = {0};
-static uint64_t          g_next_ms          = 0U;
-static uint16_t          g_source           = 0U;
-static bool              gb_attempted       = false;
+static netbroker_t       g_broker            = {0};
+static c3mqtt_config_t   g_config            = {0};
+static esp_tls_cfg_t     g_tls_config        = {0};
+static esp_tls_t *       gp_tls              = NULL;
+static sampcache_entry_t g_sample            = {0};
+static char              g_node[32]          = {0};
+static char              g_availability[80]  = {0};
+static uint64_t          g_next_ms           = 0U;
+static uint16_t          g_source            = 0U;
+static bool              gb_attempted        = false;
+static char              g_request_topic[80] = {0};
+static char              g_result_topic[80]  = {0};
+static bool              gb_result           = false;
 static bool server_name (const char * p_name);
 static int connect_step (void * p_context);
 static int read_step (void * p_context, uint8_t * p_data, size_t size);
@@ -91,6 +94,21 @@ int c3mqtt_step (uint64_t               now_ms,
     }
     result = netbroker_step(
         &g_broker, now_ms, b_ip, p_info->meta.generation, esp_random() % 251U);
+    if (NETBROKER_READY != g_broker.state)
+    {
+        gb_result = false;
+    }
+    if (gb_result)
+    {
+        if ((!g_broker.mailbox.b_pending) && (0U == g_broker.size))
+        {
+            gb_result = false;
+        }
+        else
+        {
+            return result;
+        }
+    }
     if ((0 != result) || (NETBROKER_READY != g_broker.state) ||
         (now_ms < g_next_ms))
     {
@@ -122,6 +140,58 @@ int c3mqtt_step (uint64_t               now_ms,
 int c3mqtt_status (netbroker_view_t * p_view)
 {
     return netbroker_snapshot(&g_broker, p_view);
+}
+
+/** @brief Subscribe only to this node's fixed bounded command topic. */
+int c3mqtt_transactions (void)
+{
+    const int input  = snprintf(g_request_topic,
+                               sizeof(g_request_topic),
+                               "uthome/v1/%s/transaction/request",
+                               g_node);
+    const int output = snprintf(g_result_topic,
+                                sizeof(g_result_topic),
+                                "uthome/v1/%s/transaction/result",
+                                g_node);
+    if ((!gb_attempted) || (input <= 0) || (output <= 0) ||
+        ((size_t)input >= sizeof(g_request_topic)) ||
+        ((size_t)output >= sizeof(g_result_topic)))
+    {
+        return -1;
+    }
+    return netbroker_subscribe(&g_broker, g_request_topic);
+}
+
+/** @brief Only SUBACK-complete sessions can receive or send transaction work.
+ */
+bool c3mqtt_ready (void)
+{
+    return NETBROKER_READY == g_broker.state;
+}
+
+/** @brief Copy into the application owner's command storage, without I/O. */
+int c3mqtt_request (uint8_t * p_data, size_t capacity, size_t * p_size)
+{
+    return netbroker_request(&g_broker, p_data, capacity, p_size);
+}
+
+/** @brief A result cannot be replaced by subsequent telemetry offers. */
+int c3mqtt_result (const uint8_t * p_data, size_t size)
+{
+    if ((size != 96U) || (NULL == p_data))
+    {
+        return -1;
+    }
+    if ((!c3mqtt_ready()) || gb_result || ('\0' == g_result_topic[0]))
+    {
+        return 1;
+    }
+    const int result = netbroker_offer(&g_broker, g_result_topic, p_data, size);
+    if (0 == result)
+    {
+        gb_result = true;
+    }
+    return result;
 }
 
 /** @brief Restrict certificate/SNI names without unbounded reads. */
