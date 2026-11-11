@@ -756,9 +756,11 @@ class EspBindingTests(unittest.TestCase):
         self.assertEqual(sorted(present),['homeassistant/sensor/node_s0_pressure/config',
                                           'homeassistant/sensor/node_s0_temperature/config'])
         config=json.loads(present['homeassistant/sensor/node_s0_temperature/config'])
-        self.assertEqual(config['state_topic'],'uthome/v1/node/state/environment')
-        self.assertEqual(config['availability_topic'],'uthome/v1/node/availability')
-        self.assertEqual(config['unit_of_measurement'],'°C')
+        # Abbreviated keys; "~" is the base topic Home Assistant expands.
+        self.assertEqual(config['~'],'uthome/v1/node')
+        self.assertEqual(config['stat_t'],'~/state/environment')
+        self.assertEqual(config['avty_t'],'~/availability')
+        self.assertEqual(config['unit_of_meas'],'°C')
         # Availability plus 56 discovery messages precede any other publication.
         self.assertTrue(all(p[1] for p in self.publishes[:57]))
         following=self.publishes[57:]

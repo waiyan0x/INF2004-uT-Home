@@ -1431,7 +1431,7 @@ to unique `[A-Za-z][A-Za-z0-9_.-]{0,30}`, so names need no JSON escaping;
 
 | Sample type | Component / suffix | device_class | Unit | state_class | value_template |
 |---|---|---|---|---|---|
-| ENVIRONMENT | sensor `temperature` | temperature | `°C` (sent as `°C`) | measurement | `{{ value_json.t_c100 / 100 }}` |
+| ENVIRONMENT | sensor `temperature` | temperature | `°C` (sent as `\u00b0C`) | measurement | `{{ value_json.t_c100 / 100 }}` |
 | ENVIRONMENT | sensor `pressure` | pressure | `Pa` | measurement | `{{ value_json.p_pa }}` |
 | DISTANCE | sensor `distance` | distance | `mm` | measurement | `{{ value_json.d_mm }}` |
 | LIGHT | sensor `illuminance` | illuminance | `lx` | measurement | `{{ value_json.lx_m / 1000 }}` |
@@ -1446,12 +1446,61 @@ no class, unit or state class: its state is text. Every config carries `name`
 class/unit/state-class fields above when present, `expire_after` 30,
 `availability_topic` and a `device` block (`identifiers` and `name` = node ID,
 `manufacturer` uT-Home, `model` ESP32-C3), so all entities group under one
-device. Example, node `uthome-a4cf12345678`, slot 0 `env1`:
+device.
+
+Since 2026-11-11 configs use Home Assistant's documented discovery
+abbreviations and the `~` base topic. Each one below appears in both the
+"Supported abbreviations in MQTT discovery messages" lists of the
+[MQTT integration documentation](https://www.home-assistant.io/integrations/mqtt/)
+and Home Assistant's `mqtt/abbreviations.py`. `name` has no abbreviation.
+
+| Sent | Full key | Sent | Full key (in `dev`) |
+|---|---|---|---|
+| `uniq_id` | `unique_id` | `ids` | `identifiers` |
+| `stat_t` | `state_topic` | `name` | `name` |
+| `val_tpl` | `value_template` | `mf` | `manufacturer` |
+| `dev_cla` | `device_class` | `mdl` | `model` |
+| `unit_of_meas` | `unit_of_measurement` | | |
+| `stat_cla` | `state_class` | | |
+| `exp_aft` | `expire_after` | | |
+| `avty_t` | `availability_topic` | | |
+| `dev` | `device` | | |
+
+`"~"` holds `uthome/v1/<node>`. The documentation replaces `~` at the start or
+end of any key ending in `_topic`; Home Assistant expands abbreviations before
+that replacement, so `"stat_t":"~/state/<device_id>"` and
+`"avty_t":"~/availability"` become the unchanged state and availability topics.
+Discovery topics, unique IDs, state topics, state payloads and templates are
+unchanged; `test_network_disc.py` expands each payload by those rules and
+requires the same fields and values as the former full-key payload. Example,
+node `uthome-a4cf12345678`, slot 0 `env1` (392 bytes, was 481):
 
 ```text
 homeassistant/sensor/uthome-a4cf12345678_s0_temperature/config  (retained)
-{"name":"env1 temperature","unique_id":"uthome-a4cf12345678_s0_temperature","state_topic":"uthome/v1/uthome-a4cf12345678/state/env1","value_template":"{{ value_json.t_c100 / 100 }}","device_class":"temperature","unit_of_measurement":"°C","state_class":"measurement","expire_after":30,"availability_topic":"uthome/v1/uthome-a4cf12345678/availability","device":{"identifiers":["uthome-a4cf12345678"],"name":"uthome-a4cf12345678","manufacturer":"uT-Home","model":"ESP32-C3"}}
+{"~":"uthome/v1/uthome-a4cf12345678","name":"env1 temperature","uniq_id":"uthome-a4cf12345678_s0_temperature","stat_t":"~/state/env1","val_tpl":"{{ value_json.t_c100 / 100 }}","dev_cla":"temperature","unit_of_meas":"\u00b0C","stat_cla":"measurement","exp_aft":30,"avty_t":"~/availability","dev":{"ids":["uthome-a4cf12345678"],"name":"uthome-a4cf12345678","mf":"uT-Home","mdl":"ESP32-C3"}}
 ```
+
+**Measured sizes.** These come from the real `mqttdisc` and `netmqtt` code on
+the host. Packet = 1-byte header + remaining-length bytes + 2-byte topic length
++ topic + payload. Worst case: 31-character node and source name. Realistic: the
+19-character MAC-derived node ID with name `bmp388`.
+
+| Entity | Worst payload / packet | Realistic payload / packet | Before compaction (worst / realistic payload) |
+|---|---:|---:|---:|
+| temperature | 490 / 569 | 392 / 459 | 591 / 481 |
+| pressure | 468 / 544 | 370 / 434 | 569 / 459 |
+| distance | 468 / 544 | 370 / 434 | 569 / 459 |
+| illuminance | 484 / 563 | 386 / 453 | 585 / 475 |
+| occupancy | 446 / 530 | 348 / 420 | 537 / 427 |
+| targets | 422 / 497 | 324 / 387 | 511 / 401 |
+| raw | 391 / 462 | 293 / 352 | 477 / 367 |
+
+Carrying every config therefore needs `UTHOME_MQTT_VALUE_BYTES` >= 490 and
+`UTHOME_MQTT_PACKET_BYTES` >= 569 (realistic: 392 / 459; production node ID
+with a 31-character name: 442 / 509). The largest JSON state is RAW, 42 bytes
+in a 125-byte packet (realistic 88). Removals are a 79-byte topic with an empty
+payload. `UTHOME_MQTTDISC_PAYLOAD_BYTES` is 500 (490 plus 10 bytes of margin);
+overflow is still rejected, never truncated.
 
 State payloads use integers only: `{"t_c100":2512,"p_pa":101325}` (temperature
 rounded half away from zero; published only if finite, |t_c100| <= 100000 and
@@ -1515,12 +1564,14 @@ the host object's BSS stayed at 3168 bytes). The drain wait reuses the cursor
 value 57, so it adds no state. Linked
 target map sizes are not measured, and no budget entry or limit was changed.
 Flash: about 4 KB of `mqttdisc` code/rodata and about 0.7 KB more `c3mqtt` code
-in a host `-Og` build. Stack: `mqttdisc_message_t` is 736 bytes on RV32 (128-byte
-topic, 600-byte payload). Host x86-64 `-fstack-usage` frames at `-Og`: before,
-`c3mqtt_step` 352 bytes (live during the TLS write); after, `c3mqtt_step` 80,
-`publish` 48, `discover` 832, `state_step` 816, `telemetry_step` 336, and the
-deepest formatter chain below `discover` about 410. The deepest application-owned
-chain from `c3mqtt_step` grows from about 544 to about 1370 bytes, but no longer
+in a host `-Og` build. Stack: `mqttdisc_message_t` is 636 bytes on RV32 (128-byte
+topic, 500-byte payload; 736 before the 2026-11-11 compaction). Host x86-64
+`-fstack-usage` frames at `-Og` (host numbers, not target measurements): before
+discovery, `c3mqtt_step` 352 bytes (live during the TLS write); now
+`c3mqtt_step` 80, `publish` 48, `discover` 736 (was 832), `state_step` 720 (was
+816), `telemetry_step` 336, and the formatter chain below `discover` 408. The
+deepest application-owned chain from `c3mqtt_step` is 1272 bytes at `-Og` (was
+1368) and 1344 at `-O2` (was 1440), but no longer
 sits beneath the TLS write, which now runs with the 80-byte frame. **The added
 owner stack is unverified on hardware**: the 8448-byte owner stack's peak in the
 TLS image is unmeasured, the only recorded headroom predates TLS, and a target
@@ -1529,7 +1580,9 @@ image before relying on this.
 
 **Verification (software only).** `tests/target/test_network_disc.py` checks
 exact topic/payload bytes for every sample type, removal, maximum node/name
-(591-byte worst-case payload), unsafe characters, slot mismatch and no state
+(exact per-entity worst-case sizes, 490 bytes largest), expansion of the
+abbreviations and `~` back to the former full-key fields, unsafe characters,
+slot mismatch and no state
 for missing/stale/fault/out-of-range samples. `test_network_mqtt.py` and
 `test_network_broker.py` check the retain bit (`0x31` only for retained, all
 other bytes identical) and `netbroker_idle`. `test_network_esp.py` drives the
@@ -1572,11 +1625,15 @@ once and exactly one pending packet is counted as replaced.
 (`tests/target/runtime_port_board/main` and `radio`) compile with
 `UTHOME_MQTT_VALUE_BYTES=112` and `UTHOME_MQTT_PACKET_BYTES=384`, and
 `tools/target/transaction-budget.json` reserves `c3mqtt.c.obj` for those sizes.
-Discovery configs are up to 591 bytes, so `netbroker_offer` rejects every config
-on such an image; only removals, state and telemetry fit. Host tests use the
-1024/1280 defaults and do not show this. Discovery does not work on the board
-until a larger limit and its reservation are agreed and reviewed; neither value
-was changed here.
+Discovery configs are up to 490 bytes after compaction (591 before), so
+`netbroker_offer` still rejects every config on such an image; only removals,
+state and telemetry fit. The measured minimums are 490/569 for the worst case
+and 392/459 for the realistic case (see **Measured sizes** above). At 569-byte
+packets the two packet stores (`netbroker` transmit and the `netmqtt` pending
+buffer) need 370 bytes more RAM than at 384; at 459, 150 bytes more. Host tests
+use the 1024/1280 defaults and do not show this. Discovery does not work on the
+board until a larger limit and its reservation are agreed and reviewed; neither
+value was changed here.
 
 The combined Wi-Fi/discovery source passed a fresh pinned ESP32-C3 build on
 11 November 2026. Its unchanged transaction memory check fails the MQTT module

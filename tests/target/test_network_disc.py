@@ -47,15 +47,57 @@ size_t fx_payload_size(void) { return g_message.payload_size; }
 ENVIRONMENT, TARGETS, DISTANCE, HEALTH, LIGHT, RAW = 1, 2, 3, 4, 5, 6
 SUFFIXES = ['temperature', 'pressure', 'distance', 'illuminance', 'occupancy',
             'targets', 'raw']
-DEVICE = (f',"expire_after":30,"availability_topic":"uthome/v1/{NODE}/availability",'
-          f'"device":{{"identifiers":["{NODE}"],"name":"{NODE}",'
-          '"manufacturer":"uT-Home","model":"ESP32-C3"}}')
+# Full-key payload as published before compaction: the reference that the
+# abbreviated payload must expand back to, field for field.
+FULL_DEVICE = (f',"expire_after":30,"availability_topic":"uthome/v1/{NODE}/availability",'
+               f'"device":{{"identifiers":["{NODE}"],"name":"{NODE}",'
+               '"manufacturer":"uT-Home","model":"ESP32-C3"}}')
+
+
+def full_config(name, slot, suffix, template, fields):
+    return (f'{{"name":"{name} {suffix}","unique_id":"{NODE}_s{slot}_{suffix}",'
+            f'"state_topic":"uthome/v1/{NODE}/state/{name}",'
+            f'"value_template":"{template}"{fields}{FULL_DEVICE}').encode()
+
+
+# Abbreviations as listed in Home Assistant's MQTT discovery documentation
+# ("Supported abbreviations in MQTT discovery messages" and the device list).
+ABBREVIATIONS = {'uniq_id': 'unique_id', 'stat_t': 'state_topic', 'val_tpl': 'value_template',
+                 'dev_cla': 'device_class', 'unit_of_meas': 'unit_of_measurement',
+                 'stat_cla': 'state_class', 'exp_aft': 'expire_after',
+                 'avty_t': 'availability_topic', 'dev': 'device'}
+DEVICE_ABBREVIATIONS = {'ids': 'identifiers', 'mf': 'manufacturer', 'mdl': 'model'}
+
+
+def expand(payload):
+    """Expand as Home Assistant documents: abbreviations, then a "~" base topic
+    at the start or end of values whose key ends in _topic."""
+    config = {ABBREVIATIONS.get(key, key): value for key, value in json.loads(payload).items()}
+    config['device'] = {DEVICE_ABBREVIATIONS.get(key, key): value
+                        for key, value in config['device'].items()}
+    base = config.pop('~')
+    for key, value in config.items():
+        if key.endswith('_topic') and value.startswith('~'):
+            config[key] = base + value[1:]
+        elif key.endswith('_topic') and value.endswith('~'):
+            config[key] = value[:-1] + base
+    return config
+
+
+def compact_fields(fields):
+    for full, short in [('"device_class"', '"dev_cla"'),
+                        ('"unit_of_measurement"', '"unit_of_meas"'),
+                        ('"state_class"', '"stat_cla"')]:
+        fields = fields.replace(full, short)
+    return fields
 
 
 def config(name, slot, suffix, template, fields):
-    return (f'{{"name":"{name} {suffix}","unique_id":"{NODE}_s{slot}_{suffix}",'
-            f'"state_topic":"uthome/v1/{NODE}/state/{name}",'
-            f'"value_template":"{template}"{fields}{DEVICE}').encode()
+    return (f'{{"~":"uthome/v1/{NODE}","name":"{name} {suffix}",'
+            f'"uniq_id":"{NODE}_s{slot}_{suffix}","stat_t":"~/state/{name}",'
+            f'"val_tpl":"{template}"{compact_fields(fields)},"exp_aft":30,'
+            f'"avty_t":"~/availability","dev":{{"ids":["{NODE}"],"name":"{NODE}",'
+            '"mf":"uT-Home","mdl":"ESP32-C3"}}').encode()
 
 
 EXPECTED = {
@@ -153,24 +195,37 @@ class DiscoveryTests(unittest.TestCase):
                 if suffix in owned:
                     self.assertEqual(payload, config(f'dev{kind}', slot, suffix, template,
                                                      fields))
-                    decoded = json.loads(payload)
-                    self.assertEqual(decoded['availability_topic'],
+                    self.assertEqual(expand(payload)['availability_topic'],
                                      f'uthome/v1/{NODE}/availability')
                 else:
                     self.assertEqual(payload, b'')
+
+    def test_expanded_abbreviations_match_previous_full_payload(self):
+        for kind, owned in OWNED.items():
+            self.entry(slot=kind, kind=kind, name=b'dev%d' % kind)
+            for suffix in owned:
+                component, template, fields = EXPECTED[suffix]
+                payload = self.configure(kind * 7 + SUFFIXES.index(suffix))[2]
+                previous = json.loads(full_config(f'dev{kind}', kind, suffix, template,
+                                                  fields))
+                self.assertEqual(expand(payload), previous, suffix)
+                # Only documented abbreviations, "~" and unabbreviated "name" remain.
+                self.assertLessEqual(set(json.loads(payload)) - {'~', 'name'},
+                                     set(ABBREVIATIONS))
+                self.assertLessEqual(set(json.loads(payload)['dev']) - {'name'},
+                                     set(DEVICE_ABBREVIATIONS))
 
     def test_temperature_config_literal_and_degree_escape(self):
         self.entry()
         self.assertEqual(self.configure(0), (
             0, b'homeassistant/sensor/uthome-a4cf12345678_s0_temperature/config',
-            b'{"name":"env1 temperature","unique_id":"uthome-a4cf12345678_s0_temperature",'
-            b'"state_topic":"uthome/v1/uthome-a4cf12345678/state/env1",'
-            b'"value_template":"{{ value_json.t_c100 / 100 }}","device_class":"temperature",'
-            b'"unit_of_measurement":"\\u00b0C","state_class":"measurement","expire_after":30,'
-            b'"availability_topic":"uthome/v1/uthome-a4cf12345678/availability",'
-            b'"device":{"identifiers":["uthome-a4cf12345678"],"name":"uthome-a4cf12345678",'
-            b'"manufacturer":"uT-Home","model":"ESP32-C3"}}'))
-        self.assertEqual(json.loads(self.configure(0)[2])['unit_of_measurement'], '°C')
+            b'{"~":"uthome/v1/uthome-a4cf12345678","name":"env1 temperature",'
+            b'"uniq_id":"uthome-a4cf12345678_s0_temperature","stat_t":"~/state/env1",'
+            b'"val_tpl":"{{ value_json.t_c100 / 100 }}","dev_cla":"temperature",'
+            b'"unit_of_meas":"\\u00b0C","stat_cla":"measurement","exp_aft":30,'
+            b'"avty_t":"~/availability","dev":{"ids":["uthome-a4cf12345678"],'
+            b'"name":"uthome-a4cf12345678","mf":"uT-Home","mdl":"ESP32-C3"}}'))
+        self.assertEqual(json.loads(self.configure(0)[2])['unit_of_meas'], '°C')
 
     def test_absent_slot_removes_every_suffix_and_steps_are_bounded(self):
         for step in range(56):
@@ -194,11 +249,24 @@ class DiscoveryTests(unittest.TestCase):
         self.entry(slot=7, kind=TARGETS, name=name)
         for step in range(49, 56):
             sizes.append(len(self.configure(step, node=node)[2]))
-        self.assertEqual(max(sizes), 591)  # Temperature; 9 bytes below the bound.
+        self.assertEqual(max(sizes), 490)  # Temperature; 10 bytes below the bound.
+        self.assertEqual(sizes[0], 490)
+        self.assertEqual(sizes, [490, 468, 0, 0, 0, 0, 0, 0, 0, 0, 0, 446, 422, 0])
         self.assertEqual(self.configure(49, node=b'n' * 32)[0], -1)
         self.lib.fx_entry(7, ENVIRONMENT, b'a' * 32, 32, 1, 1, 1000, 5000)  # No NUL.
         self.assertEqual(self.configure(49, node=node)[0], -1)
         self.assertEqual(self.lib.fx_state(node, 1000), -1)
+
+    def test_worst_case_payload_size_per_entity(self):
+        node = b'n' * 31
+        name = b'a' + b'b' * 30
+        sizes = {}
+        for kind, owned in OWNED.items():
+            self.entry(slot=7, kind=kind, name=name)
+            for suffix in owned:
+                sizes[suffix] = len(self.configure(49 + SUFFIXES.index(suffix), node=node)[2])
+        self.assertEqual(sizes, dict(temperature=490, pressure=468, distance=468,
+                                     illuminance=484, occupancy=446, targets=422, raw=391))
 
     def test_unsafe_node_and_name_characters_are_rejected(self):
         self.entry()

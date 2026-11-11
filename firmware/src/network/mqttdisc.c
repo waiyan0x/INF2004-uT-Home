@@ -327,7 +327,15 @@ static int close_topic (const mqttdisc_text_t * p_text,
     return 0;
 }
 
-/** @brief Entity config grouped under one device keyed by the node ID. */
+/** @brief Entity config grouped under one device keyed by the node ID.
+ *
+ * Uses Home Assistant's documented discovery abbreviations: uniq_id unique_id,
+ * stat_t state_topic, val_tpl value_template, dev_cla device_class,
+ * unit_of_meas unit_of_measurement, stat_cla state_class, exp_aft
+ * expire_after, avty_t availability_topic, dev device; in dev, ids
+ * identifiers, mf manufacturer, mdl model. "~" is the base topic
+ * uthome/v1/<node>; Home Assistant expands a leading "~" in *_topic values.
+ */
 static int config_payload (const char *              p_node,
                            const sampcache_entry_t * p_entry,
                            uint16_t                  slot,
@@ -336,44 +344,42 @@ static int config_payload (const char *              p_node,
 {
     mqttdisc_text_t text = {.p_data   = p_message->payload,
                             .capacity = sizeof(p_message->payload)};
-    put_text(&text, "{\"name\":\"");
+    put_text(&text, "{\"~\":\"uthome/v1/");
+    put_text(&text, p_node);
+    put_text(&text, "\",\"name\":\"");
     put_text(&text, p_entry->source.name);
     put_char(&text, ' ');
     put_text(&text, p_entity->p_suffix);
-    put_text(&text, "\",\"unique_id\":\"");
+    put_text(&text, "\",\"uniq_id\":\"");
     put_unique(&text, p_node, slot, p_entity);
-    put_text(&text, "\",\"state_topic\":\"uthome/v1/");
-    put_text(&text, p_node);
-    put_text(&text, "/state/");
+    put_text(&text, "\",\"stat_t\":\"~/state/");
     put_text(&text, p_entry->source.name);
-    put_text(&text, "\",\"value_template\":\"");
+    put_text(&text, "\",\"val_tpl\":\"");
     put_text(&text, p_entity->p_template);
     put_char(&text, '"');
     if (NULL != p_entity->p_class)
     {
-        put_text(&text, ",\"device_class\":\"");
+        put_text(&text, ",\"dev_cla\":\"");
         put_text(&text, p_entity->p_class);
         put_char(&text, '"');
     }
     if (NULL != p_entity->p_unit)
     {
-        put_text(&text, ",\"unit_of_measurement\":\"");
+        put_text(&text, ",\"unit_of_meas\":\"");
         put_text(&text, p_entity->p_unit);
         put_char(&text, '"');
     }
     if (p_entity->b_measurement)
     {
-        put_text(&text, ",\"state_class\":\"measurement\"");
+        put_text(&text, ",\"stat_cla\":\"measurement\"");
     }
-    put_text(&text, ",\"expire_after\":");
+    put_text(&text, ",\"exp_aft\":");
     put_unsigned(&text, UTHOME_MQTTDISC_EXPIRE_S);
-    put_text(&text, ",\"availability_topic\":\"uthome/v1/");
-    put_text(&text, p_node);
-    put_text(&text, "/availability\",\"device\":{\"identifiers\":[\"");
+    put_text(&text, ",\"avty_t\":\"~/availability\",\"dev\":{\"ids\":[\"");
     put_text(&text, p_node);
     put_text(&text, "\"],\"name\":\"");
     put_text(&text, p_node);
-    put_text(&text, "\",\"manufacturer\":\"uT-Home\",\"model\":\"ESP32-C3\"}}");
+    put_text(&text, "\",\"mf\":\"uT-Home\",\"mdl\":\"ESP32-C3\"}}");
     if (text.b_overflow)
     {
         return -1;
