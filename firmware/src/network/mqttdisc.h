@@ -15,8 +15,9 @@
     (UTHOME_SAMPCACHE_SOURCES * UTHOME_MQTTDISC_SUFFIXES)
 /* Topic storage includes the terminating NUL required by netbroker_offer. */
 #define UTHOME_MQTTDISC_TOPIC_BYTES 128U
-/* Largest config payload (31-byte node and name, temperature) is 591 bytes. */
-#define UTHOME_MQTTDISC_PAYLOAD_BYTES 600U
+/* Largest config payload (31-byte node and name, temperature) is 490 bytes;
+ * 10 bytes of margin. Overflow is still rejected, never truncated. */
+#define UTHOME_MQTTDISC_PAYLOAD_BYTES 500U
 /* Seconds without a state message before Home Assistant marks it unavailable.
  */
 #define UTHOME_MQTTDISC_EXPIRE_S 30U
