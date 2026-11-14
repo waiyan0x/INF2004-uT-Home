@@ -23,8 +23,9 @@ jobs:
             tools/config_transfer/requirements.txt
             tools/config_transfer/requirements-dev.txt
             tools/transaction/requirements.txt
+            tools/transaction/requirements-dev.txt
       - name: Install pinned formatting and host test dependencies
-        run: python -m pip install -r tools/c_standard/requirements.txt -r tools/requirements.txt -r tools/config_transfer/requirements.txt -r tools/config_transfer/requirements-dev.txt -r tools/transaction/requirements.txt
+        run: python -m pip install -r tools/c_standard/requirements.txt -r tools/requirements.txt -r tools/config_transfer/requirements.txt -r tools/config_transfer/requirements-dev.txt -r tools/transaction/requirements-dev.txt
       - name: Require the host compiler
         run: gcc --version
       - name: Enforce BARR-C policy

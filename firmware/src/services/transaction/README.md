@@ -180,6 +180,9 @@ cost. See the fresh target map and
 for sizes, budgets and remaining TLS/TCP/IP allocation blockers. Passing the C
 and map gates does not establish runtime stack/heap or physical bus acceptance.
 
-Physical end-to-end MQTT and Home Assistant acceptance remain open. The host
-controller and Home Assistant adapter are future work; no native API listener
-remains.
+The [host controller](../../../../tools/transaction/README.md#persistent-controller)
+now preserves exact pending commands across process restarts, obtains cached
+receipts explicitly and expires display data. Its software tests run this C
+engine/owner with simulated buses and a real loopback TLS broker. Physical
+end-to-end MQTT and Home Assistant acceptance remain open; the Home Assistant
+adapter is still future work. No native API listener remains.

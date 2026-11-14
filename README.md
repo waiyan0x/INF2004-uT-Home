@@ -24,7 +24,15 @@ state; commands and replies carry the boot identity. Wire messages remain 96
 bytes, with device identifiers now limited to 15 characters. Old v1 transaction
 JSON/packets must be replaced; the examples and compiler emit v2.
 
-**Next: close the network allocation blocker.** The real target passes unchanged
+The [persistent host controller](tools/transaction/README.md#persistent-controller)
+now owns IDs/revisions, rule selection/loading/execution, durable pending commands
+and display expiry. Software tests use the compiled C owner and a real local
+TLS MQTT broker, including lost replies and host/broker restarts without repeated
+I/O. The command-line session needs no UI changes. ESP restarts and generation
+changes are injected in C fixture tests; this is not live Wi-Fi acceptance.
+Generated verification is local-only under `build/controller/`.
+
+**Open blocker: network allocation.** The real target passes unchanged
 fixed-memory budgets (260,386/278,528 DRAM bytes), but reachable TLS/TCP/IP heap
 allocations still prevent whole-system static-memory acceptance. Compact
 configuration views reclaimed 24,600 fixed DRAM bytes; lwIP mailboxes use the
@@ -37,8 +45,9 @@ software probe; the build now rejects that option. Next, design bounded TLS
 storage with persistent partial-input state and enough capacity for overlapping
 connections, then address the remaining lwIP storage. See the
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
-Then complete the persistent controller, three-protocol Markdown coverage, UI
-and Home Assistant display in the [completion plan](CONTRIBUTING.md#completion-plan).
+With Wi-Fi bench work deferred, independent software work can continue on
+three-protocol Markdown coverage and Home Assistant display in the
+[completion plan](CONTRIBUTING.md#completion-plan). UI changes still require review.
 The host display adapter remains unimplemented. Current generated tests, gate,
 map reports are local-only under `build/tls-records/`; earlier configuration
 and TLS sizing, mailbox and session checks remain under `build/compact-json/`,

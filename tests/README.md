@@ -6,7 +6,10 @@ Hardware and wireless/static compliance are separate gates.
 
 Run from the repository root. Install `tools/requirements.txt`, the pinned
 formatter in `tools/c_standard/requirements.txt`. Put GCC on PATH; Node is
-needed for presentation checks.
+needed for presentation checks. The transaction controller's local TLS MQTT
+tests also require `tools/transaction/requirements-dev.txt` (installed by CI).
+They start a loopback-only broker with temporary credentials/certificates and
+the compiled C owner with simulated buses; they do not contact equipment.
 
 The pinned JavaScript development checks use `package-lock.json`. With Node
 22.13 or later in the 22.x line, or Node 24+, run `npm ci --ignore-scripts` and
@@ -31,7 +34,7 @@ python tools/test_uart_gpio.py
 | Standard | Checker behavior, pinned formatting and mandatory BARR-C policy |
 | Foundation | Catalogue/board/build admission, independent instances, routing and resource conflicts |
 | Runtime | Lifecycle, bound dispatch, retained cleanup, transactions and fault recovery |
-| Target | Build/source guards, fake-kernel lifecycle, drivers, admission, USB/storage, telemetry, rules and UI workflow |
+| Target | Build/source guards, fake-kernel lifecycle, drivers, admission, USB/storage, telemetry, rules, durable host controller, local TLS MQTT and UI workflow |
 | Discovery | Reviewed observations/presets, ambiguity, identity limits, driver support and additive drafts |
 | Node | Existing dashboard/discovery presentation and interaction checks |
 | Buddy 1 | Static task-pool lifecycle and shim checks; run by CI on Linux with address and undefined-behavior sanitizers |

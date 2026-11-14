@@ -180,6 +180,16 @@ def status_result(data, *, request_id=None, boot_id=None):
                 write_length=data[63], read_length=data[64], now_ms=now_ms)
 
 
+class _MqttSocket(ssl.SSLSocket):
+    def do_handshake(self, *args, **kwargs):
+        # Paho 1.6.1 takes socket ownership only after a successful handshake.
+        try:
+            return super().do_handshake(*args, **kwargs)
+        except BaseException:
+            self.close()
+            raise
+
+
 class Mqtt:
     """A single controller connection; verified TLS, SUBACK before publication."""
     def __init__(self, broker, port, ca, node, timeout=10):
@@ -195,6 +205,7 @@ class Mqtt:
             raise ValueError('set UTHOME_MQTT_USER and UTHOME_MQTT_PASSWORD privately')
         self.client.username_pw_set(user,password)
         tls=ssl.create_default_context(cafile=str(ca))
+        tls.sslsocket_class=_MqttSocket
         self.client.tls_set_context(tls)
         def connected(client, userdata, flags, code):
             if code: self.failure='broker rejected connection'
@@ -210,7 +221,7 @@ class Mqtt:
             self.client.connect(broker,port,keepalive=30)
             self.wait(lambda:self.ready)
         except Exception:
-            self.client.disconnect()
+            self.close()
             raise
 
     def wait(self, condition):
@@ -218,8 +229,12 @@ class Mqtt:
         while not condition():
             if self.failure: raise RuntimeError(self.failure)
             if time.monotonic()>=deadline: raise TimeoutError('MQTT outcome unknown; no automatic retry was sent')
-            code=self.client.loop(timeout=0.1)
-            if code: raise ConnectionError('MQTT connection lost; outcome may be unknown')
+            self.poll()
+
+    def poll(self):
+        """Keep a long-lived connection serviced by its single caller."""
+        code=self.client.loop(timeout=0.1)
+        if code: raise ConnectionError('MQTT connection lost; outcome may be unknown')
 
     def exchange(self, payload):
         rid, boot = struct.unpack_from('<IQ', payload, 4)

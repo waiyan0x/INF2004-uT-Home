@@ -102,10 +102,10 @@ rule must not require another build.
 
 | Area | Present implementation | Remaining gap |
 |---|---|---|
-| ESP decision program | `txjob` validates/stores a rule, chooses execution and preserves it on a rejected update | `TJ` v2 session/status contract is implemented; durable host recovery remains |
+| ESP decision program | `txjob` validates/stores a rule, chooses execution and preserves it on a rejected update; host journal recovers exact cached completions | Live combined-system acceptance |
 | Generic operations | `txport` reaches actual I2C, SPI-write and raw UART HALs through `c3tx` | Physical acceptance, initialization prerequisites and selected timing extensions |
 | Description compiler | `tools/transaction/description.py` compiles simple I2C register reads | SPI/UART operation descriptions; OLED source/description; SEN0390 review |
-| MQTT | Bounded ESP transport and a one-shot TLS host client | Status query/boot binding implemented; long-running controller and durable restart recovery remain |
+| MQTT | Bounded ESP transport, persistent TLS host controller and durable restart recovery; real loopback broker tests | Actual ESP Wi-Fi/TLS acceptance and network allocation blocker |
 | UI | Existing Configuration Desk supports USB profiles and recovery | Runtime Markdown selection, rule loading/execution and result presentation |
 | Home Assistant | Intended host-adapter boundary is documented | Adapter and live integration are not implemented |
 | Verification | Current network work: 490 target-facing and 56 C-policy tests, full 329-file C gate and a real target build passed | Real Wi-Fi/TLS/bus acceptance and whole-system resource measurements |
@@ -190,6 +190,21 @@ can restore an old active profile, so readiness must be checked again.
 Done: a user can run A -> B -> rejected update -> B -> A without typing request
 IDs or generation numbers, including recovery from host/ESP/broker restarts.
 First verify this with the compiled C fixture and a real local TLS broker.
+
+**Software implementation complete:** `controller.py` owns the session and
+`journal.py` commits exact packets before publication. `session.py` exposes
+explicit JSON-line commands without manual counters or UI changes. Reconnect
+queries only; explicit recovery retrieves a proven cached completion without
+new I/O. An unseen command remains unknown and blocks another command. ESP boot
+or generation changes invalidate the old active rule and require explicit load.
+The current/last state is durable; it is not a complete transaction history.
+
+Tests cover process termination, disk errors, cross-process ownership, stale
+display data and boot/generation changes during recovery using the actual C
+engine/owner. The loopback TLS broker test covers rule switching, host restart,
+lost replies and broker restart. It also rejects incorrect hostname/login
+credentials. Board Wi-Fi acceptance and the UI/HA integration remain separate.
+See [usage and reproduction](tools/transaction/README.md#persistent-controller).
 
 ### 3. Complete the reviewed peripheral operations
 
