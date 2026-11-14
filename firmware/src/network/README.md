@@ -27,8 +27,8 @@ outside the existing controller.
 | Topic under `uthome/v1/<node>/` | Payload | QoS / retained |
 |---|---|---|
 | `availability` | `online` / Last Will `offline` | 0 / yes |
-| `transaction/request` | `TJ` v1, exactly 96 bytes | 0 / no |
-| `transaction/result` | `TJ` v1, exactly 96 bytes | 0 / no |
+| `transaction/request` | `TJ` v2, exactly 96 bytes | 0 / no |
+| `transaction/result` | `TJ` v2, exactly 96 bytes | 0 / no |
 | `telemetry/<device>` | Canonical sensor frame, 112 bytes | 0 / no |
 
 Node identity is `uthome-` plus the lower-case 12-digit ESP MAC. The broker
@@ -84,8 +84,11 @@ code does not grant permission to raise any reservation. A target map check is
 separate from target stack high-water, SDK heap, radio timing and combined-load
 acceptance. No new worker slot is assumed.
 
-TLS/SDK calls can allocate or spend CPU time even when the application state
-machine takes bounded steps. Their complete runtime behavior remains unqualified.
+The [current source/map assessment](../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
+confirms reachable heap paths in ESP-TLS, mbedTLS, lwIP connection/packet pools
+and mailbox backing. They are outside an automatic Wi-Fi-driver exemption.
+Fixed native queue/task pools and a passing linker budget do not qualify these
+allocations; bounded allocation remediation and runtime measurements remain open.
 No-network and isolated radio fixtures do not qualify the combined application.
 
 ## USB Wi-Fi troubleshooting

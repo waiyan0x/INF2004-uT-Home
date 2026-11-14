@@ -194,5 +194,8 @@ reduced if the measured implementation cannot support the current bounds.
 - [Driver index](drivers/README.md): UART polling, pulse capture, PWM and each
   sensor's electrical/timing limits. Backend limits override catalogue maxima.
 
-Current runtime rule limits are in the [transaction guide](src/services/transaction/README.md).
+Current `TJ` v2 runtime rule/session limits are in the
+[transaction guide](src/services/transaction/README.md). Read-only status uses
+the existing node/boot identity; command IDs remain monotonic within one boot.
+This contract is separate from node-profile and raw-sample schema versions.
 Full combined-system hardware acceptance remains incomplete.

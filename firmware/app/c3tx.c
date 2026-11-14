@@ -19,7 +19,9 @@ static uint8_t                 g_reply[TXJOB_WIRE]   = {0};
 static bool                    gb_reply              = false;
 
 /** @brief Bind permanent owner storage before restore and audit sealing. */
-int c3tx_start (const cfgbind_state_t * p_binding, const cfgmux_t * p_mux)
+int c3tx_start (const cfgbind_state_t * p_binding,
+                const cfgmux_t *        p_mux,
+                uint64_t                boot_id)
 {
     if ((NULL == p_binding) || (NULL != gp_binding))
     {
@@ -31,7 +33,7 @@ int c3tx_start (const cfgbind_state_t * p_binding, const cfgmux_t * p_mux)
                                     .p_poll    = txport_poll,
                                     .p_close   = txport_close,
                                     .p_context = &g_port};
-    if (0 != txjob_init(&g_job, &operations))
+    if (0 != txjob_init(&g_job, &operations, boot_id))
     {
         return -1;
     }
@@ -75,17 +77,30 @@ void c3tx_step (uint64_t now_ms, uint32_t generation, bool b_online)
         }
         return;
     }
-    if (!g_job.b_busy)
+    size_t size = 0U;
+    if (0 == c3mqtt_request(g_request, sizeof(g_request), &size))
     {
-        size_t size = 0U;
-        if (0 == c3mqtt_request(g_request, sizeof(g_request), &size))
+        const bool b_idle = (cfgbind_discovery_ready(gp_binding)) &&
+                            ((NULL == gp_mux) || (!cfgmux_busy(gp_mux)));
+        if ((TXJOB_WIRE == size) && (3U == g_request[3]))
         {
-            const bool b_idle = (cfgbind_discovery_ready(gp_binding)) &&
-                                ((NULL == gp_mux) || (!cfgmux_busy(gp_mux)));
+            gb_reply = 0 == txjob_query(&g_job,
+                                        g_request,
+                                        size,
+                                        generation,
+                                        b_idle,
+                                        now_ms,
+                                        g_reply);
+        }
+        else
+        {
+            /* An overlapping command cannot replace pending I/O or its cache.
+             * The controller must query before recovering an unknown outcome.
+             */
             (void)txjob_submit(
                 &g_job, g_request, size, generation, b_idle, now_ms);
-            memset(g_request, 0, sizeof(g_request));
         }
+        memset(g_request, 0, sizeof(g_request));
     }
 }
 

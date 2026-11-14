@@ -7,7 +7,9 @@
 struct cfgbind_state;
 #include "uthome/txjob.h"
 #include "cfgmux.h"
-int c3tx_start (const struct cfgbind_state * p_binding, const cfgmux_t * p_mux);
+int c3tx_start (const struct cfgbind_state * p_binding,
+                const cfgmux_t *             p_mux,
+                uint64_t                     boot_id);
 /* Prevent configuration changes while asynchronous UART/cleanup retains pins.
  */
 bool c3tx_busy (void);

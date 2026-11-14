@@ -6,12 +6,13 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from tools.transaction.client import request, result
+from tools.transaction.client import request, result, query, status_result
+from test_txjob import BOOT
 
 ROOT=Path(__file__).resolve().parents[2]
 
 def profile(protocol='i2c', **values):
-    return dict(version=1,device='sensor',revision=1,protocol=protocol,
+    return dict(version=2,device='sensor',revision=1,protocol=protocol,
                 address=119 if protocol=='i2c' else 0, mode=0, dc_pin=255,
                 cs_pin=4 if protocol=='spi' else 255, dc_level=0,
                 rate=256000 if protocol=='uart' else 100000, timeout_ms=500,
@@ -64,7 +65,7 @@ class OwnerTests(unittest.TestCase):
 
     def exchange(self, spec, execute=False, idle=True, feed=None):
         self.rid+=1
-        self.assertEqual(self.lib.txptest_send(request(spec,self.rid,4,execute=execute),96),0)
+        self.assertEqual(self.lib.txptest_send(request(spec,self.rid,4,BOOT,execute=execute),96),0)
         self.pump(idle=idle)
         if feed is not None: self.assertEqual(self.lib.txptest_feed(feed,len(feed)),0)
         output=c.create_string_buffer(96)
@@ -120,7 +121,7 @@ class OwnerTests(unittest.TestCase):
         spec={**profile('uart'),'write_hex':'01 02','read_length':0}
         self.exchange(spec)
         self.lib.txptest_drain(False)
-        self.rid+=1;self.lib.txptest_send(request(spec,self.rid,4,execute=True),96)
+        self.rid+=1;self.lib.txptest_send(request(spec,self.rid,4,BOOT,execute=True),96)
         for _ in range(5):self.pump()
         self.assertTrue(self.lib.c3tx_busy())
         self.assertEqual(self.lib.txptest_observed(5),2)
@@ -133,12 +134,34 @@ class OwnerTests(unittest.TestCase):
 
     def test_disconnect_cancels_uart_without_restarting_it_on_reconnect(self):
         spec=profile('uart');self.exchange(spec)
-        self.rid+=1;self.lib.txptest_send(request(spec,self.rid,4,execute=True),96)
+        self.rid+=1;self.lib.txptest_send(request(spec,self.rid,4,BOOT,execute=True),96)
         self.pump();self.pump(online=False)
         self.assertFalse(self.lib.c3tx_busy())
         for _ in range(4):self.pump()
         output=c.create_string_buffer(96)
         self.assertEqual(self.lib.txptest_reply(output),0)
         self.assertEqual(result(output.raw)['status'],'cancelled')
+
+    def test_status_while_uart_busy_does_not_replace_its_completion(self):
+        spec = profile('uart')
+        self.exchange(spec)
+        self.rid += 1
+        self.lib.txptest_send(request(spec, self.rid, 4, BOOT, execute=True), 96)
+        self.pump()
+        self.assertTrue(self.lib.c3tx_busy())
+        self.lib.txptest_send(query(99), 96)
+        self.pump()
+        self.lib.txptest_feed(b'\x00', 1)
+        self.pump()
+        output = c.create_string_buffer(96)
+        self.assertEqual(self.lib.txptest_reply(output), 0)
+        state = status_result(output.raw, request_id=99, boot_id=BOOT)
+        self.assertEqual(state['pending_id'], self.rid)
+        self.assertTrue(state['busy'])
+        self.pump()
+        self.assertEqual(self.lib.txptest_reply(output), 0)
+        answer = result(output.raw, request_id=self.rid, boot_id=BOOT, kind=2)
+        self.assertEqual((answer['rx_received'], answer['raw_hex']), (1, '00'))
+        self.assertFalse(self.lib.c3tx_busy())
 
 if __name__=='__main__':unittest.main()

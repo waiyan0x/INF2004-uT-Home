@@ -12,6 +12,8 @@
  * Errors are diagnostic only: callers continue local sensor/display operation.
  */
 int c3net_start (const cfgctrl_t * p_control, cfgmux_t * p_mux);
+/* Same boot identity used by HTTP/configuration and MQTT transaction owners. */
+uint64_t c3net_boot (void);
 int c3net_step (const cfgctrl_t * p_control, uint64_t now_ms);
 /* Wi-Fi-only, owner-serialized 24-byte status; no credentials or I/O. */
 int c3net_observe (uint8_t * p_data, size_t capacity, size_t * p_size);

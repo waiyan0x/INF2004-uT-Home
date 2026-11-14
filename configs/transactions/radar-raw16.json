@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "device": "ld2450",
   "revision": 1,
   "protocol": "uart",

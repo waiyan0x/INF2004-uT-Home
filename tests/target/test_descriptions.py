@@ -1,6 +1,7 @@
 """Source-described operations compile to the same bounded C transaction API."""
 from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
+from test_txjob import BOOT
 import hashlib
 import io
 import json
@@ -154,8 +155,8 @@ class DescriptionCParityTests(unittest.TestCase):
         self.assertEqual(self.lib.txptest_observed(0), 2)
         # Bypass host validation to check independent target rejection.
         self.rid += 1
-        bad = bytearray(client.request({**b, "revision": 3}, self.rid, 4))
-        bad[55] = 33
+        bad = bytearray(client.request({**b, "revision": 3}, self.rid, 4, BOOT))
+        bad[51] = 33
         self.assertEqual(self.lib.txptest_send(bytes(bad), len(bad)), 0)
         self.pump(); self.pump()
         import ctypes as c

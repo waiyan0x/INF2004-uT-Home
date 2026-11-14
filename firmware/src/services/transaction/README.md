@@ -1,6 +1,6 @@
 # Runtime transaction service
 
-`TJ` v1 is the maintained rule-based program for the professor-approved
+`TJ` v2 is the maintained rule-based program for the professor-approved
 uT-Kernel/MQTT workflow. The host selects communication details from reviewed
 peripheral Markdown. The ESP validates and stores one complete rule, then
 selects its generic bus operation when explicitly asked to execute.
@@ -16,7 +16,7 @@ selects its generic bus operation when explicitly asked to execute.
 ## Ownership and supported operations
 
 An update performs no bus transfer. Invalid updates preserve the previous rule.
-Execution checks device, revision and current plan generation. Plan changes
+Execution checks boot identity, device, revision and current plan generation. Plan changes
 invalidate rules; rules do not persist over reboot. One owner serializes calls,
 with no heap, new task or kernel object. Requests and replies are copied; the
 component retains no borrowed MQTT/sample pointers.
@@ -38,53 +38,120 @@ need peripheral review. SPI controller completion does not prove panel presence;
 UART accepted bytes do not establish peripheral receipt. Zero-valued bytes are
 valid results. Failure returns no usable RX bytes from an earlier operation.
 
-## MQTT and request identity
+## MQTT and session identity
 
-Node-specific topics are `uthome/v1/<node>/transaction/request` and `/result`.
-Both carry exactly 96 bytes, QoS 0, non-retained. The receiver rejects retained,
-DUP, wrong-QoS and malformed messages. One command can be pending; no automatic
-replay is promised. Use one controller with increasing nonzero request IDs per
-boot. An exact repetition of the last completed request returns its cached reply
-without repeating I/O; changed/older IDs are rejected.
+Node-specific topics remain `uthome/v1/<node>/transaction/request` and `/result`;
+that topic namespace is independent of the binary payload version. Both carry
+exactly 96 bytes, QoS 0, non-retained. The transport rejects retained, DUP,
+wrong-QoS and malformed messages. Use one controller and one outstanding command.
 
-Disconnect cancels unfinished work and discards queued transport commands.
-A missing reply is an unknown outcome, not permission to repeat a write with a
-new ID. Wrong generation/revision must not touch hardware. Rejected replies can
-name the previous active rule or no rule; the host must report that status.
+A read-only status query discovers the node's boot identity, current plan
+generation, active rule, readiness, busy/cleanup state and request history. Node
+identity is the MAC-derived topic identity, also returned by authenticated HTTP.
+Boot identity is the **same nonzero 64-bit startup value** used by HTTP/cfgmux.
+A broker reconnect does not change it. Zero is allowed only as a query's discovery
+sentinel; command boot zero or a different boot is rejected before driver I/O.
 
-## TJ v1 wire layout
+Queries have independent nonzero correlation nonces and do not consume command
+IDs, load rules, clear results or perform peripheral I/O. They use the owner's
+existing separate output buffer, so a query during an asynchronous operation
+cannot overwrite that operation's eventual completion. Normal owner polling
+continues independently. Malformed queries are dropped; overlapping non-query
+commands are not admitted. Query the pending ID before resolving an unknown
+outcome instead of assuming a timeout means failure.
 
-All multi-byte integers are unsigned little-endian; the wire never uses native
-C structure packing. Device is 1-31 ASCII letters, digits, `_` or `-`, NUL-terminated
-in 32 zero-padded bytes. Unused and reserved bytes must be zero.
+| Event | Required behavior |
+|---|---|
+| Normal command | Match topic/node, boot, generation, nonzero increasing request ID and operation kind; execute additionally matches active device/revision |
+| Exact last-completion retry | Identical 96 bytes with the same current boot/generation returns the original cached reply, including its completion time; no new I/O |
+| Changed or older command ID | Reject as stale; preserve the active rule and last completion |
+| Host restart | Query state; recover the exact pending packet/outcome from durable host state before deciding what is known. Never restart command IDs at one or automatically repeat a write |
+| ESP restart | New boot, no rule, no command history. Old-boot requests cannot execute even if generation and ID happen to match; explicitly load again |
+| Plan generation changes | Previously loaded rule becomes unusable. Status hides its identity/settings immediately; next command clears it. ID history remains per boot; old-generation requests reject |
+| Broker/Wi-Fi loss | Cancel pending work, finish checked cleanup and discard queued transport commands. Preserve completion cache; reconnect does not execute again |
+| ID `0xffffffff` used | Queries and exact last retries still work; new commands cannot wrap. Stop and arrange an explicit fresh ESP boot/session before more commands |
+| Completion no longer cached | Report outcome unknown; do not reconstruct success from the active rule or issue a replacement write |
 
-| Offset | Request | Reply |
-|---|---|---|
-| 0-2 | ASCII `TJ`, version 1 | Same |
-| 3 | 1 update, 2 execute | Request kind; 0 if envelope invalid |
-| 4-7 | Request ID | Request ID; 0 if envelope invalid |
-| 8-11 | Candidate/expected revision | Active revision |
-| 12-43 | Device identity | Active device |
-| 44 | Protocol: 1 I2C, 2 SPI, 3 UART | Active protocol |
-| 45 | I2C address | Status |
-| 46 | SPI mode | Accepted TX length |
-| 47 | D/C pin, 255 absent | Successful RX length |
-| 48-51 | Bus rate | RX bytes start at 48; at most 32 |
-| 52-53 | Timeout ms | RX area |
-| 54-57 | TX length, RX length, CS pin, D/C level | RX area |
-| 58-59 | Reserved | RX area |
-| 60-79 | TX data start at 60 | RX area ends at 79 |
-| 80-82 | TX area | Active address, mode, CS pin |
-| 83 | TX area | Reserved |
-| 84-87 | TX area | Active rate |
-| 88-89 | TX area ends at 89 | Active timeout ms |
-| 90-93 | Expected plan generation | Current plan generation |
-| 94-95 | Reserved | Reserved |
+Accepted commands include validated-envelope rejections (for example an invalid
+candidate or non-idle plan), which consume that ID and can be retried exactly.
+Malformed envelopes, wrong boot/generation, stale IDs, queries and overlapping
+commands do not consume another ID. The status high-water mark is the maximum of
+last completed and pending IDs. Only one completion is cached, and only in RAM.
 
-Execute requests zero bytes 44-89. Status values are 0 OK, 1 invalid,
-2 unconfigured, 3 mismatch, 4 timeout, 5 I/O, 6 busy, 7 unsupported,
-8 stale ID and 9 cancelled. I2C/UART set SPI-only fields to zero, with CS/D/C
-pins 255. Supported SPI CS/D/C choices are 3, 4, 5 or 10 and must be distinct.
+Reply completion time is milliseconds on the ESP's boot-relative clock, recorded
+after checked release, **not wall time or a fresh sensor timestamp on retry**.
+Status also returns its observation time and the cached completion's generation.
+The host must retain operation kind, boot, generation, counts and returned bus
+settings. Only a successful execution supplies usable raw bytes; update ACKs and
+status replies are not sensor measurements. Wrong-boot/kind/ID replies must not
+complete the current request. A failed command may report the previous rule or
+no rule. An unknown transport outcome stays unknown.
+
+## TJ v2 wire layout
+
+This is an intentional break from v1: old packets and version-1 transaction JSON
+are rejected. Multi-byte integers are unsigned little-endian, encoded by bytes,
+never native C structure packing. Device is 1-15 ASCII letters, digits, `_` or `-`,
+NUL-terminated in 16 zero-padded bytes; overlong identifiers are rejected, never
+truncated. Shortening this field keeps the wire buffers at 96 bytes while adding
+session identity and completion time. TX 30 / RX 32 limits are unchanged.
+
+Common header, requests and replies:
+
+| Offset | Meaning |
+|---|---|
+| 0-2 | ASCII `TJ`, payload version 2 |
+| 3 | 1 update, 2 execute, 3 status; reply kind 0 only for invalid command envelope |
+| 4-7 | Command ID or query nonce; invalid-envelope reply uses 0 |
+| 8-15 | Expected/current boot identity; query alone may request 0 |
+| 16-19 | Expected/current plan generation; query request uses 0 |
+| 20-23 | Candidate/expected or active revision; query request uses 0 |
+| 24-39 | Candidate/expected or active device; query request uses all zero |
+
+Update request body (execute and query requests zero **all** bytes 40-95):
+
+| Offset | Meaning |
+|---|---|
+| 40-43 | Protocol (1 I2C, 2 SPI, 3 UART), address, mode, D/C pin |
+| 44-49 | Rate u32, timeout ms u16 |
+| 50-53 | TX length, RX length, CS pin, D/C level |
+| 54-55 | Reserved zero |
+| 56-85 | Up to 30 TX bytes; unused tail zero |
+| 86-95 | Reserved zero |
+
+All replies share these selected-rule fields (all zero if unconfigured):
+40 protocol; 84 address; 85 mode; 86 CS; 87 D/C pin; 88-91 rate;
+92-93 timeout; 94 D/C level. Byte 41 is status; byte 95 is reserved zero.
+I2C/UART set mode/D/C level to zero and CS/D/C pins to 255. Supported SPI CS/D/C
+pins are 3, 4, 5 or 10 and must be distinct; D/C may be absent (255).
+
+Update/execute reply body:
+
+| Offset | Meaning |
+|---|---|
+| 42-43 | Actual accepted TX and successful RX counts; update uses zero |
+| 44-75 | Up to 32 raw RX bytes; unused tail zero; failure has no usable RX |
+| 76-83 | Original completion time u64 in ESP boot-relative milliseconds |
+
+Status reply body:
+
+| Offset | Meaning |
+|---|---|
+| 42-43 | Reserved zero |
+| 44-47 | Last completed command ID, or zero |
+| 48-55 | That completion's original time, or zero |
+| 56-59 | Pending command ID, or zero |
+| 60 | Flags: loaded=1, busy=2, cleanup pending=4, idle-plan/no-upload/not-busy readiness=8 |
+| 61-62 | Cached command kind and status, or zero if no completion |
+| 63-64 | Active rule's configured TX/RX lengths, or zero |
+| 65-67 | Reserved zero |
+| 68-71 | Cached completion's generation, or zero |
+| 72-79 | Current observation time u64 |
+| 80-83 | Reserved zero |
+
+Status values: 0 OK, 1 invalid, 2 unconfigured, 3 mismatch, 4 timeout, 5 I/O,
+6 busy, 7 unsupported, 8 stale ID, 9 cancelled. A query with a nonzero wrong
+expected boot returns mismatch with current identity; discovery uses boot zero.
 
 ## Verification and C review
 
@@ -94,16 +161,25 @@ the actual owner, adapters and generic HALs with bus doubles; `test_descriptions
 checks Markdown through that same C interface. Full target compilation, memory
 checks and physical MQTT/three-bus acceptance are separate requirements.
 
-Cleanup review covers `c3app`, `c3net`, `c3tx`, `txjob`, `netread`, `c3https` and
-`c3mqtt`: removed USB-lab/native-display branches and discovery formatting;
-wire bytes and generic driver behavior are unchanged. MQTT reply storage remains
-copied and fixed-size. Exact retry, cancellation, timeout and checked release
-retain the same owner. The unused display-cache timestamp was removed along
-with its private function parameter; wire layout and retry contents are unchanged.
-HTTPS now always uses its bounded TLS implementation.
-No new casts, language deviation, allocator, ISR work or task is introduced.
-The pinned formatter, full C gate, warnings-as-errors tests and fresh target
-build are required; the lexical gate alone is not a complete BARR-C review.
+Session review covers `txjob`, `c3tx`, `c3net`, `c3app`, their headers and the
+`txptest` fixture. The module templates and existing C99 profile were retained.
+Manual BARR-C review: byte access follows envelope length checks; name/packet
+loops are bounded at 16/96; wide integers are split using explicit unsigned
+shifts/masks; no unaligned casts, allocator, task, ISR or new kernel object was
+introduced. State/requests/results remain copied and owner-serialized. A query
+borrows const state and a documented disjoint caller buffer, leaving driver and
+cache ownership unchanged. Boot identity is created before transaction startup.
+Wrong boot/generation is checked before execution; invalid candidates preserve
+the rule; cleanup failure retains the lease; cached bytes preserve timestamps.
+No deviation, formatter pin, vendor revision or memory reservation changed.
+
+The status reply adds no persistent buffer. Only the 64-bit boot value is new
+state; shortening both stored rule identities releases more storage than that
+cost. See the fresh target map and
+[resource audit](../../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
+for sizes, budgets and remaining TLS/TCP/IP allocation blockers. Passing the C
+and map gates does not establish runtime stack/heap or physical bus acceptance.
 
 Physical end-to-end MQTT and Home Assistant acceptance remain open. The host
-Home Assistant adapter is future work; no native API listener remains.
+controller and Home Assistant adapter are future work; no native API listener
+remains.

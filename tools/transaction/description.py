@@ -114,7 +114,7 @@ def compile_rule(description, operation, revision, address=None):
     integer(address, 8, 119, "seven-bit address")
     if address not in obj["addresses"]:
         raise ValueError("address is not a documented choice for this peripheral")
-    return validate(dict(version=1, revision=revision, device=obj["device"],
+    return validate(dict(version=2, revision=revision, device=obj["device"],
                          protocol="i2c", address=address, mode=0,
                          dc_pin=255, dc_level=0, cs_pin=255,
                          rate=100000, timeout_ms=100,

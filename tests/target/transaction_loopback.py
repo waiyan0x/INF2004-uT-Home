@@ -3,6 +3,7 @@
 Requires the declared MQTT client, openssl and mosquitto executables. Creates
 only loopback listeners and temporary test credentials, then stops the broker.
 """
+from test_txjob import BOOT
 import argparse
 import ctypes as c
 import json
@@ -87,8 +88,8 @@ def run(args):
                     while not stopped.is_set():
                         try:
                             payload=incoming.get_nowait()
-                            if payload[3]==1 and payload[55]<=32:
-                                protocol=payload[44];rx=payload[55]
+                            if payload[3]==1 and payload[51]<=32:
+                                protocol=payload[40];rx=payload[51]
                             if owner.lib.txptest_send(payload,96):raise RuntimeError('owner inbox busy')
                             if payload[3]==2 and protocol==3:feed=bytes(range(rx))
                         except queue.Empty:pass
@@ -107,17 +108,17 @@ def run(args):
             for name in ('bmp-id','bmp-pressure','oled-off','oled-on','radar-raw16','radar-raw32'):
                 spec=json.loads((examples/(name+'.json')).read_text())
                 rid+=1
-                update=result(link.exchange(request(spec,rid,4)),request_id=rid,generation=4)
+                update=result(link.exchange(request(spec,rid,4,BOOT)),request_id=rid,generation=4)
                 if update['status']!='ok':raise AssertionError(update)
                 rid+=1
-                raw=request(spec,rid,4,execute=True)
+                raw=request(spec,rid,4,BOOT,execute=True)
                 answer=result(link.exchange(raw),request_id=rid,generation=4)
                 if answer['status']!='ok':raise AssertionError(answer)
                 results.append(dict(example=name,**answer));last=spec
-            rid+=1;bad=bytearray(request(last,rid,4));bad[55]=33
+            rid+=1;bad=bytearray(request(last,rid,4,BOOT));bad[51]=33
             rejected=result(link.exchange(bytes(bad)),request_id=rid,generation=4)
             if rejected['status']!='invalid':raise AssertionError(rejected)
-            rid+=1;execute=request(last,rid,4,execute=True)
+            rid+=1;execute=request(last,rid,4,BOOT,execute=True)
             answer=result(link.exchange(execute),request_id=rid,generation=4)
             before=owner.lib.txptest_observed(2)
             duplicate=result(link.exchange(execute),request_id=rid,generation=4)

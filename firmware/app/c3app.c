@@ -92,9 +92,9 @@ int c3app_run (const uint8_t *       p_build_hash,
 #if UTHOME_NETWORK_WIFI
     cfgmux_t * p_upload =
         (0 == cfgmux_init(&g_mux, &g_control, &g_pump)) ? &g_mux : NULL;
-    (void)c3tx_start(&g_binding, p_upload);
     /* Failed optional arbitration leaves USB/local operation available. */
     (void)c3net_start(&g_control, p_upload);
+    (void)c3tx_start(&g_binding, p_upload, c3net_boot());
 #else
     (void)c3net_start(&g_control, NULL);
 #endif

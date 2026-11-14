@@ -49,6 +49,11 @@ int c3net_start (const cfgctrl_t * p_control, cfgmux_t * p_mux)
     }
     gb_attempted = true;
     esp_fill_random(&g_info.meta.boot_id, sizeof(g_info.meta.boot_id));
+    if (0U == g_info.meta.boot_id)
+    {
+        /* Zero is the read-only discovery sentinel, never an execution boot. */
+        return -1;
+    }
     const int length = snprintf(g_info.node_id,
                                 sizeof(g_info.node_id),
                                 "uthome-%02x%02x%02x%02x%02x%02x",
@@ -113,6 +118,12 @@ int c3net_start (const cfgctrl_t * p_control, cfgmux_t * p_mux)
     }
 #endif
     return result;
+}
+
+/** @brief Reuse the startup identity without transport calls or new storage. */
+uint64_t c3net_boot (void)
+{
+    return g_info.meta.boot_id;
 }
 
 /** @brief Shared owner ensures plan identity stays fixed during capture/encode.

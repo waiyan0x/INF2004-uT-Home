@@ -111,7 +111,7 @@ int txptest_start (void)
     spifake_init(&g_spi);
     uartfake_init(&g_uart);
     g_uart.read_limit = 1U;
-    return c3tx_start(&g_binding, NULL);
+    return c3tx_start(&g_binding, NULL, UINT64_C(0x1122334455667788));
 }
 
 /** @brief Reject a second unread host request rather than replace it. */

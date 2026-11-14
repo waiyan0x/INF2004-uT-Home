@@ -38,7 +38,7 @@ seven-bit address and distinct nonzero rule revisions:
 ```powershell
 python -m tools.transaction.description datasheets/bmp388.md --operation chip_id --revision 1 --address 0x77 --output build/markdown-proof/a.json
 python -m tools.transaction.description datasheets/bmp388.md --operation pressure_raw --revision 2 --address 0x77 --output build/markdown-proof/b.json
-python -m tools.transaction.client build/markdown-proof/a.json --generation 4 --request-id 1 --execute --output build/markdown-proof/packets.json
+python -m tools.transaction.client build/markdown-proof/a.json --boot-id 0x1122334455667788 --generation 4 --request-id 1 --execute --output build/markdown-proof/packets.json
 ```
 
 Each compile writes the rule JSON plus a `.report.json` sidecar containing the
@@ -70,7 +70,7 @@ The description schema is independently versioned `1.0.0`:
 | Field | Meaning |
 |---|---|
 | `schema_version` | Exactly `"1.0.0"` |
-| `device` | 1-31 ASCII letters, digits, `_` or `-`; logical device identity |
+| `device` | Schema accepts 1-31 ASCII letters, digits, `_` or `-`; current `TJ` v2 compilation requires at most 15 |
 | `bus` | `i2c` or reference-only `uart` in this schema |
 | `addresses` | Unique seven-bit I2C address choices, or empty for UART |
 | `source` | PDF basename, lowercase SHA-256 and total PDF page count |

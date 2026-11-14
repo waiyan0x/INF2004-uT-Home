@@ -28,7 +28,7 @@ typedef enum
 
 typedef struct
 {
-    char     device[32];
+    char     device[16];
     uint32_t revision;
     uint32_t rate;
     uint16_t timeout_ms;
@@ -68,6 +68,7 @@ typedef struct
     uint8_t        request[TXJOB_WIRE];
     uint8_t        cached[TXJOB_WIRE];
     uint8_t        data[TXJOB_RX];
+    uint64_t       boot_id;
     uint64_t       deadline_ms;
     uint64_t       last_ms;
     uint32_t       generation;
@@ -85,7 +86,18 @@ typedef struct
  * Operations borrow the copied rule until checked close succeeds. No allocator,
  * task or kernel object is created. A cleanup failure retains the busy lease.
  */
-int txjob_init (txjob_t * p_job, const txjob_ops_t * p_operations);
+int txjob_init (txjob_t *           p_job,
+                const txjob_ops_t * p_operations,
+                uint64_t            boot_id);
+/* Read-only status uses a disjoint TXJOB_WIRE-byte caller buffer, including
+ * while I/O or checked cleanup is pending. It never consumes a command ID. */
+int txjob_query (const txjob_t * p_job,
+                 const uint8_t * p_request,
+                 size_t          size,
+                 uint32_t        generation,
+                 bool            b_idle,
+                 uint64_t        now_ms,
+                 uint8_t *       p_reply);
 int txjob_submit (txjob_t *       p_job,
                   const uint8_t * p_request,
                   size_t          size,
