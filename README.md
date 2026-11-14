@@ -46,6 +46,18 @@ and TLS sizing, mailbox and session checks remain under `build/compact-json/`,
 The dynamic-buffer experiment and guard checks are local-only under
 `build/tls-capacity/`; the rejected experimental image was never flashed.
 
+The latest [live network check](firmware/src/network/README.md#current-hardware-check)
+is blocked before IP acquisition. The project image timed out at authentication;
+the unchanged pinned ESP-IDF station example also failed on two access points,
+including a 2.4 GHz WPA2 hotspot that the laptop successfully joined. A cold
+restart did not resolve it. Peripheral-disconnected and second-board comparisons
+remain pending; MQTT/HTTPS board acceptance is unverified. The original full
+flash/profile and laptop Wi-Fi were restored. Fresh BMP388/radar data and
+successful OLED transfers returned.
+Private settings, captures and image identities remain local-only under
+`build/bench-20261114/`. Do not reuse its port, credentials or temporary broker
+address without checking the current setup.
+
 The existing configuration application and peripheral profiles remain for setup
 and recovery. Runtime transactions require an explicitly idle peripheral plan.
 Do not assume current equipment, port, wiring or installed firmware. Separate

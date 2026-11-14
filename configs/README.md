@@ -2,7 +2,7 @@
 
 `transactions/` contains current raw `TJ` rules. See the
 [host transaction workflow](../tools/transaction/README.md) for compiling reviewed
-Markdown and sending updates. These rules use `version: 1` and are separate
+Markdown and sending updates. These rules use `version: 2` and are separate
 from the full node profiles described below.
 
 Full node-profile JSON selects devices, wiring, timing, queues and rules.
@@ -43,9 +43,9 @@ available as a normal profile in the Desk without a UI change or auto-Apply.
 - Four active peripheral workers, eight configured instances, four queues of
   depth eight, 16 KiB admitted stack demand. Physical worker reservation is four
   permanent 8 KiB stacks; disabled entries still reserve wiring.
-- Profiles are at most 8192 compact bytes. Parsing uses 512 fixed cJSON node
-  slots and 12 KiB of text storage; exhaustion rejects the candidate without
-  heap fallback. Passing the Python planner alone is insufficient.
+- Profiles are at most 8192 compact bytes. Parsing uses 512 fixed eight-byte
+  views into the caller's existing input; exhaustion rejects the candidate
+  without heap fallback. Passing the Python planner alone is insufficient.
 - The target-pending manifest intentionally advertises no hardware-qualified
   peripherals. Compiled support reported by a connected build is separate.
 

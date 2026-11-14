@@ -41,14 +41,18 @@ python -B -m tools.config_transfer recover --port COMx
 
 These are usage examples, not a record of commands executed on the board.
 Replace `COMx` with the currently detected board port.
-APPLY requires a reviewed node profile and a positive revision.
+APPLY requires a reviewed node profile and a positive revision. After activation,
+it also attempts to save that profile. A SAVED reply means both active and saved
+configuration changed; there is no volatile-only Apply command.
 Preflight with the host planner; target admission is independently authoritative.
 OLED and rule/PWM bindings are compiled; complete hardware acceptance remains
 open. The original prototype still requests unsupported GPIO2 CS.
 RECOVER retries checked cleanup only when the controller reports recovery;
-it cannot stop a healthy active plan. Apply a reviewed empty hardware profile
-through the normal path when an idle configuration is required. Saved data
-remains available for a later boot. SAVE persists the current active revision.
+it cannot stop a healthy active plan. Preserve/export the current profile before
+applying a reviewed empty hardware profile for an idle test: a successful Apply
+replaces the saved profile too. Restore explicitly afterward; reboot alone will
+reload the newly saved idle profile. SAVE retries persistence of the current
+active revision when needed after an UNSAVED result.
 
 Every command except PROBE, TELEMETRY, WORKCOST and CAPABILITIES discovers the last request ID and queries current
 state first. Replies report numeric status: 0 OK, 1 SAVED, 2 UNSAVED, 3 REJECTED,

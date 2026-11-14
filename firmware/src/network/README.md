@@ -107,6 +107,50 @@ recorded COM port, hotspot or image is not proof of current equipment state.
 The optional TX-power cap accepts 8-84 quarter-dBm units. It is a configurable
 radio setting, not an established fix for every connection failure.
 
+### Current hardware check
+
+On 14 November 2026, the connected ESP32-C3 was backed up in full before testing
+project source `d2778c63261d620e46e055811ec6e9e7e529cf9c` with private network
+settings. The current image passed the unchanged fixed-memory budgets, using
+260,386 DRAM bytes. The station initialized without an SDK error but repeatedly
+reported disconnect reason 2 (`AUTH_EXPIRE`) and obtained no IP address. The
+failure remained with an idle peripheral plan and a 5 dBm transmit-power cap.
+
+Isolated builds of the **unchanged pinned ESP-IDF station example**, using
+native FreeRTOS, reported authentication expiry on all six attempts on each of
+two access points. The second was a separate 2.4 GHz WPA2 hotspot: the laptop
+joined it successfully using the supplied details, and those details matched
+the compiled diagnostic image. A full power-off restart also failed, with both
+AP-not-found and authentication-expiry events. This is a diagnostic comparison,
+not a project firmware option or BARR-C qualification. The failure also occurs
+outside the uT-Kernel integration; its root cause remains unresolved. Tests
+with peripherals physically disconnected or a second board remain pending.
+
+The temporary local broker accepted a host connection over verified TLS 1.2
+with the correct login and rejected wrong-password and anonymous logins. The
+ESP never reached that broker. **Live MQTT rule switching, HTTPS, reconnects,
+overlapping connections and network heap/stack acceptance remain unverified.**
+The broker was stopped after testing; no firewall rule was changed. The laptop
+returned to its original Wi-Fi, and its temporary test profile was removed.
+
+Restoration independently verified all 4 MB against the original backup.
+Active and saved profile 931 both returned with CRC 3623560383. A 30-second
+read-only capture then showed fresh BMP388 and radar samples and successful
+OLED driver transfers without bus errors; OLED appearance was not observed.
+This recovered image has the original dummy Wi-Fi settings, not the private
+bench credentials. Its allocation counters do not measure free heap or peaks,
+and unavailable worker stack measurements remain unmeasured.
+
+Local-only evidence is in `build/bench-20261114/`: `selected-image.json` and
+`selected-image-r3.json` identify the two project builds; `native-manifest.json`
+and `native-alternate-manifest.json` identify the upstream comparisons, with
+redacted serial logs and `native-cold-result.json` recording their outcomes.
+`backup-manifest.json`, `restore-final-result.json` and
+`restored-final-baseline.json` cover final recovery. Settings,
+certificates, images and raw logs must remain outside Git. USB Apply also saves
+the idle profile; follow the [explicit restoration guidance](../../../tools/config_transfer/README.md)
+instead of expecting a reboot to undo it.
+
 ## HTTP and BLE observation contracts
 
 ### HTTP admission and reads
