@@ -141,7 +141,7 @@ class AdmissionTests(unittest.TestCase):
     def test_exact_input_limit_and_node_sized_text_with_heap_traps(self):
         boundary = b'{"text":"' + b'x' * 8181 + b'"}'
         self.assertEqual(len(boundary), 8192)
-        # Text allocation equal to cJSON size may use a typed node's bytes.
+        # Strings remain correct across the old allocator's size-class boundaries.
         strings = {"values": ["x" * size for size in (30, 31, 32, 62, 63, 64)]}
         rows = self.run_documents([boundary, boundary + b' ', strings, {}], parser=True)
         self.assertEqual([row[0] == 0 for row in rows], [True, False, True, True])

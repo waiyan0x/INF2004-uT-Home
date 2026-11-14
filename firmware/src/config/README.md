@@ -11,12 +11,12 @@ Runtime, framing and storage do not dispatch on prototype device names.
 |---|---|
 | `cfgbytes`, `cfgwire` | Explicit little-endian fields, CRC and bounded framing |
 | `cfgstore`, `cfgctrl` | Durable records, request identity, activation/save ordering |
-| `jsonscan`, `cfgjson` | Bounded JSON parsing and exclusive cJSON allocation |
+| `jsonscan`, `cfgjson` | Lexical validation and compact views over borrowed JSON bytes |
 | `cfgplan`, `cfgdev`, `cfgrule` | Board/resources, driver/settings and typed-rule admission |
 | `cfgbind`, `c3bind`, `cfgdisc` | Copied instance settings, actual transports and discovery/controller coordination |
 | `cfgpump`, `c3usb`, `c3store`, `c3app` | USB pump, physical storage and application owner loop |
 
-Initialize cJSON hooks and activation once, then one persistent binder/controller.
+Initialize the JSON view reader and activation once, then one persistent binder/controller.
 All large contexts have static/application lifetime. One long-lived kernel task
 owns calls; reentry guards are not cross-task locks. Only `cfgctrl` may apply,
 restore or clear live profiles. Out-of-band activation invalidates its metadata.
@@ -41,16 +41,25 @@ the [firmware guide](../../README.md) and [target tooling](../../../tools/target
 - Integer tokens are canonical decimal uint32, or int32 for signed thresholds:
   no fractions, exponents, negative zero or extra leading zeros. Host schema
   validation alone does not enforce all target lexical restrictions.
-- Managed cJSON `1.7.19~2` uses fixed storage: 512 typed nodes, 8192 text bytes
-  and at most 1024 allocation-hook calls per parse. No heap fallback exists.
-  Requests exactly the size of a node consume a typed slot, including text of
-  that size; other text and temporary number strings consume byte storage.
-  Individual frees defer reuse until close or failed open resets both pools.
-  Exhaustion rejects the candidate without retaining a partial tree. The pool
-  reservation is `512 * sizeof(cJSON) + 8192` bytes, with counters/stack additional.
-  One owner exclusively uses cJSON/global hooks/locale. Host allocator traps
-  cover owned parser/vendor objects; target libc and whole-system allocations
-  still require independent review.
+- `cfgjson` uses 512 typed, eight-byte views: 4096 bytes plus bookkeeping.
+  Each view contains input offsets and the index after its complete subtree;
+  strings and numbers are read from the original input without a copied tree.
+  The caller keeps that input unchanged and alive until `cfgjson_close()`.
+  At most 1024 work units are admitted: one per value, object key, and string
+  or number payload. These retain the former parsing-work ceiling without
+  allocation hooks. Exhaustion rejects the whole candidate; a later parse can
+  reuse the complete pool. `cfgjson_peak()` measures occupied view bytes and
+  survives close. The root must be an object; getters enforce their JSON types.
+  Duplicate keys are compared after decoding escapes, including in nested or
+  otherwise unknown objects. No heap or floating-point conversion is used.
+- Existing plan/discovery callers consume all views and close before returning;
+  their input buffers remain stable throughout those calls. Admitted plans copy
+  names and scalar settings, never view pointers. Getter output must not overlap
+  the borrowed input. A rejected second open leaves the live tree unchanged.
+  `cfgjson_text()` is the bounded decoded-string accessor for canonical address
+  admission; its output is usable only after success. The cJSON dependency and
+  host mirror remain pinned and unmodified as a reference and allocator-test
+  control, but the firmware parser no longer calls cJSON or changes its hooks.
 - Check identities, driver/bus/settings/routes, queue types, single enabled
   consumers, shared producers, pin/address collisions and exclusive UART use.
   Disabled entries still reserve identity and wiring.
@@ -288,22 +297,32 @@ the display and sensor, and failed release retains the handle for recovery.
 The ordinary build excludes that capability. The qualifier checks the effective
 binder compiler flag; target timing and stack evidence remain scoped to each run.
 
-The fixed-pool change additionally reviews C99 effective type and alignment:
-nodes are declared `cJSON` objects, never objects cast into an untyped byte arena;
-character access may use their representation. Text bounds are checked before
-addition, counts are bounded, and no node is reused while a tree is borrowed.
-Failed parsing and repeated close reset ownership only after vendor traversal.
-Peak accounting includes unreclaimed temporary strings and survives close.
-The exclusive controller contract remains necessary; the reentry flag is not a
-cross-task lock. No vendor edits, formatter changes or new deviations are needed.
+The compact-view change was manually reviewed against the BARR-C checklist:
+C99, paired headers and ordinary typed storage; 16-bit offsets bounded by the
+8192-byte document and 512-value limit; eight nested containers; forward-only
+subtree traversal; decoded duplicate-key checks; checked output capacities; and
+all signed/unsigned conversions. Canonical integer magnitudes are prevalidated
+before exact int64 accumulation and range-checked conversion to int32/uint32.
+No raw byte storage is cast to a tree structure, no vendor source is edited and
+no deviation or language-profile expansion is added.
 
-The admission harness instruments parser/vendor objects with GNU `objcopy`,
-leaving host CRT startup and file I/O outside the no-heap test. `heaptrap` refuses
-allocation and records every attempt; the harness reports unexpected calls with
-a nonzero exit status, even when the parser itself rejects the input. Its control
-probe verifies interception without deliberately aborting. This corrects the
-earlier abort-based control test that opened Windows application-error dialogs.
-Existing semantic assertions and warning-as-error compilation remain enabled.
+String decoding operates only on quoted spans already checked by `jsonscan`.
+It distinguishes an escaped quote from the closing delimiter and rejects NUL
+and non-ASCII escapes during preflight. Empty and nested containers, separators,
+trailing content and duplicate keys are checked before any tree is published.
+The original input must remain unchanged until close. `cfgplan_read` and
+`cfgdisc`'s empty-plan query satisfy this lifetime within their serialized call;
+no worker, callback or retained plan receives a view. Failed open releases the
+partial state; repeated close is safe and preserves the last peak measurement.
+The reentry check is not a cross-task lock.
+
+The admission harness still traps allocation calls from owned parser and vendor
+reference objects, without intercepting host startup/file I/O. A separate vendor
+probe verifies trap operation and normal failure reporting. The compact reader
+has direct getter/type/range tests, exact storage/work/input/depth bounds,
+500 generated nested documents and 2000 grammar mutations checked against an
+independent Python decoder. Existing admission, binding, activation and recovery
+regressions remain required with assertions and warnings-as-errors enabled.
 
 ### USB C review
 

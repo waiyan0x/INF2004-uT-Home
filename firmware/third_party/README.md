@@ -66,5 +66,7 @@ The managed version is now pinned in
 [idf_component.yml](../../tests/target/runtime_port_board/main/idf_component.yml).
 The [host mirror provenance](cjson/SOURCE.json) records exact hashes and intact
 MIT licensing. Qualification verifies managed/host source equality and retains
-the dependency lock. Owned bounds are in
-[admission notes](../src/config/README.md); no vendor changes apply.
+the dependency lock. The firmware now uses compact configuration views; cJSON
+remains a pinned reference and allocator-interception control in host tests.
+Owned bounds are in [admission notes](../src/config/README.md); no vendor changes
+apply.

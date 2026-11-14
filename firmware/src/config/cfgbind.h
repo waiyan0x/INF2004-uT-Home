@@ -79,7 +79,7 @@ typedef struct
 
 /* Noncopyable, zero-initialized, application-lifetime storage. One serialized
  * lifecycle owner; this object may not be reinitialized while retained. Scratch
- * and slots must not be altered by the caller. Initialize cJSON and activate
+ * and slots must not be altered by the caller. Initialize cfgjson and activate
  * once before init; init itself performs no hardware I/O.
  */
 struct cfgbind_state

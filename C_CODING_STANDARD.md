@@ -405,3 +405,13 @@ uses C99 with the existing SDK-header assembly-spelling build adaptation only;
 owned source contains no GNU syntax. No deviation or naming exception is added.
 See the [manual review](firmware/hal/ports/esp32c3/network/README.md#manual-c-review)
 for the typed read-only identity lifetime, opaque-handle cast and ownership rules.
+
+## Compact configuration views
+
+`cfgjson` now stores typed input offsets and subtree boundaries instead of cJSON
+nodes and copied text. Its borrowed input must stay immutable through close;
+current plan/discovery callers retain it for that entire serialized call.
+`cfgjson_text` replaces the device reader's direct vendor-string access. The
+[manual review](firmware/src/config/README.md#admission-c-review) covers bounds,
+decoding, exact integer conversion and lifetime. No exception, formatter or
+language-profile change is introduced; pinned vendor sources remain intact.

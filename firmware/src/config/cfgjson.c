@@ -1,148 +1,162 @@
 /**
  * @file cfgjson.c
- * @brief Parse bounded JSON with an exclusively owned vendor allocation hook.
+ * @brief Compact JSON views without heap allocation or copied string storage.
  */
 #include "cfgjson.h"
 #include "jsonscan.h"
 #include <string.h>
-#include <math.h>
 
-/* Typed nodes preserve alignment and effective type without casting a byte
- * arena to cJSON. Character access to a node's representation is permitted. */
-static cfgjson_value_t   g_nodes[UTHOME_JSON_NODES] = {0};
-static uint8_t           g_text[UTHOME_JSON_TEXT]   = {0};
-static size_t            g_node_count               = 0U;
-static size_t            g_text_used                = 0U;
-static cfgjson_value_t * gp_tree                    = NULL;
-static size_t            g_used                     = 0U;
-static size_t            g_peak                     = 0U;
-static size_t            g_count                    = 0U;
-static bool              gb_initialized             = false;
-static bool              gb_parsing                 = false;
-static void * allocate (size_t size);
-static void release (void * p_memory);
-static bool inspect (const cfgjson_value_t * p_value, size_t depth);
+static cfgjson_value_t g_nodes[UTHOME_JSON_NODES] = {0};
+static const uint8_t * gp_data                    = NULL;
+static size_t          g_size                     = 0U;
+static size_t          g_count                    = 0U;
+static size_t          g_steps                    = 0U;
+static size_t          g_peak                     = 0U;
+static bool            gb_initialized             = false;
 
-/** @brief Install the exclusive bounded hooks once, before task startup. */
+static void whitespace (size_t * p_offset);
+static bool step (void);
+static uint8_t decoded (size_t * p_offset);
+static bool text_equal (size_t start, const char * p_text);
+static bool keys_equal (size_t left, size_t right);
+static bool kind (const cfgjson_value_t * p_value, uint8_t expected);
+static size_t first_child (const cfgjson_value_t * p_value);
+static bool value (size_t * p_offset, size_t depth, uint16_t key);
+static bool container (size_t index, size_t * p_offset, size_t depth);
+static bool scalar (size_t * p_offset);
+static bool integer (const cfgjson_value_t * p_value, int64_t * p_result);
+
+/** @brief Establish exclusive parser ownership once, with no vendor hooks. */
 int cfgjson_init (void)
 {
     if (gb_initialized)
     {
         return -1;
     }
-    const cJSON_Hooks hooks = {allocate, release};
-    /* Vendor API copies the hook fields and does not retain this object. */
-    cJSON_Hooks copy = hooks;
-    cJSON_InitHooks(&copy);
     gb_initialized = true;
     return 0;
 }
 
-/** @brief Parse exactly the supplied bounded document and reject ambiguity. */
+/** @brief Validate lexical bounds and grammar before publishing any view. */
 const cfgjson_value_t * cfgjson_open (const uint8_t * p_data, size_t size)
 {
-    if ((!gb_initialized) || gb_parsing || (NULL != gp_tree) ||
+    if ((!gb_initialized) || (NULL != gp_data) ||
         (!jsonscan_check(p_data, size)))
     {
         return NULL;
     }
-    g_peak             = 0U;
-    g_count            = 0U;
-    gb_parsing         = true;
-    const char * p_end = NULL;
-    /* char may inspect any byte object; the vendor API reads only size bytes.
-     */
-    const char * p_text = (const char *)p_data;
-    gp_tree             = cJSON_ParseWithLengthOpts(p_text, size, &p_end, 0);
-    gb_parsing          = false;
-    if (NULL == gp_tree)
+    gp_data       = p_data;
+    g_size        = size;
+    g_peak        = 0U;
+    size_t offset = 0U;
+    whitespace(&offset);
+    if ((offset == size) || ('{' != p_data[offset]) ||
+        (!value(&offset, 0U, UINT16_MAX)))
     {
         cfgjson_close();
         return NULL;
     }
-    while ((p_end < (p_text + size)) && (NULL != strchr(" \t\r\n", *p_end)))
-    {
-        ++p_end;
-    }
-    if ((p_end != (p_text + size)) || (0 == cJSON_IsObject(gp_tree)) ||
-        (!inspect(gp_tree, 0U)))
+    whitespace(&offset);
+    if (offset != size)
     {
         cfgjson_close();
+        return NULL;
     }
-    return gp_tree;
+    return &g_nodes[0];
 }
 
-/** @brief Release the sole tree; no borrowed node pointer remains valid. */
+/** @brief Invalidate all borrowed views; retain the last storage high water. */
 void cfgjson_close (void)
 {
-    cJSON_Delete(gp_tree);
-    gp_tree      = NULL;
-    g_node_count = 0U;
-    g_text_used  = 0U;
-    g_used       = 0U;
-    g_count      = 0U;
+    gp_data = NULL;
+    g_size  = 0U;
+    g_count = 0U;
+    g_steps = 0U;
 }
 
-/** @brief Report occupied pool bytes at the most recent parse's high water. */
+/** @brief Report occupied view bytes, excluding the caller's existing input. */
 size_t cfgjson_peak (void)
 {
     return g_peak;
 }
 
-/** @brief Perform case-sensitive object lookup within a retained tree. */
+/** @brief Find an exact decoded key, skipping complete child subtrees. */
 const cfgjson_value_t * cfgjson_get (const cfgjson_value_t * p_value,
                                      const char *            p_key)
 {
-    return cJSON_GetObjectItemCaseSensitive(p_value, p_key);
-}
-
-/** @brief Return a bounded child without narrowing an unchecked index. */
-const cfgjson_value_t * cfgjson_at (const cfgjson_value_t * p_value,
-                                    size_t                  index)
-{
-    if (index > 1024U)
+    if ((!kind(p_value, '{')) || (NULL == p_key))
     {
         return NULL;
     }
-    /* The bound is smaller than every supported implementation's INT_MAX. */
-    return cJSON_GetArrayItem(p_value, (int)index);
+    for (size_t index = first_child(p_value); index < p_value->next;
+         index        = g_nodes[index].next)
+    {
+        if (text_equal(g_nodes[index].key, p_key))
+        {
+            return &g_nodes[index];
+        }
+    }
+    return NULL;
 }
 
-/** @brief Validate an array before indexing any caller-owned output. */
+/** @brief Index only immediate array values, never their descendants. */
+const cfgjson_value_t * cfgjson_at (const cfgjson_value_t * p_value,
+                                    size_t                  index)
+{
+    if (!kind(p_value, '['))
+    {
+        return NULL;
+    }
+    size_t child = first_child(p_value);
+    while ((child < p_value->next) && (0U != index))
+    {
+        child = g_nodes[child].next;
+        --index;
+    }
+    return (child < p_value->next) ? &g_nodes[child] : NULL;
+}
+
+/** @brief Count immediate array values under the caller's explicit limit. */
 bool cfgjson_array (const cfgjson_value_t * p_value,
                     size_t                  max,
                     size_t *                p_count)
 {
-    if ((NULL == p_count) || (0 == cJSON_IsArray(p_value)))
+    if ((!kind(p_value, '[')) || (NULL == p_count))
     {
         return false;
     }
-    const int count = cJSON_GetArraySize(p_value);
-    if ((count < 0) || ((size_t)count > max))
+    size_t count = 0U;
+    for (size_t index = first_child(p_value); index < p_value->next;
+         index        = g_nodes[index].next)
     {
-        return false;
+        ++count;
+        if (count > max)
+        {
+            return false;
+        }
     }
-    *p_count = (size_t)count; /* Nonnegative count, bounded above. */
+    *p_count = count;
     return true;
 }
 
-/** @brief Reject unknown members and enforce a small required-field mask. */
+/** @brief Reject unknown members and enforce the existing required-field mask.
+ */
 bool cfgjson_object (const cfgjson_value_t * p_value,
                      const char * const *    pp_keys,
                      size_t                  count,
                      uint32_t                required)
 {
-    if ((0 == cJSON_IsObject(p_value)) || (NULL == pp_keys) || (count > 16U))
+    if ((!kind(p_value, '{')) || (NULL == pp_keys) || (count > 16U))
     {
         return false;
     }
     uint32_t seen = 0U;
-    for (const cfgjson_value_t * p_child = p_value->child; NULL != p_child;
-         p_child                         = p_child->next)
+    for (size_t child = first_child(p_value); child < p_value->next;
+         child        = g_nodes[child].next)
     {
         size_t index = 0U;
         while ((index < count) &&
-               (0 != strcmp(p_child->string, pp_keys[index])))
+               (!text_equal(g_nodes[child].key, pp_keys[index])))
         {
             ++index;
         }
@@ -155,171 +169,421 @@ bool cfgjson_object (const cfgjson_value_t * p_value,
     return required == (seen & required);
 }
 
-/** @brief Match a string constant with exact case and content. */
+/** @brief Compare a decoded string without storing a second copy. */
 bool cfgjson_is (const cfgjson_value_t * p_value, const char * p_text)
 {
-    return (0 != cJSON_IsString(p_value)) && (NULL != p_text) &&
-           (0 == strcmp(p_value->valuestring, p_text));
+    return (kind(p_value, '"')) && (NULL != p_text) &&
+           (text_equal(p_value->start, p_text));
 }
 
-/** @brief Copy an ASCII identifier only after validating the entire string. */
-bool cfgjson_name (const cfgjson_value_t * p_value, char p_name[32])
+/** @brief Copy decoded ASCII only when the caller's capacity includes NUL. */
+bool cfgjson_text (const cfgjson_value_t * p_value,
+                   char *                  p_text,
+                   size_t                  capacity)
 {
-    if ((0 == cJSON_IsString(p_value)) || (NULL == p_name))
+    if ((!kind(p_value, '"')) || (NULL == p_text) || (0U == capacity))
     {
         return false;
     }
-    const char * p_text = p_value->valuestring;
-    const size_t size   = strlen(p_text);
-    if ((0U == size) || (size > 31U))
+    size_t offset = p_value->start + 1U;
+    size_t count  = 0U;
+    while (offset < p_value->end)
+    {
+        const uint8_t character = decoded(&offset);
+        if (count == capacity)
+        {
+            return false;
+        }
+        /* Lexical validation restricts decoded bytes to ASCII 0..127. */
+        p_text[count++] = (char)character;
+        if (0U == character)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** @brief Preserve output on failure while validating a complete identifier. */
+bool cfgjson_name (const cfgjson_value_t * p_value, char p_name[32])
+{
+    char text[32] = {0};
+    if ((NULL == p_name) || (!cfgjson_text(p_value, text, sizeof(text))))
+    {
+        return false;
+    }
+    const size_t size = strlen(text);
+    if (0U == size)
     {
         return false;
     }
     for (size_t index = 0U; index < size; ++index)
     {
-        const char value    = p_text[index];
-        const bool b_letter = ((value >= 'A') && (value <= 'Z')) ||
-                              ((value >= 'a') && (value <= 'z'));
-        const bool b_extra = ((value >= '0') && (value <= '9')) ||
-                             ('_' == value) || ('.' == value) || ('-' == value);
+        const char character = text[index];
+        const bool b_letter  = ((character >= 'A') && (character <= 'Z')) ||
+                              ((character >= 'a') && (character <= 'z'));
+        const bool b_extra = ((character >= '0') && (character <= '9')) ||
+                             ('_' == character) || ('.' == character) ||
+                             ('-' == character);
         if ((!b_letter) && ((0U == index) || (!b_extra)))
         {
             return false;
         }
     }
-    memcpy(p_name, p_text, size + 1U);
+    memcpy(p_name, text, size + 1U);
     return true;
 }
 
-/** @brief Convert only finite exact integers in an explicit uint32 range. */
+/** @brief Preserve exact uint32 values without a floating-point conversion. */
 bool cfgjson_uint (const cfgjson_value_t * p_value,
                    uint32_t                min,
                    uint32_t                max,
                    uint32_t *              p_result)
 {
-    if ((NULL == p_result) || (0 == cJSON_IsNumber(p_value)))
+    int64_t number = 0;
+    if ((NULL == p_result) || (!integer(p_value, &number)) || (number < min) ||
+        (number > max))
     {
         return false;
     }
-    const double value = p_value->valuedouble;
-    if ((!isfinite(value)) || (value < min) || (value > max) ||
-        (floor(value) != value))
-    {
-        return false;
-    }
-    *p_result =
-        (uint32_t)value; /* Finite integral value within uint32 bounds. */
+    /* The supplied unsigned range bounds this exact integer to uint32. */
+    *p_result = (uint32_t)number;
     return true;
 }
 
-/** @brief Convert finite signed threshold integers only within explicit bounds.
- */
+/** @brief Preserve the full signed int32 range, including INT32_MIN. */
 bool cfgjson_int (const cfgjson_value_t * p_value,
                   int32_t                 min,
                   int32_t                 max,
                   int32_t *               p_result)
 {
-    if ((NULL == p_result) || (0 == cJSON_IsNumber(p_value)))
+    int64_t number = 0;
+    if ((NULL == p_result) || (!integer(p_value, &number)) || (number < min) ||
+        (number > max))
     {
         return false;
     }
-    const double value = p_value->valuedouble;
-    if ((!isfinite(value)) || (value < min) || (value > max) ||
-        (floor(value) != value))
-    {
-        return false;
-    }
-    /* Finite exact integer bounded by the supplied int32 range. */
-    *p_result = (int32_t)value;
+    /* The supplied signed range bounds this exact integer to int32. */
+    *p_result = (int32_t)number;
     return true;
 }
 
-/** @brief Require a JSON Boolean rather than treating numbers as truth. */
+/** @brief Require true/false literals; numbers never stand in for Booleans. */
 bool cfgjson_bool (const cfgjson_value_t * p_value, bool * pb_result)
 {
-    if ((NULL == pb_result) || (0 == cJSON_IsBool(p_value)))
+    if ((NULL == pb_result) || ((!kind(p_value, 't')) && (!kind(p_value, 'f'))))
     {
         return false;
     }
-    *pb_result = 0 != cJSON_IsTrue(p_value);
+    *pb_result = kind(p_value, 't');
     return true;
 }
 
-/** @brief Limit every vendor allocation, including temporary number buffers. */
-static void * allocate (size_t size)
+/** @brief Advance only across the four JSON whitespace characters. */
+static void whitespace (size_t * p_offset)
 {
-    if ((!gb_parsing) || (0U == size) || (g_count >= UTHOME_JSON_CALLS))
+    while ((*p_offset < g_size) &&
+           (NULL != strchr(" \t\r\n", gp_data[*p_offset])))
     {
-        return NULL;
+        ++(*p_offset);
     }
-    void * p_result = NULL;
-    if (sizeof(cfgjson_value_t) == size)
-    {
-        if (g_node_count >= UTHOME_JSON_NODES)
-        {
-            return NULL;
-        }
-        p_result = &g_nodes[g_node_count++];
-    }
-    else
-    {
-        if (size > (sizeof(g_text) - g_text_used))
-        {
-            return NULL;
-        }
-        p_result = &g_text[g_text_used];
-        g_text_used += size;
-    }
-    g_used += size;
-    ++g_count;
-    if (g_used > g_peak)
-    {
-        g_peak = g_used;
-    }
-    return p_result;
 }
 
-/** @brief Reclaim the whole parse together, never recycle a borrowed node. */
-static void release (void * p_memory)
+/** @brief Keep the former parse-work ceiling without allocation hooks. */
+static bool step (void)
 {
-    /* cJSON may release temporary strings or partially constructed trees.
-     * Every supplied pointer belongs to one of our fixed pools; close resets
-     * them after all vendor traversal has finished, including failed parses. */
-    (void)p_memory;
+    if (UTHOME_JSON_STEPS == g_steps)
+    {
+        return false;
+    }
+    ++g_steps;
+    return true;
 }
 
-/** @brief Reject duplicate decoded keys and nonfinite numbers in every object.
+/**
+ * @brief Decode one byte from a lexically validated quoted ASCII string.
+ *
+ * The cursor starts after its opening quote and must not pass its closing
+ * quote. Preflight proves every escape and four-digit Unicode sequence fits
+ * the input, contains no NUL and represents at most 127. Zero marks the closing
+ * quote, not an escaped quote. The original input remains immutable until
+ * close.
  */
-static bool inspect (const cfgjson_value_t * p_value, size_t depth)
+static uint8_t decoded (size_t * p_offset)
 {
-    if (depth > 8U)
+    uint8_t character = gp_data[(*p_offset)++];
+    if ('"' == character)
     {
-        return false;
+        return 0U;
     }
-    if ((0 != cJSON_IsNumber(p_value)) && (!isfinite(p_value->valuedouble)))
+    if ('\\' != character)
     {
-        return false;
+        return character;
     }
-    for (const cfgjson_value_t * p_child = p_value->child; NULL != p_child;
-         p_child                         = p_child->next)
+    character = gp_data[(*p_offset)++];
+    if ('u' == character)
     {
-        if (0 != cJSON_IsObject(p_value))
+        uint32_t code = 0U;
+        for (size_t digit = 0U; digit < 4U; ++digit)
         {
-            for (const cfgjson_value_t * p_old = p_value->child;
-                 p_old != p_child;
-                 p_old = p_old->next)
+            const uint32_t part = gp_data[(*p_offset)++];
+            const uint32_t value =
+                (part <= '9')
+                    ? (part - '0')
+                    : ((part >= 'a') ? (part - 'a' + 10U) : (part - 'A' + 10U));
+            code = (code * 16U) + value;
+        }
+        /* Preflight restricts the complete Unicode escape to ASCII 1..127. */
+        return (uint8_t)code;
+    }
+    static const char    escapes[] = "\"\\/bfnrt";
+    static const uint8_t values[]  = {
+        '"', '\\', '/', '\b', '\f', '\n', '\r', '\t'};
+    for (size_t index = 0U; index < sizeof(values); ++index)
+    {
+        if (character == escapes[index])
+        {
+            return values[index];
+        }
+    }
+    /* Preflight excludes every other escape. */
+    return 0U;
+}
+
+/** @brief Compare decoded ASCII against a trusted NUL-terminated constant. */
+static bool text_equal (size_t start, const char * p_text)
+{
+    size_t offset = start + 1U;
+    size_t index  = 0U;
+    while (offset < g_size)
+    {
+        const uint8_t character = decoded(&offset);
+        if (character != p_text[index])
+        {
+            return false;
+        }
+        if (0U == character)
+        {
+            return true;
+        }
+        ++index;
+    }
+    return false;
+}
+
+/** @brief Compare decoded keys, including differently escaped spellings. */
+static bool keys_equal (size_t left, size_t right)
+{
+    ++left;
+    ++right;
+    while ((left < g_size) && (right < g_size))
+    {
+        const uint8_t character = decoded(&left);
+        if (character != decoded(&right))
+        {
+            return false;
+        }
+        if (0U == character)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** @brief View handles must come from this module and remain within a live
+ * tree. */
+static bool kind (const cfgjson_value_t * p_value, uint8_t expected)
+{
+    return (NULL != gp_data) && (NULL != p_value) &&
+           (expected == gp_data[p_value->start]);
+}
+
+/** @brief Preorder puts the first child immediately after its parent view. */
+static size_t first_child (const cfgjson_value_t * p_value)
+{
+    /* Live views refer to this array; the difference lies in 0..511. */
+    return (size_t)(p_value - g_nodes) + 1U;
+}
+
+/** @brief Build one bounded preorder view; publish its subtree end on success.
+ */
+static bool value (size_t * p_offset, size_t depth, uint16_t key)
+{
+    whitespace(p_offset);
+    if ((*p_offset == g_size) || (UTHOME_JSON_NODES == g_count) || (!step()))
+    {
+        return false;
+    }
+    const size_t index = g_count++;
+    g_peak             = g_count * sizeof(g_nodes[0]);
+    /* Input offsets are at most 8192; node indices are at most 512. */
+    g_nodes[index] =
+        (cfgjson_value_t){.start = (uint16_t)*p_offset, .key = key};
+    const uint8_t character   = gp_data[*p_offset];
+    const bool    b_container = ('{' == character) || ('[' == character);
+    if (b_container ? ((depth >= 8U) || (!container(index, p_offset, depth)))
+                    : (!scalar(p_offset)))
+    {
+        return false;
+    }
+    /* Both bounds were enforced before advancing the cursor or node count. */
+    g_nodes[index].end  = (uint16_t)*p_offset;
+    g_nodes[index].next = (uint16_t)g_count;
+    return true;
+}
+
+/** @brief Enforce separators, object keys and duplicate-key rejection. */
+static bool container (size_t index, size_t * p_offset, size_t depth)
+{
+    const bool    b_object = '{' == gp_data[(*p_offset)++];
+    const uint8_t closing  = b_object ? '}' : ']';
+    whitespace(p_offset);
+    if ((*p_offset < g_size) && (closing == gp_data[*p_offset]))
+    {
+        ++(*p_offset);
+        return true;
+    }
+    while (*p_offset < g_size)
+    {
+        uint16_t key = UINT16_MAX;
+        if (b_object)
+        {
+            if (('"' != gp_data[*p_offset]) || (!step()))
             {
-                if (0 == strcmp(p_old->string, p_child->string))
+                return false;
+            }
+            /* Preflight limits the complete document to 8192 bytes. */
+            key = (uint16_t)(*p_offset);
+            ++(*p_offset);
+            while (0U != decoded(p_offset))
+            {
+                /* Consume a lexically validated key through its closing quote.
+                 */
+            }
+            whitespace(p_offset);
+            if ((*p_offset == g_size) || (':' != gp_data[*p_offset]))
+            {
+                return false;
+            }
+            ++(*p_offset);
+            for (size_t child = index + 1U; child < g_count;
+                 child        = g_nodes[child].next)
+            {
+                if (keys_equal(g_nodes[child].key, key))
                 {
                     return false;
                 }
             }
         }
-        if (!inspect(p_child, depth + 1U))
+        if (!value(p_offset, depth + 1U, key))
         {
             return false;
         }
+        whitespace(p_offset);
+        if (*p_offset == g_size)
+        {
+            return false;
+        }
+        const uint8_t separator = gp_data[(*p_offset)++];
+        if (closing == separator)
+        {
+            return true;
+        }
+        if (',' != separator)
+        {
+            return false;
+        }
+        whitespace(p_offset);
+        /* A closing delimiter after a comma must be rejected as a missing
+         * value. */
     }
+    return false;
+}
+
+/** @brief Recognize exactly one validated string, integer or JSON literal. */
+static bool scalar (size_t * p_offset)
+{
+    const uint8_t character = gp_data[*p_offset];
+    if ('"' == character)
+    {
+        if (!step())
+        {
+            return false;
+        }
+        ++(*p_offset);
+        while (0U != decoded(p_offset))
+        {
+            /* Preflight proves a closing quote and the bounded escape syntax.
+             */
+        }
+        return true;
+    }
+    if (('-' == character) || ((character >= '0') && (character <= '9')))
+    {
+        if (!step())
+        {
+            return false;
+        }
+        do
+        {
+            ++(*p_offset);
+        } while ((*p_offset < g_size) && (gp_data[*p_offset] >= '0') &&
+                 (gp_data[*p_offset] <= '9'));
+        return true;
+    }
+    const char * p_literal = NULL;
+    if ('t' == character)
+    {
+        p_literal = "true";
+    }
+    else if ('f' == character)
+    {
+        p_literal = "false";
+    }
+    else if ('n' == character)
+    {
+        p_literal = "null";
+    }
+    else
+    {
+        return false;
+    }
+    const size_t size = strlen(p_literal);
+    if ((size > (g_size - *p_offset)) ||
+        (0 != memcmp(&gp_data[*p_offset], p_literal, size)))
+    {
+        return false;
+    }
+    *p_offset += size;
+    return true;
+}
+
+/** @brief Preflight bounds magnitude to uint32 and negative values to int32. */
+static bool integer (const cfgjson_value_t * p_value, int64_t * p_result)
+{
+    if ((NULL == gp_data) || (NULL == p_value))
+    {
+        return false;
+    }
+    size_t        offset     = p_value->start;
+    const uint8_t character  = gp_data[offset];
+    const bool    b_negative = '-' == character;
+    if ((!b_negative) && ((character < '0') || (character > '9')))
+    {
+        return false;
+    }
+    if (b_negative)
+    {
+        ++offset;
+    }
+    int64_t number = 0;
+    while (offset < p_value->end)
+    {
+        /* Every digit is validated and magnitude <= UINT32_MAX fits int64. */
+        number = (number * 10) + (gp_data[offset++] - '0');
+    }
+    *p_result = b_negative ? -number : number;
     return true;
 }
 

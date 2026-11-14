@@ -9,6 +9,7 @@
 #include "cfgplan.h"
 #include "cfgjson.h"
 #include "heaptrap.h"
+#include "cJSON.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -26,7 +27,7 @@ int main (int argc, char ** pp_argv)
     {
         /* Confirm interception without deliberately aborting a process. */
         cJSON_InitHooks(NULL);
-        cfgjson_value_t * p_probe = cJSON_Parse("{}");
+        cJSON * p_probe = cJSON_Parse("{}");
         cJSON_Delete(p_probe);
         printf("heap probe intercepted: %zu\n", heaptrap_count());
         return ((NULL == p_probe) && (1U == heaptrap_count())) ? 0 : 4;
@@ -39,6 +40,8 @@ int main (int argc, char ** pp_argv)
     {
         /* Verify normal failure reporting for an injected allocator defect. */
         cJSON_InitHooks(NULL);
+        cJSON * p_probe = cJSON_Parse("{}");
+        assert(NULL == p_probe);
     }
     const uint32_t mask = (0 == strcmp(pp_argv[1], "light-probe")) ? 127U : 95U;
     for (int index = 2; index < argc; ++index)
@@ -84,7 +87,7 @@ static int parse_only (const uint8_t * p_data, size_t size)
     {
         /* A rejected concurrent open must not invalidate the borrowed tree. */
         assert(NULL == cfgjson_open(p_data, size));
-        assert(0 != cJSON_IsObject(p_tree));
+        assert('{' == p_data[p_tree->start]);
     }
     cfgjson_close();
     cfgjson_close();

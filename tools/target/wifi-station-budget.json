@@ -57,7 +57,6 @@
     "c3bind.c.obj": 32,
     "c3usb.c.obj": 16,
     "main.c.obj": 2048,
-    "cJSON.c.obj": 32,
     "c3nq.c.obj": 12288,
     "c3boot.c.obj": 12288,
     "c3event.c.obj": 450,

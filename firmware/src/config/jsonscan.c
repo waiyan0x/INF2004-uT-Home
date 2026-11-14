@@ -62,7 +62,7 @@ bool jsonscan_check (const uint8_t * p_data, size_t size)
                 return false;
             }
             else
-            { /* Punctuation, JSON literals and whitespace go to cJSON. */
+            { /* cfgjson validates punctuation, JSON literals and whitespace. */
             }
             ++offset;
         }
@@ -120,7 +120,7 @@ static bool quoted (const uint8_t * p_data, size_t size, size_t * p_offset)
                 return false;
             }
             else
-            { /* The vendor parser decodes the validated escape. */
+            { /* The view reader decodes the validated escape. */
             }
         }
     }

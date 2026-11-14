@@ -28,7 +28,6 @@
     "c3spi.c.obj": 64,
     "c3bind.c.obj": 32,
     "c3usb.c.obj": 16,
-    "main.c.obj": 1040,
-    "cJSON.c.obj": 32
+    "main.c.obj": 1040
   }
 }

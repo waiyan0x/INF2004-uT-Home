@@ -446,16 +446,16 @@ static bool recipe_address (const cfgjson_value_t * p_value,
                             uint32_t *              p_address)
 {
     static const char digits[] = "0123456789abcdef";
-    if ((0 == cJSON_IsString(p_value)) ||
-        (4U != strlen(p_value->valuestring)) ||
-        ('0' != p_value->valuestring[0]) || ('x' != p_value->valuestring[1]))
+    char              text[5]  = {0};
+    if ((!cfgjson_text(p_value, text, sizeof(text))) || (4U != strlen(text)) ||
+        ('0' != text[0]) || ('x' != text[1]))
     {
         return false;
     }
     uint32_t address = 0U;
     for (size_t index = 2U; index < 4U; ++index)
     {
-        const char * p_digit = strchr(digits, p_value->valuestring[index]);
+        const char * p_digit = strchr(digits, text[index]);
         if (NULL == p_digit)
         {
             return false;
