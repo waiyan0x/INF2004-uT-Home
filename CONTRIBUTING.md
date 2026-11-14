@@ -105,10 +105,16 @@ rule must not require another build.
 | ESP decision program | `txjob` validates/stores a rule, chooses execution and preserves it on a rejected update; host journal recovers exact cached completions | Live combined-system acceptance |
 | Generic operations | `txport` reaches actual I2C, SPI-write and raw UART HALs through `c3tx` | Physical acceptance, initialization prerequisites and selected timing extensions |
 | Description compiler | `tools/transaction/description.py` compiles simple I2C register reads | SPI/UART operation descriptions; OLED source/description; SEN0390 review |
-| MQTT | Bounded ESP transport, persistent TLS host controller and durable restart recovery; real loopback broker tests | Actual ESP Wi-Fi/TLS acceptance and network allocation blocker |
+| MQTT | Bounded ESP transport, persistent TLS host controller and durable restart recovery; real loopback broker tests; board Wi-Fi/HTTPS reads and hotspot recovery verified | Live ESP MQTT rule switching, overlapping secure connections and network allocation blocker |
 | UI | Existing Configuration Desk supports USB profiles and recovery | Runtime Markdown selection, rule loading/execution and result presentation |
 | Home Assistant | Intended host-adapter boundary is documented | Adapter and live integration are not implemented |
-| Verification | Current network work: 490 target-facing and 56 C-policy tests, full 329-file C gate and a real target build passed | Real Wi-Fi/TLS/bus acceptance and whole-system resource measurements |
+| Verification | 519 target-facing tests, full 329-file C gate, fresh target build and unchanged memory budgets passed; live Wi-Fi/HTTPS read checks passed | Live MQTT/bus acceptance and whole-system resource measurements |
+
+The [15 November hardware check](firmware/src/network/README.md#current-hardware-check)
+resolved the observed Wi-Fi join failure with an explicit startup-power setting.
+The same image rejoined after an ESP restart and a hotspot outage, while retaining
+the original peripheral profile. This closes the hotspot connectivity blocker;
+it does not close the allocation or complete MQTT demonstration requirements.
 
 The current fixed-TLS-record build uses 260,386 of 278,528 fixed DRAM bytes,
 leaving 18,142 bytes in the total budget and 16,184 in the application group.

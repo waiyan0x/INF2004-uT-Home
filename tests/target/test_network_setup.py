@@ -24,14 +24,16 @@ class NetworkSetupPowerTests(unittest.TestCase):
     def test_omission_preserves_default_and_explicit_integer_caps(self):
         with tempfile.TemporaryDirectory() as name:
             path, values = configuration(Path(name))
-            header, _ = network_setup.generate(path)
+            header, record = network_setup.generate(path)
             self.assertRegex(header, rb'#define UTHOME_SETUP_TX_POWER +\(0U\)')
-            for power in (8, 34, 42, 84):
+            self.assertEqual(record['phy_max_wifi_tx_power'], 20)
+            for power, startup in ((8,10), (34,10), (40,10), (42,10), (44,11), (80,20), (84,20)):
                 with self.subTest(power=power):
                     path.write_text(json.dumps(dict(values, tx_power_quarter_dbm=power)))
-                    header, _ = network_setup.generate(path)
+                    header, record = network_setup.generate(path)
                     self.assertRegex(header, rb'#define UTHOME_SETUP_TX_POWER +\('
                                      + str(power).encode('ascii') + rb'U\)')
+                    self.assertEqual(record['phy_max_wifi_tx_power'], startup)
 
     def test_optional_cap_rejects_wrong_types_bounds_and_duplicates(self):
         with tempfile.TemporaryDirectory() as name:
@@ -56,6 +58,30 @@ class NetworkSetupPowerTests(unittest.TestCase):
             record = json.loads((folder / 'source-manifest.json').read_text())['network_setup']
             network_setup.verify(folder, record)
             source.write_text(json.dumps(dict(values, tx_power_quarter_dbm=34)))
+            with self.assertRaisesRegex(ValueError, 'private inputs changed'):
+                network_setup.verify(folder, record)
+
+    def test_startup_cap_is_staged_and_cannot_be_overridden_after_review(self):
+        with tempfile.TemporaryDirectory() as name:
+            folder = Path(name)
+            source, values = configuration(folder)
+            source.write_text(json.dumps(dict(values, tx_power_quarter_dbm=40)))
+            (folder / 'app').mkdir()
+            (folder / 'source-manifest.json').write_text('{"sources":{}}')
+            network_setup.stage(folder, source)
+            record = json.loads((folder / 'source-manifest.json').read_text())['network_setup']
+            defaults = folder / 'network-power.defaults'
+            self.assertEqual(defaults.read_bytes(), b'CONFIG_ESP_PHY_MAX_WIFI_TX_POWER=10\n')
+            network_setup.verify(folder, record)
+            compiled = folder / 'sdkconfig'
+            compiled.write_text('CONFIG_ESP_PHY_MAX_WIFI_TX_POWER=10\n')
+            network_setup.verify(folder, record, sdkconfig=compiled)
+            for value in ('', 'CONFIG_ESP_PHY_MAX_WIFI_TX_POWER=20\n',
+                          'CONFIG_ESP_PHY_MAX_WIFI_TX_POWER=10\n' * 2):
+                compiled.write_text(value)
+                with self.assertRaisesRegex(ValueError, 'compiled Wi-Fi startup power'):
+                    network_setup.verify(folder, record, sdkconfig=compiled)
+            defaults.write_bytes(b'CONFIG_ESP_PHY_MAX_WIFI_TX_POWER=20\n')
             with self.assertRaisesRegex(ValueError, 'private inputs changed'):
                 network_setup.verify(folder, record)
 

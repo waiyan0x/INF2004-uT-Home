@@ -1254,6 +1254,13 @@ def build(kernel, sdk, work, *legacy_args, selection=None, compat_patch=None,
             raise QualificationError(f"Kernel build failed ({result}); inspect {work / 'build.log'}")
         if selection.runtime_port:
             evidence["compiler_profiles"] = verify_compile_profiles(work, selection.mode is BuildMode.WIFI)
+            if network_settings is not None:
+                record = json.loads((project / "source-manifest.json").read_text())["network_setup"]
+                try:
+                    network_setup_module().verify(project, record, sdkconfig=work / "sdkconfig")
+                except (ValueError, OSError) as error:
+                    raise QualificationError("Compiled Wi-Fi startup power differs from private setup") from error
+                evidence["wifi_startup_power_dbm"] = record["phy_max_wifi_tx_power"]
             evidence["senlux_app_isolation"] = verify_senlux_app_probe(work, selection.mode is BuildMode.SENLUX_APP)
             evidence["memory_audit_link"] = verify_audit_link(work)
             evidence["startup_trace_link"] = verify_startup_link(work, selection.mode is BuildMode.WIFI)

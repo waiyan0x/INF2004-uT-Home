@@ -127,7 +127,8 @@ def generate(source):
     header=format_header('\n'.join(lines).encode('utf-8'))
     record=dict(source=str(source),source_sha256=digest(raw),
                 certificate_sha256=digest(blobs['certificate']),
-                key_sha256=digest(blobs['key']),generated_sha256=digest(header))
+                key_sha256=digest(blobs['key']),generated_sha256=digest(header),
+                phy_max_wifi_tx_power=20 if tx_power==0 else max(10,min(20,tx_power//4)))
     if mqtt is not None:
         record['mqtt_ca_sha256']=digest(blobs['mqtt_ca'])
     return header,record
@@ -152,18 +153,29 @@ def stage(project,source):
     project=Path(project)
     header,record=generate(source)
     target=project/'app/netsetup.h'
-    if target.exists():
+    defaults=project/'network-power.defaults'
+    if target.exists() or defaults.exists():
         raise ValueError('private setup already staged')
     target.write_bytes(header)
+    # The runtime cap is applied after radio initialization. Bound its startup
+    # power too, using the pinned SDK's supported whole-dBm range (10..20).
+    defaults.write_bytes(f'CONFIG_ESP_PHY_MAX_WIFI_TX_POWER={record["phy_max_wifi_tx_power"]}\n'.encode('ascii'))
     manifest_path=project/'source-manifest.json'
     manifest=json.loads(manifest_path.read_text(encoding='utf-8'))
     manifest['network_setup']=record
     manifest_path.write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
 
 
-def verify(project,record):
+def verify(project,record,*,sdkconfig=None):
     if not isinstance(record,dict) or not isinstance(record.get('source'),str):
         raise ValueError('invalid private setup manifest')
     header,current=generate(record['source'])
-    if current!=record or (Path(project)/'app/netsetup.h').read_bytes()!=header:
+    defaults=f'CONFIG_ESP_PHY_MAX_WIFI_TX_POWER={current["phy_max_wifi_tx_power"]}\n'.encode('ascii')
+    if (current!=record or (Path(project)/'app/netsetup.h').read_bytes()!=header
+            or (Path(project)/'network-power.defaults').read_bytes()!=defaults):
         raise ValueError('private inputs changed')
+    if sdkconfig is not None:
+        values=re.findall(r'^CONFIG_ESP_PHY_MAX_WIFI_TX_POWER=(.*)$',
+                          Path(sdkconfig).read_text(),re.MULTILINE)
+        if values!=[str(current['phy_max_wifi_tx_power'])]:
+            raise ValueError('compiled Wi-Fi startup power differs from private setup')

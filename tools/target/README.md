@@ -91,6 +91,14 @@ Outputs include `project/`, `build/`, `build.log`, `sdkconfig`, patches and
 atomic paths use C11, and five SDK-header adapter boundaries use GNU99. Late
 dialect overrides and warning exemptions fail qualification.
 
+Wi-Fi service builds also stage `network-power.defaults` from the private
+network settings. Qualification checks both this generated input and the
+compiled `CONFIG_ESP_PHY_MAX_WIFI_TX_POWER`, and records
+`wifi_startup_power_dbm` in build evidence. See the
+[network setup guide](../../firmware/src/network/README.md#usb-wi-fi-troubleshooting)
+for startup/runtime power units and limits. The generated header and firmware
+contain credentials and must remain outside Git.
+
 Check a staged project against current owned source before reuse:
 
 ```powershell

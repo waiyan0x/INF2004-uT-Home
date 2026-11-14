@@ -45,8 +45,10 @@ software probe; the build now rejects that option. Next, design bounded TLS
 storage with persistent partial-input state and enough capacity for overlapping
 connections, then address the remaining lwIP storage. See the
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
-With Wi-Fi bench work deferred, independent software work can continue on
-three-protocol Markdown coverage and Home Assistant display in the
+Wi-Fi connection and hotspot recovery now pass on the connected board; live
+MQTT rule switching and overlapping secure connections remain to be tested.
+Independent software work can continue on three-protocol Markdown coverage
+and Home Assistant display in the
 [completion plan](CONTRIBUTING.md#completion-plan). UI changes still require review.
 The host display adapter remains unimplemented. Current generated tests, gate,
 map reports are local-only under `build/tls-records/`; earlier configuration
@@ -56,16 +58,23 @@ The dynamic-buffer experiment and guard checks are local-only under
 `build/tls-capacity/`; the rejected experimental image was never flashed.
 
 The latest [live network check](firmware/src/network/README.md#current-hardware-check)
-is blocked before IP acquisition. The project image timed out at authentication;
-the unchanged pinned ESP-IDF station example also failed on two access points,
-including a 2.4 GHz WPA2 hotspot that the laptop successfully joined. A cold
-restart did not resolve it. Peripheral-disconnected and second-board comparisons
-remain pending; MQTT/HTTPS board acceptance is unverified. The original full
-flash/profile and laptop Wi-Fi were restored. Fresh BMP388/radar data and
-successful OLED transfers returned.
-Private settings, captures and image identities remain local-only under
-`build/bench-20261114/`. Do not reuse its port, credentials or temporary broker
-address without checking the current setup.
+on 15 November 2026 established working Wi-Fi with the full project firmware.
+Correct the configured SSID's exact spelling and use the reviewed private
+10 dBm startup/runtime setting for this board. The unchanged SDK example
+connected at a 10 dBm startup limit and repeatedly failed at 20 dBm; the earlier
+runtime-only override did not limit startup. The project now derives and checks
+both settings. It connected after an ESP restart and automatically recovered
+after a hotspot off/on cycle. Authenticated, certificate-verified HTTPS identity
+and status reads succeeded. Live MQTT and combined-load/resource acceptance
+remain open.
+
+The fixed project image is installed with private bench settings; active/saved
+profile 931 is unchanged. Fresh BMP388/radar samples and successful OLED
+transfers were observed. The full original flash backup is retained, and the
+laptop returned to its original Wi-Fi. Private settings, captures and image
+identities remain local-only under `build/wifi-20261115/`; earlier observations
+are under `build/bench-20261114/`. Confirm the current port, hotspot and broker
+address before reusing any bench setup.
 
 The existing configuration application and peripheral profiles remain for setup
 and recovery. Runtime transactions require an explicitly idle peripheral plan.

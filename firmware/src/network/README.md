@@ -104,51 +104,71 @@ Use `python -m tools.config_transfer --port CONFIRMED_PORT network` to read the
 current station/broker diagnostics without starting a new connection or changing
 configuration. Confirm the CLI's `--help` and current port before use. A previously
 recorded COM port, hotspot or image is not proof of current equipment state.
-The optional TX-power cap accepts 8-84 quarter-dBm units. It is a configurable
-radio setting, not an established fix for every connection failure.
+The optional `tx_power_quarter_dbm` accepts 8-84 quarter-dBm units and applies
+before each connection attempt. The build also derives the radio's startup
+limit from it: divide by four, round down, then clamp to the pinned SDK's
+10-20 dBm range. Thus `40` requests 10 dBm at startup and at connection time;
+values below `40` can only lower the later runtime setting. Omitting the field
+preserves the SDK's 20 dBm startup default and makes no runtime override.
+The generated `network-power.defaults` and final `sdkconfig` are verified
+against the private settings; changing the setting requires a fresh build.
+This is a board-specific troubleshooting option, not a universal connection fix
+or a measurement of actual radiated power.
 
 ### Current hardware check
 
-On 14 November 2026, the connected ESP32-C3 was backed up in full before testing
-project source `d2778c63261d620e46e055811ec6e9e7e529cf9c` with private network
-settings. The current image passed the unchanged fixed-memory budgets, using
-260,386 DRAM bytes. The station initialized without an SDK error but repeatedly
-reported disconnect reason 2 (`AUTH_EXPIRE`) and obtained no IP address. The
-failure remained with an idle peripheral plan and a 5 dBm transmit-power cap.
+On 15 November 2026, the same ESP32-C3 and wiring connected to a 2.4 GHz WPA2
+Android hotspot. The local SSID capitalization was corrected first; the laptop
+also verified the supplied credentials. With those same credentials, the
+**unchanged pinned ESP-IDF station example** repeatedly failed authentication
+at a 20 dBm startup limit, connected at 10 dBm, then failed again in a repeated
+20 dBm control. The 10 dBm setting worked with both fresh and saved calibration.
+These are diagnostic comparisons, not uT-Kernel or BARR-C qualification.
+The electrical/RF cause was not measured; the lower startup limit resolves the
+observed connection failure on this board. An earlier runtime-only cap did not
+affect radio startup.
 
-Isolated builds of the **unchanged pinned ESP-IDF station example**, using
-native FreeRTOS, reported authentication expiry on all six attempts on each of
-two access points. The second was a separate 2.4 GHz WPA2 hotspot: the laptop
-joined it successfully using the supplied details, and those details matched
-the compiled diagnostic image. A full power-off restart also failed, with both
-AP-not-found and authentication-expiry events. This is a diagnostic comparison,
-not a project firmware option or BARR-C qualification. The failure also occurs
-outside the uT-Kernel integration; its root cause remains unresolved. Tests
-with peripherals physically disconnected or a second board remain pending.
+The full project was then built from `433b29e` plus the startup-power change,
+using `tx_power_quarter_dbm: 40`. Its checked image SHA-256 is
+`19570aaf606a8b1f89b5679d63b7557a6402fd18eeefd61d5f8447e338f711fa`.
+All 519 target-facing tests, the full 329-file C standard gate, real-target
+compiler/profile checks and source-snapshot verification passed. Fixed DRAM
+remains 260,386/278,528 bytes; no memory limit or SDK/kernel pin changed.
 
-The temporary local broker accepted a host connection over verified TLS 1.2
-with the correct login and rejected wrong-password and anonymous logins. The
-ESP never reached that broker. **Live MQTT rule switching, HTTPS, reconnects,
-overlapping connections and network heap/stack acceptance remain unverified.**
-The broker was stopped after testing; no firewall rule was changed. The laptop
-returned to its original Wi-Fi, and its temporary test profile was removed.
+Physical observations on that same project image:
 
-Restoration independently verified all 4 MB against the original backup.
-Active and saved profile 931 both returned with CRC 3623560383. A 30-second
-read-only capture then showed fresh BMP388 and radar samples and successful
-OLED driver transfers without bus errors; OLED appearance was not observed.
-This recovered image has the original dummy Wi-Fi settings, not the private
-bench credentials. Its allocation counters do not measure free heap or peaks,
-and unavailable worker stack measurements remain unmeasured.
+- Wi-Fi stayed online throughout a 45-second observation with no SDK error.
+- After an ESP restart, it was online by the first five-second follow-up.
+- A user-controlled hotspot off/on cycle produced an observed loss of IP,
+  bounded waiting/retry states and automatic recovery without reflashing or
+  restarting the ESP. The reported disconnect reason retains the last failure;
+  current `has_ip` and retry state identify recovery.
+- Authenticated, certificate/name-verified HTTPS `GET /v1/identity` and
+  `GET /v1/status` both returned HTTP 200. These were read-only requests.
+- Active and saved profile 931 retained CRC 3623560383. BMP388/radar samples
+  were fresh, and all three workers reported transfers without timeouts or
+  bus errors. OLED appearance was not observed.
 
-Local-only evidence is in `build/bench-20261114/`: `selected-image.json` and
-`selected-image-r3.json` identify the two project builds; `native-manifest.json`
-and `native-alternate-manifest.json` identify the upstream comparisons, with
-redacted serial logs and `native-cold-result.json` recording their outcomes.
-`backup-manifest.json`, `restore-final-result.json` and
-`restored-final-baseline.json` cover final recovery. Settings,
-certificates, images and raw logs must remain outside Git. USB Apply also saves
-the idle profile; follow the [explicit restoration guidance](../../../tools/config_transfer/README.md)
+The original 4 MB flash was backed up and independently verified, restored
+before installing the checked project image, then the installed flash regions
+were verified. **The board now runs the fixed project image with private bench
+settings**, retaining the original peripheral profile. The laptop's original
+Wi-Fi was restored and its temporary test profile removed; no firewall rule
+changed. No MQTT broker was started during this Wi-Fi check.
+
+Live MQTT commands/results, broker reconnects, HTTPS configuration writes,
+overlapping secure connections and network heap/stack acceptance remain open.
+Allocation counters are not free-heap/peak measurements, and unavailable worker
+stack measurements remain unmeasured.
+
+Fresh local-only evidence is under `build/wifi-20261115/`: the diagnostic
+manifests/results, `project-installed.json`, `project-memory.json`,
+`project-running.json`, `project-after-restart.json`,
+`project-hotspot-cycle.json` and `https-roundtrip.json`. The isolated target
+build is `C:/Users/kkak4/esp/uthome-wifi-fix-20261115`; earlier bench observations
+remain under `build/bench-20261114/`. Settings, certificates, images and raw logs
+must stay outside Git. USB Apply also saves the idle profile; follow the
+[explicit restoration guidance](../../../tools/config_transfer/README.md)
 instead of expecting a reboot to undo it.
 
 ## HTTP and BLE observation contracts
@@ -378,7 +398,9 @@ not replace the manual type, lifetime, concurrency and hardware review.
 
 ## Remaining acceptance
 
-- Live Wi-Fi disconnect/reconnect and verified broker TLS with real settings.
+- Live broker TLS/reconnect with real settings; repeat Wi-Fi checks on the final
+  deployment network rather than extrapolating the hotspot result.
+- HTTPS configuration writes and overlapping MQTT/HTTPS connections.
 - A -> B -> rejected update -> B -> A over MQTT on one running image.
 - Independent I2C/SPI/UART physical transactions and combined-load measurements.
 - Host Home Assistant discovery/display adapter and actual UI observations.
