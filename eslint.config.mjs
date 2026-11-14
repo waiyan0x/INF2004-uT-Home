@@ -3,7 +3,7 @@ import globals from 'globals';
 import { defineConfig } from 'eslint/config';
 
 export default defineConfig([
-  { ignores: ['build/**', 'firmware/third_party/**', 'legacy/**', '**/.desloppify/**'] },
+  { ignores: ['build/**', 'firmware/third_party/**', 'legacy/**'] },
   {
     files: ['tools/configurator/static/**/*.js', 'tools/wiring_visualiser/**/*.mjs', 'tests/target/**/*.mjs', 'tests/browser/**/*.mjs'],
     extends: [js.configs.recommended],

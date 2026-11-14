@@ -145,16 +145,6 @@ verify untouched receive tails, and bound clock calls to expose infinite loops.
 Host faults establish software recovery contracts; physical waveforms, scheduler
 timing and combined hardware acceptance still require the bench procedure.
 
-Fresh software evidence on 2 November 2026: all 21 fault scenarios and 38 target
-qualification checks passed; the full pinned C gate checked 323 files. The
-configuration-app native build in
-`%TEMP%/uthome-desloppify-bus-boundaries-20261102` passed with a 231040-byte image
-(432 bytes above the preceding service/storage build). Its ELF retains the
-12832-byte binding, 16464-byte controller and four-byte bus mutex handles.
-Local logs are `build/desloppify-bus-recovery-r3.log`,
-`build/desloppify-bus-qualification-r1.log` and
-`build/desloppify-bus-native-r1.log`. No board was flashed or exercised.
-
 No driver or service may directly include ESP32-C3 SDK headers. Kernel-specific
 worker calls belong in the runtime adapter. HAL synchronization uses the pinned
 kernel mutex API and the runtime operating-time clock; drivers include neither

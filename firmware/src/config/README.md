@@ -380,15 +380,6 @@ recurring display and PWM policy lives in the fixed-storage `oledwork` and
 [actuator contracts](../services/actuator/README.md). This extraction preserves
 context field order, fixed union storage, driver configuration and cleanup order.
 
-The 2026-11-02 isolated `uthome-desloppify-services-storage-app-20261102`
-application build passes the pinned target/compiler checks. Its RV32 symbols
-retain 12,832 bytes for `g_binding` and 16,464 bytes for the controller, matching
-the preceding application build. The shared metadata view is automatic call
-storage, not another retained controller. The image is 230,608 bytes. This is
-software build evidence; physical behavior and measured stack headroom remain
-separate acceptance work. Host fault, storage and build-tool tests cover the
-extraction and metadata reply/telemetry equivalence.
-
 ## Network Apply arbitration
 
 `cfgmux.c/.h` borrows an idle cfgpump receiver for one authenticated HTTP upload.
