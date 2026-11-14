@@ -3,7 +3,7 @@
   "scope": "Three-protocol Wi-Fi/MQTT application fixed memory; unchanged group/total caps; runtime heap/stack and hardware acceptance unqualified",
   "evidence_basis": {
     "reference": "wifi-station-budget.json (aggregate limits unchanged)",
-    "policy": "New image-specific per-module reservations use the linked transaction map, rounded up to 16 bytes within existing caps; original policy retained. MQTT target payload 112/packet 384. Task-pool cap and existing group/total limits unchanged. Compact configuration views reserve 4128 bytes; the unused cJSON mutable-state reservation is retired. No group or aggregate cap increases."
+    "policy": "New image-specific per-module reservations use the linked transaction map, rounded up to 16 bytes within existing caps; original policy retained. MQTT target payload 112/packet 384. Task-pool cap and existing group/total limits unchanged. Compact configuration views reserve 4128 bytes; the unused cJSON mutable-state reservation is retired. Fixed ESP-TLS contexts, error records and hostname scratch reserve 9056 bytes from reclaimed application capacity. No group or aggregate cap increases."
   },
   "required_evidence": {
     "configuration_application": true,
@@ -34,6 +34,7 @@
     "c3app.c.obj": 42400,
     "tkport.c.obj": 33428,
     "cfgjson.c.obj": 4128,
+    "c3tls.c.obj": 9056,
     "activate.c.obj": 3955,
     "msgbus.c.obj": 2240,
     "sampcache.c.obj": 1440,

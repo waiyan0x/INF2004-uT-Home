@@ -94,6 +94,9 @@ RUNTIME_SOURCE_FILES = {
     'firmware/src/network/netpool.h': 'network/netpool.h',
     'firmware/hal/ports/esp32c3/network/c3lbox.c': 'hal/c3lbox.c',
     'firmware/hal/ports/esp32c3/network/c3lbox.h': 'hal/c3lbox.h',
+    'firmware/hal/ports/esp32c3/network/c3tls.c': 'hal/c3tls.c',
+    'firmware/hal/ports/esp32c3/network/c3tls.h': 'hal/c3tls.h',
+    'tests/target/runtime_port_board/main/tlsmem.cmake': 'main/tlsmem.cmake',
     'firmware/hal/ports/esp32c3/network/c3nq.c': 'hal/c3nq.c',
     'firmware/hal/ports/esp32c3/network/c3nq.h': 'hal/c3nq.h',
     'tests/target/runtime_port_board/main/netqueue.cmake': 'main/netqueue.cmake',
@@ -680,6 +683,56 @@ def check_mailbox_symbols(symbols, enabled):
                 storage="Existing eight shared fixed queue payloads; no added mutable storage")
 
 
+def check_tls_storage(commands, symbols, enabled):
+    """Fail closed on escaped allocator bindings or original error-tracker code."""
+    sources = {"esp_tls.c", "esp_tls_mbedtls.c"}
+    bindings = {"calloc": "c3tls_alloc", "free": "c3tls_free", "strndup": "c3tls_dup"}
+    observed = set()
+    for entry in commands:
+        name = Path(entry["file"]).name
+        found = re.findall(r'(?:^|\s)-D\s*"?(calloc|free|strndup)=(c3tls_\w+)"?', entry["command"])
+        expected = bindings if enabled and name in sources else {}
+        if dict(found) != expected or len(found) != len(expected):
+            raise QualificationError("ESP-TLS allocator binding escaped its source: " + name)
+        if expected:
+            if name in observed:
+                raise QualificationError("Duplicate ESP-TLS compiler input: " + name)
+            observed.add(name)
+    if enabled and observed != sources:
+        raise QualificationError("Missing ESP-TLS allocator compiler input")
+    aliases = {
+        "esp_tls_internal_event_tracker_create": "c3tls_error_create",
+        "esp_tls_internal_event_tracker_destroy": "c3tls_error_destroy",
+        "esp_tls_internal_event_tracker_capture": "c3tls_error_capture",
+        "esp_tls_get_and_clear_error_type": "c3tls_error_get",
+    }
+    owned = set(bindings.values()) | set(aliases.values())
+    if not enabled:
+        if any(name in symbols for name in owned):
+            raise QualificationError("ESP-TLS storage escaped selected Wi-Fi services")
+        return dict(enabled=False)
+    for name in owned:
+        if not 0x42000000 <= symbols.get(name, 0) < 0x43000000:
+            raise QualificationError("ESP-TLS storage helper absent or consumes RAM code: " + name)
+    for original, replacement in aliases.items():
+        if original in symbols or symbols.get("__wrap_" + original) != symbols[replacement]:
+            raise QualificationError("Invalid ESP-TLS error-tracker alias: " + original)
+    for name in ("esp_tls_init", "esp_tls_conn_destroy", "esp_mbedtls_server_session_delete"):
+        if name not in symbols:
+            raise QualificationError("Selected SDK TLS lifecycle missing: " + name)
+    return dict(enabled=True, allocator_sources=sorted(sources), bindings=bindings,
+                error_aliases=aliases, context_slots=3, error_slots=3, hostname_bytes=254,
+                qualification="ESP-TLS records only; mbedTLS and lwIP heap paths remain open")
+
+
+def verify_tls_storage(work, enabled):
+    commands = json.loads((work / "build/compile_commands.json").read_text(encoding="utf-8"))
+    output = run(["riscv32-esp-elf-nm", "-n", work / "build/uthome_runtime_port.elf"])
+    symbols = {name: int(address, 16) for address, _, name in
+               re.findall(r"^([0-9a-fA-F]+)\s+(\w)\s+(\S+)$", output, re.MULTILINE)}
+    return check_tls_storage(commands, symbols, enabled)
+
+
 def verify_queue_adapter(work, enabled, wifi_services=False):
     commands = json.loads((work / "build/compile_commands.json").read_text(encoding="utf-8"))
     owned = [entry for entry in commands if Path(entry["file"]).name == "c3nq.c"]
@@ -760,9 +813,9 @@ def verify_compile_profiles(work, startup_trace=False):
         profiles[source] = expected
     for path, command in commands.items():
         adapted = "-Dasm=__asm__" in command
-        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c")}):
+        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c")}):
             raise QualificationError("SDK assembly spelling adaptation escaped its adapter")
-    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c"):
+    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c"):
         owned_radio = (work / "project/hal" / name).read_text()
         if re.search(r"\b(?:asm|__asm__|typeof|__typeof__)\b", owned_radio):
             raise QualificationError("Owned radio adapter must remain C99: " + name)
@@ -1204,6 +1257,8 @@ def build(kernel, sdk, work, *legacy_args, selection=None, compat_patch=None,
             evidence["startup_trace_link"] = verify_startup_link(work, selection.mode is BuildMode.WIFI)
             evidence["network_queue_adapter"] = verify_queue_adapter(
                 work, selection.static_net_queues, selection.network_services in ("wifi", "both"))
+            evidence["tls_record_storage"] = verify_tls_storage(
+                work, selection.static_net_queues and selection.network_services in ("wifi", "both"))
             evidence["static_task_link"] = verify_static_task_link(
                 work, static_tasks,
                 selection.mode in (BuildMode.WIFI, BuildMode.BLE))

@@ -456,6 +456,39 @@ class QualificationTests(unittest.TestCase):
                 with self.subTest(name=name, value=value), self.assertRaises(qualification.QualificationError):
                     qualification.check_queue_symbols(damaged, aliases)
 
+    def test_tls_storage_rejects_missing_or_escaped_allocator_bindings(self):
+        flags = ' -Dcalloc=c3tls_alloc -Dfree=c3tls_free -Dstrndup=c3tls_dup'
+        commands = [dict(file='/sdk/esp-tls/' + name, command='gcc' + flags)
+                    for name in ('esp_tls.c', 'esp_tls_mbedtls.c')]
+        aliases = {
+            'esp_tls_internal_event_tracker_create': 'c3tls_error_create',
+            'esp_tls_internal_event_tracker_destroy': 'c3tls_error_destroy',
+            'esp_tls_internal_event_tracker_capture': 'c3tls_error_capture',
+            'esp_tls_get_and_clear_error_type': 'c3tls_error_get',
+        }
+        names = ['c3tls_alloc', 'c3tls_free', 'c3tls_dup', *aliases.values(),
+                 'esp_tls_init', 'esp_tls_conn_destroy', 'esp_mbedtls_server_session_delete']
+        symbols = {name: 0x42001000 + index * 32 for index, name in enumerate(names)}
+        symbols.update({'__wrap_' + original: symbols[owned] for original, owned in aliases.items()})
+        self.assertEqual(qualification.check_tls_storage(commands, symbols, True)['context_slots'], 3)
+        self.assertEqual(qualification.check_tls_storage([], {}, False), {'enabled': False})
+        for damaged in (commands[:1], commands + [commands[0]],
+                        commands + [dict(file='/sdk/crypto.c', command='gcc' + flags)],
+                        [commands[0], dict(commands[1], command='gcc -Dcalloc=c3tls_alloc')],
+                        [commands[0], dict(commands[1], command='gcc' + flags + ' -Dfree=c3tls_free')]):
+            with self.subTest(commands=damaged), self.assertRaises(qualification.QualificationError):
+                qualification.check_tls_storage(damaged, symbols, True)
+        for damaged in (dict(symbols, c3tls_alloc=0),
+                        dict(symbols, c3tls_free=0x40380000),
+                        dict(symbols, esp_tls_internal_event_tracker_create=0x42002000),
+                        dict(symbols, __wrap_esp_tls_internal_event_tracker_create=0x42002000),
+                        {name: address for name, address in symbols.items() if name != 'esp_tls_init'}):
+            with self.subTest(symbols=damaged), self.assertRaises(qualification.QualificationError):
+                qualification.check_tls_storage(commands, damaged, True)
+        for disabled_commands, disabled_symbols in ((commands, {}), ([], symbols)):
+            with self.assertRaises(qualification.QualificationError):
+                qualification.check_tls_storage(disabled_commands, disabled_symbols, False)
+
     def test_mailbox_link_proof_rejects_heap_paths_and_mutable_identities(self):
         symbols = {"c3lbox_new": 0x42001000, "c3lbox_free": 0x42002000,
                    "__wrap_sys_mbox_new": 0x42001000, "__wrap_sys_mbox_free": 0x42002000,

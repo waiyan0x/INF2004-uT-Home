@@ -415,3 +415,13 @@ current plan/discovery callers retain it for that entire serialized call.
 [manual review](firmware/src/config/README.md#admission-c-review) covers bounds,
 decoding, exact integer conversion and lifetime. No exception, formatter or
 language-profile change is introduced; pinned vendor sources remain intact.
+
+## Fixed ESP-TLS records
+
+`c3tls` owns typed connection/error records and bounded temporary names for the
+selected serialized Wi-Fi services. The pinned SDK retains protocol and socket
+lifecycle; source-scoped allocator substitutions and linker aliases preserve
+its ABI. The [manual review](firmware/hal/ports/esp32c3/network/README.md#tls-record-c-review)
+covers alignment, subobject lifetime, handle reuse, error conversions and bounds.
+No policy exception or language-profile expansion is added. This does not qualify
+the remaining mbedTLS/lwIP allocations or combined hardware behavior.
