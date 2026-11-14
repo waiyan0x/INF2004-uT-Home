@@ -4,130 +4,161 @@
 
 **The transaction image passes fixed-linker budgets but does not satisfy the
 whole-system no-application-heap requirement yet.** This assessment covers the
-actual Wi-Fi/MQTT configuration application, not just the isolated station
-fixture described below. The source requirement includes network communication;
-the contemplated Wi-Fi-driver exception does not automatically exempt TLS,
-TCP/IP or ESP-TLS contexts. The mailbox path is now covered by the bounded
-adapter described below.
+actual Wi-Fi/MQTT configuration application. MQTT and HTTPS setup must remain
+available together, as confirmed by the user; USB setup/recovery remains too.
+The contemplated Wi-Fi-driver exception does not automatically exempt TLS,
+TCP/IP or ESP-TLS contexts.
 
-The pre-mailbox 14 November 2026 session baseline used pinned ESP-IDF 6.1
+The current build uses pinned ESP-IDF 6.1
 `fff9895c82d744c7237be8847347bdd1b07c6643`, kernel
 `ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2` and the maintained owned patches.
 Build-only dummy settings were used; no board was flashed and no live broker was
-contacted. Local generated evidence is in `build/step1-verification/` and the
-isolated build directory `C:/Users/kkak4/esp/uthome-session-mqtt-20261114/`.
+contacted. Local generated evidence is in `build/compact-json/` and the isolated
+build directory `C:/Users/kkak4/esp/uthome-json-views-final-20261114/`.
 The target's `evidence.json` SHA-256 is
-`bd746cb966b0623b028825cbeb1f1bb276807090a1868e4b27895831df48a0e8`.
+`8d1863781fedb1fdceaf7e84b0375a82ad1c5309919f9dcf2ab540ecad3f876d`.
+Source-snapshot verification passes against the original build inputs.
 
 | Fixed-memory group | Linked bytes | Unchanged cap | Headroom |
 |---|---:|---:|---:|
-| Application | 146,819 | 147,456 | 637 |
+| Application | 122,218 | 147,456 | 25,238 |
 | Task pool | 18,499 | 18,560 | 61 |
-| SDK/kernel | 54,226 | 55,296 | 1,070 |
+| SDK/kernel | 54,227 | 55,296 | 1,069 |
 | RAM code | 56,386 | 57,152 | 766 |
-| Total DRAM | 275,930 | 278,528 | 2,598 |
+| Total DRAM | 251,330 | 278,528 | 27,198 |
 | RTC, separate from DRAM | 60 | 128 | 68 |
 
-The transaction owner uses 817/880 bytes, down 24 bytes from the cleanup build.
-Its linked decision state is 448 bytes and bus-adapter state 168 bytes. MQTT is
-still 1,816/1,824 bytes, HTTPS 3,098/3,104, and network metadata 84/96. These are
-map measurements, **not runtime free heap, task stack margins or ESP timing**.
-The decision path adds no heap, task or kernel object. Its work is bounded by
-one 96-byte command/reply/cache, a 16-byte name and 30 TX / 32 RX bytes. Each
-owner tick advances at most one driver poll; a status query does not poll.
+These are linker measurements, **not runtime free heap, task stack margins or
+ESP timing**. The published mailbox baseline (`eede615`) used 275,930 fixed DRAM
+bytes: the current image saves **24,600 bytes**. All aggregate caps are unchanged.
+MQTT remains 1,816/1,824 bytes and HTTPS 3,098/3,104; future network storage needs
+an explicit module reservation within the application cap.
 
-### Fixed mailbox update, 14 November 2026
+### Reclaimed configuration storage
 
-The fresh `C:/Users/kkak4/esp/uthome-mailbox-mqtt-20261114/` build uses the same
-SDK/kernel pins, settings shape and unchanged budgets. Every group in the table
-above is unchanged, including 275,930 total fixed DRAM bytes. Its evidence SHA-256
-is `97453e1a9c45a3e06983e8a6980da0dc476f956c6deeb6bf540091ee361938ed`.
-Generated reports are local-only in `build/network-memory/`. The build, source
-snapshot verification, full 327-file C gate and manual review pass.
+`cfgjson` now reads the caller's existing configuration bytes through 512 typed,
+eight-byte views instead of retaining a copied cJSON tree/text. The target module
+uses 4,117 bytes including bookkeeping, with its transaction reservation reduced
+to 4,128. The unlinked cJSON mutable-storage rows are removed from current budget
+policies; the pinned vendor source remains unchanged. The profile schema and
+admission limits remain intact. Input is borrowed until close; production
+plan/discovery callers finish reading and copy scalar settings before returning.
+See the [contract and manual review](../../../firmware/src/config/README.md#admission-c-review).
+
+The full target suite passed 482 cases. After adding one further malformed-string
+and duplicate-key test, all seven compact-reader cases passed. Together with
+56 C-policy, 27 foundation and 19 runtime tests, **585 distinct software tests
+passed**. Reader tests include 500 generated nested documents and 2,000 grammar
+mutations checked against an independent Python decoder, plus explicit numeric,
+string, capacity, depth and lifetime cases. Actual owned C is compiled with
+warnings as errors; allocator interception verifies no reader allocation calls.
+The full 327-file pinned C gate, manual review and real target build also pass.
+
+### Fixed lwIP mailboxes
 
 `c3lbox` replaces the allocating/freeing SDK mailbox functions and uses the
-existing eight shared queue slots. Target symbols confirm both aliases, absence
-of the original `sys_mbox_new`/`sys_mbox_free`, and eight distinct typed identities
-in flash. Those identities occupy 672 flash bytes; their pointer table occupies
-32 more. The adapter adds **zero mutable storage** and no extra native objects.
-Its two entry points and two queue-binding helpers are flash code. This does not
-quantify runtime heap savings: the number of live mailboxes has not been measured.
+existing eight shared queue slots. Target-link checks confirm both aliases and
+absence of the original `sys_mbox_new`/`sys_mbox_free`. Eight distinct typed
+identities use 672 flash bytes, plus a 32-byte pointer table. The adapter adds
+**zero mutable storage** and no extra native objects. Its entry points and
+queue-binding helpers are flash code. The number of live mailboxes has not been
+measured, so this does not quantify runtime heap savings.
 
-Verification covers 476 target-facing tests, 56 C-policy tests, 27 foundation
-tests and 19 runtime tests: 578 distinct tests passed. Seven target modules were
-rerun after their imports initially hit a sandbox dependency-access error;
-the other 390 target tests passed in the first run and those modules' 86 tests
-passed on retry. The focused mailbox tests include 1,000 create/free cycles,
-shared exhaustion, exact-capacity and invalid requests, zero-valued messages,
-ISR posting and nonempty-close preservation. JavaScript lint also passes.
-See the [adapter contract and manual review](../../../firmware/hal/ports/esp32c3/network/README.md#fixed-lwip-mailboxes).
-
-This closes the mailbox-backing allocation path for selected Wi-Fi service
-builds. TLS, packet/connection storage and other reachable SDK allocations below
-remain open. There was no board flash or live broker test.
+Focused tests cover 1,000 create/free cycles, shared exhaustion, exact-capacity
+and invalid requests, zero-valued messages, ISR posting and nonempty-close
+preservation. See the
+[adapter contract and manual review](../../../firmware/hal/ports/esp32c3/network/README.md#fixed-lwip-mailboxes).
+This closes mailbox backing for selected Wi-Fi service builds; shared capacity
+and live-network acceptance still require the board.
 
 ### Reachable allocation paths
 
 The following paths were checked in the pinned SDK source and selected compiler
-commands. The current ELF still links `esp_tls_init`, `mbedtls_ssl_setup`,
+commands. The ELF still links `esp_tls_init`, `mbedtls_ssl_setup`,
 `esp_mbedtls_mem_calloc`, `netconn_alloc` and `memp_malloc`. Those SDK compilation
 units have no allocator-replacement definitions; mailbox creation/free alone
-now use the owned adapter. Merely
-linking an allocator would not prove reachability; the owned call sites below
-are the entry paths.
+use the owned adapter. Linking an allocator alone would not prove reachability;
+the owned entry paths below establish application use.
 
 | Area | Source path and behavior | Assessment |
 |---|---|---|
-| Decision, codec and MQTT packet storage | `txjob`, `txport`, `c3tx`, `netmqtt`, `netbroker`, `c3mqtt`: fixed owned state and bounded copied buffers | No new application allocator/object path in this change; reviewed and software-tested |
-| Native task stacks/notifications | `c3task` plus the owned task compatibility patch reserve/seal startup slots | Software and target-link checks pass; runtime stack/creation counters still need the selected board |
-| Native queues/semaphores/mutexes/event groups | `c3nq`/`c3event` pre-create native objects; SDK create/delete APIs lease/release fixed records | Lease reuse does not mean new native objects; exhaustion is bounded. This does not cover the SDK's surrounding heap storage |
-| MQTT TLS | `c3mqtt` connection callback calls `esp_tls_init()`; `components/esp-tls/esp_tls.c` allocates its context with `calloc`; async setup enters mbedTLS | Reachable on first connection and reconnect; violates the current no-heap objective outside any approved exception |
-| HTTPS TLS | `c3https` accepts up to two clients and creates ESP-TLS sessions at runtime | Adds the same context/certificate/record-buffer allocation issue; limits on client count alone do not make it static |
-| TLS record buffers | `components/mbedtls/mbedtls/library/ssl_tls.c`, `mbedtls_ssl_setup()` allocates input/output buffers; `port/esp_mem.c` routes calloc to internal heap | Selected config: internal allocator, 16,384-byte input and 4,096-byte output content lengths, dynamic-buffer option off. Turning that option off does **not** remove heap allocation |
-| TCP/IP connections and packets | `components/lwip/port/include/lwipopts.h` sets `MEM_LIBC_MALLOC=1`, `MEMP_MEM_MALLOC=1`; `api/api_msg.c` allocates netconn records and receive mailboxes for connections | Application network activity reaches general heap-backed pools; not just a Wi-Fi-driver implementation detail |
-| lwIP mailbox backing | Wi-Fi services link `c3lbox` instead of the SDK allocating creation/free functions; messages use existing `c3nq` payloads | Bounded software/target-link proof passes; shared queue capacity and live-network acceptance still require the board |
-| Wi-Fi/SDK startup and events | `c3wsta` creates the network interface/default event loop and registers callbacks; the radio uses its SDK allocations | Inventory and explicitly justify any narrow driver exception. Do not extend it to all SDK networking by implication |
+| Decision, codec and MQTT packet storage | `txjob`, `txport`, `c3tx`, `netmqtt`, `netbroker`, `c3mqtt`: fixed owned state and bounded copied buffers | No application allocator/object path; reviewed and software-tested |
+| Native task stacks/notifications | `c3task` and the owned compatibility patch reserve/seal startup slots | Software and target-link checks pass; runtime stack/creation counters need the board |
+| Native queues/semaphores/mutexes/event groups | `c3nq`/`c3event` pre-create native objects; SDK create/delete APIs lease/release fixed records | Bounded exhaustion/reuse; does not cover surrounding SDK heap storage |
+| MQTT TLS | `c3mqtt` connection callback calls `esp_tls_init()`; ESP-TLS allocates its context with `calloc`, then enters mbedTLS | Reachable on first connection and reconnect; outside the contemplated Wi-Fi-driver exception |
+| HTTPS TLS | `c3https` accepts up to two clients and creates ESP-TLS sessions at runtime | Same context/certificate/record-buffer issue; client limits alone do not make it static |
+| TLS record buffers | `ssl_tls.c` allocates input/output buffers; `port/esp_mem.c` routes calloc to internal heap | Internal allocator, 16,384-byte input and 4,096-byte output content lengths; dynamic-buffer option off. This option does not eliminate allocation |
+| TCP/IP connections and packets | `lwipopts.h` sets `MEM_LIBC_MALLOC=1`, `MEMP_MEM_MALLOC=1`; `api/api_msg.c` allocates netconn records | Application network activity reaches general heap-backed pools |
+| lwIP mailbox backing | Wi-Fi builds link `c3lbox`; messages use existing `c3nq` payloads | Bounded software/target-link proof passes; shared capacity needs live acceptance |
+| Wi-Fi/SDK startup and events | `c3wsta` creates the network interface/event loop and registers callbacks; radio code uses SDK allocations | Inventory and justify any narrow driver exception; do not exempt all SDK networking by implication |
 
-One TLS connection's configured record-content capacities alone total 20,480
-bytes, before context, certificate and handshake overhead. They cannot simply
-be moved into the current 2,598-byte total headroom. Three simultaneous TLS
-sessions are possible (one MQTT plus two HTTPS); this is a source capacity
-observation, not a measured peak or an allocation reservation.
+### TLS capacity constraint
+
+A standalone sizing object compiled with the selected RV32 target configuration
+reports the following. It was not linked into firmware or run on the board.
+Local probe source, compiler arguments and results are in `build/compact-json/`.
+
+| Selected target type or macro | Bytes |
+|---|---:|
+| `sizeof(esp_tls_t)` | 2,912 |
+| `sizeof(mbedtls_ssl_context)`; already included above | 264 |
+| `sizeof(mbedtls_ssl_handshake_params)` | 2,448 |
+| `MBEDTLS_SSL_IN_BUFFER_LEN` | 16,717 |
+| `MBEDTLS_SSL_OUT_BUFFER_LEN` | 4,429 |
+
+One ESP-TLS context and its record-buffer pair require **24,058 bytes**, before
+certificates, keys, transforms and handshake allocations. One MQTT and one HTTPS
+session therefore require at least 48,116 bytes with the current buffer
+lifetimes, above the 25,238-byte application headroom. The source allows two
+HTTPS clients, making that three-session subtotal 72,174 bytes. These subtotals
+are compile-time capacity observations, not measured peak use or a new storage
+reservation; the included SSL context must not be counted twice.
+
+The next design must account for buffer and handshake lifetimes as well as
+bounded allocation. Investigate the pinned SDK's dynamic-record-buffer path and
+connection admission without disabling TLS checks or removing simultaneous
+MQTT/HTTPS. Dynamic buffers alone still allocate from a heap; no such option,
+allocator binding or connection-policy change is implemented here.
 
 ### Required closure before whole-system acceptance
 
-1. Reclaim and explicitly budget storage, then provide bounded owned adapters or
-   scoped build-time allocator bindings for ESP-TLS/mbedTLS and the reachable
-   lwIP allocations. Include lifetime, concurrency, exhaustion, alignment and
-   cleanup behavior. Preserve pinned vendor source and all existing budget caps.
-2. Review connection counts and optional HTTPS setup/recovery duties as part of
-   that design. Reducing HTTPS clients alone does not solve MQTT's allocation
-   paths. Do not disable TLS authentication or weaken the memory requirement to
-   obtain a passing result.
-3. Run exhaustion and reconnect tests against the adapted real SDK paths, then
-   rebuild and check every module and aggregate reservation. A fixed arena with
-   hidden unbounded fallback is not an acceptable replacement.
+1. Use reclaimed storage for bounded owned adapters or scoped allocator bindings
+   covering ESP-TLS/mbedTLS and reachable lwIP allocations. Establish lifetime,
+   concurrency, exhaustion, alignment and cleanup behavior before assigning
+   capacities. Preserve vendor pins and all aggregate budget caps.
+2. Preserve simultaneous MQTT and HTTPS setup plus USB recovery. Budget their
+   overlapping lifetimes; reducing HTTPS client count alone does not solve the
+   TLS storage issue. Keep certificate and server-name checks intact.
+3. Test exhaustion and reconnect against the adapted real SDK paths, then rebuild
+   and check every module and aggregate reservation. A fixed arena with unbounded
+   fallback is not acceptable.
 4. On the selected board, capture `c3audit`/task counters and stack headroom at
-   startup, initial TLS connection, repeated reconnect and concurrent permitted
+   startup, first TLS connection, repeated reconnect and concurrent permitted
    peripheral/configuration traffic. Verify no post-startup native object
    creation and classify every remaining heap event under an explicit policy.
 
-This is a concrete blocker assessment, not completed resource acceptance.
-No runtime heap/stack measurement, live MQTT, hardware bus or Home Assistant
-acceptance is claimed. The next implementation priority is the bounded network
-allocation design; the persistent host controller follows the session contract.
+This is not completed resource acceptance. No runtime heap/stack measurement,
+live MQTT, hardware bus or Home Assistant acceptance is claimed. The persistent
+host controller follows this network allocation work.
 
 For reproduction, use the [target build guide](../../../tools/target/README.md)
-and [transaction policy](../../../tools/target/transaction-budget.json):
+with `--runtime-port --configuration-app --static-net-queues --network-services wifi`
+and private build settings, then the
+[transaction policy](../../../tools/target/transaction-budget.json):
 
 ```powershell
-python tools/target/memory_budget.py --build ABSOLUTE_FRESH_BUILD --budget tools/target/transaction-budget.json --output build/network-memory/memory.json
-python tools/target/qualify_kernel.py verify-snapshot --project-dir ABSOLUTE_FRESH_BUILD/project
+python tools/target/memory_budget.py --build ABSOLUTE_FRESH_WORK_DIR --budget tools/target/transaction-budget.json --output build/compact-json/memory-new.json
+python tools/target/qualify_kernel.py verify-snapshot --project-dir ABSOLUTE_FRESH_WORK_DIR/project
+python tools/c_standard/check.py
+python -B -m unittest discover -s tests/target -v
+python -B -m unittest discover -s tests/c_standard -v
+python -B -m unittest discover -s tests/foundation -v
+python -B -m unittest discover -s tests/runtime -v
 ```
 
-The selected toolchain and pinned formatter must be active. Keep generated
-reports and private provisioning inputs under ignored `build/`; the original
-source snapshot must remain unchanged when verifying evidence.
+The selected toolchain, test dependencies and pinned formatter must be active.
+Keep generated reports and private provisioning inputs under ignored `build/`;
+leave the original source snapshot unchanged when verifying evidence.
 
 ## Existing task-stack and lifecycle implementation
 

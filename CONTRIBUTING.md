@@ -108,12 +108,13 @@ rule must not require another build.
 | MQTT | Bounded ESP transport and a one-shot TLS host client | Status query/boot binding implemented; long-running controller and durable restart recovery remain |
 | UI | Existing Configuration Desk supports USB profiles and recovery | Runtime Markdown selection, rule loading/execution and result presentation |
 | Home Assistant | Intended host-adapter boundary is documented | Adapter and live integration are not implemented |
-| Verification | Cleanup baseline: 663 software tests, full 325-file C gate and a real target build passed | Real Wi-Fi/TLS/bus acceptance and whole-system resource measurements |
+| Verification | Current configuration/network work: 585 software tests, full 327-file C gate and a real target build passed | Real Wi-Fi/TLS/bus acceptance and whole-system resource measurements |
 
-The current mailbox-adapter build uses 275,930 of 278,528 fixed DRAM bytes, leaving
-2,598 bytes in the total budget and 637 in the application group. MQTT still has
-only 8 bytes within its module reservation. Generated verification is under
-ignored `build/network-memory/`. Fixed-linker fit is not free-heap or stack
+The current compact-configuration build uses 251,330 of 278,528 fixed DRAM bytes,
+leaving 27,198 bytes in the total budget and 25,238 in the application group.
+MQTT still has only 8 bytes within its module reservation; future network storage
+needs its own explicit reservation. Generated verification is under ignored
+`build/compact-json/`. Fixed-linker fit is not free-heap or stack
 acceptance; TLS/TCP/IP allocation remains a concrete integration blocker.
 
 ### 1. Close session and resource risks first
@@ -132,12 +133,13 @@ operation kind, byte counts and bus settings. One-shot CLI status and explicit
 boot binding are available; automatic/durable controller recovery belongs to
 Step 2. A reconnect never authorizes repeating a write with a new ID.
 
-Verification: 476 target-facing tests (including 43 transaction/description
+Verification: 483 target-facing tests (including 43 transaction/description
 cases), 56 C-policy tests, 27 foundation tests and 19 runtime tests pass. The full
 327-file C standard gate, manual review, fresh ESP32-C3 build, source-snapshot
-verification and unchanged fixed-memory budgets pass. This totals 578 distinct
-software tests in the current run; no live broker or equipment acceptance is
-claimed.
+verification and unchanged group/total fixed-memory caps pass. This totals 585
+distinct software tests: the full target suite passed 482 cases, then all seven
+compact-reader tests passed after adding one further malformed-string/duplicate
+case. No live broker or equipment acceptance is claimed.
 
 The [current resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
 identifies reachable heap allocation in ESP-TLS contexts, mbedTLS buffers,
@@ -145,9 +147,16 @@ lwIP netconn/packet pools and other SDK state. The mailbox backing path now uses
 the existing fixed queues, with exhaustion/reuse tests and linked-target proof;
 that change adds no fixed RAM or native objects. The Wi-Fi-driver exception does
 not exempt these application network paths. Static native tasks/queues alone
-are insufficient. The configured TLS record capacities alone exceed current
-headroom, so moving allocations into a fixed pool needs reclaimed storage and
-a reviewed capacity/lifetime design. Keep the existing caps and TLS checks.
+are insufficient. Compact configuration views reclaimed 24,600 fixed DRAM bytes
+without changing the profile schema. Target-compiled sizing still puts two
+concurrent ESP-TLS contexts and record-buffer pairs at 48,116 bytes before
+certificates and handshakes, above the reclaimed application headroom. A bounded
+allocator therefore also needs a reviewed buffer-lifetime/capacity design.
+Keep the existing caps and TLS checks; sizing is not a measured runtime peak.
+
+**Required setup:** MQTT and HTTPS must remain available together; retain USB
+setup/recovery. Budget overlapping secure connections rather than removing
+HTTPS to save memory.
 
 **Next priority:** implement bounded network allocation with deterministic
 exhaustion and reconnect tests; then capture startup/reconnect/normal-operation
