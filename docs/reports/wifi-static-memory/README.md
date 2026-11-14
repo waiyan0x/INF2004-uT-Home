@@ -1,4 +1,107 @@
-# Buddy 1 fixed task-stack and lifecycle report
+# Wi-Fi static memory and resource assessment
+
+## Current network resource assessment
+
+**The transaction image passes fixed-linker budgets but does not satisfy the
+whole-system no-application-heap requirement yet.** This assessment covers the
+actual Wi-Fi/MQTT configuration application, not just the isolated station
+fixture described below. The source requirement includes network communication;
+the contemplated Wi-Fi-driver exception does not automatically exempt TLS,
+TCP/IP, ESP-TLS contexts or SDK mailboxes.
+
+The 14 November 2026 session build used pinned ESP-IDF 6.1
+`fff9895c82d744c7237be8847347bdd1b07c6643`, kernel
+`ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2` and the maintained owned patches.
+Build-only dummy settings were used; no board was flashed and no live broker was
+contacted. Local generated evidence is in `build/step1-verification/` and the
+isolated build directory `C:/Users/kkak4/esp/uthome-session-mqtt-20261114/`.
+The target's `evidence.json` SHA-256 is
+`bd746cb966b0623b028825cbeb1f1bb276807090a1868e4b27895831df48a0e8`.
+
+| Fixed-memory group | Linked bytes | Unchanged cap | Headroom |
+|---|---:|---:|---:|
+| Application | 146,819 | 147,456 | 637 |
+| Task pool | 18,499 | 18,560 | 61 |
+| SDK/kernel | 54,226 | 55,296 | 1,070 |
+| RAM code | 56,386 | 57,152 | 766 |
+| Total DRAM | 275,930 | 278,528 | 2,598 |
+| RTC, separate from DRAM | 60 | 128 | 68 |
+
+The transaction owner uses 817/880 bytes, down 24 bytes from the cleanup build.
+Its linked decision state is 448 bytes and bus-adapter state 168 bytes. MQTT is
+still 1,816/1,824 bytes, HTTPS 3,098/3,104, and network metadata 84/96. These are
+map measurements, **not runtime free heap, task stack margins or ESP timing**.
+The decision path adds no heap, task or kernel object. Its work is bounded by
+one 96-byte command/reply/cache, a 16-byte name and 30 TX / 32 RX bytes. Each
+owner tick advances at most one driver poll; a status query does not poll.
+
+### Reachable allocation paths
+
+The following paths were checked in the pinned SDK source and selected compiler
+commands. The fresh ELF links `esp_tls_init`, `mbedtls_ssl_setup`,
+`esp_mbedtls_mem_calloc`, `netconn_alloc`, `memp_malloc` and `sys_mbox_new`.
+Those SDK compilation units have no allocator-replacement definitions. Merely
+linking an allocator would not prove reachability; the owned call sites below
+are the entry paths.
+
+| Area | Source path and behavior | Assessment |
+|---|---|---|
+| Decision, codec and MQTT packet storage | `txjob`, `txport`, `c3tx`, `netmqtt`, `netbroker`, `c3mqtt`: fixed owned state and bounded copied buffers | No new application allocator/object path in this change; reviewed and software-tested |
+| Native task stacks/notifications | `c3task` plus the owned task compatibility patch reserve/seal startup slots | Software and target-link checks pass; runtime stack/creation counters still need the selected board |
+| Native queues/semaphores/mutexes/event groups | `c3nq`/`c3event` pre-create native objects; SDK create/delete APIs lease/release fixed records | Lease reuse does not mean new native objects; exhaustion is bounded. This does not cover the SDK's surrounding heap storage |
+| MQTT TLS | `c3mqtt` connection callback calls `esp_tls_init()`; `components/esp-tls/esp_tls.c` allocates its context with `calloc`; async setup enters mbedTLS | Reachable on first connection and reconnect; violates the current no-heap objective outside any approved exception |
+| HTTPS TLS | `c3https` accepts up to two clients and creates ESP-TLS sessions at runtime | Adds the same context/certificate/record-buffer allocation issue; limits on client count alone do not make it static |
+| TLS record buffers | `components/mbedtls/mbedtls/library/ssl_tls.c`, `mbedtls_ssl_setup()` allocates input/output buffers; `port/esp_mem.c` routes calloc to internal heap | Selected config: internal allocator, 16,384-byte input and 4,096-byte output content lengths, dynamic-buffer option off. Turning that option off does **not** remove heap allocation |
+| TCP/IP connections and packets | `components/lwip/port/include/lwipopts.h` sets `MEM_LIBC_MALLOC=1`, `MEMP_MEM_MALLOC=1`; `api/api_msg.c` allocates netconn records and receive mailboxes for connections | Application network activity reaches general heap-backed pools; not just a Wi-Fi-driver implementation detail |
+| lwIP mailbox backing | `components/lwip/port/freertos/sys_arch.c::sys_mbox_new()` calls `heap_caps_malloc` before `xQueueCreateStatic` | Fixed native queue adaptation does not eliminate this separate allocation |
+| Wi-Fi/SDK startup and events | `c3wsta` creates the network interface/default event loop and registers callbacks; the radio uses its SDK allocations | Inventory and explicitly justify any narrow driver exception. Do not extend it to all SDK networking by implication |
+
+One TLS connection's configured record-content capacities alone total 20,480
+bytes, before context, certificate and handshake overhead. They cannot simply
+be moved into the current 2,598-byte total headroom. Three simultaneous TLS
+sessions are possible (one MQTT plus two HTTPS); this is a source capacity
+observation, not a measured peak or an allocation reservation.
+
+### Required closure before whole-system acceptance
+
+1. Reclaim and explicitly budget storage, then provide bounded owned adapters or
+   scoped build-time allocator bindings for ESP-TLS/mbedTLS and the reachable
+   lwIP allocations. Include lifetime, concurrency, exhaustion, alignment and
+   cleanup behavior. Preserve pinned vendor source and all existing budget caps.
+2. Review connection counts and optional HTTPS setup/recovery duties as part of
+   that design. Reducing HTTPS clients alone does not solve MQTT's allocation
+   paths. Do not disable TLS authentication or weaken the memory requirement to
+   obtain a passing result.
+3. Run exhaustion and reconnect tests against the adapted real SDK paths, then
+   rebuild and check every module and aggregate reservation. A fixed arena with
+   hidden unbounded fallback is not an acceptable replacement.
+4. On the selected board, capture `c3audit`/task counters and stack headroom at
+   startup, initial TLS connection, repeated reconnect and concurrent permitted
+   peripheral/configuration traffic. Verify no post-startup native object
+   creation and classify every remaining heap event under an explicit policy.
+
+This is a concrete blocker assessment, not completed resource acceptance.
+No runtime heap/stack measurement, live MQTT, hardware bus or Home Assistant
+acceptance is claimed. The next implementation priority is the bounded network
+allocation design; the persistent host controller follows the session contract.
+
+For reproduction, use the [target build guide](../../../tools/target/README.md)
+and [transaction policy](../../../tools/target/transaction-budget.json):
+
+```powershell
+python tools/target/memory_budget.py --build ABSOLUTE_FRESH_BUILD --budget tools/target/transaction-budget.json --output build/step1-verification/memory.json
+python tools/target/qualify_kernel.py verify-snapshot --project-dir ABSOLUTE_FRESH_BUILD/project
+```
+
+The selected toolchain and pinned formatter must be active. Keep generated
+reports and private provisioning inputs under ignored `build/`; the original
+source snapshot must remain unchanged when verifying evidence.
+
+## Existing task-stack and lifecycle implementation
+
+The sections below describe the earlier isolated task-pool work. Their numbers
+belong to those original profiles; the current transaction-image table above is
+the applicable integration budget.
 
 ## Outcome and scope
 

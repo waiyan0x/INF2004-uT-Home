@@ -18,12 +18,20 @@ The maintained host compiler and client are now in
 [configs/transactions](configs/transactions). Markdown compiles directly to the
 current `TJ` rules. The ESPHome/native API and old USB `TR` proof are retired.
 
-Start with session/restart semantics and the network resource audit,
-then the persistent host controller, three-protocol Markdown coverage, UI and
-Home Assistant display. Validate the actual Wi-Fi/TLS path early when equipment
-is available. The host display adapter remains unimplemented and must remain
-running for Home Assistant updates. See the [completion plan](CONTRIBUTING.md#completion-plan)
-for the reviewed gaps, delivery order and acceptance criteria.
+The `TJ` v2 session/status contract is implemented and software-tested. The host
+can query boot identity, generation, active rule and pending/completed command
+state; commands and replies carry the boot identity. Wire messages remain 96
+bytes, with device identifiers now limited to 15 characters. Old v1 transaction
+JSON/packets must be replaced; the examples and compiler emit v2.
+
+**Next: close the network allocation blocker.** The real target passes unchanged
+fixed-memory budgets (275,930/278,528 DRAM bytes), but reachable TLS/TCP/IP heap
+allocations still prevent whole-system static-memory acceptance. See the
+[resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
+Then complete the persistent controller, three-protocol Markdown coverage, UI
+and Home Assistant display in the [completion plan](CONTRIBUTING.md#completion-plan).
+The host display adapter remains unimplemented. Current generated tests, gate
+and map reports are local-only under `build/step1-verification/`.
 
 The existing configuration application and peripheral profiles remain for setup
 and recovery. Runtime transactions require an explicitly idle peripheral plan.

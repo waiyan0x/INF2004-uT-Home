@@ -102,47 +102,55 @@ rule must not require another build.
 
 | Area | Present implementation | Remaining gap |
 |---|---|---|
-| ESP decision program | `txjob` validates/stores a rule, chooses execution and preserves it on a rejected update | Boot/session recovery and externally observable transaction state |
+| ESP decision program | `txjob` validates/stores a rule, chooses execution and preserves it on a rejected update | `TJ` v2 session/status contract is implemented; durable host recovery remains |
 | Generic operations | `txport` reaches actual I2C, SPI-write and raw UART HALs through `c3tx` | Physical acceptance, initialization prerequisites and selected timing extensions |
 | Description compiler | `tools/transaction/description.py` compiles simple I2C register reads | SPI/UART operation descriptions; OLED source/description; SEN0390 review |
-| MQTT | Bounded ESP transport and a one-shot TLS host client | Long-running controller, automatic identity/generation handling and restart recovery |
+| MQTT | Bounded ESP transport and a one-shot TLS host client | Status query/boot binding implemented; long-running controller and durable restart recovery remain |
 | UI | Existing Configuration Desk supports USB profiles and recovery | Runtime Markdown selection, rule loading/execution and result presentation |
 | Home Assistant | Intended host-adapter boundary is documented | Adapter and live integration are not implemented |
 | Verification | Cleanup baseline: 663 software tests, full 325-file C gate and a real target build passed | Real Wi-Fi/TLS/bus acceptance and whole-system resource measurements |
 
-The latest local build record is under ignored `build/cleanup-verification/`.
-Its fixed-memory use is 275,954 of 278,528 bytes. This leaves 2,574 bytes within
-the total budget, including only 613 bytes in the application group and 8 bytes
-in the MQTT module's reservation. These figures are not free-heap or stack
-measurements. Keep JSON display formatting on the host. The existing cleanup
-changes are still local; use this reviewed tree as the working baseline.
+The current session build uses 275,930 of 278,528 fixed DRAM bytes, leaving
+2,598 bytes in the total budget and 637 in the application group. MQTT still has
+only 8 bytes within its module reservation. Generated verification is under
+ignored `build/step1-verification/`. Fixed-linker fit is not free-heap or stack
+acceptance; TLS/TCP/IP allocation remains a concrete integration blocker.
 
 ### 1. Close session and resource risks first
 
-Define how a controller learns node identity, boot identity, plan generation,
-active rule, busy state and the last accepted request ID without peripheral I/O.
-The current `TJ` v1 envelope has no boot/session field or status-query operation.
-The ESP already exposes boot identity/generation through authenticated HTTP;
-reuse that metadata and ownership. Choose and document a bounded MQTT session/
-status extension for normal operation, versioning the wire contract if needed.
-Do not infer a reboot from a broker reconnect or merely restart IDs at one.
+**Session contract implemented; resource assessment complete; allocation
+remediation and board measurements remain open.** `TJ` v2 reuses the existing
+HTTP/cfgmux boot identity and adds a read-only MQTT status query without growing
+the 96-byte messages. It reports active rule, generation, busy/cleanup/readiness,
+last completion, pending request and boot-relative times. Device identifiers are
+now at most 15 characters; v1 wire packets and transaction JSON are rejected.
 
-Bind requests and replies to the agreed session. Specify delayed replies, exact
-retries, controller restart, ESP restart, ID exhaustion and generation changes.
-A cached completion must never acquire a new measurement time. Extend the host
-result decoder to retain and validate update-versus-execute kind, received count
-and returned transaction settings; it currently drops that distinction.
+The [transaction contract](firmware/src/services/transaction/README.md) specifies
+restarts, delayed replies, exact retries, ID exhaustion and generation changes.
+The C engine and host codec preserve original cached completion times and retain
+operation kind, byte counts and bus settings. One-shot CLI status and explicit
+boot binding are available; automatic/durable controller recovery belongs to
+Step 2. A reconnect never authorizes repeating a write with a new ID.
 
-In parallel, audit reachable Wi-Fi/TCP/IP/TLS allocation and kernel-object
-creation against the existing static-memory requirement. Only a justified Wi-Fi
-exception is contemplated; it does not automatically exempt TLS or the rest of
-the SDK. Fix noncompliant application/compatibility paths and measure startup,
-reconnect and normal operation. Preserve all existing per-module/total caps;
-reclaim storage or obtain explicit review before changing a reservation.
+Verification: 472 target-facing tests (including 43 transaction/description
+cases), 56 C-policy tests, 27 foundation tests and 19 runtime tests pass. The full
+325-file C standard gate, manual review, fresh ESP32-C3 build, source-snapshot
+verification and unchanged fixed-memory budgets pass. This totals 574 distinct
+software tests in the current run; no live broker or equipment acceptance is
+claimed.
 
-Done: a reviewed session contract, focused stale/restart/duplicate tests, and a
-concrete resource-compliance assessment. This is the highest-risk work and must
-not be postponed until the UI is finished.
+The [current resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
+identifies reachable heap allocation in ESP-TLS contexts, mbedTLS buffers,
+lwIP netconn/packet pools and mailbox backing. The Wi-Fi-driver exception does
+not exempt these application network paths. Static native tasks/queues alone
+are insufficient. The configured TLS record capacities alone exceed current
+headroom, so moving allocations into a fixed pool needs reclaimed storage and
+a reviewed capacity/lifetime design. Keep the existing caps and TLS checks.
+
+**Next priority:** implement bounded network allocation with deterministic
+exhaustion and reconnect tests; then capture startup/reconnect/normal-operation
+heap, native-object and stack evidence on the selected board. Do not mark
+whole-system static memory complete from the linker table or host tests.
 
 ### 2. Build the persistent host controller
 
