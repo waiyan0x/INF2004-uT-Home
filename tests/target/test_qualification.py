@@ -456,6 +456,24 @@ class QualificationTests(unittest.TestCase):
                 with self.subTest(name=name, value=value), self.assertRaises(qualification.QualificationError):
                     qualification.check_queue_symbols(damaged, aliases)
 
+    def test_mailbox_link_proof_rejects_heap_paths_and_mutable_identities(self):
+        symbols = {"c3lbox_new": 0x42001000, "c3lbox_free": 0x42002000,
+                   "__wrap_sys_mbox_new": 0x42001000, "__wrap_sys_mbox_free": 0x42002000,
+                   "c3nq_bind": 0x42003000, "c3nq_release": 0x42004000}
+        symbols.update({"g_mailbox" + str(i): 0x3c001000 + 84*i for i in range(8)})
+        self.assertTrue(qualification.check_mailbox_symbols(symbols, True)["enabled"])
+        for name in symbols:
+            with self.subTest(missing=name), self.assertRaises(qualification.QualificationError):
+                qualification.check_mailbox_symbols({k:v for k,v in symbols.items() if k != name}, True)
+        for name, value in (("sys_mbox_new",0x42010000),("sys_mbox_free",0x42010100),
+                            ("g_mailbox0",0x3fc81000),("g_mailbox0",symbols["g_mailbox1"]),
+                            ("__wrap_sys_mbox_new",0x42010000),("c3nq_bind",0x40381000)):
+            with self.subTest(name=name), self.assertRaises(qualification.QualificationError):
+                qualification.check_mailbox_symbols(dict(symbols, **{name:value}), True)
+        with self.assertRaises(qualification.QualificationError):
+            qualification.check_mailbox_symbols(symbols, False)
+        self.assertFalse(qualification.check_mailbox_symbols({}, False)["enabled"])
+
     def test_startup_trace_link_is_exact_and_wifi_only(self):
         symbols = {}
         pairs = qualification.STARTUP_SYMBOLS

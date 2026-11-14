@@ -92,6 +92,8 @@ RUNTIME_SOURCE_FILES = {
     'firmware/src/network/netwait.h': 'network/netwait.h',
     'firmware/src/network/netpool.c': 'network/netpool.c',
     'firmware/src/network/netpool.h': 'network/netpool.h',
+    'firmware/hal/ports/esp32c3/network/c3lbox.c': 'hal/c3lbox.c',
+    'firmware/hal/ports/esp32c3/network/c3lbox.h': 'hal/c3lbox.h',
     'firmware/hal/ports/esp32c3/network/c3nq.c': 'hal/c3nq.c',
     'firmware/hal/ports/esp32c3/network/c3nq.h': 'hal/c3nq.h',
     'tests/target/runtime_port_board/main/netqueue.cmake': 'main/netqueue.cmake',
@@ -654,7 +656,31 @@ def check_event_symbols(symbols, path):
     return retained
 
 
-def verify_queue_adapter(work, enabled):
+def check_mailbox_symbols(symbols, enabled):
+    """Mailbox identities must stay typed, unique and in flash, never heap/RAM."""
+    pairs = {"sys_mbox_new": "c3lbox_new", "sys_mbox_free": "c3lbox_free"}
+    if not enabled:
+        if any(name in symbols for name in pairs.values()):
+            raise QualificationError("Mailbox adaptation escaped Wi-Fi services")
+        return dict(enabled=False)
+    for original, owned in pairs.items():
+        address = symbols.get(owned, 0)
+        if (not 0x42000000 <= address < 0x43000000
+                or symbols.get("__wrap_" + original) != address
+                or original in symbols):
+            raise QualificationError("Invalid fixed mailbox alias: " + original)
+    for name in ("c3nq_bind", "c3nq_release"):
+        if not 0x42000000 <= symbols.get(name, 0) < 0x43000000:
+            raise QualificationError("Mailbox helper missing or consumes RAM code: " + name)
+    identities = [symbols.get("g_mailbox" + str(index), 0) for index in range(8)]
+    if (len(set(identities)) != 8
+            or any(not 0x3c000000 <= address < 0x3d000000 for address in identities)):
+        raise QualificationError("Mailbox identities must be distinct flash objects")
+    return dict(enabled=True, aliases=pairs, identities=identities,
+                storage="Existing eight shared fixed queue payloads; no added mutable storage")
+
+
+def verify_queue_adapter(work, enabled, wifi_services=False):
     commands = json.loads((work / "build/compile_commands.json").read_text(encoding="utf-8"))
     owned = [entry for entry in commands if Path(entry["file"]).name == "c3nq.c"]
     if len(owned) != 1:
@@ -680,6 +706,7 @@ def verify_queue_adapter(work, enabled):
     symbols = {name: int(address, 16) for address, _, name in
                re.findall(r"^([0-9a-fA-F]+)\s+(\w)\s+(\S+)$", output, re.MULTILINE)}
     retained = check_queue_symbols(symbols, aliases)
+    mailboxes = check_mailbox_symbols(symbols, wifi_services)
     events = check_event_symbols(symbols, work / "project/main/netqueue.cmake")
     for name in ("netevent_create", "netevent_begin", "netevent_finish", "netwait_init", "netwait_remaining",
                  "c3nq_init", "c3nq_bootstrap", "boot_mutex"):
@@ -695,6 +722,7 @@ def verify_queue_adapter(work, enabled):
         if definition != (Path(entry["file"]).name == "tkinit.c"):
             raise QualificationError("Native initialization rename escaped its source")
     return dict(enabled=True, status="linked_abi_verified", aliases=retained, event_aliases=events,
+                mailboxes=mailboxes,
                 resources=dict(queue_slots=8, queue_bytes_by_slot=[512, 512, 1024, 1024, 1024, 1024, 1024, 2048],
                                queue_payload_bytes=8192, semaphore_slots=16, mutex_slots=32,
                                startup_native_semaphores=48,startup_native_mutexes=32,
@@ -732,9 +760,9 @@ def verify_compile_profiles(work, startup_trace=False):
         profiles[source] = expected
     for path, command in commands.items():
         adapted = "-Dasm=__asm__" in command
-        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c")}):
+        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c")}):
             raise QualificationError("SDK assembly spelling adaptation escaped its adapter")
-    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c"):
+    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c"):
         owned_radio = (work / "project/hal" / name).read_text()
         if re.search(r"\b(?:asm|__asm__|typeof|__typeof__)\b", owned_radio):
             raise QualificationError("Owned radio adapter must remain C99: " + name)
@@ -1174,7 +1202,8 @@ def build(kernel, sdk, work, *legacy_args, selection=None, compat_patch=None,
             evidence["senlux_app_isolation"] = verify_senlux_app_probe(work, selection.mode is BuildMode.SENLUX_APP)
             evidence["memory_audit_link"] = verify_audit_link(work)
             evidence["startup_trace_link"] = verify_startup_link(work, selection.mode is BuildMode.WIFI)
-            evidence["network_queue_adapter"] = verify_queue_adapter(work, selection.static_net_queues)
+            evidence["network_queue_adapter"] = verify_queue_adapter(
+                work, selection.static_net_queues, selection.network_services in ("wifi", "both"))
             evidence["static_task_link"] = verify_static_task_link(
                 work, static_tasks,
                 selection.mode in (BuildMode.WIFI, BuildMode.BLE))

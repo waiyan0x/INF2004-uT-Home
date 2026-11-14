@@ -7,9 +7,10 @@ whole-system no-application-heap requirement yet.** This assessment covers the
 actual Wi-Fi/MQTT configuration application, not just the isolated station
 fixture described below. The source requirement includes network communication;
 the contemplated Wi-Fi-driver exception does not automatically exempt TLS,
-TCP/IP, ESP-TLS contexts or SDK mailboxes.
+TCP/IP or ESP-TLS contexts. The mailbox path is now covered by the bounded
+adapter described below.
 
-The 14 November 2026 session build used pinned ESP-IDF 6.1
+The pre-mailbox 14 November 2026 session baseline used pinned ESP-IDF 6.1
 `fff9895c82d744c7237be8847347bdd1b07c6643`, kernel
 `ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2` and the maintained owned patches.
 Build-only dummy settings were used; no board was flashed and no live broker was
@@ -35,12 +36,43 @@ The decision path adds no heap, task or kernel object. Its work is bounded by
 one 96-byte command/reply/cache, a 16-byte name and 30 TX / 32 RX bytes. Each
 owner tick advances at most one driver poll; a status query does not poll.
 
+### Fixed mailbox update, 14 November 2026
+
+The fresh `C:/Users/kkak4/esp/uthome-mailbox-mqtt-20261114/` build uses the same
+SDK/kernel pins, settings shape and unchanged budgets. Every group in the table
+above is unchanged, including 275,930 total fixed DRAM bytes. Its evidence SHA-256
+is `97453e1a9c45a3e06983e8a6980da0dc476f956c6deeb6bf540091ee361938ed`.
+Generated reports are local-only in `build/network-memory/`. The build, source
+snapshot verification, full 327-file C gate and manual review pass.
+
+`c3lbox` replaces the allocating/freeing SDK mailbox functions and uses the
+existing eight shared queue slots. Target symbols confirm both aliases, absence
+of the original `sys_mbox_new`/`sys_mbox_free`, and eight distinct typed identities
+in flash. Those identities occupy 672 flash bytes; their pointer table occupies
+32 more. The adapter adds **zero mutable storage** and no extra native objects.
+Its two entry points and two queue-binding helpers are flash code. This does not
+quantify runtime heap savings: the number of live mailboxes has not been measured.
+
+Verification covers 476 target-facing tests, 56 C-policy tests, 27 foundation
+tests and 19 runtime tests: 578 distinct tests passed. Seven target modules were
+rerun after their imports initially hit a sandbox dependency-access error;
+the other 390 target tests passed in the first run and those modules' 86 tests
+passed on retry. The focused mailbox tests include 1,000 create/free cycles,
+shared exhaustion, exact-capacity and invalid requests, zero-valued messages,
+ISR posting and nonempty-close preservation. JavaScript lint also passes.
+See the [adapter contract and manual review](../../../firmware/hal/ports/esp32c3/network/README.md#fixed-lwip-mailboxes).
+
+This closes the mailbox-backing allocation path for selected Wi-Fi service
+builds. TLS, packet/connection storage and other reachable SDK allocations below
+remain open. There was no board flash or live broker test.
+
 ### Reachable allocation paths
 
 The following paths were checked in the pinned SDK source and selected compiler
-commands. The fresh ELF links `esp_tls_init`, `mbedtls_ssl_setup`,
-`esp_mbedtls_mem_calloc`, `netconn_alloc`, `memp_malloc` and `sys_mbox_new`.
-Those SDK compilation units have no allocator-replacement definitions. Merely
+commands. The current ELF still links `esp_tls_init`, `mbedtls_ssl_setup`,
+`esp_mbedtls_mem_calloc`, `netconn_alloc` and `memp_malloc`. Those SDK compilation
+units have no allocator-replacement definitions; mailbox creation/free alone
+now use the owned adapter. Merely
 linking an allocator would not prove reachability; the owned call sites below
 are the entry paths.
 
@@ -53,7 +85,7 @@ are the entry paths.
 | HTTPS TLS | `c3https` accepts up to two clients and creates ESP-TLS sessions at runtime | Adds the same context/certificate/record-buffer allocation issue; limits on client count alone do not make it static |
 | TLS record buffers | `components/mbedtls/mbedtls/library/ssl_tls.c`, `mbedtls_ssl_setup()` allocates input/output buffers; `port/esp_mem.c` routes calloc to internal heap | Selected config: internal allocator, 16,384-byte input and 4,096-byte output content lengths, dynamic-buffer option off. Turning that option off does **not** remove heap allocation |
 | TCP/IP connections and packets | `components/lwip/port/include/lwipopts.h` sets `MEM_LIBC_MALLOC=1`, `MEMP_MEM_MALLOC=1`; `api/api_msg.c` allocates netconn records and receive mailboxes for connections | Application network activity reaches general heap-backed pools; not just a Wi-Fi-driver implementation detail |
-| lwIP mailbox backing | `components/lwip/port/freertos/sys_arch.c::sys_mbox_new()` calls `heap_caps_malloc` before `xQueueCreateStatic` | Fixed native queue adaptation does not eliminate this separate allocation |
+| lwIP mailbox backing | Wi-Fi services link `c3lbox` instead of the SDK allocating creation/free functions; messages use existing `c3nq` payloads | Bounded software/target-link proof passes; shared queue capacity and live-network acceptance still require the board |
 | Wi-Fi/SDK startup and events | `c3wsta` creates the network interface/default event loop and registers callbacks; the radio uses its SDK allocations | Inventory and explicitly justify any narrow driver exception. Do not extend it to all SDK networking by implication |
 
 One TLS connection's configured record-content capacities alone total 20,480
@@ -89,7 +121,7 @@ For reproduction, use the [target build guide](../../../tools/target/README.md)
 and [transaction policy](../../../tools/target/transaction-budget.json):
 
 ```powershell
-python tools/target/memory_budget.py --build ABSOLUTE_FRESH_BUILD --budget tools/target/transaction-budget.json --output build/step1-verification/memory.json
+python tools/target/memory_budget.py --build ABSOLUTE_FRESH_BUILD --budget tools/target/transaction-budget.json --output build/network-memory/memory.json
 python tools/target/qualify_kernel.py verify-snapshot --project-dir ABSOLUTE_FRESH_BUILD/project
 ```
 

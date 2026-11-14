@@ -110,10 +110,10 @@ rule must not require another build.
 | Home Assistant | Intended host-adapter boundary is documented | Adapter and live integration are not implemented |
 | Verification | Cleanup baseline: 663 software tests, full 325-file C gate and a real target build passed | Real Wi-Fi/TLS/bus acceptance and whole-system resource measurements |
 
-The current session build uses 275,930 of 278,528 fixed DRAM bytes, leaving
+The current mailbox-adapter build uses 275,930 of 278,528 fixed DRAM bytes, leaving
 2,598 bytes in the total budget and 637 in the application group. MQTT still has
 only 8 bytes within its module reservation. Generated verification is under
-ignored `build/step1-verification/`. Fixed-linker fit is not free-heap or stack
+ignored `build/network-memory/`. Fixed-linker fit is not free-heap or stack
 acceptance; TLS/TCP/IP allocation remains a concrete integration blocker.
 
 ### 1. Close session and resource risks first
@@ -132,16 +132,18 @@ operation kind, byte counts and bus settings. One-shot CLI status and explicit
 boot binding are available; automatic/durable controller recovery belongs to
 Step 2. A reconnect never authorizes repeating a write with a new ID.
 
-Verification: 472 target-facing tests (including 43 transaction/description
+Verification: 476 target-facing tests (including 43 transaction/description
 cases), 56 C-policy tests, 27 foundation tests and 19 runtime tests pass. The full
-325-file C standard gate, manual review, fresh ESP32-C3 build, source-snapshot
-verification and unchanged fixed-memory budgets pass. This totals 574 distinct
+327-file C standard gate, manual review, fresh ESP32-C3 build, source-snapshot
+verification and unchanged fixed-memory budgets pass. This totals 578 distinct
 software tests in the current run; no live broker or equipment acceptance is
 claimed.
 
 The [current resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
 identifies reachable heap allocation in ESP-TLS contexts, mbedTLS buffers,
-lwIP netconn/packet pools and mailbox backing. The Wi-Fi-driver exception does
+lwIP netconn/packet pools and other SDK state. The mailbox backing path now uses
+the existing fixed queues, with exhaustion/reuse tests and linked-target proof;
+that change adds no fixed RAM or native objects. The Wi-Fi-driver exception does
 not exempt these application network paths. Static native tasks/queues alone
 are insufficient. The configured TLS record capacities alone exceed current
 headroom, so moving allocations into a fixed pool needs reclaimed storage and

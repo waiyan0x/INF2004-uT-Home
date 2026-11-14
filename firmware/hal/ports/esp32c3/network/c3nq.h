@@ -16,6 +16,10 @@ int32_t c3nq_native_tables (void);
 int32_t c3nq_scheduler_state (void);
 
 void * c3nq_create (uint32_t length, uint32_t item_bytes, uint8_t kind);
+/** @brief Task/cache-on: bind an opaque key to fixed internal queue storage. */
+void * c3nq_bind (uint32_t length, uint32_t item_bytes, void * p_key);
+/** @brief Task/cache-on: checked release; an in-use lease returns -1. */
+int c3nq_release (void * p_key);
 void * c3nq_static (uint32_t  length,
                     uint32_t  item_bytes,
                     uint8_t * p_storage,

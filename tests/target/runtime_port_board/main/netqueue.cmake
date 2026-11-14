@@ -43,6 +43,19 @@ set(UTHOME_EVENT_ALIASES
 )
 
 if(UTHOME_STATIC_NET_QUEUES)
+    # The SDK's mailbox payload allocation is outside xQueueCreateStatic.
+    # Wi-Fi services bind those identities to the existing fixed payload pool.
+    if(UTHOME_NETWORK_WIFI)
+        foreach(pair IN ITEMS sys_mbox_new=c3lbox_new sys_mbox_free=c3lbox_free)
+            string(REPLACE "=" ";" parts "${pair}")
+            list(GET parts 0 original)
+            list(GET parts 1 owned)
+            target_link_libraries(${COMPONENT_LIB} INTERFACE
+                "-Wl,--undefined=${owned}"
+                "-Wl,--wrap=${original}"
+                "-Wl,--defsym=__wrap_${original}=${owned}")
+        endforeach()
+    endif()
     idf_component_get_property(UTHOME_SHIM_LIB freertos_shim COMPONENT_LIB)
     idf_component_get_property(UTHOME_SHIM_DIR freertos_shim COMPONENT_DIR)
     get_target_property(UTHOME_SHIM_SOURCES ${UTHOME_SHIM_LIB} SOURCES)

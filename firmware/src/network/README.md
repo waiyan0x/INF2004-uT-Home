@@ -86,7 +86,10 @@ acceptance. No new worker slot is assumed.
 
 The [current source/map assessment](../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
 confirms reachable heap paths in ESP-TLS, mbedTLS, lwIP connection/packet pools
-and mailbox backing. They are outside an automatic Wi-Fi-driver exemption.
+and other SDK state. They are outside an automatic Wi-Fi-driver exemption.
+The fixed mailbox adapter now removes the separate `sys_mbox_new` backing
+allocation in Wi-Fi service builds; it does not remove packet/connection/TLS
+allocations.
 Fixed native queue/task pools and a passing linker budget do not qualify these
 allocations; bounded allocation remediation and runtime measurements remain open.
 No-network and isolated radio fixtures do not qualify the combined application.

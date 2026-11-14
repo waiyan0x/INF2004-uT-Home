@@ -259,7 +259,7 @@ class Pool(c.Structure):
     _fields_ = [('ops', Ops), ('slots', Slot * 56), ('storage', c.c_uint8 * 8192), ('hz', c.c_uint32), ('ready', c.c_bool)]
 
 
-class WifiMutexAdapterTests(unittest.TestCase):
+class NetworkQueueAdapterTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         compiler=shutil.which('gcc')
@@ -279,9 +279,27 @@ class WifiMutexAdapterTests(unittest.TestCase):
                             ' * @brief Forward the controlled native-call declarations. */\n'
                             f'#ifndef {guard}\n#define {guard}\n'
                             '#include "native.h"\n#endif\n\n/* End of file. */\n\n')
+        # Minimal foreign SDK ABI, not a double of owned mailbox/queue logic.
+        # Real target qualification compiles against the pinned full SDK type.
+        (cls.folder/'lwip').mkdir()
+        (cls.folder/'lwip/sys.h').write_text("""#ifndef LWIP_SYS_H
+#define LWIP_SYS_H
+#include <stddef.h>
+#include <stdint.h>
+typedef int8_t err_t;
+typedef struct { uint32_t words[21]; } StaticQueue_t;
+typedef struct sys_mbox_s {
+    StaticQueue_t os_mbox;
+    uint8_t buffer[];
+} *sys_mbox_t;
+#define ERR_OK 0
+#define ERR_MEM (-1)
+#define ERR_ARG (-16)
+#endif
+""")
         port=ROOT/'firmware/hal/ports/esp32c3/network'
         cls.binary=cls.folder/'adapter.dll'
-        sources=[port/'c3nq.c',*[ROOT/f'firmware/src/network/{name}.c'
+        sources=[port/'c3nq.c',port/'c3lbox.c',*[ROOT/f'firmware/src/network/{name}.c'
                                   for name in ('netpool','netring','netwait')]]
         subprocess.run([compiler,'-std=c99','-Wall','-Wextra','-Werror','-pedantic',
                         '-shared',*(['-fPIC'] if sys.platform!='win32' else []),
@@ -299,6 +317,11 @@ class WifiMutexAdapterTests(unittest.TestCase):
             self.addCleanup(_ctypes.FreeLibrary,self.lib._handle)
         signatures={
             'c3nq_init':([],c.c_int),
+            'c3lbox_new':([c.POINTER(c.c_void_p),c.c_int],c.c_int8),
+            'c3lbox_free':([c.POINTER(c.c_void_p)],None),
+            'c3nq_receive':([c.c_void_p,c.c_void_p,c.c_uint32],c.c_int32),
+            'c3nq_send_isr':([c.c_void_p,c.c_void_p,c.POINTER(c.c_int32),c.c_int32],c.c_int32),
+            'c3nq_delete':([c.c_void_p],None),
             'native_wifi_mutex_create':([],c.c_void_p),
             'native_wifi_mutex_lock':([c.c_void_p],c.c_int32),
             'native_wifi_mutex_unlock':([c.c_void_p],c.c_int32),
@@ -316,6 +339,9 @@ class WifiMutexAdapterTests(unittest.TestCase):
         for name,(arguments,result) in signatures.items():
             function=getattr(self.lib,name)
             function.argtypes,function.restype=arguments,result
+        box=c.c_void_p()
+        self.assertEqual(self.lib.c3lbox_new(c.byref(box),6),-1)
+        self.assertIsNone(box.value)
         self.assertEqual(self.lib.c3nq_init(),0)
         self.creates=self.lib.native_metric(0)
         self.assertEqual(self.creates,64)
@@ -324,6 +350,73 @@ class WifiMutexAdapterTests(unittest.TestCase):
         self.assertEqual(self.lib.native_metric(0),self.creates)
         self.assertEqual(self.lib.native_metric(3),0)
         self.assertEqual(self.lib.native_metric(4),0)
+
+    def test_mailbox_exhaustion_reuse_and_shared_queue_capacity(self):
+        ordinary=self.lib.c3nq_create(4,c.sizeof(c.c_void_p),0)
+        boxes=[c.c_void_p() for _ in range(8)]
+        for box in boxes[:7]:
+            self.assertEqual(self.lib.c3lbox_new(c.byref(box),32),0)
+        self.assertEqual(len({box.value for box in boxes[:7]}),7)
+        self.assertEqual(self.lib.c3lbox_new(c.byref(boxes[7]),32),-1)
+        self.assertIsNone(boxes[7].value)
+        self.lib.c3nq_delete(ordinary)
+        self.assertEqual(self.lib.c3lbox_new(c.byref(boxes[7]),32),0)
+        self.assertEqual(len({box.value for box in boxes}),8)
+        overflow=c.c_void_p()
+        self.assertEqual(self.lib.c3lbox_new(c.byref(overflow),1),-1)
+        for box in boxes:
+            self.lib.c3lbox_free(c.byref(box))
+            self.assertIsNone(box.value)
+        for _ in range(1000):
+            self.assertEqual(self.lib.c3lbox_new(c.byref(overflow),6),0)
+            self.lib.c3lbox_free(c.byref(overflow))
+            self.assertIsNone(overflow.value)
+
+    def test_mailbox_full_zero_message_isr_and_nonempty_close(self):
+        box=c.c_void_p()
+        self.assertEqual(self.lib.c3lbox_new(c.byref(box),2),0)
+        identity=box.value
+        zero=c.c_void_p()
+        message=c.c_void_p(0x1234)
+        output=c.c_void_p(0xFFFF)
+        woken=c.c_int32()
+        self.assertEqual(self.lib.c3nq_send(box,c.byref(zero),0,0),1)
+        self.assertEqual(self.lib.c3nq_send_isr(box,c.byref(message),c.byref(woken),0),1)
+        self.assertEqual(self.lib.c3nq_send(box,c.byref(message),0,0),0)
+        self.lib.c3lbox_free(c.byref(box))
+        self.assertEqual(box.value,identity)
+        self.assertEqual(self.lib.c3nq_receive(box,c.byref(output),0),1)
+        self.assertIsNone(output.value)
+        self.assertEqual(self.lib.c3nq_receive(box,c.byref(output),0),1)
+        self.assertEqual(output.value,message.value)
+        self.assertEqual(self.lib.c3nq_receive(box,c.byref(output),0),0)
+        # The SDK control object is only an identity, never queue state.
+        self.assertEqual(c.string_at(identity,84),bytes(84))
+        self.lib.c3lbox_free(c.byref(box))
+        self.assertIsNone(box.value)
+        self.lib.c3lbox_free(c.byref(box))
+
+    def test_mailbox_invalid_arguments_do_not_consume_or_release_slots(self):
+        self.assertEqual(self.lib.c3lbox_new(None,6),-16)
+        self.lib.c3lbox_free(None)
+        foreign=c.c_void_p(1)
+        self.lib.c3lbox_free(c.byref(foreign))
+        self.assertEqual(foreign.value,1)
+        for size in (-1,0,2**31-1,2048//c.sizeof(c.c_void_p)+1):
+            box=c.c_void_p(1)
+            self.assertEqual(self.lib.c3lbox_new(c.byref(box),size),-1)
+            self.assertIsNone(box.value)
+        # The largest partition fits exactly one mailbox of this capacity.
+        box=c.c_void_p()
+        extra=c.c_void_p()
+        self.assertEqual(self.lib.c3lbox_new(c.byref(box),2048//c.sizeof(c.c_void_p)),0)
+        self.assertEqual(self.lib.c3lbox_new(c.byref(extra),2048//c.sizeof(c.c_void_p)),-1)
+        message=c.c_void_p(0x42)
+        output=c.c_void_p()
+        self.assertEqual(self.lib.c3nq_send(box,c.byref(message),0,0),1)
+        self.assertEqual(self.lib.c3nq_receive(box,c.byref(output),0),1)
+        self.assertEqual(output.value,message.value)
+        self.lib.c3lbox_free(c.byref(box))
 
     def test_pinned_sdk_normal_mutex_supports_recursive_lock_pair(self):
         handle=self.lib.native_wifi_mutex_create()

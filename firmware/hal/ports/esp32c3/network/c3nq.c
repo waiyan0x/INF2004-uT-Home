@@ -159,6 +159,23 @@ int c3nq_diagnostic (c3nq_diagnostic_t * p_report)
 }
 #endif
 
+/** @brief Bind an identity without writing it or borrowing payload storage. */
+void * c3nq_bind (uint32_t length, uint32_t item_bytes, void * p_key)
+{
+    if (NULL == p_key)
+    {
+        return NULL;
+    }
+    return netpool_create(
+        &g_pool, NETPOOL_QUEUE, length, item_bytes, 0U, NULL, 0U, p_key);
+}
+
+/** @brief Expose checked release to the mailbox lifecycle owner. */
+int c3nq_release (void * p_key)
+{
+    return netpool_release(&g_pool, p_key);
+}
+
 /** @brief Static APIs retain caller storage and mark accepted control keys. */
 void * c3nq_static (uint32_t  length,
                     uint32_t  item_bytes,

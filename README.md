@@ -26,12 +26,15 @@ JSON/packets must be replaced; the examples and compiler emit v2.
 
 **Next: close the network allocation blocker.** The real target passes unchanged
 fixed-memory budgets (275,930/278,528 DRAM bytes), but reachable TLS/TCP/IP heap
-allocations still prevent whole-system static-memory acceptance. See the
+allocations still prevent whole-system static-memory acceptance. The lwIP mailbox
+backing path now uses the existing fixed queue storage; its software tests and
+fresh target build pass without growing fixed RAM. See the
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
 Then complete the persistent controller, three-protocol Markdown coverage, UI
 and Home Assistant display in the [completion plan](CONTRIBUTING.md#completion-plan).
 The host display adapter remains unimplemented. Current generated tests, gate
-and map reports are local-only under `build/step1-verification/`.
+and map reports are local-only under `build/network-memory/`; the earlier
+session checks remain under `build/step1-verification/`.
 
 The existing configuration application and peripheral profiles remain for setup
 and recovery. Runtime transactions require an explicitly idle peripheral plan.

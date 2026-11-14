@@ -13,4 +13,6 @@ entries:
     c3nq:c3nq_init (default)
     c3nq:c3nq_bootstrap (default)
     c3nq:c3nq_diagnostic (default)
+    c3nq:c3nq_bind (default)
+    c3nq:c3nq_release (default)
     netpool:boot_mutex (default)

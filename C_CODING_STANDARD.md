@@ -396,3 +396,12 @@ The network guide records its ABI, concurrency and bounds review.
 Home Assistant discovery formatting belongs to the host. MQTT means Message
 Queuing Telemetry Transport. No new language or compatibility exception is
 introduced by retiring on-device display code.
+
+## lwIP mailbox boundary
+
+`c3lbox` denotes the ESP32-C3 lwIP mailbox adapter. It retains the pinned SDK
+mailbox ABI while binding identities to `c3nq`'s fixed payload pool. The module
+uses C99 with the existing SDK-header assembly-spelling build adaptation only;
+owned source contains no GNU syntax. No deviation or naming exception is added.
+See the [manual review](firmware/hal/ports/esp32c3/network/README.md#manual-c-review)
+for the typed read-only identity lifetime, opaque-handle cast and ownership rules.
