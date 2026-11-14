@@ -1,6 +1,7 @@
 """Failure-path checks for the kernel qualification tool; no SDK or board required."""
 import json
 from pathlib import Path, PureWindowsPath
+import shutil
 import stat
 import subprocess
 import sys
@@ -479,6 +480,7 @@ class QualificationTests(unittest.TestCase):
             with self.subTest(commands=damaged), self.assertRaises(qualification.QualificationError):
                 qualification.check_tls_storage(damaged, symbols, True)
         for damaged in (dict(symbols, c3tls_alloc=0),
+                        dict(symbols, esp_mbedtls_add_rx_buffer=0x42003000),
                         dict(symbols, c3tls_free=0x40380000),
                         dict(symbols, esp_tls_internal_event_tracker_create=0x42002000),
                         dict(symbols, __wrap_esp_tls_internal_event_tracker_create=0x42002000),
@@ -488,6 +490,23 @@ class QualificationTests(unittest.TestCase):
         for disabled_commands, disabled_symbols in ((commands, {}), ([], symbols)):
             with self.assertRaises(qualification.QualificationError):
                 qualification.check_tls_storage(disabled_commands, disabled_symbols, False)
+
+    def test_tls_build_rejects_dynamic_buffers_before_compilation(self):
+        cmake = shutil.which('cmake')
+        self.assertIsNotNone(cmake, 'CMake is required for target build guard tests')
+        script = ROOT / 'tests/target/runtime_port_board/main/tlsmem.cmake'
+        for wifi, queues in ((True, True), (True, False), (False, True)):
+            with self.subTest(wifi=wifi, queues=queues):
+                result = subprocess.run(
+                    [cmake, '-DCONFIG_MBEDTLS_DYNAMIC_BUFFER=ON',
+                     f'-DUTHOME_NETWORK_WIFI={"ON" if wifi else "OFF"}',
+                     f'-DUTHOME_STATIC_NET_QUEUES={"ON" if queues else "OFF"}',
+                     '-P', str(script)], text=True, capture_output=True)
+                if wifi and queues:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn('partial nonblocking record headers', ' '.join(result.stderr.split()))
+                else:
+                    self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_mailbox_link_proof_rejects_heap_paths_and_mutable_identities(self):
         symbols = {"c3lbox_new": 0x42001000, "c3lbox_free": 0x42002000,

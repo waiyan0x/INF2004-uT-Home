@@ -76,7 +76,7 @@ full lease cycles with allocator interception. A qualification regression attack
 missing, duplicated and escaped bindings and invalid linked symbols. These tests
 exercise records and build enforcement; they do not perform a TLS handshake.
 
-Current verification: **490 target-facing tests and 56 C-policy tests passed**.
+Record implementation verification: **490 target-facing tests and 56 C-policy tests passed**.
 The full 329-file pinned C gate, manual review, warnings-as-errors target build,
 exact-source snapshot verification and every fixed-memory budget also pass.
 Generated reports are in the local evidence directory above. Previous foundation
@@ -143,10 +143,73 @@ headroom; two pairs need 42,292 bytes and three need 63,438. These are compile-t
 capacity observations with the current buffer lifetimes, not measured peaks.
 
 The next design must account for buffer and handshake lifetimes as well as
-bounded allocation. Investigate the pinned SDK's dynamic-record-buffer path and
-connection admission without disabling TLS checks or removing simultaneous
-MQTT/HTTPS. Dynamic buffers alone still allocate from a heap; no such option,
-mbedTLS allocator binding or connection-policy change is implemented here.
+bounded allocation. The SDK's dynamic-record-buffer mode is unsuitable as-is
+for the nonblocking application, as the probe below demonstrates. No mbedTLS
+allocator binding or connection-policy change is implemented here.
+
+### Dynamic TLS buffer assessment
+
+An isolated experiment based on `23f1f267d6afeff25c53ce370c8fd78c17ccd5c2`
+enabled only `CONFIG_MBEDTLS_DYNAMIC_BUFFER` in the network defaults. The real
+RV32 image built successfully but **failed the fragmented-header software probe**.
+The working application keeps the option off. Its CMake guard now rejects
+enabling it; linked-symbol qualification independently rejects the dynamic
+receive helper. SDK source and pins remain unchanged.
+The experimental map also exceeds the existing `c3tls` module reservation
+(9,066/9,056 bytes); that failed budget was retained without changing the cap.
+
+In the pinned `components/mbedtls/port/dynamic/esp_mbedtls_dynamic_impl.c`,
+`esp_mbedtls_add_rx_buffer` points `in_hdr` at a five-byte local stack array.
+`mbedtls_ssl_fetch_input` can receive part of the header and return `WANT_READ`.
+The byte count survives, but the array's lifetime ends. When the owner returns
+later, the SDK reads only the missing bytes into a new local array. The read
+wrapper returns this retry status directly; it does not save the partial header.
+
+The [reproducer](../../../tools/target/tls_fragment_probe.py) executes both actual
+compiled RV32 functions. Transport, allocation and ROM byte-copy operations are
+simulated; the returned stack is overwritten between calls to represent valid
+intervening owner work. Field offsets come from the ELF's DWARF, not host type
+sizes. It exercises a five-byte header `16 03 03 00 06`:
+
+| Delivery | Observed header after retry | Allocation requested |
+|---|---|---:|
+| All five bytes together, control case | `16 03 03 00 06` | 347 bytes |
+| Split after byte 1, 2 or 3 | Earlier bytes replaced by `A5` | 347 bytes |
+| Split after byte 4 | `A5 A5 A5 A5 06` | 42,587 bytes |
+
+All four split cases reproduce loss; the last also shows that corrupted length
+bytes reach allocation before later TLS validation. This is an instruction-level
+software result, **not a live TLS handshake, board observation, security exploit
+claim or timing measurement**. It is sufficient to reject this option for the
+current owner loop. It does not establish behavior for every SDK release.
+
+Local experiment: `C:/Users/kkak4/esp/uthome-tls-dynamic-probe-20261114/`.
+Its ELF SHA-256 is
+`4b540ae35991bff7e306b8c7c3d8cb82bc129cf15566400dff3f6f07ac73cffc`.
+The report and logs are under ignored `build/tls-capacity/`; no image was flashed.
+Use the [target tool procedure](../../../tools/target/README.md#tls-fragment-reproducer)
+to repeat the probe. The tool's successful exit means the defect was reproduced,
+not that TLS acceptance passed.
+
+For the build guard, **51 affected qualification/TLS-record tests passed**, including
+execution of the CMake rejection and linked-symbol rejection paths. The pinned
+329-file C gate passes. A fresh normal target build with warnings as errors and
+snapshot verification passes at the unchanged **260,386/278,528 DRAM bytes**;
+every module and aggregate budget passes. No project C or header was changed.
+That build is `C:/Users/kkak4/esp/uthome-tls-buffer-guard-20261114/`, with
+`evidence.json` SHA-256
+`1e6e49853fcc6f10628fa0a63eea0e8a80837d9fec1fd5c709a8cf2f99c2cb41`.
+Logs, memory report and the five-case reproducer report are in
+`build/tls-capacity/`. This is software/build validation, not live acceptance.
+
+A safe smaller-buffer design must retain partial headers and records across
+retries, validate lengths before requesting storage, and preserve unread data
+for each live connection. One shared scratch array cannot replace storage still
+owned by another connection. Capacity must cover admitted handshake/record
+overlap with deterministic exhaustion and cleanup; it must fit the unchanged
+budgets alongside certificates, keys and TCP/IP storage. Default record buffers
+still exceed the available application headroom, so this assessment closes the
+SDK-option investigation, **not the network allocation blocker**.
 
 ### Required closure before whole-system acceptance
 

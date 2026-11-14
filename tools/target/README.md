@@ -281,6 +281,44 @@ from existing build artifacts; failed builds stay failed. Exact specifications,
 commands, resource requests and acceptance matrix are maintained in the
 [network guide](../../firmware/src/network/README.md#usb-wi-fi-troubleshooting).
 
+## TLS fragment reproducer
+
+`tls_fragment_probe.py` reproduces the pinned SDK's optional dynamic-buffer
+partial-header failure by executing RV32 instructions in software. It needs a
+dynamic-buffer ELF with DWARF and the optional host packages `unicorn==2.1.4`
+and `pyelftools==0.33`. These are probe dependencies, not firmware dependencies
+or requirements for the ordinary host suite. A successful exit means all four
+split cases reproduced the defect, with an unsplit control case passing.
+
+The current application deliberately rejects this mode. To recreate only the
+isolated experiment, start from its recorded pre-guard revision:
+
+```powershell
+git worktree add --detach build/tls-buffer-probe 23f1f267d6afeff25c53ce370c8fd78c17ccd5c2
+Add-Content build/tls-buffer-probe/tests/target/runtime_port_board/network.defaults "`nCONFIG_MBEDTLS_DYNAMIC_BUFFER=y"
+```
+
+From that worktree, use the normal pinned build procedure with
+`--runtime-port --configuration-app --static-net-queues --network-services wifi`,
+build-only settings and a fresh output directory. Supply the normal pinned
+kernel checkout explicitly; the worktree does not initialize another submodule.
+Keep this rejected experiment separate from working firmware and do not flash it.
+Back in the maintained checkout, install the optional packages in a local virtual
+environment, then run:
+
+```powershell
+python tools/target/tls_fragment_probe.py ABSOLUTE_PROBE_WORK_DIR/build/uthome_runtime_port.elf --output build/tls-capacity/new-fragment-report.json
+```
+
+Create the output directory first; existing reports are not overwritten. The
+tool maps the ELF into emulator memory without changing the file. Only transport,
+allocator and ROM byte-copy routines are simulated; the SDK receive helper and
+input-fetch routine execute their compiled instructions. Between retry calls,
+the returned stack is overwritten to represent valid intervening work. This
+does not emulate radio hardware, complete a TLS handshake or measure ESP timing.
+The [resource assessment](../../docs/reports/wifi-static-memory/README.md#dynamic-tls-buffer-assessment)
+records the source/build identity, result and remaining memory constraints.
+
 ## Authenticated HTTP configuration client
 
 `python -m tools.target.network_config --help` describes the separate mutating

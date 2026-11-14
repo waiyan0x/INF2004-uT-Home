@@ -154,6 +154,11 @@ MQTT plus two HTTPS sessions. Even one current encryption-buffer pair needs
 21,146 bytes, above the remaining 16,184-byte application headroom. A bounded
 allocator therefore also needs a reviewed buffer-lifetime/capacity design.
 Keep the existing caps and TLS checks; sizing is not a measured runtime peak.
+The pinned SDK's dynamic-buffer mode is rejected after a software probe
+reproduced partial-header loss across nonblocking reads. It cannot be used as a
+memory shortcut. A replacement must preserve partial input between owner calls,
+bound record lengths before allocation and budget overlapping connection state;
+see the assessment's reproduction procedure.
 
 **Required setup:** MQTT and HTTPS must remain available together; retain USB
 setup/recovery. Budget overlapping secure connections rather than removing

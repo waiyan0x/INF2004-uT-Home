@@ -31,8 +31,11 @@ configuration views reclaimed 24,600 fixed DRAM bytes; lwIP mailboxes use the
 existing fixed queue storage. ESP-TLS contexts, error records and temporary
 names now use 9,054 fixed bytes from that reclaimed capacity, with no heap
 fallback for these records. Software checks and the fresh target build pass.
-Keep MQTT and HTTPS setup available together, with USB recovery retained. Next,
-budget encryption-buffer lifetimes and the remaining mbedTLS/lwIP storage. See the
+Keep MQTT and HTTPS setup available together, with USB recovery retained. The
+pinned SDK's optional dynamic TLS buffers lost partial headers in a target-code
+software probe; the build now rejects that option. Next, design bounded TLS
+storage with persistent partial-input state and enough capacity for overlapping
+connections, then address the remaining lwIP storage. See the
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
 Then complete the persistent controller, three-protocol Markdown coverage, UI
 and Home Assistant display in the [completion plan](CONTRIBUTING.md#completion-plan).
@@ -40,6 +43,8 @@ The host display adapter remains unimplemented. Current generated tests, gate,
 map reports are local-only under `build/tls-records/`; earlier configuration
 and TLS sizing, mailbox and session checks remain under `build/compact-json/`,
 `build/network-memory/` and `build/step1-verification/`.
+The dynamic-buffer experiment and guard checks are local-only under
+`build/tls-capacity/`; the rejected experimental image was never flashed.
 
 The existing configuration application and peripheral profiles remain for setup
 and recovery. Runtime transactions require an explicitly idle peripheral plan.

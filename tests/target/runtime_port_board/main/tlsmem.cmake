@@ -1,5 +1,9 @@
 # Fixed ESP-TLS records. This does not replace mbedTLS or lwIP allocation.
 if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
+    if(CONFIG_MBEDTLS_DYNAMIC_BUFFER)
+        message(FATAL_ERROR
+            "Dynamic TLS buffers are unsupported: pinned SDK loses partial nonblocking record headers")
+    endif()
     if(NOT CONFIG_ESP_TLS_USING_MBEDTLS OR CONFIG_ESP_TLS_CUSTOM_STACK OR
        CONFIG_ESP_TLS_CLIENT_SESSION_TICKETS OR CONFIG_ESP_TLS_SERVER_SESSION_TICKETS)
         message(FATAL_ERROR "Fixed ESP-TLS records require mbedTLS without session-ticket storage")

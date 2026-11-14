@@ -711,6 +711,8 @@ def check_tls_storage(commands, symbols, enabled):
         if any(name in symbols for name in owned):
             raise QualificationError("ESP-TLS storage escaped selected Wi-Fi services")
         return dict(enabled=False)
+    if "esp_mbedtls_add_rx_buffer" in symbols:
+        raise QualificationError("Unsupported dynamic TLS buffers: partial nonblocking headers are not retained")
     for name in owned:
         if not 0x42000000 <= symbols.get(name, 0) < 0x43000000:
             raise QualificationError("ESP-TLS storage helper absent or consumes RAM code: " + name)

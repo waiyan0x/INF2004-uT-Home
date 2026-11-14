@@ -123,6 +123,10 @@ hostname limits, exhaustion, failed-initialization cleanup and 1,000 complete
 lease cycles under allocator interception. They do not perform TLS handshakes.
 The real target build uses the full pinned SDK declarations.
 
+The selected build rejects `CONFIG_MBEDTLS_DYNAMIC_BUFFER`; the pinned SDK's
+partial-header failure is documented in the resource assessment below. The
+qualifier also rejects a linked `esp_mbedtls_add_rx_buffer` implementation.
+
 This closes ESP-TLS record/name allocation only. Encryption buffers,
 certificates/keys, retained TLS hostnames and lwIP connection/packet storage still
 need bounded allocation and live acceptance. See the
