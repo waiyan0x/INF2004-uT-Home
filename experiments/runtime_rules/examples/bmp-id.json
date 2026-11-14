@@ -1,8 +1,0 @@
-{
-  "version": 1,
-  "revision": 1,
-  "device": "bmp388",
-  "address": 119,
-  "register": 0,
-  "read_length": 1
-}

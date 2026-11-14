@@ -1,22 +1,25 @@
-# Peripheral drivers
+# Peripheral access
 
-Each driver uses only contracts from `firmware/hal/include/` and publishes or
-consumes the hardware-independent types declared under `include/uthome/`.
+The runtime-rule path selects transactions through generic HAL contracts. It
+does not need a dedicated sensor driver to interpret each returned value.
 
-The first prototype contains:
+| Maintained area | Purpose |
+|---|---|
+| `../hal/i2cbus.c`, `../hal/include/i2cbus.h` | Generic I2C transfers and bus ownership |
+| `../hal/spibus.c`, `../hal/include/spibus.h` | Generic SPI transfers and chip-select ownership |
+| `../hal/uartio.c`, `../hal/include/uartio.h` | Generic UART operations and port ownership |
+| `../src/services/transaction/` | Validate rules and choose bounded I2C/SPI/UART operations |
+| `generic_i2c/` | Existing configurable register-read profile component |
+| `bmp388/`, `ssd1306_spi/`, `hlk_ld2450/` | Existing decoded sensor/display profiles for setup, diagnosis and recovery |
+| `hc_sr04/`, `pwm_output/` | Existing optional GPIO profile capabilities |
 
-| Directory | Protocol | Responsibility |
-|---|---|---|
-| `bmp388/` | I²C | Pressure and temperature acquisition |
-| `ssd1306_spi/` | SPI + GPIO | Provisional 128×64 OLED transport |
-| `hlk_ld2450/` | UART | Framing and target-report decoding |
-| `hc_sr04/` | GPIO + time | Trigger/Echo distance measurement |
+Device-profile components remain registered with the configuration system. They
+are separate from the raw transaction path; transactions currently require an
+idle peripheral plan. Removing these profiles would also require changes to
+admission, UI, recovery procedures and tests, so they remain intact.
 
-Drivers do not create tasks, allocate queues, choose pins, format the complete
-OLED view, or call another driver. They expose initialise, operate, and shutdown
-entry points through the component registry and return common status codes.
-
-`hc_sr04` now includes portable measurement and `hcinst` typed publication.
-`pwm_output/pwminst` is an additional generic output component for the wider
-platform, independent of the first prototype. Neither is hardware-qualified.
-See [GPIO integration](hc_sr04/INTEGRATION.md).
+Drivers do not create tasks, allocate queues or choose application behavior.
+The application owner supplies reviewed configuration and serializes access.
+See the [transaction contract](../src/services/transaction/README.md),
+[HAL guide](../hal/README.md) and each device's integration guide for actual
+transfer shapes, fixed wiring and remaining hardware checks.

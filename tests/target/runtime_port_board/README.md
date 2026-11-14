@@ -77,8 +77,7 @@ with bounded no-I/O checks. These do not establish peripheral communication or
 electrical behavior. Startup return-value/idempotence checks are distinct from
 counting kernel creation calls. Use the application and hardware procedures for
 sensor/display communication, persistence and outputs; use the isolated UART
-fixture for injected ring faults. Historical incremental check counts are in
-the [completed-work log](../../../docs/COMPLETED_WORK_LOG.md).
+fixture for injected ring faults. Capture results against the exact image tested.
 
 ## Current core and radio diagnostic scope
 
@@ -91,7 +90,7 @@ and confirm serial ownership before a new capture.
 BLE diagnostics are separate from these core checks. `--ble-probe` selects
 nonconnectable advertising; adding `--ble-gatt-probe` selects a 45-second read-only
 uptime service, with one connection permitted and no configuration commands.
-See the [network guide](../../../firmware/src/network/README.md#read-only-gatt-diagnostic)
+See the [network guide](../../../firmware/src/network/README.md#http-and-ble-observation-contracts)
 for its contract and C review. SDK allocations remain exposed and unqualified.
 
 ## Buddy 1 radio resource acceptance

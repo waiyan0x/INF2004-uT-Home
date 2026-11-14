@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { extname } from 'node:path';
-import { PLANS, REVISION, address } from '../../visualiser/dist/plan.mjs';
-import { startGuide } from '../../visualiser/tests/server-process.mjs';
+import { PLANS, REVISION, address } from '../../tools/wiring_visualiser/static/plan.mjs';
+import { startGuide } from '../../tools/wiring_visualiser/tests/server-process.mjs';
 
 const storageKey = `uthome-wiring-${REVISION}`;
 
@@ -45,7 +45,7 @@ async function openGuide(page, saved) {
     const pathname = new URL(route.request().url()).pathname;
     const file = pathname === '/' ? 'index.html' : pathname.slice(1);
     const types = {'.html': 'text/html', '.mjs': 'text/javascript', '.css': 'text/css'};
-    await route.fulfill({body: await readFile(new URL(`../../visualiser/dist/${file}`, import.meta.url)),
+    await route.fulfill({body: await readFile(new URL(`../../tools/wiring_visualiser/static/${file}`, import.meta.url)),
       contentType: types[extname(file)] || 'application/octet-stream'});
   });
   await page.goto('http://wiring.test/');

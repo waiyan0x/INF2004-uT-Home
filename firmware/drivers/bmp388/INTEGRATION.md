@@ -97,8 +97,7 @@ plumbing, not physical measurement accuracy.
 
 The target acceptance build includes the C3 backend and Bosch library. Added
 invalid-argument checks retain these functions in the link without accessing
-pins. Those original fixture checks did not exercise the physical sensor. See the
-[bench summary](../../qualification/README.md#peripheral-bench-observations) for later observations.
+pins. These fixture checks do not exercise the physical sensor.
 
 Before physical acceptance, identify the breakout and verify supply, pull-ups,
 I2C mode/address and wiring. The existing example profile uses SDA GPIO0 and SCL
@@ -114,5 +113,5 @@ retryable cleanup. Vendor files are unchanged. No new exception or C11 scope
 was introduced.
 
 
-Current [acceptance status](../../qualification/README.md) and
-[wiring procedure](../../../HARDWARE_ACCEPTANCE.md). Keep dated results in the qualification records, separate from current usage.
+Use the [hardware acceptance procedure](../../../HARDWARE_ACCEPTANCE.md).
+Record the exact image, wiring and fresh outcomes under ignored `build/`.

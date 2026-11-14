@@ -3,7 +3,6 @@
  * @brief Compose admission, activation, storage and the USB controller loop.
  */
 #include "c3app.h"
-#include "c3rule.h"
 #include "c3net.h"
 #include "c3tx.h"
 #include "c3audit.h"
@@ -49,9 +48,6 @@ int c3app_run (const uint8_t *       p_build_hash,
                costview_stack_fn_t * p_idle,
                costview_cpu_fn_t *   p_cpu)
 {
-#if UTHOME_RULE_PROBE
-    return c3rule_run();
-#endif
     g_cost.p_idle = p_idle;
     g_cost.p_cpu  = p_cpu;
     /* Binary traffic exclusively owns USB after the boot banner. No regular

@@ -14,7 +14,7 @@ class BuildModeTests(unittest.TestCase):
     def test_only_documented_flag_combinations_are_admitted(self):
         names = ('runtime_port', 'configuration_app', 'native_uart_fixture', 'static_net_queues',
                  'wifi_probe', 'ble_probe', 'ble_gatt_probe', 'ble_static_host',
-                 'senlux_probe', 'senlux_app_probe', 'rule_probe')
+                 'senlux_probe', 'senlux_app_probe')
         runtime = {'runtime_port'}
         application = runtime | {'configuration_app'}
         expected = {(frozenset(), example) for example in (None, 'tasks', 'ble_gatt', 'udp_pingpong_c3')}
@@ -24,7 +24,7 @@ class BuildModeTests(unittest.TestCase):
         expected.add((frozenset(runtime | {'native_uart_fixture'}), None))
         for probe in ('wifi_probe', 'senlux_probe'):
             expected.add((frozenset(runtime | {'static_net_queues', probe}), None))
-        for probe in ('senlux_app_probe', 'rule_probe'):
+        for probe in ('senlux_app_probe',):
             expected.add((frozenset(application | {'static_net_queues', probe}), None))
         for options in (set(), {'ble_gatt_probe'}, {'ble_static_host'}, {'ble_gatt_probe', 'ble_static_host'}):
             expected.add((frozenset(runtime | {'static_net_queues', 'ble_probe'} | options), None))
@@ -75,33 +75,12 @@ class BuildModeTests(unittest.TestCase):
                 patch('builtins.print'):
             result = qualify_kernel.main([
                 'build', '--sdk', 'SDK', '--work-dir', 'fresh', '--runtime-port',
-                '--configuration-app', '--static-net-queues', '--rule-probe',
+                '--configuration-app', '--static-net-queues',
                 '--compat-patch', 'compat.patch', '--resource-patch', 'resource.patch'])
         self.assertEqual(result, 0)
         self.assertEqual(len(build.call_args.args), 3)
         options = build.call_args.kwargs
-        self.assertEqual(options['selection'].mode, BuildMode.RULE)
+        self.assertEqual(options['selection'].mode, BuildMode.CONFIGURATION)
         self.assertTrue(options['selection'].static_net_queues)
         self.assertEqual(options['compat_patch'], Path('compat.patch').resolve())
         self.assertEqual(options['resource_patch'], Path('resource.patch').resolve())
-
-    def test_rule_probe_checks_compiler_selection_and_excludes_production_paths(self):
-        with tempfile.TemporaryDirectory() as directory:
-            work = Path(directory)
-            (work / "build").mkdir()
-            commands = work / "build/compile_commands.json"
-            def set_mode(enabled):
-                commands.write_text(json.dumps([dict(file="c3app.c", command=f"cc -DUTHOME_RULE_PROBE={int(enabled)}")]))
-            symbols = "".join(f"42000100 T {s}\n" for s in
-                              ("c3rule_run", "txwire_process", "txrule_execute", "txi2c_read"))
-            set_mode(True)
-            with patch.object(qualify_kernel, "run", return_value=symbols):
-                self.assertTrue(qualify_kernel.verify_rule_probe(work, True)["enabled"])
-                with self.assertRaises(QualificationError):
-                    qualify_kernel.verify_rule_probe(work, False)
-            with patch.object(qualify_kernel, "run", return_value=symbols+"42000200 T cfgctrl_restore\n"):
-                with self.assertRaises(QualificationError):
-                    qualify_kernel.verify_rule_probe(work, True)
-            set_mode(False)
-            with patch.object(qualify_kernel, "run", return_value=""):
-                self.assertFalse(qualify_kernel.verify_rule_probe(work, False)["enabled"])

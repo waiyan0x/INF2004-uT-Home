@@ -16,5 +16,4 @@ do not replace that procedure or establish physical acceptance by themselves.
 - [GPIO mutex lifetime](gpio-startup-mutexes.md): pulse/PWM startup resources
   and failure behavior.
 
-Keep measured outcomes in the [qualification index](../../firmware/qualification/README.md).
-Earlier attempts remain in the [completed-work log](../COMPLETED_WORK_LOG.md).
+Keep fresh measurements, build identity and raw output under ignored `build/`.

@@ -253,16 +253,6 @@ ssize_t esp_tls_conn_write(esp_tls_t *tls,const void *data,size_t size)
   size_t n=size;if(n>(size_t)g_write_limit) { n=(size_t)g_write_limit; }
   if(g_output_size[fd]+n>4096) { return -1; }
   memcpy(g_output[fd]+g_output_size[fd],data,n);g_output_size[fd]+=n;return (ssize_t)n; }
-#if UTHOME_OCCUPANCY_LAB
-#include <errno.h>
-int c3fake_recv(int fd,void *data,size_t size,int flags)
-{ (void)flags; esp_tls_t channel={fd};int n=(int)esp_tls_conn_read(&channel,data,size);
-  if(n<0){errno=EAGAIN;return -1;} return n; }
-int c3fake_send(int fd,const void *data,size_t size,int flags)
-{ (void)flags; esp_tls_t channel={fd};return (int)esp_tls_conn_write(&channel,data,size); }
-static int radar_mode;
-void c3fake_radar(int mode){radar_mode=mode;}
-#endif
 static int wifi_stage(int stage)
 { ++g_wifi_setup_calls;return stage==g_wifi_fail_stage?0x4321:0; }
 int esp_netif_init(void) { return wifi_stage(1); }
@@ -332,11 +322,6 @@ static int g_capture_result[8];
 static int g_capture_failures[8];
 static int g_captures;
 #include "uthome/txjob.h"
-static txjob_view_t g_transaction;
-int c3fake_transaction(const uint8_t *data,size_t size)
-{ if(size!=96) return -1; memcpy(g_transaction.reply,data,size);
-  g_transaction.b_known=true;g_transaction.completed_ms=100;g_transaction.generation=4;
-  ++g_transaction.sequence;g_info.p_transaction=&g_transaction;return 0; }
 static int capture(void *context,uint16_t source,sampcache_entry_t *entry,uint64_t *now)
 { ++g_captures;
   if(source<8 && g_capture_failures[source]>0) { --g_capture_failures[source];memset(entry,0,sizeof(*entry));return -1; }
@@ -346,22 +331,11 @@ static int capture(void *context,uint16_t source,sampcache_entry_t *entry,uint64
   memcpy(entry->source.name,"environment",12);entry->b_expected=true;entry->b_seen=true;
   entry->header.status=1;entry->header.timestamp_ms=100;
   entry->value.environment.pressure_pa=100800;entry->value.environment.temperature_c=26;
-#if UTHOME_OCCUPANCY_LAB
-  if(source!=2)return 1;
-  strcpy(entry->source.name,radar_mode==5?"other":"presence_sensor");
-  entry->source.type=UTHOME_SAMPLE_TARGETS;entry->b_seen=radar_mode!=0;
-  memset(&entry->value,0,sizeof(entry->value));
-  entry->value.targets.targets[2].b_present=radar_mode==2;
-  entry->header.status=radar_mode==4?0:1;entry->source.stale_ms=radar_mode==3?50:1000;
-#endif
   *now=150;return 0; }
 int c3fake_start(void)
 { static const uint8_t cert[]="certificate";static const uint8_t key[]="key";
   static const uint8_t token[]="0123456789abcdef0123456789abcdef";
   c3https_config_t config={cert,key,token,sizeof(cert),sizeof(key),sizeof(token)-1,8443,gp_test_mux};
-#if UTHOME_OCCUPANCY_LAB
-  strcpy(g_info.node_id,"uthome-010203040506");config.port=6053;
-#endif
   return c3https_start(&config); }
 void c3fake_mux(cfgmux_t *mux) { gp_test_mux=mux;g_info.b_configuration_supported=mux!=NULL; }
 int c3fake_drive(uint64_t now,int online)
@@ -449,8 +423,8 @@ class EspBindingTests(unittest.TestCase):
             path.parent.mkdir(parents=True,exist_ok=True)
             path.write_text('#include "sdk.h"\n',encoding='utf-8')
         sources=['firmware/hal/ports/esp32c3/'+name+'.c' for name in ['c3https','c3wsta','c3gsvc','c3mqtt']]
-        sources+=['firmware/src/network/'+name+'.c' for name in ['nethttp','netread','netble','netretry','netbroker','netmqtt','mqttdisc']]
-        sources+=['firmware/src/runtime/sampcache.c', 'firmware/src/services/transaction/txjob.c']
+        sources+=['firmware/src/network/'+name+'.c' for name in ['nethttp','netread','netble','netretry','netbroker','netmqtt']]
+        sources+=['firmware/src/runtime/sampcache.c']
         sources+=['firmware/src/config/'+name+'.c' for name in ['cfgmux','cfgctrl','cfgstore','cfgwire','cfgbytes']]
         includes=[folder,ROOT/'firmware/src/config',ROOT/'firmware/include',ROOT/'firmware/src/network',
                   ROOT/'firmware/src/services',ROOT/'firmware/src/runtime',
@@ -460,6 +434,7 @@ class EspBindingTests(unittest.TestCase):
         cls.binary=folder/'bindings.dll'
         command=[compiler,'-std=c99','-Wall','-Wextra','-Werror','-pedantic','-shared',*(['-fPIC'] if sys.platform!='win32' else []),
                  '-DUTHOME_NETWORK_WIFI=1','-DUTHOME_NETWORK_BLE=1',
+                 '-DUTHOME_MQTT_VALUE_BYTES=112','-DUTHOME_MQTT_PACKET_BYTES=384',
                  *['-I'+str(path) for path in includes],
                  *['-D'+name+'='+value for name,value in aliases.items()],
                  *[str(ROOT/path) for path in sources],str(folder/'fake.c'),
@@ -467,10 +442,6 @@ class EspBindingTests(unittest.TestCase):
         built=subprocess.run(command,capture_output=True,text=True)
         if built.returncode:
             raise AssertionError(built.stdout+built.stderr)
-        cls.lab_binary=folder/'occupancy.dll'
-        subprocess.run(command[:-2]+['-DUTHOME_OCCUPANCY_LAB=1','-Drecv=c3fake_recv',
-            '-Dsend=c3fake_send',str(ROOT/'firmware/src/network/occwire.c'),
-            '-o',str(cls.lab_binary)],check=True)
         # Compile owner composition against small explicit boundary declarations.
         # These doubles do not replace any production header or native library.
         (folder/'esp_mac.h').write_text('#include "sdk.h"\n')
@@ -507,7 +478,7 @@ class EspBindingTests(unittest.TestCase):
     def setUp(self):
         type(self).next_instance+=1
         path=Path(self.folder.name)/f'instance-{self.next_instance}.dll'
-        shutil.copyfile(self.lab_binary if self._testMethodName.startswith("test_esphome") else self.binary,path)
+        shutil.copyfile(self.binary,path)
         self.lib=c.CDLL(str(path))
         self.addCleanup(self.unload)
         self.lib.c3fake_drive.argtypes=[c.c_uint64,c.c_int]
@@ -570,110 +541,7 @@ class EspBindingTests(unittest.TestCase):
         self.assertLessEqual(len(output),512)
         return int(header.split()[1]),json.loads(body),changes
 
-    def test_esphome_real_client(self):
-        # Mandatory host interoperability check; the socket pump replaces only SDK I/O.
-        import asyncio
-        from aioesphomeapi import APIClient
-        self.assertEqual(self.lib.c3fake_start(),0)
-        async def verify():
-            states=asyncio.Queue()
-            finished=asyncio.Event()
-            async def peer(reader,writer):
-                self.lib.c3fake_accept_next(10)
-                sent=now=0
-                try:
-                    while not reader.at_eof():
-                        try:data=await asyncio.wait_for(reader.read(64),0.01)
-                        except asyncio.TimeoutError:data=None
-                        if data==b'':break
-                        if data:self.lib.c3fake_input(10,data,len(data))
-                        now+=10
-                        self.drive(now)
-                        out=self.output()
-                        if len(out)>sent:
-                            writer.write(out[sent:]);await writer.drain();sent=len(out)
-                        if self.lib.c3fake_closed(10):break
-                finally:
-                    writer.close()
-                    finished.set()
-            server=await asyncio.start_server(peer,'127.0.0.1',0)
-            async with server:
-                client=APIClient('127.0.0.1',server.sockets[0].getsockname()[1],None)
-                await client.connect(login=True)
-                try:
-                    info=await client.device_info()
-                    self.assertEqual(info.name,'uthome-010203040506')
-                    entities,_=await client.list_entities_services()
-                    self.assertEqual([(e.name,e.device_class) for e in entities],
-                                     [('Room occupancy','occupancy'),('Radar data fresh',''),('Transaction result','')])
-                    self.assertEqual(entities[1].entity_category.value,2)
-                    client.subscribe_states(states.put_nowait)
-                    occupancy=await states.get()
-                    self.assertEqual((occupancy.key,occupancy.missing_state),(entities[0].key,True))
-                    initial=await states.get()
-                    self.assertEqual((initial.key,initial.state,initial.missing_state),(2,False,False))
-                    raw_missing=await states.get()
-                    self.assertEqual((raw_missing.key,raw_missing.missing_state),(3,True))
-                    for mode,expected,missing in [(2,True,False),(1,False,False),(3,False,True)]:
-                        self.lib.c3fake_radar(mode)
-                        state=await states.get()
-                        self.assertEqual((state.key,state.state,state.missing_state),
-                                         (entities[0].key,expected,missing))
-                        if mode in (2,3):
-                            fresh=await states.get()
-                            self.assertEqual((fresh.key,fresh.state,fresh.missing_state),
-                                             (entities[1].key,not missing,False))
-                    self.lib.c3fake_transaction.argtypes=[c.c_char_p,c.c_size_t]
-                    reply=bytearray(96);reply[:4]=b'TJ\x01\x02'
-                    reply[44:49]=bytes([1,0,1,1,80])
-                    self.assertEqual(self.lib.c3fake_transaction(bytes(reply),96),0)
-                    result=await states.get()
-                    self.assertEqual(result.key,3)
-                    self.assertFalse(result.missing_state)
-                    self.assertIn('50',result.state)
-                    reply[45]=5;reply[47:80]=bytes(33)
-                    self.lib.c3fake_transaction(bytes(reply),96)
-                    result=await states.get()
-                    self.assertEqual(result.key,3)
-                    self.assertIn('I/O error',result.state)
-                    self.assertNotIn('50',result.state)
-                finally:
-                    await client.disconnect()
-                await finished.wait()
-        asyncio.run(asyncio.wait_for(verify(),15))
 
-    def test_esphome_display_and_mqtt_publisher_share_host_pump(self):
-        # Independent socket doubles; no real radio, TLS handshake or broker.
-        self.assertEqual(self.lib.c3fake_start(), 0)
-        self.assertEqual(self.lib.c3fake_mqtt_start(), 0)
-        self.lib.c3fake_handshake(1)
-        self.lib.c3fake_mqtt_step.argtypes = [c.c_uint64, c.c_int]
-        self.lib.c3mqtt_status.argtypes = [c.c_void_p]
-        self.lib.c3fake_accept_next(10)
-        self.assertEqual(self.drive(1), 0)
-        self.lib.c3fake_input(10, bytes([0, 0, 1]), 3)
-        sent_ack = False
-        view = (c.c_uint32 * 4)()
-        for now in range(2, 250):
-            self.assertEqual(self.drive(now), 0)
-            self.assertEqual(self.lib.c3fake_mqtt_step(now, 1), 0)
-            packet = self.output(0)
-            if (not sent_ack and len(packet) >= 2 and packet[0] == 0x10
-                    and packet[1] < 128 and len(packet) >= 2 + packet[1]):
-                self.lib.c3fake_input(0, bytes([0x20, 2, 0, 0]), 4)
-                sent_ack = True
-            self.assertEqual(self.lib.c3mqtt_status(view), 0)
-            if sent_ack and view[0] == 5 and b'uthome-' in self.output(10):
-                break
-        self.assertTrue(sent_ack)
-        self.assertEqual(view[0], 5)  # NETBROKER_READY
-        self.assertIn(b'uthome-', self.output(10))
-        self.assertIn(b'online', self.output(0))
-        self.assertEqual(self.lib.c3fake_closed(10), 0)
-
-    MQTT_SUFFIXES=[('sensor','temperature'),('sensor','pressure'),('sensor','distance'),
-                   ('sensor','illuminance'),('binary_sensor','occupancy'),
-                   ('sensor','targets'),('sensor','raw')]
 
     def mqtt_session(self,absent=range(1,8)):
         """Real c3mqtt over the TLS double; whole-packet writes; slot 0 present."""
@@ -738,167 +606,30 @@ class EspBindingTests(unittest.TestCase):
             else:
                 self.fail(f'unexpected packet {packet!r}')
 
-    def discovery_order(self):
-        return [f'homeassistant/{component}/node_s{slot}_{suffix}/config'
-                for slot in range(8) for component,suffix in self.MQTT_SUFFIXES]
 
-    def test_mqtt_discovery_retained_paced_then_telemetry_and_state(self):
-        if str(ROOT) not in sys.path:
-            sys.path.insert(0,str(ROOT))
-        from tools.target.network_client import decode_mqtt
-        self.mqtt_session()
-        self.mqtt_pump(400)
-        retained=[p for p in self.publishes if p[1]]
-        self.assertEqual(retained[0][2:],('uthome/v1/node/availability',b'online'))
-        discovery=retained[1:]
-        self.assertEqual([p[2] for p in discovery],self.discovery_order())
-        present={p[2]:p[3] for p in discovery if p[3]}
-        self.assertEqual(sorted(present),['homeassistant/sensor/node_s0_pressure/config',
-                                          'homeassistant/sensor/node_s0_temperature/config'])
-        config=json.loads(present['homeassistant/sensor/node_s0_temperature/config'])
-        self.assertEqual(config['state_topic'],'uthome/v1/node/state/environment')
-        self.assertEqual(config['availability_topic'],'uthome/v1/node/availability')
-        self.assertEqual(config['unit_of_measurement'],'°C')
-        # Availability plus 56 discovery messages precede any other publication.
-        self.assertTrue(all(p[1] for p in self.publishes[:57]))
-        following=self.publishes[57:]
-        self.assertEqual([(p[1],p[2]) for p in following],
-                         [(0,'uthome/v1/node/telemetry/environment'),
-                          (0,'uthome/v1/node/state/environment')])
-        frame=decode_mqtt(following[0][2],following[0][3])
-        self.assertEqual(frame['source_index'],0)
-        self.assertEqual(len(following[0][3]),112)
-        self.assertEqual(following[1][3],b'{"t_c100":2600,"p_pa":100800}')
-        # One completed publication per owner step and nothing replaced unsent.
-        times=[p[0] for p in self.publishes]
-        self.assertEqual(len(times),len(set(times)))
-        view=(c.c_uint32*4)()
-        self.assertEqual(self.lib.c3mqtt_status(view),0)
-        self.assertEqual(list(view),[5,0,0,0])
-        # Rotation: slot 0 again after eight 1 s ticks, both topics, no retain.
-        self.publishes.clear()
-        self.mqtt_pump(900,dt=10)
-        self.assertEqual([(p[1],p[2]) for p in self.publishes],
-                         [(0,'uthome/v1/node/telemetry/environment'),
-                          (0,'uthome/v1/node/state/environment')])
-        self.assertLess(self.publishes[1][0]-self.publishes[0][0],1000)
 
-    def test_mqtt_discovery_capture_failure_retries_and_never_removes(self):
-        self.mqtt_session()
-        self.lib.c3fake_capture_result(0,-1)
-        self.mqtt_pump(60)  # Busy windows stay below the 100-capture retry bound.
-        # The cursor stays at step 0: nothing removed and no telemetry either.
-        self.assertEqual([p[2] for p in self.publishes],['uthome/v1/node/availability'])
-        self.lib.c3fake_capture_result(0,0)
-        self.lib.c3fake_capture_result(3,-1)
-        for _ in range(200):
-            if len([p for p in self.publishes if p[1]])>=22:
-                break
-            self.mqtt_pump(1)
-        self.mqtt_pump(30)
-        discovery=[p for p in self.publishes if p[1]][1:]
-        self.assertEqual([p[2] for p in discovery],self.discovery_order()[:21])
-        self.assertTrue(discovery[0][3])
-        self.lib.c3fake_capture_result(3,1)  # Now genuinely absent: removal is allowed.
-        self.mqtt_pump(200)
-        discovery=[p for p in self.publishes if p[1]][1:]
-        self.assertEqual([p[2] for p in discovery],self.discovery_order())
-        self.assertTrue(all(p[3]==b'' for p in discovery[21:28]))
 
-    def test_mqtt_discovery_restarts_on_plan_change_and_reconnect(self):
-        self.mqtt_session()
-        self.mqtt_pump(30)
-        partial=[p for p in self.publishes if p[1]][1:]
-        self.assertTrue(0<len(partial)<56)
-        for change in ('generation','ip'):
-            self.publishes.clear()
-            if change=='generation':
-                self.lib.c3fake_generation(5)
-            else:
-                self.mqtt_pump(5,online=0)
-            connects=self.mqtt_connects
-            self.mqtt_pump(2500)  # Backoff is 1 s, then 2 s for the second reset.
-            self.assertEqual(self.mqtt_connects,connects+1)
-            retained=[p for p in self.publishes if p[1]]
-            self.assertEqual(retained[0][2],'uthome/v1/node/availability')
-            self.assertEqual([p[2] for p in retained[1:]],self.discovery_order())
 
     CAPTURE_RETRIES=100  # Mirrors C3MQTT_CAPTURE_RETRIES in c3mqtt.c.
 
-    def retained_topics(self):
-        return [p[2] for p in self.publishes if p[1]][1:]  # Without availability.
 
-    def test_mqtt_discovery_persistent_capture_failure_skips_without_removal(self):
-        self.mqtt_session()
-        self.lib.c3fake_capture_result(3,-1)  # Slot 3 never captures.
-        self.mqtt_pump(1200)
-        self.assertEqual(self.retained_topics(),
-                         [t for t in self.discovery_order() if '_s3_' not in t])
-        self.assertFalse(any('_s3_' in p[2] for p in self.publishes))
-        plain=[p[2] for p in self.publishes if not p[1]]
-        self.assertEqual(plain,['uthome/v1/node/telemetry/environment',
-                                'uthome/v1/node/state/environment'])
 
-    def test_mqtt_discovery_retry_bound_is_exact_and_resets_on_success(self):
-        self.mqtt_session()
-        self.lib.c3fake_capture_failures.argtypes=[c.c_int,c.c_int]
-        self.lib.c3fake_capture_failures(0,self.CAPTURE_RETRIES-1)  # Step 0: one short.
-        self.lib.c3fake_capture_failures(1,self.CAPTURE_RETRIES)    # Step 7: the bound.
-        for _ in range(500):
-            if self.retained_topics():
-                break
-            self.mqtt_pump(1)
-        order=self.discovery_order()
-        self.assertEqual(self.retained_topics(),[order[0]])
-        # Step 1 is already captured; step 2 starts from a counter reset by success.
-        self.lib.c3fake_capture_failures(0,self.CAPTURE_RETRIES-1)
-        self.mqtt_pump(1200)
-        self.assertEqual(self.retained_topics(),order[:7]+order[8:])
-        self.assertFalse(any(p[2]==order[7] for p in self.publishes))
 
-    def test_mqtt_final_discovery_message_precedes_first_telemetry(self):
-        self.mqtt_session()
-        for _ in range(1000):
-            if len(self.retained_topics())==55:
-                break
-            self.mqtt_pump(1)
-        self.assertEqual(len(self.retained_topics()),55)
-        # The 56th message is now pending. A 15 s gap makes the keepalive win the
-        # next step: PINGREQ is queued and the final message stays pending.
-        self.mqtt_pump(1,dt=15000)
-        self.mqtt_pump(50)
-        wire=[(p[1],p[2]) for p in self.publishes]
-        final=wire.index((1,self.discovery_order()[-1]))
-        first=wire.index((0,'uthome/v1/node/telemetry/environment'))
-        self.assertLess(final,first)
-        self.assertEqual(self.retained_topics(),self.discovery_order())
-        view=(c.c_uint32*4)()
-        self.assertEqual(self.lib.c3mqtt_status(view),0)
-        self.assertEqual(view[2],0)  # Nothing replaced.
 
-    def test_mqtt_result_during_discovery_resends_replaced_step(self):
+
+    def test_mqtt_target_buffers_publish_binary_telemetry_without_discovery(self):
+        from tools.target.network_client import decode_mqtt
         self.mqtt_session()
-        self.assertEqual(self.lib.c3mqtt_transactions(),0)
-        self.lib.c3mqtt_result.argtypes=[c.c_char_p,c.c_size_t]
-        for _ in range(400):
-            self.mqtt_pump(1)
-            if len(self.retained_topics())>=10:
-                break
-        self.assertLess(len(self.retained_topics()),56)
-        payload=bytes(range(96))
-        # A discovery step is pending here: the result takes its place at once.
-        self.assertEqual(self.lib.c3mqtt_result(payload,96),0)
-        self.assertEqual(self.lib.c3mqtt_result(payload,96),1)
         self.mqtt_pump(400)
-        self.assertEqual(self.retained_topics(),self.discovery_order())
-        results=[p for p in self.publishes if p[2]=='uthome/v1/node/transaction/result']
-        self.assertEqual([(p[1],p[3]) for p in results],[(0,payload)])
-        wire=[p[2] for p in self.publishes]
-        self.assertLess(wire.index('uthome/v1/node/transaction/result'),
-                        wire.index(self.discovery_order()[-1]))
-        view=(c.c_uint32*4)()
-        self.assertEqual(self.lib.c3mqtt_status(view),0)
-        self.assertEqual(view[2],1)  # Only the re-sent discovery step.
+        self.assertEqual(self.publishes[0][2:],
+                         ('uthome/v1/node/availability', b'online'))
+        telemetry = [p for p in self.publishes if '/telemetry/' in p[2]]
+        self.assertTrue(telemetry)
+        self.assertFalse(any(p[2].startswith('homeassistant/') for p in self.publishes))
+        for _, retain, topic, payload in telemetry:
+            self.assertEqual(retain, 0)
+            self.assertEqual(len(payload), 112)
+            self.assertEqual(decode_mqtt(topic, payload)['source_index'], 0)
 
     def test_mqtt_command_subscription_and_priority_result(self):
         self.assertEqual(self.lib.c3fake_mqtt_start(),0)
@@ -943,39 +674,6 @@ class EspBindingTests(unittest.TestCase):
         self.assertIn(b'transaction/result'+payload,output)
         self.assertEqual(self.lib.c3mqtt_result(payload,97),-1)
 
-    def test_esphome_occupancy_from_cache_and_reconnect(self):
-        self.assertEqual(self.lib.c3fake_start(),0)
-        self.lib.c3fake_accept_next(10)
-        self.lib.c3fake_write_limit(3)
-        now=0
-        def step(data=b''):
-            nonlocal now
-            before=len(self.output())
-            if data:self.lib.c3fake_input(10,data,len(data))
-            for _ in range(50):  # drain two descriptions even at three bytes per tick
-                now+=1
-                self.assertEqual(self.drive(now),0)
-            return self.output()[before:]
-        self.assertEqual(step(b'\x00\x00'),b'')  # fragmented hello
-        self.assertIn(b'uthome-010203040506',step(b'\x01'))
-        self.assertIn(b'room_occupancy',step(bytes([0,0,11])))
-        def packet(key,state,missing):
-            return bytes([0,9,21,13,key,0,0,0,16,state,24,missing])
-        self.assertEqual(step(bytes([0,0,20])),packet(1,0,1)+packet(2,0,0)+bytes([0,9,27,13,3,0,0,0,18,0,24,1]))
-        fresh=False
-        for mode,state,missing in [(2,1,0),(1,0,0),(3,0,1),(2,1,0),(4,0,1),(1,0,0),(5,0,1)]:
-            self.lib.c3fake_radar(mode)
-            expected=packet(1,state,missing)
-            if fresh != (not missing):expected+=packet(2,not missing,0)
-            self.assertEqual(step(),expected)
-            fresh=not missing
-        step(bytes([0,126]))  # exceeds receive bound; closes only this client
-        self.assertEqual(self.lib.c3fake_closed(10),1)
-        self.lib.c3fake_accept_next(10)
-        self.assertIn(b'uthome-',step(bytes([0,0,1])))
-        self.lib.c3fake_radar(1)
-        self.assertEqual(step(bytes([0,0,20])),packet(1,0,0)+packet(2,1,0)+bytes([0,9,27,13,3,0,0,0,18,0,24,1]))
-        self.assertEqual(self.lib.c3fake_deleted(),0)  # never instantiated TLS
 
     def test_https_configuration_state_and_result_fit_max_width_without_io(self):
         f=self.configuration_fixture()
@@ -1556,37 +1254,7 @@ int main(void)
                     with self.assertRaises(ValueError):
                         self.setup.generate(source)
 
-    def test_esphome_lab_requires_explicit_private_opt_in(self):
-        with tempfile.TemporaryDirectory() as temp:
-            path,settings=self.configuration(Path(temp))
-            plain,_=self.setup.generate(path)
-            self.assertRegex(plain,rb'#define UTHOME_OCCUPANCY_LAB +\(0U\)')
-            settings['esphome_lab']=True
-            path.write_text(json.dumps(settings))
-            lab,_=self.setup.generate(path)
-            self.assertRegex(lab,rb'#define UTHOME_OCCUPANCY_LAB +\(1U\)')
-            self.assertRegex(lab,rb'#define UTHOME_SETUP_PORT +\(6053U\)')
-            for invalid in [dict(port=8443),dict(esphome_lab="true")]:
-                path.write_text(json.dumps(dict(settings,**invalid)))
-                with self.assertRaises(ValueError):self.setup.generate(path)
 
-    def test_esphome_display_and_mqtt_can_be_provisioned_together(self):
-        with tempfile.TemporaryDirectory() as temp:
-            folder = Path(temp)
-            path, settings = self.configuration(folder)
-            ca = folder / 'broker-ca.pem'
-            ca.write_bytes(b'-----BEGIN CERTIFICATE-----\nfixture\n-----END CERTIFICATE-----\n')
-            settings['esphome_lab'] = True
-            settings['mqtt'] = dict(address='127.0.0.1', server_name='broker.test',
-                                    port=8883, user='device', password='password',
-                                    ca_file=ca.name)
-            path.write_text(json.dumps(settings))
-            header, record = self.setup.generate(path)
-            self.assertRegex(header, rb'#define UTHOME_OCCUPANCY_LAB +\(1U\)')
-            self.assertRegex(header, rb'#define UTHOME_SETUP_PORT +\(6053U\)')
-            self.assertRegex(header, rb'#define UTHOME_SETUP_MQTT +\(1U\)')
-            self.assertRegex(header, rb'#define UTHOME_SETUP_MQTT_PORT +\(8883U\)')
-            self.assertIn('mqtt_ca_sha256', record)
 
     def test_private_setup_staging_and_mutation_detection(self):
         with tempfile.TemporaryDirectory() as temporary:

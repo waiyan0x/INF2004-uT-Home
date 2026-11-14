@@ -42,7 +42,7 @@ JSON configuration keys and device-independent architecture remain unchanged.
 | Git whitespace check | Passed; required C EOF blank lines are allowed explicitly |
 
 [Machine-readable audit](audit-20260928.json) records source hashes and counts.
-[Board/build evidence](../../firmware/qualification/esp32c3-barr-20260928.json)
+Board/build evidence (`esp32c3-barr-20260928.json`, archived outside this checkout)
 records independent workers, cancellation, timeout ownership, cleanup retry and
 24 repeated four-slot allocation/release cycles. Physical power cycling,
 peripherals and whole-plan target activation are outside this verification.
@@ -82,7 +82,7 @@ radar parser, polling driver, registry adapter and host tests. Manual review is
 recorded in [UART integration](../../firmware/drivers/hlk_ld2450/INTEGRATION.md).
 The mandatory gate passes for 113 C/H files, and 115 host tests pass. Fresh
 target build/compiler evidence is in
-[the UART record](../../firmware/qualification/esp32c3-uart-20260928.json).
+the UART record (`esp32c3-uart-20260928.json`, archived outside this checkout).
 New ordinary code uses C99; the approved C11 scope, three existing SDK-header
 GNU99 boundaries, policy, 49 exceptions and approval record are unchanged.
 No new deviation is requested. Native device behavior was source-reviewed and
@@ -98,7 +98,7 @@ gate covers 132 owned C/H files. Two new exact GNU99 translation units parse
 excluded SDK LL syntax while owned code remains C99. The approved C11 scope,
 policy, formatter, 49 deviations and approval record are unchanged.
 See [detailed review and limits](../../firmware/drivers/hc_sr04/INTEGRATION.md)
-and [fresh validation evidence](../../firmware/qualification/esp32c3-gpio-20260928.json).
+and fresh validation evidence (`esp32c3-gpio-20260928.json`, archived outside this checkout).
 Hardware timing and electrical acceptance are deferred, not certified by the gate.
 
 ## Configuration transfer/storage core review (2026-09-28)
@@ -109,7 +109,7 @@ borrowed lifetime, serialized callbacks, finite work, explicit error outcomes
 and interrupted-save preservation. The unchanged gate covers 142 owned C/H
 files. Ordinary code stays C99; no approved compatibility/language scope or
 vendor revision changes. See [detailed review](../../firmware/src/config/README.md#transfer-c-review)
-and [fresh evidence](../../firmware/qualification/esp32c3-config-core-20260928.json).
+and fresh evidence (`esp32c3-config-core-20260928.json`, archived outside this checkout).
 Host storage faults do not qualify physical flash; no board I/O was performed.
 
 ## Target admission/binding review (2026-09-28)
@@ -120,7 +120,7 @@ conversions, aligned limited allocations, tree release, disabled wiring,
 resource bounds, callback lifetime and rollback. The unchanged gate covers
 158 C/H files; C11/GNU99 boundaries, policy, formatter, 49 exceptions and approval
 are unchanged. See [manual review](../../firmware/src/config/README.md#admission-c-review)
-and [fresh evidence](../../firmware/qualification/esp32c3-admission-20260928.json).
+and fresh evidence (`esp32c3-admission-20260928.json`, archived outside this checkout).
 No physical qualification or complete-standard certification is inferred.
 
 ## USB/storage application review (2026-09-28)
@@ -130,7 +130,7 @@ PROBE extension, existing callers and fault fixtures. The gate covers 166 C/H
 files with no new policy/deviation/approval changes. New modules compile as C99;
 the existing C11 and external-header GNU99 scopes are unchanged. See the
 [manual review](../../firmware/src/config/README.md#usb-c-review)
-and [fresh evidence](../../firmware/qualification/esp32c3-usbstore-20260928.json).
+and fresh evidence (`esp32c3-usbstore-20260928.json`, archived outside this checkout).
 Host/build evidence does not certify all BARR-C rules or physical behavior.
 
 ## Checkpoint 6a manual review (2026-09-28)
@@ -140,7 +140,7 @@ settings, cfgwire/cfgpump, c3app and affected tests against the required manual
 checklist. See [ownership, type and error-path findings](../../firmware/src/services/TELEMETRY.md#manual-barr-c-review).
 No exception, compiler-language approval, checker policy or dependency pin was
 changed. New modules are C99. Fresh software/build evidence is recorded under
-`firmware/qualification/esp32c3-telemetry-20260928.json`; this review does not
+`esp32c3-telemetry-20260928.json`; this review does not
 claim physical sensor, timing, USB or flash qualification.
 
 ## Checkpoint 6b manual review (2026-09-28)
@@ -149,7 +149,7 @@ Reviewed the single OLED renderer, guarded sample selection, display binding,
 SPI/control-line lifecycle and extended existing fixtures. See
 [the checklist and limits](../../firmware/src/services/TELEMETRY.md#display-c-review).
 No policy, exception, language approval, dependency pin or formatter changed.
-Fresh evidence: `firmware/qualification/esp32c3-display-20260928.json`.
+Fresh evidence: `esp32c3-display-20260928.json`.
 Hardware acceptance remains deferred.
 
 ## Checkpoints 6c/7 manual review (2026-09-28)
@@ -158,6 +158,6 @@ Reviewed read-only capabilities, canonical signed integers, rule admission,
 typed sample evaluation, guarded source lookup, PWM binding and extended fault
 fixtures. The unchanged gate covers 180 owned C/H files. See the
 [manual checklist review](../../firmware/src/automation/README.md#manual-barr-c-review)
-and [fresh evidence](../../firmware/qualification/esp32c3-ui-rules-20260928.json).
+and fresh evidence (`esp32c3-ui-rules-20260928.json`, archived outside this checkout).
 No policy, exception, language approval, formatter or dependency pin changes.
 Hardware acceptance and AI remain deferred at the user's request.

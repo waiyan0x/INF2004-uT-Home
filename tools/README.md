@@ -1,5 +1,8 @@
 # Host tooling
 
+- [transaction/](transaction/README.md): reviewed Markdown to runtime rules,
+  wire codec and explicit MQTT update/execution.
+- [wiring_visualiser/](wiring_visualiser/README.md): local interactive wiring guide.
 - [configurator/](configurator/README.md): localhost profile review, USB deployment
   and telemetry using the shared planner and client.
 - [config_validator/](config_validator/README.md): catalogue, schema, board/resource

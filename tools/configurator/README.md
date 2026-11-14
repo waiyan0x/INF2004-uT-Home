@@ -226,8 +226,7 @@ node --test tests/target/test_dashboard.mjs
 Checks cover review-token expiry, additive drafts, state changes, conflicts,
 uncertain deployment, HTTP boundaries, C/Python parity and presentation. Fake-board
 Edge walkthroughs cover themes and desktop/mobile flows. These are not physical
-device detection. Evidence: [UI/rules](../../firmware/qualification/esp32c3-ui-rules-20260928.json)
-and [D4](../../firmware/qualification/esp32c3-discovery-d4-20261012.json).
+device detection. Repeat the checks for the source being changed.
 
 `npm run test:browser` exercises the actual HTML and ES modules with local HTTP
 fixtures. It covers review/discovery races, delayed imports and catalogue loading,

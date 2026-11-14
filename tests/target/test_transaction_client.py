@@ -5,11 +5,14 @@ import json
 from pathlib import Path
 import struct
 import unittest
-from tools.target import transaction as client
+from unittest.mock import patch
+from contextlib import redirect_stdout
+import io
+from tools.transaction import client
 import test_txjob as engine
 
 ROOT=Path(__file__).resolve().parents[2]
-EXAMPLES=ROOT/'experiments/runtime_rules/examples/transactions'
+EXAMPLES=ROOT/'configs/transactions'
 
 class ClientTests(unittest.TestCase):
     def setUp(self):
@@ -49,6 +52,35 @@ class ClientTests(unittest.TestCase):
             with self.assertRaises(ValueError):client.result(bytes(bad))
         with self.assertRaises(ValueError):client.result(bytes(reply),request_id=3)
         with self.assertRaises(ValueError):client.result(bytes(reply),generation=5)
+
+    def test_rejected_update_reports_active_identity_and_generation(self):
+        reply=bytearray(96);reply[:4]=b'TJ\x01\x01'
+        struct.pack_into('<II',reply,4,2,1);reply[12:18]=b'bmp388'
+        reply[44:46]=bytes([1,1]);struct.pack_into('<I',reply,90,4)
+        decoded=client.result(bytes(reply),request_id=2,generation=3,
+                              device='candidate',revision=2)
+        self.assertEqual((decoded['status'],decoded['device'],decoded['revision'],
+                          decoded['generation'],decoded['raw_hex']),
+                         ('invalid','bmp388',1,4,''))
+        with self.assertRaises(ValueError):
+            client.result(bytes(reply),request_id=3)
+
+    def test_cli_failure_status_does_not_report_success_or_retry(self):
+        def reply(rid,kind,status):
+            data=bytearray(96);data[:4]=b'TJ\x01'+bytes([kind])
+            struct.pack_into('<II',data,4,rid,1);data[12:18]=b'bmp388'
+            data[44:46]=bytes([1,status]);struct.pack_into('<I',data,90,4)
+            return bytes(data)
+        args=[str(EXAMPLES/'bmp-id.json'),'--generation','4','--request-id','1',
+              '--execute','--broker','example.test','--ca','fixture.pem',
+              '--node','uthome-0123456789ab']
+        for messages in ([reply(1,1,1)], [reply(1,1,0),reply(2,2,5)]):
+            with self.subTest(messages=len(messages)), patch.object(client,'Mqtt') as mqtt:
+                mqtt.return_value.exchange.side_effect=messages
+                with redirect_stdout(io.StringIO()):
+                    self.assertEqual(client.main(args),1)
+                self.assertEqual(mqtt.return_value.exchange.call_count,len(messages))
+                mqtt.return_value.close.assert_called_once()
 
 class ParityTests(unittest.TestCase):
     setUpClass=classmethod(engine.JobTests.setUpClass.__func__)

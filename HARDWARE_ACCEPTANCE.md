@@ -3,14 +3,11 @@
 The board is confirmed as an **ESP32-C3 SuperMini**. The wiring, profiles and
 firmware in this guide target that board.
 Start with one module, then test a supported combination using the same firmware.
-This is the physical acceptance procedure. Offline AI work can proceed
-separately, but it does not qualify the hardware.
-Record physical results against the exact image and setup. Scoped USB-core
-results are in the [evidence index](firmware/qualification/README.md); this guide
-does not certify the hardware or establish the board's current state. Full
-hardware acceptance, combined-system memory/object measurements, cleanup-failure
-and power-loss tests remain open. A scoped radar absence observation has passed;
-see the dated evidence below.
+This is the physical acceptance procedure. Host tests and target builds are
+separate checks. Record physical results against the exact image and setup;
+this guide does not establish the board's current state. The historical results
+were retired from this checkout. Complete acceptance on the selected release
+image, including combined-system resources, cleanup failures and power loss.
 
 For the bench: check the inventory and power first, use the wiring tables in
 sections 3–4, then follow the profile-change procedure and test table in
@@ -154,7 +151,7 @@ illustrates why board variants must be checked.
 Lab profiles use SPI host 2 at **4 MHz**, 250 ms refresh and a 20 ms transfer
 timeout. The initial 1 MHz setting repeatedly timed out during refresh on this
 board. Basic live output and a saved-profile restart were observed at 4 MHz;
-full acceptance remains open. See the [bench results](firmware/qualification/README.md#peripheral-bench-observations).
+repeat physical acceptance on the selected image.
 
 **Supplied six-pin OLED:** R3/R4 appear fitted, matching its printed 4SPI
 selection. Connect GND to GND, VCC to 3V3, SCL to GPIO7, SDA to GPIO6, RES to
@@ -192,12 +189,9 @@ Face the antenna towards an open test area. Confirm a previously configured
 module still has the expected baud rate/report mode. Move a person or target
 through the area; absence of motion alone is not proof that the link has failed.
 
-The earlier empty-scene test showed unavailable readings after the boards/cables
-were moved. A later [two-minute observation](firmware/qualification/esp32c3-radar-zero-target-20261102.json)
-with stationary hardware and a user-confirmed clear field produced 120 fresh
-reports with three absent slots. Startup timeouts and broader acceptance remain
-open. A valid no-target report is FRESH with three ABSENT slots; unavailable
-means a fault.
+A valid no-target report is FRESH with three ABSENT slots; unavailable
+readings are not proof of an empty scene. Keep wiring stationary during capture
+and record any startup timeouts separately from valid reports.
 
 ### Separate radar-to-LED test using layout A's pin assignments
 
@@ -345,8 +339,8 @@ Start every session the same way, so its results bind to one board and image:
    port, USB serial number, ESP32-C3 and 4 MB flash.
 2. Take and hash a full [flash backup](tools/target/README.md#install-the-configuration-application)
    before any install. Keep it outside the repository.
-3. Record the running image against its build record. The latest core image
-   with board evidence is ELF `597ae600…` ([build record](firmware/qualification/esp32c3-scheduler-20261027-app-build.json)).
+3. Record the running image against its build record; do not assume the last
+   installed image is still present.
 4. With the Desk disconnected, read the board's state with the
    [USB client](tools/config_transfer/README.md), replacing `COMX`:
 
@@ -362,11 +356,9 @@ Start every session the same way, so its results bind to one board and image:
 5. Generate the [bench profiles](configs/README.md#bench-profiles) and keep the
    exact files used with the session record.
 
-Store each session's results as a new record,
-`firmware/qualification/esp32c3-<scope>-<YYYYMMDD>.json`, and its raw serial or
-client output under `firmware/qualification/logs/` using the same name plus a
-suffix (for example `-boot1.log`). Keep flash backups and large captures
-outside the repository, and record their SHA-256 in the session record.
+Store each session's results, exact source/build identity and raw output under
+ignored `build/acceptance/<session>/`. Keep flash backups outside the repository
+and record their SHA-256 in the session record.
 
 | Test | Procedure | Pass evidence |
 |---|---|---|
@@ -456,11 +448,11 @@ this recipe does not install firmware or authorize another wiring layout.
    controlled reboot/restore check requires the current backup and board procedure;
    a successful save reply alone is not that check.
 
-This demonstrates the qualified USB/core scope. Display the linked AI study and
-target parity/timing evidence separately: an experimental or gate-failed model
-is not enabled in normal firmware. Onboard wireless services, reviewed advice
-controls and combined-radio acceptance remain separate work. Preserve the local
-study journals, immutable build archives and full flash backup for the handoff.
+This procedure covers USB/profile behavior. The current delivery also requires
+runtime rule switching over actual Wi-Fi/MQTT, raw-result display and combined
+resource acceptance on the same selected image. Follow the
+[completion plan](CONTRIBUTING.md#completion-plan); keep new measurements and
+build identity with the corresponding backup and wiring record.
 
 ## 8. Troubleshooting at the bench
 
@@ -498,39 +490,27 @@ as passing. Suggested record:
 
 ### Acceptance matrix
 
-Status based on the dated records below. Statuses are **PASS**, **PARTIAL**, **FAIL**,
-**NOT TESTED**, **BLOCKED** (depends on unfinished work) or **DEFERRED** (by
-the user). A PASS applies only to the image named; repeat it on the release
-image. Update a row only with a new dated record, never by editing old ones.
-Board identification and backup are per-session steps (start of section 7),
-not matrix rows; record them in each session record.
+The table below is a checklist for the selected release image. Historical passes
+are not carried forward. Record PASS, FAIL, NOT TESTED or DEFERRED with an image
+hash, wiring, raw output and any physical observation for each executed check.
 
-`597ae600…` is the USB core image with radios inactive. It includes the static
-I2C/SPI start-up code (`i2cown`, `spiown`, `c3i2c`, `c3spi`), but it is not the
-combined radio image the final acceptance requires. On the 27 Oct board its app
-and partition table match the build record, but the bootloader is the earlier
-same-configuration workcost build's; repeat the image check on the release image.
+| Check | Required observation |
+|---|---|
+| MQTT rule A -> B on one image | Chosen driver, outgoing bytes and receive length change without a rebuild |
+| Invalid rule -> execute | Rejected update preserves the previous active rule |
+| I2C, SPI and UART | Each supported transfer completes; raw bytes and actual status reach the host |
+| Home Assistant display | Host adapter publishes discovery and fresh status/raw-byte state |
+| AP/broker loss and reconnect | Bounded recovery, no stale success and no automatic repeated peripheral write |
+| Same-protocol device change | Reviewed address/operation change works with the actual connected devices |
+| Resource limits | Fixed-memory budget plus measured runtime heap, stack and creation-call counts |
+| Setup/recovery profiles | Conflicts reject, activation rolls back and saved profiles restore as specified |
+| Peripheral loss, timeout and cleanup failure | Explicit failure and recoverable or retained ownership as specified |
+| Reboot and interrupted save | Image/profile identity remains explainable; persistence checks follow the procedure |
+| Combined load | Repeat the selected configuration under sustained network and peripheral activity |
 
-| Test (section 7 unless noted) | Status | Image / evidence | Still open |
-|---|---|---|---|
-| Three-protocol demonstration | PASS | `597ae600…`; [27 Oct session](firmware/qualification/esp32c3-acceptance-20261027.json): demo profile CRC 3623560383 applied and saved, fresh BMP388/radar, operator saw a readable, updating OLED and radar tracking in-field movement (USB client, not the Desk) | Radar leaving the field; repeat on release image |
-| Integrated lifecycle, counters | PARTIAL | PASS twice on core image `597ae600…`, radios off: [core record](firmware/qualification/esp32c3-scheduler-20261027.json), and [27 Oct session](firmware/qualification/esp32c3-acceptance-20261027.json) with the cycle recorded (40 applies, 40 idle/40 busy discoveries, 20 capacity rejections, rollback, 30 s disconnect, reboot restore; zero post-startup allocations/creates) | Repeat on the combined image |
-| Combined load (layout A) | PARTIAL | `597ae600…`; 45 min of telemetry in the handoff record; OLED visually confirmed and quiescent worker stack margins 7296–7392 of 8192 bytes in the [27 Oct session](firmware/qualification/esp32c3-acceptance-20261027.json) | Live worker stack margins; 10-minute run on the release image |
-| BMP388, OLED, radar alone | PARTIAL | Earlier images only ([bench notes](firmware/qualification/README.md#peripheral-bench-observations)) | Repeat on release image |
-| Profile changes (ten period changes) | NOT TESTED | — | — |
-| Reboot restore (three reboots) | PASS | `597ae600…`; [27 Oct session](firmware/qualification/esp32c3-acceptance-20261027.json): one watchdog reboot and two RST-button reboots; saved demo profile returned each time with fresh readings, and the operator saw the OLED come back | Output-start check (outputs inactive until fresh data/rules allow) in layout B, since layout A has no output; repeat on release image |
-| Rejected profile (GPIO2/duplicate pin) | NOT TESTED | — | Firmware-side rejection |
-| Layout conflicts | PASS | `597ae600…`; [27 Oct session](firmware/qualification/esp32c3-acceptance-20261027.json): host planner and firmware both reject GPIO4 CS vs TRIG and GPIO1 SCL vs PWM; active profile unchanged. Only the BMP388 was disconnected, not all modules (recorded deviation) | Repeat on release image |
-| Activation rollback | PARTIAL | PASS on core image `597ae600…` in the [27 Oct session](firmware/qualification/esp32c3-acceptance-20261027.json): working `0x77` active, requested absent `0x76`; admitted, activation failed, previous profile restored with fresh readings and a readable OLED. The [26 Oct record](firmware/qualification/esp32c3-integration-bench-20261026.json) used the same method on an earlier image | Repeat on the combined image |
-| Distance, Distance → LED, Fault → zero (layout B) | NOT TESTED | — | Rewire to layout B |
-| Radar → LED | NOT TESTED | — | — |
-| Two BMP388s on one bus (optional) | NOT TESTED | — | Needs a second sensor |
-| Stale-data loss (signal isolation) | NOT TESTED | — | Reviewed isolation setup |
-| Cleanup-failure injection on the board | NOT TESTED | — | Reviewed injection method |
-| Controlled interrupted save / power loss | NOT TESTED | — | Operator and power-cut setup |
-| Combined Wi-Fi/BLE load, broker/AP loss | BLOCKED | Diagnostic images only | Unblocked by README delivery phases 1–3 (static radio resources and on-device MQTT/HTTP/BLE services in the configuration application); owner to be agreed |
-| Radar zero-target | PASS (scoped) | [2 Nov observation](firmware/qualification/esp32c3-radar-zero-target-20261102.json): 120 fresh empty snapshots in two minutes | Repeat on the selected release image; controlled movement remains separate |
-| Final demonstration script | NOT TESTED | — | Release build and profile CRC to be chosen |
+The Home Assistant adapter is not implemented yet. Live combined MQTT acceptance
+remains open. Optional sonar/PWM profile tests in section 7 apply only if those
+existing capabilities are included in the selected demonstration.
 
 Any C changes made while fixing hardware issues must still follow
 [BARR-C:2018 project requirements](C_CODING_STANDARD.md) and [AGENTS.md](AGENTS.md):

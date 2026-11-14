@@ -13,9 +13,9 @@ class WorkflowTests(unittest.TestCase):
         self.job = self.workflow["jobs"]["esp32c3"]
         self.commands = "\n".join(step.get("run", "") for step in self.job["steps"])
 
-    def test_builds_both_images_after_host_gate(self):
+    def test_builds_all_images_after_host_gate(self):
         self.assertEqual("c-standard", self.job["needs"])
-        self.assertEqual(["acceptance", "configuration", "esphome-lab"], self.job["strategy"]["matrix"]["image"])
+        self.assertEqual(["acceptance", "configuration", "mqtt-transaction"], self.job["strategy"]["matrix"]["image"])
         self.assertEqual("read", self.workflow["permissions"]["contents"])
         self.assertIn("workflow_dispatch", self.workflow["on"])
 
@@ -44,7 +44,7 @@ class WorkflowTests(unittest.TestCase):
         host = "\n".join(step.get("run", "") for step in self.workflow["jobs"]["c-standard"]["steps"])
         for suite in ("tests/c_standard", "tests/foundation", "tests/runtime", "tests/target",
                       "tests/discovery", "tests/target/test_*.mjs",
-                      "visualiser/tests/*.test.mjs", "tools/test_uart_gpio.py"):
+                      "tools/wiring_visualiser/tests/*.test.mjs", "tools/test_uart_gpio.py"):
             self.assertIn(suite, host)
         self.assertIn("tools/c_standard/check.py", host)
         self.assertTrue(any(step.get("uses", "").startswith("actions/setup-node@")

@@ -20,7 +20,7 @@ import time
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT));sys.path.insert(0,str(Path(__file__).parent))
-from tools.target.transaction import Mqtt, request, result
+from tools.transaction.client import Mqtt, request, result
 from test_tx_owner import OwnerTests
 
 
@@ -103,7 +103,7 @@ def run(args):
             os.environ['UTHOME_MQTT_USER']='controller';os.environ['UTHOME_MQTT_PASSWORD']='loopback-only'
             link=Mqtt('127.0.0.1',port,folder/'cert.pem',node,timeout=10)
             rid=0;last=None
-            examples=ROOT/'experiments/runtime_rules/examples/transactions'
+            examples=ROOT/'configs/transactions'
             for name in ('bmp-id','bmp-pressure','oled-off','oled-on','radar-raw16','radar-raw32'):
                 spec=json.loads((examples/(name+'.json')).read_text())
                 rid+=1

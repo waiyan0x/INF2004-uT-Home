@@ -113,12 +113,11 @@ against every manual checklist category in `C_CODING_STANDARD.md`:
   runtime clock when testing sample freshness.
 
 This review and the gate are software evidence, not certification of all BARR-C
-rules or hardware behavior. See [fresh build/test and memory evidence](../../qualification/esp32c3-ui-rules-20260928.json).
+rules or hardware behavior.
 
 ## Verification and memory
 
-Use the [test guide](../../../tests/README.md) for current commands and
-[qualification](../../qualification/README.md) for dated results. Static object
+Use the [test guide](../../../tests/README.md) for current commands. Static object
 sizes are not free heap or measured task-stack peaks; account kernel/SDK objects,
 all permanent stacks and additional services in the combined image. Physical
 output and fault-response acceptance remain separate from host rule tests.

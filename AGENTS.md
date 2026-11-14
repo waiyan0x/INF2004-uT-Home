@@ -1,11 +1,18 @@
 # Continuing this project
 
 Start with `README.md` (especially "Resume next session") and the guide for the
-area being changed. Use this uT-Home `Code` repository, not the separate Pico
-workspace. Check Git status before editing; preserve unrelated work.
+area being changed. Use this uT-Home checkout (`Revised` in the current
+workspace), not the sibling `Code` checkout or separate Pico workspace.
+Check Git status before editing; preserve unrelated work.
 
 Keep implementations modular and as simple as practical. The user is Member 4
-(discovery and AI). Preserve Member 5's existing UI and visual style; present
+(rule-based peripheral decisions and description contracts). The approved
+direction is uT-Kernel plus MQTT commands/results and Home Assistant MQTT
+discovery; ESPHome firmware and the native API are superseded paths. Follow the
+current implementation plan in CONTRIBUTING.md. The user authorized removal
+of superseded code and historical evidence from this checkout; keep current
+coding-policy approvals, dependencies and useful recovery tools.
+Preserve Member 5's existing UI and visual style; present
 proposed UI adjustments to the user before implementing them. The previously
 approved discovery additions are already implemented, not a new task.
 
@@ -49,7 +56,7 @@ task authorizes that action. Prefer isolated builds and preserve board backups.
 
 Maintain one main Markdown guide per maintained folder where practical. Update
 that guide instead of adding checkpoint diaries or repeating parent guidance.
-Keep current usage, contracts and limitations; link to immutable qualification
-records for historical results. Preserve separate coding policy, approvals,
+Keep current usage, contracts and limitations. Historical qualification archives
+were retired by the user; record fresh evidence for changed builds. Preserve separate coding policy, approvals,
 licence notices and the hardware acceptance guide. Repair links when moving
 documentation, and never rewrite evidence/source hashes to follow a rename.

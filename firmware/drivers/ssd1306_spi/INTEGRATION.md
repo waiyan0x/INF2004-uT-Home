@@ -112,7 +112,7 @@ manually; it does not prove scheduling, native mutex contention or waveforms.
 
 The target image compiles the real backends and adds argument checks without
 opening a bus or touching outputs. Fresh evidence lives under
-`firmware/qualification/`; earlier physical results retain their original scope.
+ignored `build/`; host tests do not qualify physical behavior.
 
 Manual BARR-C review covers module boundaries, names, const/static, fixed-width
 masks/shifts, bounded casts and padded buffers, initialization, aligned config
@@ -127,5 +127,5 @@ recovery and boot behaviour with all devices attached. Missing OLED hardware
 requires visual/electrical observation, not an invented acknowledgement test.
 
 
-Current [acceptance status](../../qualification/README.md) and
-[wiring procedure](../../../HARDWARE_ACCEPTANCE.md). Keep dated results in the qualification records, separate from current usage.
+Use the [hardware acceptance procedure](../../../HARDWARE_ACCEPTANCE.md).
+Record the exact image, wiring and fresh outcomes under ignored `build/`.

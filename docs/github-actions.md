@@ -11,7 +11,7 @@ board connection and uses read-only repository permissions.
    target-host and Buddy 1 static-task suites. The standalone UART/GPIO suite
    also runs with warnings treated as errors.
 2. Only after that job succeeds, three Ubuntu 24.04 jobs build the acceptance, configuration and
-   ESPHome laboratory images. Hardware tests are compiled, not executed.
+   MQTT transaction images. Hardware tests are compiled, not executed.
 3. Each job reads the exact revisions from `tools/target/qualify_kernel.py`:
    - ESP-IDF: `fff9895c82d744c7237be8847347bdd1b07c6643` (project's 6.1 pin).
    - Kernel: `ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2`.
@@ -40,7 +40,7 @@ acceptance" and select the run for this branch, then inspect all ESP32-C3
 jobs. Manual dispatch is also available once GitHub recognizes the workflow
 on the default branch. Download each image's artifacts after its run.
 
-Use this `Code` Git checkout for integration; exclude `build/`, caches and local
+Use this `Revised` Git checkout for integration; exclude `build/`, caches and local
 dependencies from publication. Raw captures/backups are local artifacts.
 
 A successful cloud run proves a target build, not board execution, physical
@@ -49,44 +49,12 @@ for board tests and actual kernel creation-call counting. Finish RAM accounting
 with the map and stack evidence; do not treat a stable live-object count as
 proof that no creation calls occurred.
 
-## Standalone API compatibility notes
-
-No maintained UART, radar, sonar, runtime or GPIO algorithm was changed for
-this cleanup. The older standalone prototype required source-level naming
-changes to satisfy the existing policy; callers and test build inputs were
-updated together. These names are not backward-compatible aliases:
-
-| Previous | Current |
-| --- | --- |
-| `uart_gpio_io.h`, `uart_gpio_io` | `ugio.h`, `ugio_t` |
-| `ug_status`, `ug_direction`, `ug_edge`, `ug_uart_config` | `ugio_status_t`, `ugio_direction_t`, `ugio_edge_t`, `ugio_uart_config_t` |
-| `uart_gpio_host.c/h`, `uart_gpio_host_*` | `ughost.c/h`, `ughost_*` |
-| `test_uart_gpio.c` | `ugtest_main.c/h` |
-
-Callback fields now use p_ and Boolean fields b_ prefixes. Callback signatures
-have named types. Fixed capacities, enum values, callback order, timeout
-arithmetic, PWM duty limits and error branches are preserved. Names such as
-`c3uart_init`, `uartio_open`, `ld2450_poll` and `hc_sr04_read` are unchanged.
-
-The old standalone test referenced retired `ug_ld2450`/`ug_hc_sr04` APIs and
-could not compile against the existing maintained headers. Its scenarios now
-exercise the maintained parser/UART/sonar APIs plus the standalone GPIO/PWM
-port. Updated expectations follow the already-existing nonblocking sensor
-contracts: radar timeout recovery has a flush step, sonar cleanup follows a
-failed open, and sonar errors zero outputs. Sensor implementations were not
-changed to satisfy tests. Buffer overflow, fragmented frames, signed values,
-timeouts, rising edges/detach, invalid pins and PWM stop coverage are retained.
-The runtime test discovery now invokes the correct dedicated build scripts
-for the standalone suite, rather than omitting it or using unrelated
-runtime-only includes. The retired optional-output examples have since been removed.
-
 ## Verification limits
 
 Check the Actions run for the exact commit; no retained local result establishes
 a new cloud pass. Hardware tests are compiled, not executed in CI. On Windows,
 symlink tests may require additional privilege; keep them enabled on supported
-CI hosts. Historical local counts and unavailable-toolchain notes are in the
-[completed-work log](COMPLETED_WORK_LOG.md).
+CI hosts. Keep fresh local verification output under ignored `build/`.
 
 Manual review covered module/header consistency, typed callback ABI, fixed
 buffers, exact branch/evaluation preservation, integer ranges, no new heap

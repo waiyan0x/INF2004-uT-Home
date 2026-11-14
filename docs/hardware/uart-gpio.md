@@ -3,9 +3,7 @@
 The production target is ESP32-C3. Use the maintained [radar driver](../../firmware/drivers/hlk_ld2450/INTEGRATION.md),
 [distance/PWM guide](../../firmware/drivers/hc_sr04/INTEGRATION.md),
 [C3 HAL](../../firmware/hal/ports/esp32c3/README.md) and
-[hardware layouts](../../HARDWARE_ACCEPTANCE.md). Earlier S3 starter tasks, provisional
-`ug_` sensor APIs and GPIO16/17 wiring are archived in the
-[completed-work log](../COMPLETED_WORK_LOG.md); they are not deployment instructions.
+[hardware layouts](../../HARDWARE_ACCEPTANCE.md).
 
 ## Modules and tests
 

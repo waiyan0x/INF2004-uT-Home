@@ -38,12 +38,8 @@ RUNTIME_SOURCE_FILES = {
     "firmware/src/network/netbroker.h": "network/netbroker.h",
     "firmware/hal/ports/esp32c3/c3mqtt.c": "hal/c3mqtt.c",
     "firmware/hal/ports/esp32c3/c3mqtt.h": "hal/c3mqtt.h",
-    "firmware/src/network/occwire.c": "network/occwire.c",
-    "firmware/src/network/occwire.h": "network/occwire.h",
     "firmware/src/network/netmqtt.c": "network/netmqtt.c",
     "firmware/src/network/netmqtt.h": "network/netmqtt.h",
-    "firmware/src/network/mqttdisc.c": "network/mqttdisc.c",
-    "firmware/src/network/mqttdisc.h": "network/mqttdisc.h",
     "firmware/src/network/netretry.c": "network/netretry.c",
     "firmware/src/network/netretry.h": "network/netretry.h",
     "firmware/src/network/nethttp.c": "network/nethttp.c",
@@ -161,14 +157,6 @@ RUNTIME_SOURCE_FILES = {
     "firmware/src/services/transaction/txport.c": "services/txport.c",
     "firmware/app/c3tx.h": "app/c3tx.h",
     "firmware/app/c3tx.c": "app/c3tx.c",
-    "firmware/src/services/transaction/txrule.c": "services/txrule.c",
-    "firmware/src/services/transaction/txrule.h": "services/txrule.h",
-    "firmware/src/services/transaction/txwire.c": "services/txwire.c",
-    "firmware/src/services/transaction/txwire.h": "services/txwire.h",
-    "firmware/src/services/transaction/txi2c.c": "services/txi2c.c",
-    "firmware/src/services/transaction/txi2c.h": "services/txi2c.h",
-    "firmware/app/c3rule.c": "app/c3rule.c",
-    "firmware/app/c3rule.h": "app/c3rule.h",
     "firmware/app/c3app.c": "app/c3app.c",
     "firmware/app/c3app.h": "app/c3app.h",
     "tests/target/runtime_port_board/configuration.defaults": "configuration.defaults",
@@ -961,21 +949,6 @@ def verify_senlux_app_probe(work, enabled):
     return {"enabled": enabled, "diagnostic_only": enabled}
 
 
-def verify_rule_probe(work, enabled):
-    """Require the USB lab entry and exclude production scheduling/radios."""
-    entries = json.loads((work / "build/compile_commands.json").read_text())
-    command = next(e["command"] for e in entries if Path(e["file"]).name == "c3app.c")
-    if re.findall(r'UTHOME_RULE_PROBE=([01])', command) != [str(int(enabled))]:
-        raise QualificationError("Rule diagnostic compiler selection mismatch")
-    output = run(['riscv32-esp-elf-nm', '-n', work / 'build/uthome_runtime_port.elf'])
-    symbols = {n for _, _, n in re.findall(r'^([0-9a-fA-F]+)\s+(\w)\s+(\S+)$', output, re.MULTILINE)}
-    required = {'c3rule_run', 'txwire_process', 'txrule_execute', 'txi2c_read'}
-    if (enabled and not required <= symbols) or (not enabled and required & symbols):
-        raise QualificationError("Rule diagnostic link selection mismatch")
-    if enabled and {'cfgctrl_restore', 'c3net_start', 'esp_wifi_init'} & symbols:
-        raise QualificationError("Rule lab must not start production configuration or networking")
-    return dict(enabled=enabled, transport="USB diagnostic" if enabled else None,
-                mqtt_proven=False, hardware_proven=False)
 
 
 def verify_static_task_source(source, enabled):
@@ -1198,7 +1171,6 @@ def build(kernel, sdk, work, *legacy_args, selection=None, compat_patch=None,
             raise QualificationError(f"Kernel build failed ({result}); inspect {work / 'build.log'}")
         if selection.runtime_port:
             evidence["compiler_profiles"] = verify_compile_profiles(work, selection.mode is BuildMode.WIFI)
-            evidence["rule_isolation"] = verify_rule_probe(work, selection.mode is BuildMode.RULE)
             evidence["senlux_app_isolation"] = verify_senlux_app_probe(work, selection.mode is BuildMode.SENLUX_APP)
             evidence["memory_audit_link"] = verify_audit_link(work)
             evidence["startup_trace_link"] = verify_startup_link(work, selection.mode is BuildMode.WIFI)
@@ -1277,8 +1249,6 @@ def main(argv=None):
                         help="enable a bounded read-only GATT diagnostic; requires --ble-probe")
     parser.add_argument("--ble-static-host", action="store_true",
                         help="disable NimBLE dynamic global-state conversion in an isolated BLE diagnostic; not full static compliance")
-    parser.add_argument("--rule-probe", action="store_true",
-                        help="isolated USB I2C rule-switching proof; requires configuration-app and static-net-queues")
     parser.add_argument("--senlux-probe", action="store_true",
                         help="isolated SEN0390 I2C/enable diagnostic; requires static-net-queues")
     parser.add_argument("--senlux-app-probe", action="store_true",
@@ -1311,7 +1281,7 @@ def main(argv=None):
                 static_net_queues=args.static_net_queues, wifi_probe=args.wifi_probe,
                 ble_probe=args.ble_probe,
                 ble_gatt_probe=args.ble_gatt_probe, ble_static_host=args.ble_static_host,
-                rule_probe=args.rule_probe, senlux_probe=args.senlux_probe,
+                senlux_probe=args.senlux_probe,
                 senlux_app_probe=args.senlux_app_probe, network_services=args.network_services)
             report = build(kernel, sdk, args.work_dir.resolve(), selection=selection,
                            compat_patch=args.compat_patch.resolve() if args.compat_patch else None,

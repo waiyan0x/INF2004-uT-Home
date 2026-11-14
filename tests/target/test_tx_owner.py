@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from tools.target.transaction import request, result
+from tools.transaction.client import request, result
 
 ROOT=Path(__file__).resolve().parents[2]
 
@@ -48,6 +48,9 @@ class OwnerTests(unittest.TestCase):
         type(self).serial+=1
         path=self.folder/f'owner-{self.serial}.so';shutil.copy2(self.binary,path)
         self.lib=c.CDLL(str(path))
+        if sys.platform == "win32":
+            import _ctypes
+            self.addCleanup(lambda: _ctypes.FreeLibrary(self.lib._handle))
         self.lib.txptest_send.argtypes=[c.c_char_p,c.c_size_t]
         self.lib.txptest_feed.argtypes=[c.c_char_p,c.c_size_t]
         self.lib.txptest_reply.argtypes=[c.c_void_p]
@@ -99,20 +102,12 @@ class OwnerTests(unittest.TestCase):
         self.assertEqual(self.lib.txptest_observed(2),4)
         self.assertFalse(self.lib.c3tx_busy())
 
-    def test_full_raw_result_text_fits_native_frame_and_expires(self):
+    def test_maximum_uart_raw_reply_preserves_all_bytes(self):
         spec={**profile('uart'),'read_length':32}
         self.exchange(spec)
         reply=self.exchange(spec,True,feed=bytes(range(32)))
-        self.assertEqual(len(reply['raw_hex'].split()),32)
-        self.lib.c3tx_view.restype=c.c_void_p
-        self.lib.txjob_text.argtypes=[c.c_void_p,c.c_uint64,c.c_void_p,c.c_size_t]
-        output=c.create_string_buffer(120)
-        view=self.lib.c3tx_view()
-        self.assertEqual(self.lib.txjob_text(view,self.now,output,120),0)
-        self.assertLessEqual(len(output.value),116)
-        self.assertIn(b'UART OK',output.value)
-        self.assertEqual(self.lib.txjob_text(view,self.now+30001,output,120),1)
-        self.assertEqual(output.value,b'')
+        self.assertEqual(bytes.fromhex(reply['raw_hex']), bytes(range(32)))
+        self.assertEqual(reply['status'], 'ok')
 
     def test_nonidle_plan_never_touches_hardware_and_uart_timeout_cleans_up(self):
         self.assertEqual(self.exchange(profile(),idle=False)['status'],'busy')

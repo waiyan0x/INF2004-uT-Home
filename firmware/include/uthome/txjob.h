@@ -60,26 +60,16 @@ typedef struct
     void *          p_context;
 } txjob_ops_t;
 
-typedef struct txjob_view
-{
-    uint64_t completed_ms;
-    uint32_t sequence;
-    uint32_t generation;
-    uint8_t  reply[TXJOB_WIRE];
-    bool     b_known;
-} txjob_view_t;
-
 typedef struct
 {
     txjob_rule_t   rule;
     txjob_ops_t    operations;
-    txjob_view_t   view;
+    uint8_t        reply[TXJOB_WIRE];
     uint8_t        request[TXJOB_WIRE];
     uint8_t        cached[TXJOB_WIRE];
     uint8_t        data[TXJOB_RX];
     uint64_t       deadline_ms;
     uint64_t       last_ms;
-    uint64_t       cached_ms;
     uint32_t       generation;
     uint32_t       last_id;
     uint8_t        written;
@@ -104,14 +94,8 @@ int txjob_submit (txjob_t *       p_job,
                   uint64_t        now_ms);
 void txjob_step (txjob_t * p_job, uint64_t now_ms);
 void txjob_cancel (txjob_t * p_job);
-/* A reply is copied once; cache/view remain for exact retry and display. */
+/* A reply is copied once; the cache remains for exact retry. */
 int txjob_take (txjob_t * p_job, uint8_t * p_reply, size_t capacity);
-/* Render copied result only. Missing/older than 30s/clock fault => unavailable.
- */
-int txjob_text (const txjob_view_t * p_view,
-                uint64_t             now_ms,
-                char *               p_text,
-                size_t               capacity);
 #endif
 
 /* End of file. */

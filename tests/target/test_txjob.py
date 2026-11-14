@@ -40,6 +40,9 @@ class JobTests(unittest.TestCase):
                         '-I'+str(ROOT/'firmware/include'), '-shared', *(['-fPIC'] if sys.platform != 'win32' else []),
                         str(ROOT/'firmware/src/services/transaction/txjob.c'), '-o', str(target)], check=True)
         cls.lib = c.CDLL(str(target))
+        if sys.platform == "win32":
+            import _ctypes
+            cls.addClassCleanup(lambda: _ctypes.FreeLibrary(cls.lib._handle))
         cls.lib.txjob_init.argtypes = [c.c_void_p, c.POINTER(Ops)]
         cls.lib.txjob_submit.argtypes = [c.c_void_p, c.c_void_p, c.c_size_t, c.c_uint32, c.c_bool, c.c_uint64]
         cls.lib.txjob_step.argtypes = [c.c_void_p, c.c_uint64]

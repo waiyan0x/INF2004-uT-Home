@@ -22,15 +22,11 @@ jobs:
             tools/requirements.txt
             tools/config_transfer/requirements.txt
             tools/config_transfer/requirements-dev.txt
-            tests/target/requirements-esphome.txt
+            tools/transaction/requirements.txt
       - name: Install pinned formatting and host test dependencies
-        run: python -m pip install -r tools/c_standard/requirements.txt -r tools/requirements.txt -r tools/config_transfer/requirements.txt -r tools/config_transfer/requirements-dev.txt -r tests/target/requirements-esphome.txt
+        run: python -m pip install -r tools/c_standard/requirements.txt -r tools/requirements.txt -r tools/config_transfer/requirements.txt -r tools/config_transfer/requirements-dev.txt -r tools/transaction/requirements.txt
       - name: Require the host compiler
         run: gcc --version
-      - name: Verify both radar entities with the real ESPHome client
-        env:
-          PYTHONPATH: tests/target:.
-        run: python -m unittest -v test_network_esp.EspBindingTests.test_esphome_real_client
       - name: Enforce BARR-C policy
         run: python tools/c_standard/check.py --root .
       - name: Verify the policy checker
@@ -63,7 +59,7 @@ jobs:
       - name: Verify dashboard and wiring visualiser
         run: |
           node --test tests/target/test_*.mjs
-          node --test visualiser/tests/*.test.mjs
+          node --test tools/wiring_visualiser/tests/*.test.mjs
 
       - name: Verify real browser composition and asynchronous transitions
         run: |
@@ -83,7 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [acceptance, configuration, esphome-lab]
+        image: [acceptance, configuration, mqtt-transaction]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -129,7 +125,7 @@ jobs:
           python -m pip install -r tools/c_standard/requirements.txt -r tools/requirements.txt
           args=()
           if [ "$UTHOME_IMAGE" != acceptance ]; then args+=(--configuration-app); fi
-          if [ "$UTHOME_IMAGE" = esphome-lab ]; then
+          if [ "$UTHOME_IMAGE" = mqtt-transaction ]; then
             # Build-only inputs: never provision a user's SSID, password or key.
             lab="$RUNNER_TEMP/lab-fixture"
             mkdir -m 700 "$lab"
@@ -141,7 +137,9 @@ jobs:
           Path(sys.argv[1]).write_text(json.dumps(dict(
               ssid="uthome-ci.invalid", password=secrets.token_hex(16),
               token=secrets.token_hex(24), certificate_file="cert.pem",
-              key_file="key.pem", esphome_lab=True)))
+              key_file="key.pem", mqtt=dict(address="127.0.0.1",
+              server_name="ci.invalid", port=8883, user="ci-device",
+              password=secrets.token_hex(16), ca_file="cert.pem"))))
           PY
             args+=(--static-net-queues --network-services wifi --network-settings "$lab/settings.json")
           fi
@@ -153,19 +151,22 @@ jobs:
             --compat-patch firmware/third_party/patches/0002-esp-idf-6.1-build.patch \
             --resource-patch firmware/third_party/patches/0001-uthome-c3-resources.patch \
             2>&1 | tee "$RUNNER_TEMP/uthome-ci/qualification.log"
-      - name: Verify the lab listener was compiled and linked
-        if: matrix.image == 'esphome-lab'
+      - name: Verify MQTT transactions were compiled and linked
+        if: matrix.image == 'mqtt-transaction'
         shell: bash
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/uthome-build/build"
           python - <<'PY'
-          import json
+          import json, re
           from pathlib import Path
           rows = json.loads(Path("compile_commands.json").read_text())
-          listener, = [r for r in rows if Path(r["file"]).name == "c3https.c"]
-          assert "-DUTHOME_OCCUPANCY_LAB=1" in listener["command"].split()
-          assert any("occwire_step" in m.read_text() for m in Path(".").glob("*.map"))
+          adapter, = [r for r in rows if Path(r["file"]).name == "c3mqtt.c"]
+          assert "-DUTHOME_MQTT_VALUE_BYTES=112" in adapter["command"].split()
+          header = Path("../project/app/netsetup.h").read_text()
+          assert re.search(r"#define UTHOME_SETUP_MQTT +[(]1U[)]", header)
+          linked = "\n".join(m.read_text() for m in Path(".").glob("*.map"))
+          assert all(symbol in linked for symbol in ("txjob_submit", "c3tx_step", "c3mqtt_transactions"))
           PY
       - name: Preserve build and verification evidence
         if: always()

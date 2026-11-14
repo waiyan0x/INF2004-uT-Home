@@ -6,39 +6,35 @@ without recompiling or reflashing the firmware for each change.
 
 ## Resume next session
 
-The direction below follows the 6 November 2026 consultation. The end-to-end
-workflow defines the target scope. The bounded three-bus service below is
-implemented and software-tested; complete hardware acceptance remains pending. Check Git status, read the relevant area guide, and preserve existing
-work and historical evidence before making changes. The five-member ownership
-and handoffs are in [CONTRIBUTING.md](CONTRIBUTING.md).
+The professor has approved **uT-Kernel on the ESP32-C3, MQTT for commands and
+results, Home Assistant MQTT discovery for display, and a rule-based decision
+program on the ESP**. This approval was recorded from the user's confirmation
+on 13 November 2026. The earlier ESPHome-native-API display choice is superseded.
+Keep and simplify this repository; a firmware rewrite is not the plan.
 
-Wi-Fi now connects to the tested iPhone hotspot on the C3 using the optional
-8.5 dBm transmit-power cap. The 11 November uT-Kernel application preserves
-active/saved revision 931, provides read-only USB `network` diagnostics and
-passes a native API identity/entity query over Wi-Fi. MQTT TLS acceptance and
-whole-system static-allocation qualification remain open. The combined discovery
-build compiles but exceeds the existing MQTT module reservation by three bytes.
-See [Wi-Fi status and scoped bench results](firmware/src/network/README.md#usb-wi-fi-troubleshooting).
+Work in this `Revised` checkout. Check Git status and the relevant area guide.
+The maintained host compiler and client are now in
+[tools/transaction](tools/transaction/README.md), with current examples in
+[configs/transactions](configs/transactions). Markdown compiles directly to the
+current `TJ` rules. The ESPHome/native API and old USB `TR` proof are retired.
 
-The selected direction is **uT-Kernel firmware with an ESPHome-compatible native
-API interface for Home Assistant display**. The transaction service implements
-bounded generic I2C, SPI writes and UART operations, MQTT rule reception and
-application-owner execution. The native API exposes a separate Transaction
-result text entity alongside radar occupancy/freshness. These paths have software
-integration tests; physical three-bus, radio and Home Assistant acceptance remain
-pending. Use the [transaction service instructions](experiments/runtime_rules/README.md#running-the-integrated-service). The framework comparison and
-USB rule-switching proof are in the [runtime-rule guide](experiments/runtime_rules/README.md);
-the choice has
-not yet been recorded as professor approval. Prepare a task-based block diagram by the end
-of the following week (13 November): show functions, data flow, triggers or
-periods, and how an individual protocol can be isolated for debugging. These
-are commitments from the consultation, not completed milestones.
+Start with session/restart semantics and the network resource audit,
+then the persistent host controller, three-protocol Markdown coverage, UI and
+Home Assistant display. Validate the actual Wi-Fi/TLS path early when equipment
+is available. The host display adapter remains unimplemented and must remain
+running for Home Assistant updates. See the [completion plan](CONTRIBUTING.md#completion-plan)
+for the reviewed gaps, delivery order and acceptance criteria.
+
+The existing configuration application and peripheral profiles remain for setup
+and recovery. Runtime transactions require an explicitly idle peripheral plan.
+Do not assume current equipment, port, wiring or installed firmware. Separate
+host tests, target builds and physical acceptance.
 
 <a id="platform-contract"></a>
 
 ## Target workflow
 
-1. Prepare a few concise, reviewed JSON or Markdown peripheral descriptions
+1. Prepare a few concise, reviewed Markdown peripheral descriptions
    based on datasheets. They contain the communication details needed for the
    supported examples. Automatically extracting PDFs is outside this scope.
 2. On the host, the user selects a peripheral and an operation such as read or
@@ -48,36 +44,51 @@ are commitments from the consultation, not completed milestones.
    decision program validates and applies the rules while running, then decides
    how the appropriate generic I²C, SPI or UART driver should communicate.
 4. The generic driver performs the configured transaction. The ESP returns raw
-   response bytes and status to the host over MQTT; the user interprets their
-   meaning.
+   response bytes and status over MQTT. The host shows the result and publishes
+   Home Assistant discovery and display messages; the user interprets the bytes.
 5. Send different rules and demonstrate a changed transaction without
    rebuilding or reflashing the ESP. Show the active configuration and the
    actual decision and result so the runtime change is observable.
 
-The decision component can initially be a configurable rule-based program;
-it does not need trained weights unless the team and professor later require
-them. It must select a transaction on the ESP from runtime inputs and rules;
-calling a fixed transaction a trained ML model would be misleading. The bounded `TJ` message contract, fixed wiring, ownership and supported transfer
-shapes are documented in the runtime-rule guide. This is a runtime rule-based
-decision program, not a trained classifier.
+The decision component is a configurable rule-based program. The host obtains
+explicit communication fields from the reviewed description; the ESP validates
+and stores a rule, then selects the driver, outgoing bytes and receive length
+when execution is requested. Loading a rule performs no peripheral I/O. No
+trained weights, labelled dataset, automatic PDF interpretation or sensor-value
+decoding is required. The bounded `TJ` contract, fixed wiring and supported
+transfer shapes are linked from the transaction component guide.
+
+```mermaid
+flowchart LR
+    D[Reviewed peripheral Markdown] --> H[Host selects operation and compiles rule]
+    H -->|Update, then explicit execute| Q[MQTT request topic]
+    Q --> O[ESP application owner and rule program]
+    O --> G[Generic I2C / SPI / UART]
+    G <--> P[Peripheral]
+    O -->|Raw bytes and status| R[MQTT result topic]
+    G -->|Transfer result| O
+    R --> A[Host display adapter]
+    A --> S[MQTT discovery and display state]
+    S --> HA[Home Assistant]
+```
+
+All MQTT topics use the same broker. The diagram is the planned complete path;
+the host display adapter remains to be built.
+MQTT discovery registers Home Assistant entities; state topics supply their
+values. See the [Home Assistant MQTT documentation](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery).
 
 <a id="current-status"></a>
 
 ## Existing work and boundaries
 
-The repository contains a USB-configured prototype, device-specific drivers,
-runtime, configuration tools, networking work and a runtime-rule prototype.
-They are possible building blocks, not proof of the target workflow. The retired timing-model experiments did not demonstrate decisions about
-peripheral transactions; their historical qualification records are retained. Assess reuse against the new contracts rather
-than assuming existing modules or their qualification apply unchanged.
+Supported transfers are bounded; one firmware image does not imply support for
+every peripheral protocol. Raw byte accuracy/decoding is not the demonstration
+objective, but configured operations, actual status and limits must be honest.
 
-One firmware image and runtime updates are goals; supported buses, transfer
-shapes and limits must be stated and tested. Raw data accuracy or decoding is
-not the demonstration objective, but transaction status and limitations must
-be reported honestly. Do not assume hardware, a serial port, a firmware image
-or wiring is unchanged. Separate host checks, board observations and completed
-system acceptance. Preserve dated qualification records, hashes, local captures
-and backups; do not rewrite historical evidence to imply current results.
+Historical AI, framework comparisons and qualification archives were removed
+from this checkout at the user's request. Current coding-policy approvals and
+pinned dependencies remain. Fresh generated evidence belongs under ignored
+`build/`; never commit private credentials, firmware backups or local references.
 
 <a id="team-responsibilities"></a>
 <a id="remaining-work"></a>
@@ -94,17 +105,13 @@ ownership, handoffs and the planned end-to-end demonstration.
 
 ```text
 firmware/       ESP32-C3 application, portable services, drivers and HAL ports
-tools/          Host configuration, USB/network clients, build and C policy tools
-visualiser/     Wiring/plan visualiser and its local server
+tools/          Transaction/configuration clients, wiring guide, builds and C tools
 catalogue/      Reviewed boards, peripherals and connection presets
-configs/        Example node profiles, scenarios and build selections
+configs/        Runtime-rule examples, node profiles and build selections
 schemas/        JSON contracts used to validate those inputs
 datasheets/     Reviewed peripheral communication notes and source references
 tests/          Software suites, board fixture and hardware test procedures
-docs/           Cross-project guides, hardware notes and development history
-experiments/    Isolated proofs and comparison tools with explicit limitations
-reports/        Scoped resource studies and handoff reports
-ai/             Historical AI qualification and its limitations
+docs/           Cross-project guides, hardware notes and current Wi-Fi resource reports
 build/          Local generated output and captured evidence; Git-ignored
 ```
 
@@ -131,7 +138,7 @@ requirements; use the current guides below for development.
 | Existing hardware wiring and acceptance procedures | [Hardware acceptance](HARDWARE_ACCEPTANCE.md) |
 | Existing configuration application | [Configuration Desk](tools/configurator/README.md) |
 | Existing network work and limitations | [Network](firmware/src/network/README.md) |
-| Existing AI work and historical experiments | [AI](ai/README.md) |
+| Current rule-based decision work | [Transaction service](firmware/src/services/transaction/README.md) |
 | Existing firmware contracts | [Shared contracts](firmware/CONTRACTS.md) |
 | Software tests | [Tests](tests/README.md) |
 | Required C policy | [BARR-C project standard](C_CODING_STANDARD.md), [agent rules](AGENTS.md) |

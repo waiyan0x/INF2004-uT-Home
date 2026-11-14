@@ -13,7 +13,6 @@ int c3tx_start (const struct cfgbind_state * p_binding, const cfgmux_t * p_mux);
 bool c3tx_busy (void);
 /* Same application owner as USB, HTTP and MQTT. Never called by an ISR. */
 void c3tx_step (uint64_t now_ms, uint32_t generation, bool b_online);
-const txjob_view_t * c3tx_view (void);
 #endif
 
 /* End of file. */

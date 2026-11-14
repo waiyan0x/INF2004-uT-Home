@@ -43,8 +43,7 @@ Run `python -m unittest discover -s tests/target -p test_gpio_startup.py -v`.
 Structural source checks do not execute kernel/hardware failure paths. The
 board fixture invokes startup twice for idempotence; verify creation counters
 and mutex-exhaustion behavior separately. Physical pulse/PWM timing and output
-loads still require acceptance. Historical failed-gate records are retained in
-the [history log](../COMPLETED_WORK_LOG.md); they are not current build blockers.
+loads still require acceptance.
 
 Manual BARR-C review: C99-owned syntax and existing SDK dialect boundary kept;
 named paired-header APIs; bounded loops (2/4); positive IDs only retained;

@@ -68,11 +68,7 @@ int c3net_start (const cfgctrl_t * p_control, cfgmux_t * p_mux)
     {
         return -1;
     }
-#if UTHOME_OCCUPANCY_LAB
-    g_info.b_configuration_supported = false;
-#else
     g_info.b_configuration_supported = NULL != p_mux;
-#endif
 
     const c3https_config_t https = {.p_certificate = g_setup_certificate,
                                     .p_key         = g_setup_key,
@@ -219,9 +215,6 @@ static int metadata (const cfgctrl_t * p_control)
     g_info.saved_revision       = p_control->saved_revision;
     g_info.runtime_state        = (uint32_t)status.state;
     g_info.b_durable_known      = p_control->b_saved_known;
-#if UTHOME_NETWORK_WIFI
-    g_info.p_transaction = c3tx_view();
-#endif
 #if UTHOME_NETWORK_WIFI && UTHOME_SETUP_MQTT
     g_info.b_mqtt_enabled = true;
     if (0 != c3mqtt_status(&g_info.mqtt))

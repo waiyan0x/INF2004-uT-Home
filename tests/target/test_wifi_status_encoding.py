@@ -100,7 +100,7 @@ def build_status_check(folder: Path, source: Path) -> Path:
                  '#define ESP_MAC_WIFI_STA 0\n'
                  'int esp_read_mac (uint8_t * p_address, int type);\n')
     write_header(folder, 'netsetup.h',
-                 '#include <stdint.h>\n#define UTHOME_OCCUPANCY_LAB  0\n'
+                 '#include <stdint.h>\n'
                  '#define UTHOME_SETUP_MQTT     0\n'
                  '#define UTHOME_SETUP_PORT     8443U\n'
                  '#define UTHOME_SETUP_TX_POWER 0U\n'
@@ -123,6 +123,8 @@ def build_status_check(folder: Path, source: Path) -> Path:
     if compiler is None:
         raise AssertionError('GCC is required')
     command = [compiler, '-std=c99', '-Wall', '-Wextra', '-Werror', '-pedantic',
+               # MinGW needs LTO to discard unused SDK entry points before linking.
+               *(['-O2', '-flto'] if sys.platform == 'win32' else []),
                '-ffunction-sections', '-fdata-sections', '-DUTHOME_NETWORK_WIFI=1',
                '-DUTHOME_NETWORK_BLE=0', *['-I'+str(path) for path in includes],
                str(source), str(ROOT / 'firmware/src/config/cfgbytes.c'),

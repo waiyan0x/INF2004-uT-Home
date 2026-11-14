@@ -26,9 +26,8 @@ python -m mypy --config-file tools/config_transfer/mypy.ini
 ```
 
 The board must run the **configuration application image**, not the acceptance
-fixture. Query its identity and capabilities before use. Scoped discovery/core
-acceptance is indexed in [qualification](../../firmware/qualification/README.md);
-it does not establish the current board state or complete hardware acceptance.
+fixture. Query its identity and capabilities before use. Follow the
+[hardware procedure](../../HARDWARE_ACCEPTANCE.md) for physical acceptance.
 See [build, protocol and storage contracts](../../firmware/src/config/README.md#transport-and-request-identity).
 
 ```console

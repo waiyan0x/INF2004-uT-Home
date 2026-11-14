@@ -5,7 +5,7 @@ import { defineConfig } from 'eslint/config';
 export default defineConfig([
   { ignores: ['build/**', 'firmware/third_party/**', 'legacy/**', '**/.desloppify/**'] },
   {
-    files: ['tools/configurator/static/**/*.js', 'visualiser/**/*.mjs', 'tests/target/**/*.mjs', 'tests/browser/**/*.mjs'],
+    files: ['tools/configurator/static/**/*.js', 'tools/wiring_visualiser/**/*.mjs', 'tests/target/**/*.mjs', 'tests/browser/**/*.mjs'],
     extends: [js.configs.recommended],
   },
   {
@@ -13,11 +13,11 @@ export default defineConfig([
     languageOptions: { sourceType: 'module', globals: globals.browser },
   },
   {
-    files: ['visualiser/dist/**/*.mjs'],
+    files: ['tools/wiring_visualiser/static/**/*.mjs'],
     languageOptions: { globals: globals.browser },
   },
   {
-    files: ['visualiser/serve.mjs', 'visualiser/tests/**/*.mjs', 'tests/target/**/*.mjs', 'tests/browser/**/*.mjs'],
+    files: ['tools/wiring_visualiser/serve.mjs', 'tools/wiring_visualiser/tests/**/*.mjs', 'tests/target/**/*.mjs', 'tests/browser/**/*.mjs'],
     languageOptions: { globals: globals.node },
   },
 ]);

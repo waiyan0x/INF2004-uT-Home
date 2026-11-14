@@ -3,6 +3,7 @@ import ctypes as c
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -38,6 +39,9 @@ static void * create (uint32_t length, uint32_t bytes, uint8_t kind,
                         '-Werror', '-pedantic', '-shared', str(path/'control.c'),
                         '-o', str(path/'control.dylib')], check=True, capture_output=True)
         cls.lib = c.CDLL(str(path/'control.dylib'))
+        if sys.platform == 'win32':
+            import _ctypes
+            cls.addClassCleanup(lambda: _ctypes.FreeLibrary(cls.lib._handle))
         cls.lib.c3nq_static.argtypes = [c.c_uint32, c.c_uint32, c.c_void_p, c.c_void_p, c.c_uint8]
         cls.lib.c3nq_static.restype = c.c_void_p
         cls.lib.control_accept.argtypes = [c.c_bool]

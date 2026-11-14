@@ -8,9 +8,11 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from experiments.runtime_rules import description as desc, host
+from tools.transaction import description as desc, client
+import test_tx_owner as owner
 
-DOCS = host.ROOT / "datasheets"
+ROOT = Path(__file__).resolve().parents[2]
+DOCS = ROOT / "datasheets"
 
 
 class DescriptionTests(unittest.TestCase):
@@ -40,7 +42,7 @@ class DescriptionTests(unittest.TestCase):
         for name, revision, fixture in (("chip_id", 1, "bmp-id.json"),
                                         ("pressure_raw", 2, "bmp-pressure.json")):
             self.assertEqual(desc.compile_rule(self.bmp, name, revision, 119),
-                             host.load_rule(host.HERE / "examples" / fixture))
+                             json.loads((ROOT / "configs/transactions" / fixture).read_text()))
 
     def test_explicit_address_selection_and_wire_address_rejection(self):
         with self.assertRaisesRegex(ValueError, "explicitly"):
@@ -108,7 +110,7 @@ class DescriptionTests(unittest.TestCase):
             with redirect_stdout(io.StringIO()):
                 desc.main([str(DOCS/"bmp388.md"), "--operation", "chip_id",
                            "--revision", "1", "--address", "0x77", "--output", str(out)])
-            self.assertEqual(host.load_rule(out)["read_length"], 1)
+            self.assertEqual(client.validate(json.loads(out.read_text()))["read_length"], 1)
             receipt = json.loads(out.with_suffix(".report.json").read_text())
             self.assertEqual(receipt["provenance"]["description_sha256"], self.digest)
             self.assertFalse(receipt["hardware_executed"])
@@ -136,15 +138,37 @@ class DescriptionTests(unittest.TestCase):
 
 
 class DescriptionCParityTests(unittest.TestCase):
-    def test_compiled_markdown_switches_same_c_library_without_rebuild(self):
-        obj, _ = desc.load_description(DOCS/"bmp388.md")
+    setUpClass = classmethod(owner.OwnerTests.setUpClass.__func__)
+    setUp = owner.OwnerTests.setUp
+    pump = owner.OwnerTests.pump
+    exchange = owner.OwnerTests.exchange
+
+    def test_markdown_switches_actual_owner_and_hal_without_rebuild(self):
+        obj, _ = desc.load_description(DOCS / "bmp388.md")
         a = desc.compile_rule(obj, "chip_id", 1, 119)
         b = desc.compile_rule(obj, "pressure_raw", 2, 119)
-        offline = host.Offline(host.build(host.ROOT/"build/description-tests"))
-        outputs = host.demonstrate(offline.exchange, a, b)
-        self.assertEqual([outputs[i]["raw_hex"] for i in (1,3,5)], ["00", "00 01 02", "00 01 02"])
-        self.assertEqual(offline.lib.txsim_calls(), 3)
-        self.assertEqual([offline.lib.txsim_observed(i) for i in range(4)], [119,4,1,3])
+        self.assertEqual(self.exchange(a)["status"], "ok")
+        self.assertEqual(self.exchange(a, True)["raw_hex"], "50")
+        self.assertEqual(self.exchange(b)["status"], "ok")
+        self.assertEqual(self.exchange(b, True)["raw_hex"], "00 00 00")
+        self.assertEqual(self.lib.txptest_observed(0), 2)
+        # Bypass host validation to check independent target rejection.
+        self.rid += 1
+        bad = bytearray(client.request({**b, "revision": 3}, self.rid, 4))
+        bad[55] = 33
+        self.assertEqual(self.lib.txptest_send(bytes(bad), len(bad)), 0)
+        self.pump(); self.pump()
+        import ctypes as c
+        reply = c.create_string_buffer(96)
+        self.assertEqual(self.lib.txptest_reply(reply), 0)
+        rejected = client.result(reply.raw, request_id=self.rid,
+                                 device=b["device"], revision=3, generation=4)
+        self.assertEqual((rejected["status"], rejected["revision"]), ("invalid", 2))
+        self.assertEqual(self.lib.txptest_observed(0), 2)
+        self.assertEqual(self.exchange(b, True)["raw_hex"], "00 00 00")
+        self.assertEqual(self.exchange(a)["status"], "ok")
+        self.assertEqual(self.exchange(a, True)["raw_hex"], "50")
+        self.assertEqual(self.lib.txptest_observed(0), 4)
 
 
 if __name__ == "__main__":

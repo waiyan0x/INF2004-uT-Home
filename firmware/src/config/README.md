@@ -1,7 +1,7 @@
 # Configuration, USB and storage
 
 One controller owns the path from reviewed JSON to running devices:
-`cfgpump ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ cfgctrl ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ cfgbind/activate`, with `cfgstore ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ c3store` for persistence.
+`cfgpump ÃƒÂ¢Ã¢â‚¬ Ã¢â‚¬â„¢ cfgctrl ÃƒÂ¢Ã¢â‚¬ Ã¢â‚¬â„¢ cfgbind/activate`, with `cfgstore ÃƒÂ¢Ã¢â‚¬ Ã¢â‚¬â„¢ c3store` for persistence.
 The board independently checks every profile; a host-valid plan is not enough.
 Runtime, framing and storage do not dispatch on prototype device names.
 
@@ -245,13 +245,12 @@ and never use blanket erase to fix a storage error.
 Host suites cover malformed/duplicate/oversized JSON, allocator exhaustion and
 reuse, real C/Python wire parity, callbacks/reentry, partial transport, stale and
 conflicting requests, rollback, retained cleanup, boot revalidation and injected
-storage interruption. Compiler warnings remain errors; build evidence is in
-the [qualification index](../../qualification/README.md). Simulation and linked
+storage interruption. Compiler warnings remain errors. Simulation and linked
 type sizes do not certify electrical behavior, free RAM or stack high-water marks.
 
 The following preserves the scope of earlier manual reviews; it does not claim
 a new hardware sign-off. Original dated wording/counts are recoverable through
-the [documentation history](../../../docs/README.md#historical-references).
+the [current test guide](../../../tests/README.md).
 
 ### Transfer C review
 
@@ -397,6 +396,6 @@ The application pauses USB parsing only during this lease. Complete requests cal
 the unchanged cfgctrl Apply path; no second validator, save or recovery path is
 introduced. USB/controller IDs share one sequence with optimistic boot/revision
 preconditions. Exact retained retries do not save again. See the
-[network contract](../network/README.md#authenticated-configuration-apply-and-usb-arbitration-2026-11-03)
+[network contract](../network/README.md#authenticated-configuration-apply-and-usb-arbitration)
 for limits, errors, cache eviction and uncertain outcomes. The original controller,
 pump, wire and store implementation files remain unchanged.

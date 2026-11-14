@@ -102,11 +102,10 @@ exception must be reviewed rather than silently carried forward.
 
 ## Module and API conventions
 
-The runtime-rule experiment adds `txrule` (transaction-rule admission and
-selection), `txwire` (transaction wire encoding), `txi2c` (transaction I2C
-adapter), `txsim` (transaction simulator), and `c3rule` (C3 USB rule diagnostic).
-They use C99 without new exceptions. See the
-[manual review](experiments/runtime_rules/README.md#manual-barr-c-review-and-resource-limits).
+The runtime transaction service uses `txjob` (rule admission/execution),
+`txport` (generic bus adaptation) and `c3tx` (application ownership). It uses C99
+without new exceptions. See the
+[manual review](firmware/src/services/transaction/README.md#verification-and-c-review).
 
 Use lowercase module names unique in their first eight characters. Every C
 source includes its matching header. Public declarations belong in headers;
@@ -393,7 +392,7 @@ Attribute Profile. It shares the SDK-only component and header-spelling boundary
 with `c3ble`; no owned assembly syntax or new naming exception is introduced.
 The network guide records its ABI, concurrency and bounds review.
 
-`mqttdisc` formats Home Assistant MQTT discovery and JSON state text into
-caller-owned storage; `c3mqtt` drives it. HA = Home Assistant. It is C99 with a
-paired header, no static RAM and no new exception. See the
-[manual review](firmware/src/network/README.md#home-assistant-mqtt-discovery-2026-11-10).
+`c3mqtt` carries bounded MQTT transactions and copied sensor telemetry.
+Home Assistant discovery formatting belongs to the host. MQTT means Message
+Queuing Telemetry Transport. No new language or compatibility exception is
+introduced by retiring on-device display code.

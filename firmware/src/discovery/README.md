@@ -2,9 +2,8 @@
 
 This path collects evidence on a reviewed connection. Identity is resolved by
 the PC catalogue, without a trained model. The generic runtime and node schema
-remain unchanged. Scoped USB-core discovery/profile cycles have retained
-[evidence](../../qualification/README.md). Broader electrical/failure tests and
-combined-radio acceptance remain open.
+remain unchanged. Electrical/failure tests and combined-radio acceptance
+must be completed on the selected image.
 
 ## Small, separate responsibilities
 
@@ -199,10 +198,6 @@ Real C3 compilation is separate from physical acceptance. The later board check
 must exercise known/no response, busy configured hardware, reconnect and return
 to normal operation. A new build passing does not certify detection on hardware.
 
-The [2026-10-12 evidence](../../qualification/esp32c3-discovery-20261012.json)
-records 188 passing tests, the mandatory 186-file BARR-C gate, both successful
-C3 builds and their artifact/source hashes. Target/discovery tests were rerun
-after the SDK include boundary fix. No board operation was performed.
 
 ## Manual BARR-C review
 
@@ -249,7 +244,5 @@ header, `c3app`, `cfgbind`, and `disctest` integration.
 | 6?7 | Named callback typedefs, bounded functions/loops, initialized reports/contexts, no heap, no ISR or task ownership changes. Wait yields through the existing kernel API. |
 | 8 | Busy/stale/invalid checks precede I/O; partial-open and failed-close ownership retained, explicit recovery, no TX calls or implicit retry. NDEBUG cannot disable test assertions. |
 
-The mandatory gate checks 190 owned C/H files with zero findings or tool/policy
-errors. Fresh application and fixture builds include the new module; physical
-D4 acceptance remains not tested. See [D4 evidence](../../qualification/esp32c3-discovery-d4-20261012.json).
-Earlier D2 evidence remains historical and unchanged.
+Run the mandatory C gate, discovery tests and target build after changes.
+Physical acceptance is separate.

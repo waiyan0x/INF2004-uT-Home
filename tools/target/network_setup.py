@@ -34,7 +34,7 @@ def generate(source):
     config=json.loads(raw.decode('utf-8'),object_pairs_hook=unique)
     required={'ssid','password','token','certificate_file','key_file'}
     if (not isinstance(config,dict) or not required<=config.keys() or
-            config.keys()-required-{'port','mqtt','esphome_lab','tx_power_quarter_dbm'}):
+            config.keys()-required-{'port','mqtt','tx_power_quarter_dbm'}):
         raise ValueError('invalid setup fields')
     tx_power=config.get('tx_power_quarter_dbm',0)
     if ('tx_power_quarter_dbm' in config and
@@ -51,10 +51,7 @@ def generate(source):
         if (not isinstance(value,str) or not minimum<=len(value)<=maximum or
                 any(ord(char)<(0x21 if name=='token' else 0x20) or ord(char)>0x7e for char in value)):
             raise ValueError('invalid setup text')
-    lab=config.get('esphome_lab',False)
-    if type(lab) is not bool or (lab and 'port' in config):
-        raise ValueError('ESPHome lab uses dedicated port 6053 instead of HTTPS')
-    port=config.get('port',6053 if lab else 8443)
+    port=config.get('port',8443)
     if type(port) is not int or not 1<=port<=65535:
         raise ValueError('invalid HTTPS port')
     blobs={}
@@ -103,7 +100,6 @@ def generate(source):
            '#ifndef UTHOME_NETSETUP_H','#define UTHOME_NETSETUP_H',
            '#include <stdint.h>',f'#define UTHOME_SETUP_PORT ({port}U)']
     lines.append(f'#define UTHOME_SETUP_MQTT ({int(mqtt is not None)}U)')
-    lines.append(f'#define UTHOME_OCCUPANCY_LAB ({int(lab)}U)')
     lines.append(f'#define UTHOME_SETUP_TX_POWER ({tx_power}U)')
     if mqtt is not None:
         lines.append(f'#define UTHOME_SETUP_MQTT_PORT ({mqtt["port"]}U)')

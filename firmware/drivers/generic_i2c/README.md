@@ -122,9 +122,8 @@ claim and GPIO. Failed cleanup retains ownership for retry. Display and enable
 outputs reserve separate line slots. A host-only build with the light capability
 enabled exercises a four-device profile, failed GPIO acquisition, sample and
 NACK publication, and retained cleanup followed by recovery. The production
-capability remains disabled. A short diagnostic application capture is recorded
-in the [evidence index](../../qualification/README.md); it does not establish
-long-run timing, a light-worker stack margin or full-system allocation compliance.
+capability remains disabled. Long-run timing, a light-worker stack margin
+and full-system allocation compliance require target measurements.
 
 ## Recipe C review and verification scope
 

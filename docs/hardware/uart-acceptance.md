@@ -1,10 +1,7 @@
 # UART acceptance
 
-The retained-handle/fixed-storage implementation has target-build and scoped
-USB-core allocation evidence. External baud/framing and the isolated native-ring
-fault suite are separate acceptance work. See
-[qualification](../../firmware/qualification/README.md); earlier unavailable-SDK or
-style-gate failures are historical, not current blockers.
+Repeat these checks on the selected firmware. Host tests and target builds
+do not establish physical baud/framing or timing.
 
 ## Required tests
 
@@ -84,8 +81,8 @@ perform physical communication timing tests separately without breakpoint stops.
 
 ## Review and evidence
 
-The [completed-work log](../COMPLETED_WORK_LOG.md) retains earlier local test/build
-attempts. Fake-GDB tests validate accounting logic, not board execution.
+Fake-GDB tests validate accounting logic, not board execution. Keep fresh
+measurements and exact build identity under ignored `build/`.
 
 Manual review: new C uses matching headers, C99, fixed stack buffers, bounded
 nested loops, native typed interfaces and no heap calls. The one-shot read

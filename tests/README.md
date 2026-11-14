@@ -1,10 +1,8 @@
 # Verification
 
-Dated test counts and build results belong in the
-[evidence index](../firmware/qualification/README.md) and
-[completed-work log](../docs/COMPLETED_WORK_LOG.md). Run the checks below for the
+Keep fresh test counts and build results under ignored `build/`. Run the checks below for the
 source you are changing; a previous pass does not qualify a new revision.
-Hardware, wireless/static compliance and model eligibility are separate gates.
+Hardware and wireless/static compliance are separate gates.
 
 Run from the repository root. Install `tools/requirements.txt`, the pinned
 formatter in `tools/c_standard/requirements.txt`. Put GCC on PATH; Node is
@@ -24,7 +22,7 @@ python -B -m unittest discover -s tests/runtime -v
 python -B -m unittest discover -s tests/target -v
 python -B -m unittest discover -s tests/discovery -v
 node --test tests/target/test_*.mjs
-node --test visualiser/tests/*.test.mjs
+node --test tools/wiring_visualiser/tests/*.test.mjs
 python tools/test_uart_gpio.py
 ```
 
@@ -114,7 +112,7 @@ their callers; the remaining radar and sonar checks keep active assertions and
 warnings as errors. This review does not replace target or hardware acceptance.
 
 For real kernel execution, use the [board fixture](target/runtime_port_board/README.md).
-Build and captured board outcomes live in the [evidence index](../firmware/qualification/README.md).
+Keep build and captured board outcomes together with their exact source hashes.
 Physical timing, USB interruption, flash power loss, pin voltages, output safety,
 concurrency and RAM/stack measurements require the [hardware procedure](../HARDWARE_ACCEPTANCE.md).
 
@@ -137,4 +135,4 @@ Networking-only software checks: `python -B -m unittest discover -s tests/target
 -p "test_network*.py"`. These include actual C protocol/diagnostic code and PC
 client/size-tool tests with explicit socket/BLE doubles. They contact no real
 broker or board and do not establish hardware acceptance. See the
-[network acceptance matrix](../firmware/src/network/README.md#reproducible-acceptance-matrix).
+[network acceptance matrix](../firmware/src/network/README.md#remaining-acceptance).

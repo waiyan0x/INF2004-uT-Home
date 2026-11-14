@@ -121,7 +121,7 @@ class QualificationTests(unittest.TestCase):
                     path.write_bytes(original)
 
     def test_services_reject_diagnostic_combinations_before_setup(self):
-        for diagnostic in ('rule_probe', 'senlux_probe', 'senlux_app_probe',
+        for diagnostic in ('senlux_probe', 'senlux_app_probe',
                            'wifi_probe', 'ble_probe', 'native_uart_fixture'):
             with self.subTest(diagnostic=diagnostic), tempfile.TemporaryDirectory() as folder:
                 work = Path(folder) / 'fresh'
@@ -743,11 +743,6 @@ class QualificationTests(unittest.TestCase):
             self.assertEqual(len(sources), len(qualification.RUNTIME_SOURCE_FILES) + 1)
             self.assertSetEqual(set(sources) - {generated_default}, set(qualification.RUNTIME_SOURCE_FILES))
             self.assertIn(generated_default, sources)
-            for name in ("txrule.c", "txwire.c", "txi2c.c"):
-                self.assertTrue((project / "services" / name).is_file())
-            self.assertTrue((project / "app/c3rule.c").is_file())
-            for name in ("occwire.c", "occwire.h"):
-                self.assertIn("firmware/src/network/" + name, sources)
             for name in ('recinst.c', 'recinst.h'):
                 self.assertIn(f'firmware/drivers/generic_i2c/{name}', sources)
             for name in ('stackmon', 'workcost', 'workmeter'):

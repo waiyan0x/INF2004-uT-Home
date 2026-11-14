@@ -119,7 +119,6 @@ zero-duty cleanup, independent registry instances, typed samples/health and
 activation recovery. Host fixtures manually invoke steps; they do not emulate
 RMT/LEDC registers, native scheduling or electrical behavior.
 
-See [software/build evidence](../../qualification/esp32c3-gpio-20260928.json).
 The ordinary board fixture inspects factories, descriptors and invalid arguments;
 it does not establish physical HC-SR04/PWM acceptance.
 
@@ -154,5 +153,5 @@ Before hardware acceptance, confirm modules, wiring, voltage conversion and
 actuator supply/driver. Follow the [hardware guide](../../../HARDWARE_ACCEPTANCE.md).
 
 
-Current [acceptance status](../../qualification/README.md) and
-[wiring procedure](../../../HARDWARE_ACCEPTANCE.md). Keep dated results in the qualification records, separate from current usage.
+Use the [hardware acceptance procedure](../../../HARDWARE_ACCEPTANCE.md).
+Record the exact image, wiring and fresh outcomes under ignored `build/`.

@@ -4,7 +4,6 @@
  */
 #include "uthome/txjob.h"
 #include <string.h>
-#include <stdio.h>
 
 static uint32_t word (const uint8_t * p_data);
 static void put_word (uint8_t * p_data, uint32_t value);
@@ -14,8 +13,7 @@ static txjob_status_t decode (const uint8_t * p_data, txjob_rule_t * p_rule);
 static void finish (txjob_t *       p_job,
                     const uint8_t * p_request,
                     txjob_status_t  status,
-                    bool            b_cache,
-                    uint64_t        now_ms);
+                    bool            b_cache);
 
 /** @brief Copy immutable callbacks before accepting any request. */
 int txjob_init (txjob_t * p_job, const txjob_ops_t * p_operations)
@@ -56,12 +54,12 @@ int txjob_submit (txjob_t *       p_job,
         ('J' != p_request[1]) || (1U != p_request[2]) ||
         (0U == word(&p_request[4])) || (!zero_bytes(&p_request[94], 2U)))
     {
-        finish(p_job, NULL, TXJOB_INVALID, false, now_ms);
+        finish(p_job, NULL, TXJOB_INVALID, false);
         return 0;
     }
     if (word(&p_request[90]) != generation)
     {
-        finish(p_job, p_request, TXJOB_MISMATCH, false, now_ms);
+        finish(p_job, p_request, TXJOB_MISMATCH, false);
         return 0;
     }
     const uint32_t request_id = word(&p_request[4]);
@@ -70,21 +68,19 @@ int txjob_submit (txjob_t *       p_job,
         if ((request_id == p_job->last_id) &&
             (0 == memcmp(p_request, p_job->request, TXJOB_WIRE)))
         {
-            memcpy(p_job->view.reply, p_job->cached, TXJOB_WIRE);
-            p_job->view.completed_ms = p_job->cached_ms;
-            ++p_job->view.sequence;
+            memcpy(p_job->reply, p_job->cached, TXJOB_WIRE);
             p_job->b_reply = true;
         }
         else
         {
-            finish(p_job, p_request, TXJOB_STALE, false, now_ms);
+            finish(p_job, p_request, TXJOB_STALE, false);
         }
         return 0;
     }
     memcpy(p_job->request, p_request, TXJOB_WIRE);
     if ((!b_idle) || (now_ms > UINT64_MAX - 1000U))
     {
-        finish(p_job, p_request, TXJOB_BUSY, true, now_ms);
+        finish(p_job, p_request, TXJOB_BUSY, true);
         return 0;
     }
     if (1U == p_request[3])
@@ -96,24 +92,24 @@ int txjob_submit (txjob_t *       p_job,
             p_job->rule     = candidate;
             p_job->b_loaded = true;
         }
-        finish(p_job, p_request, status, true, now_ms);
+        finish(p_job, p_request, status, true);
         return 0;
     }
     if ((2U != p_request[3]) || (!name_valid(&p_request[12])) ||
         (!zero_bytes(&p_request[44], 46U)))
     {
-        finish(p_job, p_request, TXJOB_INVALID, true, now_ms);
+        finish(p_job, p_request, TXJOB_INVALID, true);
         return 0;
     }
     if (!p_job->b_loaded)
     {
-        finish(p_job, p_request, TXJOB_UNCONFIGURED, true, now_ms);
+        finish(p_job, p_request, TXJOB_UNCONFIGURED, true);
         return 0;
     }
     if ((word(&p_request[8]) != p_job->rule.revision) ||
         (0 != memcmp(&p_request[12], p_job->rule.device, 32U)))
     {
-        finish(p_job, p_request, TXJOB_MISMATCH, true, now_ms);
+        finish(p_job, p_request, TXJOB_MISMATCH, true);
         return 0;
     }
     p_job->last_ms     = now_ms;
@@ -175,7 +171,7 @@ void txjob_step (txjob_t * p_job, uint64_t now_ms)
     }
     p_job->b_busy    = false;
     p_job->b_closing = false;
-    finish(p_job, p_job->request, p_job->status, true, now_ms);
+    finish(p_job, p_job->request, p_job->status, true);
 }
 
 /** @brief Cancel uncertain work; never automatically replay transmitted bytes.
@@ -200,75 +196,8 @@ int txjob_take (txjob_t * p_job, uint8_t * p_reply, size_t capacity)
     {
         return 1;
     }
-    memcpy(p_reply, p_job->view.reply, TXJOB_WIRE);
+    memcpy(p_reply, p_job->reply, TXJOB_WIRE);
     p_job->b_reply = false;
-    return 0;
-}
-
-/** @brief Format raw bytes/status without claiming physical measurement units.
- */
-int txjob_text (const txjob_view_t * p_view,
-                uint64_t             now_ms,
-                char *               p_text,
-                size_t               capacity)
-{
-    if ((NULL == p_view) || (NULL == p_text) || (capacity < 120U))
-    {
-        return -1;
-    }
-    p_text[0] = '\0';
-    if ((!p_view->b_known) || (now_ms < p_view->completed_ms) ||
-        ((now_ms - p_view->completed_ms) >= 30000U))
-    {
-        return 1;
-    }
-    static const char * const p_protocols[]    = {"none", "I2C", "SPI", "UART"};
-    static const char * const p_status_names[] = {"OK",
-                                                  "invalid",
-                                                  "unconfigured",
-                                                  "mismatch",
-                                                  "timeout",
-                                                  "I/O error",
-                                                  "busy",
-                                                  "unsupported",
-                                                  "stale ID",
-                                                  "cancelled"};
-    const uint8_t *           p_reply          = p_view->reply;
-    if ((p_reply[44] > 3U) || (p_reply[45] >= TXJOB_PENDING) ||
-        ((0U != p_reply[45]) && (0U != p_reply[47])))
-    {
-        return -1;
-    }
-    const char * p_status = ((1U == p_reply[3]) && (0U == p_reply[45]))
-                                ? "rule updated"
-                                : p_status_names[p_reply[45]];
-    const int    prefix   = snprintf(p_text,
-                                capacity,
-                                "%s %s TX%u RX%u:",
-                                p_protocols[p_reply[44]],
-                                p_status,
-                                (unsigned int)p_reply[46],
-                                (unsigned int)p_reply[47]);
-    if ((prefix < 0) || ((size_t)prefix >= capacity) ||
-        (p_reply[47] > TXJOB_RX))
-    {
-        p_text[0] = '\0';
-        return -1;
-    }
-    size_t used = (size_t)prefix;
-    for (size_t index = 0U; index < p_reply[47]; ++index)
-    {
-        const int count = snprintf(&p_text[used],
-                                   capacity - used,
-                                   " %02X",
-                                   (unsigned int)p_reply[48U + index]);
-        if ((count != 3) || ((size_t)count >= capacity - used))
-        {
-            p_text[0] = '\0';
-            return -1;
-        }
-        used += (size_t)count;
-    }
     return 0;
 }
 
@@ -403,10 +332,9 @@ static txjob_status_t decode (const uint8_t * p_data, txjob_rule_t * p_rule)
 static void finish (txjob_t *       p_job,
                     const uint8_t * p_request,
                     txjob_status_t  status,
-                    bool            b_cache,
-                    uint64_t        now_ms)
+                    bool            b_cache)
 {
-    uint8_t * p_reply = p_job->view.reply;
+    uint8_t * p_reply = p_job->reply;
     memset(p_reply, 0, TXJOB_WIRE);
     p_reply[0] = 'T';
     p_reply[1] = 'J';
@@ -436,15 +364,10 @@ static void finish (txjob_t *       p_job,
         memcpy(&p_reply[48], p_job->data, p_job->received);
     }
     put_word(&p_reply[90], p_job->generation);
-    p_job->view.b_known      = true;
-    p_job->view.generation   = p_job->generation;
-    p_job->view.completed_ms = now_ms;
-    ++p_job->view.sequence;
     p_job->b_reply = true;
     if (b_cache)
     {
-        p_job->cached_ms = now_ms;
-        p_job->last_id   = word(&p_request[4]);
+        p_job->last_id = word(&p_request[4]);
         memcpy(p_job->cached, p_reply, TXJOB_WIRE);
     }
 }

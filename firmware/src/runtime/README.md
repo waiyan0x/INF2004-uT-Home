@@ -381,8 +381,7 @@ wrapper paints a fresh cache-enabled stack before its first use. No dependency,
 exception, C dialect boundary or formatter change is introduced. Tests/builds
 and hardware measurements are separate evidence, not implied by this review.
 
-Use the [evidence index](../../qualification/README.md),
-[board fixture](../../../tests/target/runtime_port_board/README.md) and
+Use the [board fixture](../../../tests/target/runtime_port_board/README.md) and
 [software suites](../../../tests/README.md) for scoped verification. Kernel/typed
 plan tests do not qualify every peripheral, wireless load or flash power loss.
 

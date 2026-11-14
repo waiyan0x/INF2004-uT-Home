@@ -3,7 +3,7 @@
 The adapter retains one native UART descriptor and mutex for the boot lifetime.
 Native record storage is fixed by [the storage adapter](uart-static-storage.md).
 Use [UART acceptance](uart-acceptance.md) for unperformed external timing/fault
-tests and [qualification](../../firmware/qualification/README.md) for scoped results.
+tests. Record fresh results under ignored `build/`.
 
 ## Lifecycle and integration
 
@@ -56,7 +56,7 @@ can by itself prove the achieved baud rate.
 
 ## Reset sequencing and bounds
 
-A reset executes STOP â†’ START â†’ STOP before discarding software rings.
+A reset executes STOP → START → STOP before discarding software rings.
 The intermediate START is necessary because the pinned STOP does not reset
 hardware FIFOs. Previous STOP masks TX-empty; START enables only RX/error
 sources, so it cannot service queued software TX. An RX ISR during the short

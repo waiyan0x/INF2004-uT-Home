@@ -1,6 +1,11 @@
-# Configuration profiles
+# Runtime transactions and configuration profiles
 
-Versioned JSON selects supported devices, wiring, timing, queues and rules.
+`transactions/` contains current raw `TJ` rules. See the
+[host transaction workflow](../tools/transaction/README.md) for compiling reviewed
+Markdown and sending updates. These rules use `version: 1` and are separate
+from the full node profiles described below.
+
+Full node-profile JSON selects devices, wiring, timing, queues and rules.
 Use UTF-8 with two-space indentation and a `schema_version`. GPIO values are
 printed ESP32-C3 GPIO numbers, not header positions. Node schemas 2.0.0/2.1.0
 reference reviewed descriptors and board/build limits in the [catalogue](../catalogue/README.md).
@@ -13,9 +18,9 @@ reference reviewed descriptors and board/build limits in the [catalogue](../cata
 | `nodes/two-environment-sensors.json` | Independent instances sharing I2C at distinct addresses |
 | `nodes/distance-only.json` | Distance sensor without another sensor/display dependency |
 | `nodes/distance-controlled-output.json` | Schema 2.1 typed rule and PWM example |
-| `nodes/first-prototype.json` | Historical mixed demonstration; not deployable on the current C3 binding |
+| `nodes/first-prototype.json` | Host-test fixture for admission and rejection; not deployable on the current C3 binding |
 | `builds/` | Host fixtures versus compiled/qualified target availability |
-| `scenarios/` | Expected demonstration behavior |
+| `transactions/` | Current BMP388, OLED and radar runtime-rule examples |
 | `invalid/` | Profiles validation must reject |
 
 The original prototype uses GPIO2 for OLED CS. **Do not wire that assignment:**

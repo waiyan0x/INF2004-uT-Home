@@ -1,3 +1,0 @@
-# Actual ESPHome experiment and its pinned MQTT client dependency.
-esphome==2026.10.2
-paho-mqtt==1.6.1

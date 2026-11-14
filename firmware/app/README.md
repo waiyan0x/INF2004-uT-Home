@@ -18,9 +18,8 @@ commands, ownership, partition layout, reconnect behavior and acceptance limits.
 Telemetry/health and [display services](../src/services/TELEMETRY.md#oled-rendering) are now
 integrated. The [local UI](../../tools/configurator/README.md) discovers compiled
 capabilities and uses this endpoint. [Typed rules](../src/automation/README.md)
-route configured sources to the existing PWM component. Combined wireless/hardware acceptance and eligible AI advice integration remain
-open. AI preparation can proceed in parallel; final data must match its qualified
-execution context.
+route configured sources to the existing PWM component. Combined wireless/hardware acceptance remains open. The current rule-based
+transaction owner is documented in [transaction services](../src/services/transaction/README.md).
 
 Optional onboard monitoring networking is selected with `--network-services ble|wifi|both`
 and `--static-net-queues`. The `c3net` owner hooks run alongside the existing USB
@@ -41,4 +40,4 @@ An unavailable mux leaves networking read-only. USB parsing pauses only during a
 admitted bounded upload; sensor/display workers retain their existing lifecycle.
 HTTPS Apply runs on the existing owner and refreshes metadata before later network
 captures. No shared runtime/kernel compatibility source is changed. See the
-[network guide](../src/network/README.md#authenticated-configuration-apply-and-usb-arbitration-2026-11-03).
+[network guide](../src/network/README.md#authenticated-configuration-apply-and-usb-arbitration).

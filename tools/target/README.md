@@ -13,13 +13,6 @@ checks and retains their evidence; a successful compiler exit is insufficient.
 
 ## Build modes
 
-The isolated `--runtime-port --configuration-app --static-net-queues
---rule-probe` mode replaces normal configuration and sensor activity with the
-USB transaction-rule proof. It uses the existing generic I2C driver and fixed
-reviewed BMP388 wiring. See the [experiment guide](../../experiments/runtime_rules/README.md).
-Its link check excludes production configuration/radio paths; it is not MQTT
-or normal application acceptance.
-
 The CLI keeps the flags below. `build_modes.py` resolves them before any staging
 into one immutable `BuildSelection`, with independent static-queue and BLE
 options. Its mode table owns prerequisites; the selection emits both CMake
@@ -125,7 +118,7 @@ Confirm ESP32-C3 / 4 MB. A power LED alone does not prove USB data works.
 If absent, try a direct USB port/data cable; hold BOOT, press/release RST, then
 release BOOT after a second for ROM download mode. Keep GPIO9/BOOT and native
 USB18/19 free. A board stuck in download mode after flashing may need BOOT
-released and RESET, or esptool's watchdog reset. See the [recorded behavior](../../firmware/qualification/README.md).
+released and RESET, or esptool's watchdog reset.
 
 ## Install the configuration application
 
@@ -193,7 +186,7 @@ ticks and a second reset. For the project fixture, expect `[activation-test] PAS
 and `[port-test] PASS`, then alive counters with no FAIL. Repeat after reset.
 These qualify their fixture scope, not peripheral electricity, timing or storage
 power-loss behavior. Record new board evidence separately; leave build records
-unchanged. See the [evidence index](../../firmware/qualification/README.md).
+unchanged. Store fresh output under ignored `build/`.
 
 ## Fixed memory budget
 
@@ -217,10 +210,8 @@ All three budget variants keep their aggregate reservations unchanged. Each
 object remains independently bounded, and unlisted writable objects still fail.
 
 Unassigned linker space is not measured free heap or stack headroom. Keep
-per-module limits and actual sizes in the generated budget record. Wireless/AI
-reservations and complete stack evidence are required before combined release.
-Historical map and allocator results are in
-[qualification](../../firmware/qualification/README.md).
+per-module limits and actual sizes in the generated budget record. Combined
+wireless/transaction reservations and measured stacks are required before release.
 
 The optional fixed-queue/event/startup variant uses `--static-net-queues` and
 `--budget tools/target/network-budget.json` with the memory checker. Its overall
@@ -288,7 +279,7 @@ checks use offline socket/BLE doubles only.
 `python -m tools.target.network_size --help` describes read-only flash attribution
 from existing build artifacts; failed builds stay failed. Exact specifications,
 commands, resource requests and acceptance matrix are maintained in the
-[network guide](../../firmware/src/network/README.md#read-only-network-diagnostics-and-client-test-pack).
+[network guide](../../firmware/src/network/README.md#usb-wi-fi-troubleshooting).
 
 ## Authenticated HTTP configuration client
 

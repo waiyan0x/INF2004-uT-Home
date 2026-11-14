@@ -1,10 +1,10 @@
 # Team workload
 
-This proposed five-member split supports the direction agreed in the 6 November
-2026 consultation. Each member owns an area and its handoffs; integration,
-testing, understanding the implementation and the report are shared team
-responsibilities. [README.md](README.md) describes the target workflow and its
-current limits. Assign actual names as the team agrees.
+This five-member split follows the professor-approved direction recorded in
+[README.md](README.md): uT-Kernel, runtime rules, generic drivers and MQTT,
+with Home Assistant MQTT discovery for display. Member 3 now owns that MQTT
+display integration instead of the ESPHome native API. Each member owns an
+area and its handoffs; these roles describe the existing contributions.
 
 ## 1. Three generic drivers — Member 1
 
@@ -27,28 +27,30 @@ current limits. Assign actual names as the team agrees.
   message flow; state what has and has not been verified on hardware.
 - Handoff: transport contract, setup instructions and integration tests.
 
-## 3. ESPHome-compatible display — Member 3
+## 3. Home Assistant MQTT display — Member 3
 
-- Own the ESPHome native API interface for Home Assistant display on the
-  existing uT-Kernel firmware. The current read-only occupancy lab is a
-  connectivity reference, not a general transaction-result display.
-- Agree entity names, availability, raw-result presentation and freshness with
-  Members 2, 4 and 5. Do not consume sensor queues or execute driver requests
-  in the display endpoint; use copied data from the application owner.
-- Test Home Assistant client compatibility, missing/faulted data, disconnects
-  and coexistence with MQTT. Actual ESPHome-generated firmware uses a different
-  kernel; communicate the comparison and chosen approach to the professor by
-  **Tuesday, 10 November 2026**. Professor approval remains unrecorded.
-- Handoff: native API contract, displayed entities, tests and resource costs.
+- Own a small host adapter that turns decoded transaction replies into MQTT
+  discovery and display state. Reuse Member 2's transport and Member 4's codec;
+  do not build another command controller or interpret sensor measurements.
+- Show transaction status and raw hex, with device/rule identity, protocol,
+  byte counts and observation time. Distinguish configured outgoing bytes from
+  counts reported by the ESP, and update acknowledgements from executed reads.
+- Handle adapter/ESP availability, expiry, Home Assistant restarts and failed
+  transactions. A failed read must not display an earlier successful payload
+  as new data. The host adapter must remain running for display updates.
+- Reuse suitable discovery identity conventions and test cases in the host
+  adapter. Native API and on-device discovery code have been retired.
+- Handoff: display-topic contract, entity definitions, tests and real Home
+  Assistant observations. This is an MQTT interface, not an ESPHome native API.
 
-## 4. On-device decision model / ML — Member 4
+## 4. Rule-based decision program — Member 4 (us)
 
 - Own the ESP-side decision program and its runtime-changeable rule or model
   contract. It selects how to use a generic driver based on received rules and
   an operation request; it does not need to interpret sensor values.
-- Start with a small understandable rule-based approach unless the team and
-  professor agree that trained parameters are required. Do not describe fixed
-  rules as a trained ML model.
+- Own the structured Markdown contract and compilation to the existing `TJ`
+  transaction format. The approved program uses explicit rules; training,
+  labelled data and weights are not required for this deliverable.
 - Validate complete updates before applying them; define rejection behaviour
   and demonstrate that changed rules produce a changed decision without a
   rebuild or reflash. Agree serialization and ownership with Members 2 and 5.
@@ -59,42 +61,227 @@ current limits. Assign actual names as the team agrees.
 
 ## 5. Host configuration and system integration — Member 5
 
-This role is recommended because the four areas above need a common host
-workflow, usable example profiles and an owner for the complete demonstration.
+This role connects the four areas above into one host workflow and a reproducible
+demonstration.
 
-- Prepare several concise, reviewed JSON or Markdown peripheral examples from
-  datasheets. Automatic PDF conversion is out of scope. Record sources and
-  represent only operations and settings the implementation can support.
+- Maintain reviewed Markdown examples with Members 1 and 4. Automatic PDF
+  conversion is out of scope. Record sources and represent only operations
+  and settings the implementation can support.
 - Own the host flow for selecting a peripheral and operation, producing the
   agreed configuration, and displaying returned raw bytes and status. Coordinate
   with Member 2 on transport and Member 4 on the rule format.
-- Coordinate the task-based block diagram: functions, data flow, task triggers
+- Own the controller session: explicit operation requests, rule revisions,
+  request IDs, current plan generation, result correlation and reconnect handling.
+  Agree fresh-start/restart handling with Members 2 and 4 rather than resetting
+  IDs and assuming the board restarted.
+- Maintain the task-based block diagram: functions, data flow, task triggers
   or schedules, and how to isolate a protocol such as UART during debugging.
-  Prepare it for the professor by **Friday, 13 November 2026**.
 - Coordinate end-to-end tests, demo instructions and the report with all
   members. Keep existing UI and visual style; discuss proposed UI changes before
   implementing them.
 - Handoff: example profiles, host flow, diagram, integration evidence and demo.
 
-## Integration checkpoints
+## Completion plan
 
-1. **Agree the handoffs:** define peripheral profile, runtime rules, operation
-   request and result formats; specify who validates, applies and owns each
-   configuration. Each owner confirms the limits they can support.
-2. **Choose the foundation:** complete the ESPHome assessment and agree the
-   framework or alternative with the professor.
-3. **Prove one path:** using one reviewed peripheral and supported operation,
-   send a configuration from the host, make the ESP choose and run a generic
-   transaction, and return the raw bytes and status.
-4. **Show change at runtime:** update the rules while the ESP is running, repeat
-   the request and show the changed ESP decision without a firmware rebuild or
-   reflash. Verify rejected updates do not silently replace the working rules.
-5. **Broaden and report:** add the agreed examples and protocols, test the
-   integrated system and document actual observations, limitations and results.
+The finished demonstration must let a user select reviewed peripheral Markdown
+and an operation on the host, inspect the proposed communication, load the rule,
+explicitly execute it and see raw bytes/status in the host UI and Home Assistant.
+Changing rules, supported peripherals or protocols must use the same running
+uT-Kernel firmware image.
 
-Every member follows [BARR-C:2018 project requirements](C_CODING_STANDARD.md)
-for project-owned C and completes the required checks in [AGENTS.md](AGENTS.md).
-Record host tests, target builds and hardware observations separately. The
-existing [hardware acceptance guide](HARDWARE_ACCEPTANCE.md) is retained for
-reviewed wiring and historical procedures; it is not a claim that the new
-workflow has passed acceptance. Discuss blockers promptly with the professor.
+The initial delivery uses one ESP32-C3, one controller, one active rule and one
+outstanding operation. Peripherals can remain wired to their reviewed buses;
+transactions execute sequentially with an idle peripheral plan. Existing
+configuration profiles remain the setup/recovery path. Automatic PDF processing,
+trained ML, sensor-unit decoding, arbitrary GPIO wiring, concurrent rule programs,
+SPI receive and automatic rule persistence are outside this delivery. Network
+credentials may be provisioned once for the demonstration; changing a peripheral
+rule must not require another build.
+
+### Reviewed baseline
+
+| Area | Present implementation | Remaining gap |
+|---|---|---|
+| ESP decision program | `txjob` validates/stores a rule, chooses execution and preserves it on a rejected update | Boot/session recovery and externally observable transaction state |
+| Generic operations | `txport` reaches actual I2C, SPI-write and raw UART HALs through `c3tx` | Physical acceptance, initialization prerequisites and selected timing extensions |
+| Description compiler | `tools/transaction/description.py` compiles simple I2C register reads | SPI/UART operation descriptions; OLED source/description; SEN0390 review |
+| MQTT | Bounded ESP transport and a one-shot TLS host client | Long-running controller, automatic identity/generation handling and restart recovery |
+| UI | Existing Configuration Desk supports USB profiles and recovery | Runtime Markdown selection, rule loading/execution and result presentation |
+| Home Assistant | Intended host-adapter boundary is documented | Adapter and live integration are not implemented |
+| Verification | Cleanup baseline: 663 software tests, full 325-file C gate and a real target build passed | Real Wi-Fi/TLS/bus acceptance and whole-system resource measurements |
+
+The latest local build record is under ignored `build/cleanup-verification/`.
+Its fixed-memory use is 275,954 of 278,528 bytes. This leaves 2,574 bytes within
+the total budget, including only 613 bytes in the application group and 8 bytes
+in the MQTT module's reservation. These figures are not free-heap or stack
+measurements. Keep JSON display formatting on the host. The existing cleanup
+changes are still local; use this reviewed tree as the working baseline.
+
+### 1. Close session and resource risks first
+
+Define how a controller learns node identity, boot identity, plan generation,
+active rule, busy state and the last accepted request ID without peripheral I/O.
+The current `TJ` v1 envelope has no boot/session field or status-query operation.
+The ESP already exposes boot identity/generation through authenticated HTTP;
+reuse that metadata and ownership. Choose and document a bounded MQTT session/
+status extension for normal operation, versioning the wire contract if needed.
+Do not infer a reboot from a broker reconnect or merely restart IDs at one.
+
+Bind requests and replies to the agreed session. Specify delayed replies, exact
+retries, controller restart, ESP restart, ID exhaustion and generation changes.
+A cached completion must never acquire a new measurement time. Extend the host
+result decoder to retain and validate update-versus-execute kind, received count
+and returned transaction settings; it currently drops that distinction.
+
+In parallel, audit reachable Wi-Fi/TCP/IP/TLS allocation and kernel-object
+creation against the existing static-memory requirement. Only a justified Wi-Fi
+exception is contemplated; it does not automatically exempt TLS or the rest of
+the SDK. Fix noncompliant application/compatibility paths and measure startup,
+reconnect and normal operation. Preserve all existing per-module/total caps;
+reclaim storage or obtain explicit review before changing a reservation.
+
+Done: a reviewed session contract, focused stale/restart/duplicate tests, and a
+concrete resource-compliance assessment. This is the highest-risk work and must
+not be postponed until the UI is finished.
+
+### 2. Build the persistent host controller
+
+Extend the existing `tools/transaction/` package with one serialized controller.
+It owns connection state, session recovery, request IDs, rule revisions, pending
+operations, result correlation and display expiry. Reuse the current compiler,
+codec and TLS transport. UI and Home Assistant consume its events; neither
+becomes a second command owner.
+
+Provide explicit select/preview, load and execute operations. Load must complete
+successfully before execution becomes available. An unknown transport outcome
+must remain unknown; reconnect must not repeat a write. Preserve command identity
+and unresolved outcomes across host restart, or require a verified fresh session.
+
+Make idle-plan preparation and restore an explicit setup workflow through the
+existing configuration controller. Preserve/export the saved profile; do not
+silently stop workers, rewrite saved settings or flash on connection. A reboot
+can restore an old active profile, so readiness must be checked again.
+
+Done: a user can run A -> B -> rejected update -> B -> A without typing request
+IDs or generation numbers, including recovery from host/ESP/broker restarts.
+First verify this with the compiled C fixture and a real local TLS broker.
+
+### 3. Complete the reviewed peripheral operations
+
+Extend the versioned description contract only for supported transfer shapes:
+I2C write/read, SPI write with reviewed D/C and CS, and UART raw receive/write.
+Keep strict limits, source provenance and independent target validation. Do not
+encode device-name cases in the generic drivers.
+
+| Demonstration | Required work |
+|---|---|
+| BMP388 | Preserve chip-ID and three-byte raw reads; make initialization and possible zero data explicit |
+| SPI OLED | Obtain/review the missing source description; document and support deterministic reset/initialization before claiming visible on/off behavior from a cold start |
+| LD2450 | Add executable raw-chunk operations (for example 16/32 bytes); do not call them complete reports or require occupancy decoding; verify reliable UART reception on the actual setup |
+| SEN0390, desired second I2C device | Resolve the source's register/timing ambiguity and EN handling; expose the HAL's existing read pause only through a reviewed rule extension; physically qualify before claiming device switching |
+
+The HAL already has `read_pause_ms`; `txport` currently sets it to zero. This is
+an integration gap, not a reason to write another I2C driver. Other protocols'
+command/wait/read sequences need separate explicit support. The SHT4x and
+unavailable ADXL345/VEML7700 hardware are additional scope unless chosen for the
+demonstration. Never report every Markdown file as executable or hardware-tested.
+
+Done: every operation offered by the final host workflow compiles to a supported
+rule, has deterministic prerequisites and has appropriate reference tests.
+
+### 4. Establish the actual Wi-Fi/MQTT deployment
+
+Prepare reproducible private broker/CA/credential settings and Home Assistant
+connection instructions. Confirm the board, wiring and installed image afresh;
+preserve a full backup and obtain installation approval before a test flash.
+Verify real TLS trust, server-name and certificate-time behavior with the pinned
+SDK, plus AP/broker loss and reconnection. Do not disable TLS checks to get a pass.
+
+Start this bench check early when equipment is available, using the current CLI
+if the controller is not ready yet. It can expose network/resource blockers
+before UI work. USB diagnostics remain a recovery tool; USB transactions and
+host simulations do not count as live MQTT acceptance.
+
+Done: the ESP receives a rule over actual Wi-Fi/MQTT, executes a real bus
+transaction and returns correlated raw bytes/status on the same installed image.
+
+### 5. Connect the user interface
+
+Propose a small Runtime Transactions view within the existing Configuration Desk
+and review it with the user before UI implementation. Preserve the visual style.
+Show the selected description/operation, connection/readiness, proposed protocol,
+address/settings, TX bytes, RX length, active rule and last operation outcome.
+Distinguish configuration accepted, execution complete, unavailable and unknown
+outcome. Unsupported operations explain their missing capability and cannot run.
+
+Use the controller from step 2 for all actions. Preserve the existing profile and
+recovery views. Bounded display history should retain source/rule identity and
+failure information without presenting stale bytes as a current measurement.
+
+Done: the complete normal demonstration can be run through the UI without
+editing JSON or entering internal request counters. Browser tests cover busy,
+delayed response, reconnect, rejected update and stale-display behavior.
+
+### 6. Add Home Assistant display
+
+Implement a small host-side adapter using the same controller results. Publish
+stable discovery identities and JSON display state for status, raw hex, active
+rule/protocol and counts. Keep configured bytes distinct from ESP-reported
+counts; a received update acknowledgement is not a sensor reading.
+
+Handle adapter/ESP availability, state expiry, broker reconnection and Home
+Assistant birth/reload. Retain discovery definitions; keep raw result state and
+commands non-retained. Re-announcing discovery must never execute a peripheral
+operation. This uses the supported [MQTT discovery lifecycle](https://www.home-assistant.io/integrations/mqtt/#discovery-messages-and-availability)
+and [sensor availability/expiry](https://www.home-assistant.io/integrations/sensor.mqtt/).
+
+Done: actual Home Assistant displays real ESP results and becomes unavailable
+when appropriate, including separate ESP, adapter, broker and HA restarts.
+
+### 7. Complete integrated acceptance
+
+On one selected image, demonstrate valid zero bytes, changes in command/read
+length, protocol switching, invalid-update preservation and the chosen second
+I2C device once qualified. Exercise stale/duplicate/out-of-order messages,
+wrong sessions/generations, full buffers, oversized input, missing peripherals,
+timeouts, cleanup failure and reconnects. Include a cold boot and sustained load.
+
+Measure runtime allocation/creation calls, stack high-water marks and operation
+latency under the combined load. The fixed linker budget is only one gate.
+Re-run the pinned formatter/full C gate, manual BARR-C review, affected tests,
+Linux sanitizer checks where required and fresh real-target builds for changes.
+Do not weaken assertions, budgets or approved exceptions.
+
+Done: each success/failure is tied to exact source/build identity and actual
+wiring, with host simulation, physical observation and unperformed checks
+separated. Follow [hardware acceptance](HARDWARE_ACCEPTANCE.md).
+
+### 8. Package the final delivery
+
+Provide one startup/setup path, private-settings template, reviewed descriptions,
+reproducible builds/tests, a task/data-flow diagram, recovery instructions and a
+short professor demonstration script. Show the unchanged firmware identity while
+switching rules and retain an explicit limitations list.
+
+The Week 13 submission requires the current memory-budget table, static-
+allocation design, overflow/exhaustion demonstration and verification evidence.
+Publish a small reviewed, sanitized final report in the maintained documentation;
+keep credential-bearing firmware, raw captures and large outputs under ignored
+`build/` or private storage. Retiring old history does not remove this final
+submission requirement. Review the final diff and cloud checks before an
+explicitly authorized commit/push/release.
+
+Keep one main guide per maintained folder. Historical source/evidence is already
+kept by the user outside this working checkout; it is not a current build input.
+Current coding-policy approvals, pins, tests and useful setup/recovery tools stay.
+The retired source holding copy under ignored `build/retired-cleanup-20261113/`
+is local-only because automatic review blocked permanent broad deletion.
+
+Every member follows [BARR-C:2018](C_CODING_STANDARD.md) and the checks in
+[AGENTS.md](AGENTS.md): pinned formatter/full gate, manual review, warnings as
+errors with assertions enabled, and applicable real-target builds. No budget,
+policy exception or test assertion may be weakened to make cleanup pass.
+Use [hardware acceptance](HARDWARE_ACCEPTANCE.md) for wiring/procedures. Host
+simulation, target build and physical acceptance remain distinct. Raw measurement
+accuracy is not the demonstration goal; communication, runtime change and honest
+status are. Preserve Member 5's existing UI style and review UI changes first.

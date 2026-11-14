@@ -194,5 +194,5 @@ reduced if the measured implementation cannot support the current bounds.
 - [Driver index](drivers/README.md): UART polling, pulse capture, PWM and each
   sensor's electrical/timing limits. Backend limits override catalogue maxima.
 
-Current build/bench status is in the [evidence index](qualification/README.md).
-Full hardware acceptance and embedded AI deployment remain incomplete.
+Current runtime rule limits are in the [transaction guide](src/services/transaction/README.md).
+Full combined-system hardware acceptance remains incomplete.

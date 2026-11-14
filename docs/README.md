@@ -15,12 +15,12 @@ keeps its own implementation guide and contracts.
 - [Hardware acceptance and scoped UART/GPIO guides](hardware/README.md).
 - [Software tests](../tests/README.md) and
   [GitHub Actions](github-actions.md).
-- [Qualification evidence](../firmware/qualification/README.md) and
-  [completed-work history](COMPLETED_WORK_LOG.md).
+- [Peripheral descriptions](../datasheets/README.md) and
+  [transaction tools](../tools/transaction/README.md).
 
 The discovery workflow below remains the guide for identifying supported
 devices on reviewed connections. Current implementation status belongs in the
-source-folder guides; dated qualification records retain their original meaning.
+source-folder guides. Store new build and bench results under ignored `build/`.
 
 <a id="device-discovery-and-documentation"></a>
 
@@ -29,7 +29,7 @@ source-folder guides; dated qualification records retain their original meaning.
 Discovery answers which supported device is present on a **reviewed connection**.
 Firmware gathers bounded observations; the computer matches them to catalogue
 facts. This runs on request and does not scan arbitrary GPIOs or infer electrical
-wiring. It is separate from the experimental AI timing model.
+wiring. It is a setup aid, separate from runtime transaction rules.
 
 ## Supported paths
 
@@ -78,7 +78,6 @@ there is no automatic retry or cancellation of an in-flight bounded probe.
 | Driver and operations | Descriptor plus connected firmware capabilities |
 | Initial reading/display interval | Existing valid setting, descriptor default or identified bench observation |
 | Timeout, buffers, priority, stack, routing | Reviewed limits and existing planner/runtime rules |
-| Future interval recommendation | Measured comparison/model within the same admission limits |
 
 For the tested BMP388, 500 ms / 100 ms timeout are bench starting values. For the
 tested OLED, 250 ms / 20 ms timeout / 4 MHz SPI are bench starting values. They
@@ -89,86 +88,5 @@ are not universal optima. Details: [hardware guide](../HARDWARE_ACCEPTANCE.md).
 - [Firmware observer, exact wire format and manual C review](../firmware/src/discovery/README.md).
 - [Configuration Desk workflow](../tools/configurator/README.md).
 - [Host USB client](../tools/config_transfer/README.md).
-- [Tests](../tests/README.md) and [scoped bench evidence](../firmware/qualification/README.md).
-  Discovery is implemented and has repeated USB-core bench checks; broader
-  electrical/failure and combined-radio acceptance remain open.
-
-## Historical references
-
-Current status and remaining work are in [the project README](../README.md).
-Completed checkpoints belong in [the history log](COMPLETED_WORK_LOG.md).
-Older removed guides remain in Git at commit `37319fbd55ca622779eca498519128e6a33bcaa5`:
-
-```console
-git show 37319fb:INTEGRATION_PLAN.md
-git show 37319fb:ai/OFFLINE_PIPELINE.md
-```
-
-Dated qualification JSON, source hashes, dependency locks, raw logs and approval
-records retain their original meaning and paths. A path stored in an old record
-refers to that historical revision; it is not silently rewritten to certify
-today's source. Current manual reviews and relocated guides are mapped below.
-
-
-| Former guide | Current location |
-|---|---|
-| `INTEGRATION_PLAN.md` | [Guide](../README.md#remaining-work) |
-| `PROJECT_BASELINE.md` | [Guide](../README.md#platform-contract) |
-| `ai/OFFLINE_PIPELINE.md` | [Guide](../ai/README.md) |
-| `ai/TIMING_EXPERIMENTS.md` | [Guide](../ai/README.md) |
-| `ai/TRAINING_PIPELINE.md` | [Guide](../ai/README.md) |
-| `configs/PROTOTYPE_REFERENCE.md` | [Guide](../configs/README.md#legacy-reference) |
-| `docs/DEVICE_DISCOVERY.md` | [Guide](README.md) |
-| `firmware/SETUP_ESP32C3.md` | [Guide](../firmware/README.md#pinned-target) |
-| `firmware/drivers/bmp388/README.md` | [Guide](../firmware/drivers/bmp388/INTEGRATION.md) |
-| `firmware/drivers/hc_sr04/README.md` | [Guide](../firmware/drivers/hc_sr04/INTEGRATION.md) |
-| `firmware/drivers/hlk_ld2450/README.md` | [Guide](../firmware/drivers/hlk_ld2450/INTEGRATION.md) |
-| `firmware/drivers/ssd1306_spi/README.md` | [Guide](../firmware/drivers/ssd1306_spi/INTEGRATION.md) |
-| `firmware/src/config/ADMISSION.md` | [Guide](../firmware/src/config/README.md#admission) |
-| `firmware/src/config/TRANSFER.md` | [Guide](../firmware/src/config/README.md#wire-version-1) |
-| `firmware/src/config/USB_STORAGE.md` | [Guide](../firmware/src/config/README.md#transport-and-request-identity) |
-| `firmware/src/runtime/ACTIVATION.md` | [Guide](../firmware/src/runtime/README.md#application-contract) |
-| `firmware/src/runtime/INTEGRATION.md` | [Guide](../firmware/src/runtime/README.md#verification-and-limits) |
-| `firmware/src/services/DISPLAY.md` | [Guide](../firmware/src/services/TELEMETRY.md#oled-rendering) |
-| `firmware/src/services/README.md` | [Guide](../firmware/src/services/TELEMETRY.md) |
-| `ut-home-workload-distribution.md` | [Guide](../README.md#team-responsibilities) |
-
-
-Manual C review sections: [configuration](../firmware/src/config/README.md#verification-and-manual-c-review),
-[runtime](../firmware/src/runtime/README.md#verification-and-limits),
-[display](../firmware/src/services/TELEMETRY.md#display-c-review) and
-[AI export](../ai/README.md). The signed [audit](../tools/c_standard/AUDIT.md)
-and [approval records](../tools/c_standard/README.md) retain their own files.
-
-## Local artifacts and review documents
-
-These paths are local to the original workstation, not included in Git. Preserve
-them; a fresh clone does not contain raw datasets, build archives or board backups.
-Older paths and checkpoint outcomes are indexed in the
-[completed-work log](COMPLETED_WORK_LOG.md).
-
-| Location relative to `Code` | Purpose |
-|---|---|
-| `build/member4-today-20261027/` | Radar phone-app comparison/stability journals, study-design preflight and AI test output; diagnostics are not training data |
-| `build/protocol-study-20261027-varied-r1/` | Verified varied-goal USB collection and `trained/` model/evaluation artifacts; benefit gate failed against the simple rule. Preserve calibration, frozen sources, inventory, failed attempts and superseded reports; heldouts are revealed |
-| `build/ai-loaded-20261027/`, `build/ai-loaded-20261027-cadence200/` | Compact classifier build archives, raw OFF/ON frames, plans, analyses and restoration receipts. Preserve the first failed procedure and corrected acceptance; `backup.json` locates and hashes the external 4 MiB flash backup |
-| `build/datasheet-ui-design/`, `build/datasheet-ui-check-final/`, `build/datasheet-work/` | Datasheet assistant design/comparison and experimental cross-compiled object; none qualifies SEN0390 on hardware |
-| `build/member4-offline-20261027/` | Regression output for verified collection continuation and the independent calibrated-rule comparison |
-| `build/system-completion-20261026-233938/` | Frozen builds, capture scripts, core/radio observations and verified `board-before-network.bin` 4 MiB backup; use its backup JSON/hash before recovery |
-| `build/protocol-study-20261027-static-r2/` | Primary USB-core study, raw journals, frozen sources and evaluation |
-| `build/protocol-study-20261027-stress-r3/` | Separate corrected stress study and evaluation; retain r1/r2 rejected/unexecuted plans too |
-| `build/protocol-study-20261026-r1/`, `r2/`, `r3/` | Earlier independent study contexts; do not mix with later firmware labels |
-| `build/static-ai-20261026/`, `build/shared-handoff-20261026/`, `build/hardware-acceptance-20261026/` | Earlier bench/build records and external-backup references |
-| `build/ai-offline-20261013/` | Simulated regression model/data; not a hardware model |
-| `../ESP/Tribunal1/Week8_Tribunal1_Template.docx` | Local submission document; not published with this repository |
-| `build/tribunal_review_20261017/` | Original document backup, edit verification and rendered checks |
-
-**Tribunal follow-up:** the front-page Team Information table still contains the
-template's unrelated personas because it was outside the requested Version A
-scope. The user identified this mismatch; replacement roles were explained in
-chat but have not been applied to the Word file. Use the
-[actual team responsibilities](../README.md#team-responsibilities) when that
-table is authorized for editing. Leave student details for the team to fill in.
-Buddy prompts/positions in Version A are proposals, not invented records of
-completed individual sessions. The team must confirm them and reconcile the
-Week 6 comparisons with its submitted architecture freeze before submission.
+- [Tests](../tests/README.md) and [hardware acceptance](../HARDWARE_ACCEPTANCE.md).
+  Validate the selected image and actual wiring before claiming physical acceptance.

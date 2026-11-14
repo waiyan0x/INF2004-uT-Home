@@ -65,7 +65,7 @@ required port. A quiet terminal is normal once binary application traffic owns U
 | `src/automation/` | Bounded typed sensor-to-PWM rules |
 | `src/messaging/`, `src/health/` | Queues, progress/error reporting and watchdogs |
 | `drivers/`, `hal/` | Device behavior and reusable protocol/board adapters |
-| `third_party/`, `qualification/` | Pinned dependencies and dated evidence |
+| `third_party/` | Pinned dependencies |
 
 ## Kernel integration constraints
 
@@ -91,18 +91,14 @@ startup and task implementation are in that dependency's `config/`,
 Wi-Fi and BLE must run on the ESP under uT-Kernel. The planned services are BLE
 identification/status/telemetry and Wi-Fi MQTT telemetry plus bounded HTTP
 status/configuration. They are not integrated into the ordinary USB application.
-The [network guide](src/network/README.md) owns compatibility contracts and the
-[source audit](qualification/esp32c3-wireless-source-audit-20261027.json) records
-the inspected source paths and gaps at its historical revision. The network guide
-tracks the current task-stack, notification, timer, TLS and SDK-allocation status.
+The [network guide](src/network/README.md) owns compatibility contracts,
+task-stack, notification, timer, TLS and SDK-allocation limitations.
 
 The optional `--static-net-queues` build selects owned fixed queue/event resources;
 it does not enable radios or prove whole-system static compliance. Queue/event
 adapters and the isolated radio diagnostics' native task stacks are now bounded.
 Notification semantics, timer callback context, BLE/lwIP/service allocation,
 runtime stack margin and cache-off traffic still need work.
-Isolated Wi-Fi scan/restart and read-only GATT evidence is indexed in
-[qualification](qualification/README.md).
 
 Preserve the pinned SDK/kernel. Use owned wrappers and isolated build integration,
 not vendor edits or a switch to FreeRTOS scheduling. An SDK API named `Static`
@@ -166,8 +162,8 @@ active worker count nor a logical queue depth measures total reserved RAM.
 The exact storage-layout guard permits only the two profile slots. It does not
 authorize OTA, NVS or network credential writes. Any layout/persistence change
 requires reviewed bounds, backups and preservation/migration of configuration.
-The frozen byte/ELF measurements are in the [evidence log](qualification/README.md),
-not a reusable promise of free memory in later builds.
+Measure each new image with the existing memory budget checker; fixed linked
+storage is not a promise of free runtime memory.
 
 ### Migration and acceptance order
 
@@ -178,9 +174,10 @@ not a reusable promise of free memory in later builds.
    calls, not just live objects, and retain unavailable measurements as null.
 3. Run the full C gate, manual review, warning-clean tests and real-target builds.
    Preserve map attribution, stack evidence and scoped board results.
-4. Freeze that execution context for a new AI study. An eligible model, versioned
-   advice transport and loaded inference/sampling comparison are still required.
+4. Demonstrate runtime rule changes and raw results over MQTT on the same
+   image, including rejected updates and restart recovery. Follow the
+   [completion plan](../CONTRIBUTING.md#completion-plan).
 
-The memory rule applies to the embedded system; desktop training and the Desk
-are host processes. Keep normal validated configuration when AI abstains. UI
-changes require review; the memory change itself does not require a redesign.
+The memory rule applies to the embedded system; the controller, display adapter
+and Configuration Desk run on the host. Rejected rules preserve the active rule.
+UI changes require review; the memory change itself does not require a redesign.

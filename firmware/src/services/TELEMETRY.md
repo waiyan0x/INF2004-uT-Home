@@ -277,9 +277,9 @@ and a native window of 100 ticks or 100 ms (whichever is longer) through 60 s.
 It handles one 32-bit idle wrap, rejects resets/inconsistent deltas and reports
 `sampled_non_idle_percent = 100 * (elapsed - idle) / elapsed`. The caller must
 still verify the same connection and ELF identity. A single snapshot cannot
-yield utilization. The original workload measurement/export contract and frozen
-AI study features remain unchanged. The Desk displays no new metric without
-its separate UI review.
+yield utilization. These measurements support runtime/resource verification;
+they do not train or select peripheral rules. The Desk displays no new metric
+without its separate UI review.
 
 Manual C review of this extension: fixed caller-owned callback storage, checked
 native task/clock results, nonnegative high-word conversion, bounded unsigned
@@ -305,8 +305,7 @@ capture, 2 a device capture failure, 1 a transport/decoding failure. A valid
 capture can still contain stale/fault samples. This command does not query
 storage, deploy, reset the board or consume mutation IDs.
 
-OLED pages rotate every two seconds. Basic BMP388/OLED/radar bench observations
-are in the [qualification index](../../qualification/README.md#peripheral-bench-observations).
+OLED pages rotate every two seconds.
 SPI writes cannot prove a panel is present. Combined-load, disconnect, recovery
 and resource measurements still require physical acceptance.
 
@@ -356,7 +355,7 @@ checker policy, dependency pins and formatter version are unchanged. Software
 review does not establish physical timing, stack peaks or complete compliance
 with every semantic rule on hardware.
 
-Dated build/test/static-size results: [telemetry](../../qualification/esp32c3-telemetry-20260928.json) and [display](../../qualification/esp32c3-display-20260928.json). These are historical measurements, not current free memory.
+Measure storage for each target build; linked size is not current free memory.
 
 ### Raw register bytes (payload version 5)
 

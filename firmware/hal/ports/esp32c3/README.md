@@ -195,10 +195,8 @@ after 25 ten-microsecond polls delayed each 64-byte chunk at clocks below roughl
 adapter allows 100 bounded polls before a one-tick sleep. Interrupts remain
 enabled, the caller's absolute deadline is unchanged, and long/stalled transfers
 still yield. A 1 MHz chunk can now finish its nominal 512 microseconds before
-that sleep threshold. This is a measured-driver correction, not a changed AI
-label or a promise that physically inadequate clock/deadline pairs will pass.
-The [controlled comparison](../../../qualification/esp32c3-spi-polling-20261027.json)
-records the old/new behavior. The tested 400 kHz setting still exceeds the
+that sleep threshold. Polling cannot make physically inadequate clock/deadline
+pairs pass. A 400 kHz setting still exceeds the
 20 ms frame deadline; corrected polling cannot compensate for inadequate
 clock/deadline combinations.
 

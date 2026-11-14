@@ -150,5 +150,5 @@ UART wiring, baud/8N1, reporting, disconnect/reconnect, overrun recovery, pollin
 latency, stack/heap headroom, simultaneous peripherals and repeated plan updates.
 
 
-Current [acceptance status](../../qualification/README.md) and
-[wiring procedure](../../../HARDWARE_ACCEPTANCE.md). Keep dated results in the qualification records, separate from current usage.
+Use the [hardware acceptance procedure](../../../HARDWARE_ACCEPTANCE.md).
+Record the exact image, wiring and fresh outcomes under ignored `build/`.

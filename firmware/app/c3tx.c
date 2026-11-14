@@ -89,12 +89,6 @@ void c3tx_step (uint64_t now_ms, uint32_t generation, bool b_online)
     }
 }
 
-/** @brief Borrow an immutable snapshot while the application owner serializes.
- */
-const txjob_view_t * c3tx_view (void)
-{
-    return &g_job.view;
-}
 #endif
 
 /* End of file. */
