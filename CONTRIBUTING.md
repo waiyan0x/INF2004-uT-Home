@@ -108,13 +108,13 @@ rule must not require another build.
 | MQTT | Bounded ESP transport and a one-shot TLS host client | Status query/boot binding implemented; long-running controller and durable restart recovery remain |
 | UI | Existing Configuration Desk supports USB profiles and recovery | Runtime Markdown selection, rule loading/execution and result presentation |
 | Home Assistant | Intended host-adapter boundary is documented | Adapter and live integration are not implemented |
-| Verification | Current configuration/network work: 585 software tests, full 327-file C gate and a real target build passed | Real Wi-Fi/TLS/bus acceptance and whole-system resource measurements |
+| Verification | Current network work: 490 target-facing and 56 C-policy tests, full 329-file C gate and a real target build passed | Real Wi-Fi/TLS/bus acceptance and whole-system resource measurements |
 
-The current compact-configuration build uses 251,330 of 278,528 fixed DRAM bytes,
-leaving 27,198 bytes in the total budget and 25,238 in the application group.
+The current fixed-TLS-record build uses 260,386 of 278,528 fixed DRAM bytes,
+leaving 18,142 bytes in the total budget and 16,184 in the application group.
 MQTT still has only 8 bytes within its module reservation; future network storage
 needs its own explicit reservation. Generated verification is under ignored
-`build/compact-json/`. Fixed-linker fit is not free-heap or stack
+`build/tls-records/`. Fixed-linker fit is not free-heap or stack
 acceptance; TLS/TCP/IP allocation remains a concrete integration blocker.
 
 ### 1. Close session and resource risks first
@@ -133,24 +133,25 @@ operation kind, byte counts and bus settings. One-shot CLI status and explicit
 boot binding are available; automatic/durable controller recovery belongs to
 Step 2. A reconnect never authorizes repeating a write with a new ID.
 
-Verification: 483 target-facing tests (including 43 transaction/description
-cases), 56 C-policy tests, 27 foundation tests and 19 runtime tests pass. The full
-327-file C standard gate, manual review, fresh ESP32-C3 build, source-snapshot
-verification and unchanged group/total fixed-memory caps pass. This totals 585
-distinct software tests: the full target suite passed 482 cases, then all seven
-compact-reader tests passed after adding one further malformed-string/duplicate
-case. No live broker or equipment acceptance is claimed.
+Verification: all 490 target-facing tests (including 43 transaction/description
+cases) and 56 C-policy tests pass. The full 329-file C standard gate, manual
+review, fresh ESP32-C3 build, source-snapshot verification and unchanged
+group/total fixed-memory caps pass. New tests cover fixed TLS-record exhaustion,
+cleanup and 1,000 lease cycles, plus exact allocator-binding/link enforcement.
+These are record-lifecycle tests; live TLS handshake/reconnect and equipment
+acceptance remain unperformed.
 
 The [current resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
-identifies reachable heap allocation in ESP-TLS contexts, mbedTLS buffers,
+identifies reachable heap allocation in mbedTLS state/buffers,
 lwIP netconn/packet pools and other SDK state. The mailbox backing path now uses
 the existing fixed queues, with exhaustion/reuse tests and linked-target proof;
 that change adds no fixed RAM or native objects. The Wi-Fi-driver exception does
 not exempt these application network paths. Static native tasks/queues alone
 are insufficient. Compact configuration views reclaimed 24,600 fixed DRAM bytes
-without changing the profile schema. Target-compiled sizing still puts two
-concurrent ESP-TLS contexts and record-buffer pairs at 48,116 bytes before
-certificates and handshakes, above the reclaimed application headroom. A bounded
+without changing the profile schema. `c3tls` now uses 9,054 fixed bytes for three
+typed ESP-TLS contexts, three error records and temporary names, preserving one
+MQTT plus two HTTPS sessions. Even one current encryption-buffer pair needs
+21,146 bytes, above the remaining 16,184-byte application headroom. A bounded
 allocator therefore also needs a reviewed buffer-lifetime/capacity design.
 Keep the existing caps and TLS checks; sizing is not a measured runtime peak.
 

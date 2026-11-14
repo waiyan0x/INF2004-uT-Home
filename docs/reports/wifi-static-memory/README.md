@@ -13,24 +13,26 @@ The current build uses pinned ESP-IDF 6.1
 `fff9895c82d744c7237be8847347bdd1b07c6643`, kernel
 `ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2` and the maintained owned patches.
 Build-only dummy settings were used; no board was flashed and no live broker was
-contacted. Local generated evidence is in `build/compact-json/` and the isolated
-build directory `C:/Users/kkak4/esp/uthome-json-views-final-20261114/`.
+contacted. Local generated evidence is in `build/tls-records/` and the isolated
+build directory `C:/Users/kkak4/esp/uthome-tls-records-20261114/`.
 The target's `evidence.json` SHA-256 is
-`8d1863781fedb1fdceaf7e84b0375a82ad1c5309919f9dcf2ab540ecad3f876d`.
+`08b8fdbe07b0dd4944aa2ac1edc1b2aa00080cd240d56cc0821dc746c6a81e67`.
 Source-snapshot verification passes against the original build inputs.
 
 | Fixed-memory group | Linked bytes | Unchanged cap | Headroom |
 |---|---:|---:|---:|
-| Application | 122,218 | 147,456 | 25,238 |
+| Application | 131,272 | 147,456 | 16,184 |
 | Task pool | 18,499 | 18,560 | 61 |
-| SDK/kernel | 54,227 | 55,296 | 1,069 |
+| SDK/kernel | 54,229 | 55,296 | 1,067 |
 | RAM code | 56,386 | 57,152 | 766 |
-| Total DRAM | 251,330 | 278,528 | 27,198 |
+| Total DRAM | 260,386 | 278,528 | 18,142 |
 | RTC, separate from DRAM | 60 | 128 | 68 |
 
 These are linker measurements, **not runtime free heap, task stack margins or
 ESP timing**. The published mailbox baseline (`eede615`) used 275,930 fixed DRAM
-bytes: the current image saves **24,600 bytes**. All aggregate caps are unchanged.
+bytes. Compact configuration views saved 24,600 bytes; fixed ESP-TLS records
+now reserve part of that reclaimed capacity. The current image is **15,544
+bytes smaller than that baseline**. All aggregate caps are unchanged.
 MQTT remains 1,816/1,824 bytes and HTTPS 3,098/3,104; future network storage needs
 an explicit module reservation within the application cap.
 
@@ -45,14 +47,41 @@ admission limits remain intact. Input is borrowed until close; production
 plan/discovery callers finish reading and copy scalar settings before returning.
 See the [contract and manual review](../../../firmware/src/config/README.md#admission-c-review).
 
-The full target suite passed 482 cases. After adding one further malformed-string
-and duplicate-key test, all seven compact-reader cases passed. Together with
-56 C-policy, 27 foundation and 19 runtime tests, **585 distinct software tests
-passed**. Reader tests include 500 generated nested documents and 2,000 grammar
+Reader tests include 500 generated nested documents and 2,000 grammar
 mutations checked against an independent Python decoder, plus explicit numeric,
 string, capacity, depth and lifetime cases. Actual owned C is compiled with
 warnings as errors; allocator interception verifies no reader allocation calls.
-The full 327-file pinned C gate, manual review and real target build also pass.
+They remain part of the full target-facing regression suite.
+
+### Fixed ESP-TLS records
+
+`c3tls` uses 9,054 fixed bytes within a 9,056-byte module reservation: three
+typed ESP-TLS contexts (8,736 bytes), three error records (60), temporary hostname
+storage (254) and four lease flags. This preserves one MQTT plus two HTTPS
+connections. The total DRAM increase is 9,056 bytes including linker padding.
+These bytes are now budgeted before runtime; this is a change in allocation
+strategy, not a claim that secure connections need less total memory.
+
+Only the two selected ESP-TLS compilation units bind calloc/free/strndup to the
+owned stores. Four error-tracker functions use fixed records with the SDK's
+public error layout. Unsupported requests or exhausted stores fail without
+heap fallback. The target gate verifies exact source scope, all linked aliases,
+absence of the original allocating error tracker, flash placement and continued
+use of SDK connection setup/cleanup. Vendor source and certificate checks remain
+unchanged. See the [contract and manual review](../../../firmware/hal/ports/esp32c3/network/README.md#fixed-esp-tls-records).
+
+Six direct adapter tests cover zeroing/alignment, independent error categories,
+temporary-name capacity, exhaustion, initialization-failure cleanup and 1,000
+full lease cycles with allocator interception. A qualification regression attacks
+missing, duplicated and escaped bindings and invalid linked symbols. These tests
+exercise records and build enforcement; they do not perform a TLS handshake.
+
+Current verification: **490 target-facing tests and 56 C-policy tests passed**.
+The full 329-file pinned C gate, manual review, warnings-as-errors target build,
+exact-source snapshot verification and every fixed-memory budget also pass.
+Generated reports are in the local evidence directory above. Previous foundation
+and runtime results remain in `build/compact-json/`; those unaffected suites were
+not rerun for this SDK-record change.
 
 ### Fixed lwIP mailboxes
 
@@ -75,9 +104,10 @@ and live-network acceptance still require the board.
 
 The following paths were checked in the pinned SDK source and selected compiler
 commands. The ELF still links `esp_tls_init`, `mbedtls_ssl_setup`,
-`esp_mbedtls_mem_calloc`, `netconn_alloc` and `memp_malloc`. Those SDK compilation
-units have no allocator-replacement definitions; mailbox creation/free alone
-use the owned adapter. Linking an allocator alone would not prove reachability;
+`esp_mbedtls_mem_calloc`, `netconn_alloc` and `memp_malloc`. The mbedTLS/lwIP
+units still have their original allocators. ESP-TLS record/name
+allocation and mailbox backing now use owned stores. Linking an allocator alone
+would not prove reachability;
 the owned entry paths below establish application use.
 
 | Area | Source path and behavior | Assessment |
@@ -85,8 +115,8 @@ the owned entry paths below establish application use.
 | Decision, codec and MQTT packet storage | `txjob`, `txport`, `c3tx`, `netmqtt`, `netbroker`, `c3mqtt`: fixed owned state and bounded copied buffers | No application allocator/object path; reviewed and software-tested |
 | Native task stacks/notifications | `c3task` and the owned compatibility patch reserve/seal startup slots | Software and target-link checks pass; runtime stack/creation counters need the board |
 | Native queues/semaphores/mutexes/event groups | `c3nq`/`c3event` pre-create native objects; SDK create/delete APIs lease/release fixed records | Bounded exhaustion/reuse; does not cover surrounding SDK heap storage |
-| MQTT TLS | `c3mqtt` connection callback calls `esp_tls_init()`; ESP-TLS allocates its context with `calloc`, then enters mbedTLS | Reachable on first connection and reconnect; outside the contemplated Wi-Fi-driver exception |
-| HTTPS TLS | `c3https` accepts up to two clients and creates ESP-TLS sessions at runtime | Same context/certificate/record-buffer issue; client limits alone do not make it static |
+| ESP-TLS contexts, error records and temporary names | `c3mqtt`/`c3https` still call the SDK lifecycle; two SDK units bind allocation to `c3tls`, and error trackers use linked fixed replacements | Context/name allocation is bounded for the selected three-session path; live handshake/reconnect acceptance remains |
+| MQTT and HTTPS encryption state | After fixed context admission, SDK setup enters mbedTLS for certificates, keys, persistent TLS hostnames and record buffers | Still heap-backed on first connection/reconnect; outside the contemplated Wi-Fi-driver exception |
 | TLS record buffers | `ssl_tls.c` allocates input/output buffers; `port/esp_mem.c` routes calloc to internal heap | Internal allocator, 16,384-byte input and 4,096-byte output content lengths; dynamic-buffer option off. This option does not eliminate allocation |
 | TCP/IP connections and packets | `lwipopts.h` sets `MEM_LIBC_MALLOC=1`, `MEMP_MEM_MALLOC=1`; `api/api_msg.c` allocates netconn records | Application network activity reaches general heap-backed pools |
 | lwIP mailbox backing | Wi-Fi builds link `c3lbox`; messages use existing `c3nq` payloads | Bounded software/target-link proof passes; shared capacity needs live acceptance |
@@ -106,24 +136,22 @@ Local probe source, compiler arguments and results are in `build/compact-json/`.
 | `MBEDTLS_SSL_IN_BUFFER_LEN` | 16,717 |
 | `MBEDTLS_SSL_OUT_BUFFER_LEN` | 4,429 |
 
-One ESP-TLS context and its record-buffer pair require **24,058 bytes**, before
-certificates, keys, transforms and handshake allocations. One MQTT and one HTTPS
-session therefore require at least 48,116 bytes with the current buffer
-lifetimes, above the 25,238-byte application headroom. The source allows two
-HTTPS clients, making that three-session subtotal 72,174 bytes. These subtotals
-are compile-time capacity observations, not measured peak use or a new storage
-reservation; the included SSL context must not be counted twice.
+The context is already counted in `c3tls`; do not reserve it twice. Each remaining
+record-buffer pair needs **21,146 bytes**, before certificates, keys, transforms
+and handshake allocations. Even one pair exceeds the 16,184-byte application
+headroom; two pairs need 42,292 bytes and three need 63,438. These are compile-time
+capacity observations with the current buffer lifetimes, not measured peaks.
 
 The next design must account for buffer and handshake lifetimes as well as
 bounded allocation. Investigate the pinned SDK's dynamic-record-buffer path and
 connection admission without disabling TLS checks or removing simultaneous
 MQTT/HTTPS. Dynamic buffers alone still allocate from a heap; no such option,
-allocator binding or connection-policy change is implemented here.
+mbedTLS allocator binding or connection-policy change is implemented here.
 
 ### Required closure before whole-system acceptance
 
-1. Use reclaimed storage for bounded owned adapters or scoped allocator bindings
-   covering ESP-TLS/mbedTLS and reachable lwIP allocations. Establish lifetime,
+1. Provide bounded storage for the remaining mbedTLS and reachable lwIP
+   allocations, including retained TLS hostname copies. Establish lifetime,
    concurrency, exhaustion, alignment and cleanup behavior before assigning
    capacities. Preserve vendor pins and all aggregate budget caps.
 2. Preserve simultaneous MQTT and HTTPS setup plus USB recovery. Budget their
@@ -147,7 +175,7 @@ and private build settings, then the
 [transaction policy](../../../tools/target/transaction-budget.json):
 
 ```powershell
-python tools/target/memory_budget.py --build ABSOLUTE_FRESH_WORK_DIR --budget tools/target/transaction-budget.json --output build/compact-json/memory-new.json
+python tools/target/memory_budget.py --build ABSOLUTE_FRESH_WORK_DIR --budget tools/target/transaction-budget.json --output build/tls-records/memory-new.json
 python tools/target/qualify_kernel.py verify-snapshot --project-dir ABSOLUTE_FRESH_WORK_DIR/project
 python tools/c_standard/check.py
 python -B -m unittest discover -s tests/target -v
