@@ -139,3 +139,9 @@ Networking-only software checks: `python -B -m unittest discover -s tests/target
 client/size-tool tests with explicit socket/BLE doubles. They contact no real
 broker or board and do not establish hardware acceptance. See the
 [network acceptance matrix](../firmware/src/network/README.md#remaining-acceptance).
+
+The separate [TLS record compatibility probe](../tools/target/README.md#tls-record-compatibility-probe)
+builds the pinned SDK's TLS library on the host and runs real encrypted loopback
+MQTT/HTTPS, including full uploads and valid/rejected certificates. It needs the
+SDK checkout, so it is an explicit experiment outside the ordinary unit suite.
+It does not qualify target memory, simultaneous sessions or physical hardware.

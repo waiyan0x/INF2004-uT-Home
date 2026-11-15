@@ -180,9 +180,13 @@ The compiled SDK input probe passes 36 receive/read cases across three sessions
 and demonstrates why naive sharing loses pending data. Three independent aligned
 input buffers need 50,160 bytes, 42,959 above current application headroom before
 bookkeeping/crypto storage. This rules out a direct fixed-pool replacement.
-The next feasibility check is a smaller-record deployment against actual
-handshake, broker/client and HTTPS-upload requirements, kept separate from the
-working firmware until its limits are reviewed and verified. The
+The encrypted host comparison now confirms that reduced record sizes break
+the maintained 8192-byte uploader and some valid certificate chains. A test-only
+uploader succeeds with 1024-byte writes and a short certificate. Next, specify
+and review a controlled certificate/record contract plus its complete memory
+design before adopting smaller limits; keep the working firmware unchanged.
+The [compatibility decision](docs/reports/wifi-static-memory/README.md#tls-record-compatibility-decision)
+records the exact failures and remaining work. The
 [input capacity decision](docs/reports/wifi-static-memory/README.md#tls-input-lifetime-and-capacity-decision)
 also records the full-buffer and shared-lease alternatives. This is software
 evidence and a design checkpoint, not completed static receive storage.

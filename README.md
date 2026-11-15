@@ -57,9 +57,12 @@ overlapping connections, then address the remaining lwIP storage. The compiled
 SDK input probe now confirms that partial messages and unread plaintext outlive
 an owner call. Three full input buffers alone need 50,160 aligned bytes, exceeding
 the remaining application budget by 42,959 before bookkeeping/crypto storage.
-A direct static replacement therefore does not fit. Next, assess a smaller-record
-deployment in isolation against real handshake/client requirements; preserve the
-working record limits until compatibility and capacity are verified. See the
+A direct static replacement therefore does not fit. The real encrypted host
+comparison now shows that smaller records break the current 8192-byte uploader
+and some valid certificate chains. A test-only segmented uploader works with a
+short certificate. Next, define the controlled certificate/record contract and
+complete its memory/lifetime design, or retain full compatibility through another
+proven design. Preserve working limits until reviewed and verified. See the
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
 Wi-Fi, live BMP388 MQTT rule switching and broker recovery now pass on the
 connected board. HTTPS status reads also worked while MQTT was connected.
@@ -77,6 +80,9 @@ The dynamic-buffer experiment and guard checks are local-only under
 `build/tls-capacity/`; the rejected experimental image was never flashed.
 Receive-lifetime checks and capacity projections are under `build/tls-input/`;
 they use the existing ELF and make no firmware or hardware change.
+The smaller-record encrypted comparison is under `build/tls-profile/verified/`;
+its [decision and limits](docs/reports/wifi-static-memory/README.md#tls-record-compatibility-decision)
+distinguish expected compatibility failures from completed firmware work.
 
 The latest [live network check](firmware/src/network/README.md#current-hardware-check)
 on 15 November 2026 established working Wi-Fi with the full project firmware.

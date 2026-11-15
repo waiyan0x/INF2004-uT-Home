@@ -380,6 +380,80 @@ not runtime free heap. See the
 [capacity decision](../../docs/reports/wifi-static-memory/README.md#tls-input-lifetime-and-capacity-decision)
 before attempting buffer reuse or changing record limits.
 
+## TLS record compatibility probe
+
+`tls_profile_probe.py` builds the pinned SDK's mbedTLS fork as host libraries
+and uses real TLS 1.2 encryption over loopback TCP. It compares input/output
+content limits of 16384/4096, 4096/2048 and 2048/1024 bytes. Dependencies are
+the existing `tools/transaction/requirements-dev.txt`, CMake, Ninja and GCC.
+Use the pinned SDK checkout and a **new** directory below root `build/`:
+
+```powershell
+python -B -m tools.target.tls_profile_probe --sdk C:/Users/kkak4/esp/uthome-c3-sdk-v6.1 --cc C:/Users/kkak4/mingw64/bin/gcc.exe --output build/tls-profile/new-run
+```
+
+The command checks clean SDK and nested mbedTLS revisions, builds with warnings
+as errors and assertions enabled, and retains compiler commands, library/source
+hashes and a JSON report. It refuses disabled Python assertions and existing
+output directories. Fresh one-day test keys, certificates and broker credentials
+stay in the ignored output directory. It never opens serial or installs firmware.
+
+Eight cases run per profile: authenticated MQTT with a 96-byte round trip;
+wrong trust root; wrong server name; a longer valid broker certificate chain;
+512-byte and 8192-byte uploads through the maintained `network_config` client;
+an experimental 8192-byte upload split into 1024-byte TLS writes; and HTTPS with
+the longer server certificate chain. The report records negotiated protocol,
+cipher, verification flags, received record sizes and exact errors. Expected
+compatibility failures are asserted as failures, not reclassified as successes.
+The SDK aliases SSL bad-input/buffer-too-small results to PSA -135/-138; the
+Python binding labels those explicitly because the legacy SDK error formatter
+otherwise produces misleading text for them.
+
+`tls_profile_peer.py` drives the serialized C peer in
+`tests/target/tls_profile/`. Its two 32 KiB ciphertext queues are **host transport
+storage**, not proposed ESP reservations. TLS buffers, certificate parsing,
+authentication, encryption and cleanup execute in the unmodified pinned SDK.
+The SDK uses its native host configuration/software crypto and heap, restricted
+at runtime to TLS 1.2 and ECDHE-ECDSA/RSA with AES-128-GCM/SHA-256. These suites
+are enabled in the selected ESP build; the host build is not the ESP ABI or its
+complete compile-time feature set. The empty host `sdkconfig.h` supplies the
+include expected by the SDK bignum/ecp wrappers without enabling hardware paths.
+
+The HTTPS body is a synthetic JSON object padded with whitespace. The fixture
+checks exact delivery and returns a deliberately rejected application result;
+it never runs the configuration controller or writes flash. MQTT uses the
+existing authenticated AMQTT fixture and a test packet encoder, not `c3mqtt`.
+One C connection runs at a time. No three-connection capacity, no-heap claim,
+ESP timing, radio compatibility, arbitrary certificate compatibility or hardware
+acceptance follows from this experiment. The segmented uploader is test-only;
+the maintained client and firmware stay unchanged. See the
+[compatibility decision](../../docs/reports/wifi-static-memory/README.md#tls-record-compatibility-decision).
+
+### Host TLS fixture C review
+
+The 15 November 2026 review covers `tlspeer.c/.h` and the empty host SDK header.
+They follow the maintained templates and ordinary C99, with matching public
+prefixes and no new exception. SDK callbacks retain their declared types without
+function-pointer casts. A single owner serializes all calls; start/close own the
+context/config/certificate/key lifetime. File paths and names are used only
+during start; the SDK copies/parses their contents. Read/write buffers remain
+caller-owned, and a WANT_READ/WRITE retry retains the same write bytes/length.
+The configured cipher list has static lifetime. Returned protocol/cipher strings
+are read before close. The fixture closes every case, including rejected trust
+and handshake failures.
+
+Queue addition checks remaining capacity before copying; subtraction follows
+the smaller of capacity/available bytes. Overlapping compaction uses `memmove`.
+The two `size_t`-to-`int` callback casts are bounded by the 32768-byte queue and
+the host compiler's `INT_MAX`; send also asserts the conversion bound. External
+status codes remain signed. State is initialized before use and released after
+every case. Owned C has no loops, task/ISR, MMIO, assembly or allocator calls;
+SDK heap/entropy/crypto are intentionally real host implementations. The HTTPS
+server does not request client certificates, matching bearer-token setup;
+both client roles verify server trust/name. No verification bypass was added.
+The full pinned 340-file C gate and 24 encrypted compatibility cases passed;
+the cases include expected rejections. This is manual/host verification only.
+
 ## Authenticated HTTP configuration client
 
 `python -m tools.target.network_config --help` describes the separate mutating

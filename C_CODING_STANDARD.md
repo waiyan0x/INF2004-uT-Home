@@ -442,3 +442,9 @@ pinned private TLS layout and retains the original setup/cleanup algorithm;
 SDK headers stay outside the owned-code audit. See the
 [manual review](firmware/hal/ports/esp32c3/network/README.md#tls-output-c-review).
 No new language, formatter or compatibility exception is added.
+
+`tlspeer` is the host-only real-TLS compatibility fixture. It uses C99, typed
+SDK callbacks and matching public prefixes. TLS means Transport Layer Security;
+PSA identifies the SDK's Platform Security Architecture crypto API. Its empty
+host `sdkconfig.h` enables no ESP hardware options. No exception is added; see
+the [manual review](tools/target/README.md#host-tls-fixture-c-review).

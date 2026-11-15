@@ -339,12 +339,64 @@ satisfy one of these concrete designs before replacing that path:
   itself, as documented above. Record limits, connection capacity and supported
   clients must be reviewed before adopting such a profile.
 
-The recommended next feasibility check is an isolated smaller-record profile
-against the actual host/broker and SDK handshake paths, while retaining the
-working image. It must retain certificate/name checks and both MQTT and HTTPS.
-Do not enable it in the maintained firmware based only on small MQTT payloads,
-this input probe or a successful link. Whole-system static allocation remains
-blocked until one complete design fits and is verified.
+The isolated encrypted comparison below now establishes concrete compatibility
+failures. Whole-system static allocation remains blocked until one complete
+capacity/lifetime design fits and is verified.
+
+### TLS record compatibility decision
+
+**Decision: smaller record limits are not a transparent replacement.** The
+[host probe](../../../tools/target/README.md#tls-record-compatibility-probe)
+ran 24 encrypted cases on 15 November 2026. All matched their expected outcomes,
+including compatibility failures. The same pinned SDK TLS code uses real host
+software crypto, TLS 1.2 and ECDHE-ECDSA/RSA AES-128-GCM with SHA-256. It talks
+to the authenticated AMQTT fixture and the maintained Python HTTPS uploader.
+No firmware limits, clients, connection capacity or installed image changed.
+
+| Input / output content limit | 96-byte MQTT round trip, short EC certificate | Maintained client, 8192-byte upload | Test client, same upload in 1024-byte writes | Longer broker chain | Longer HTTPS server chain |
+|---|---|---|---|---|---|
+| 16384 / 4096 | Pass | Pass | Pass | Pass | Pass |
+| 4096 / 2048 | Pass | Fails before body delivery | Pass | Pass | Handshake fails |
+| 2048 / 1024 | Pass | Fails before body delivery | Pass | Handshake fails | Handshake fails |
+
+All three also deliver a 512-byte upload with the short certificate and reject
+both a wrong CA and a wrong server name. The larger valid chain contains an
+RSA-2048 leaf and two intermediates: 2,482 DER bytes, 3,526 PEM bytes. Its CA and
+name are valid; the full-size control verifies it in both roles. The chain is
+within the firmware's existing 8192-byte certificate-file bound, demonstrating
+that a PEM file limit alone does not establish a safe TLS handshake limit.
+
+The maintained uploader sends its 8192-byte body as one TLS application record
+with 8,216 encrypted payload bytes in this AES-GCM run. Both reduced receive
+profiles reject it with SDK bad-input/PSA -135 before delivering body bytes.
+Sending the same complete body in 1024-byte writes works in the experimental
+client; this does not reduce the HTTP body limit. The longer chain fails with
+bad-input/-135 at the smallest MQTT receiver and buffer-too-small/PSA -138 at
+both reduced HTTPS senders. Splitting application writes does not solve those
+handshake failures. Certificate/name verification remains required throughout.
+
+The report is local-only at `build/tls-profile/verified/report.json`, SHA-256
+`9933bcd07330f4b10c11023f9ffeac432b26410a909b49e52aa246773f65e6de`.
+It records SDK commit `fff9895c82d744c7237be8847347bdd1b07c6643`, nested mbedTLS
+commit `a2b32072ea898afc1ed5b6caf6931e36028c91d6`, tested source/library/compiler-
+command hashes and exact per-case outcomes. The host used GCC 15.2, Python 3.14.2
+and OpenSSL 3.0.18. Three warnings-as-errors native builds, the full 340-file
+pinned C gate/manual review and 49 relevant existing regressions passed.
+
+This is sequential host transport/crypto verification. The SDK's host heap and
+two host ciphertext queues are not ESP allocations. The upload fixture checks
+exact synthetic body bytes and deliberately returns an application rejection;
+it never applies a profile or writes flash. No fresh ESP build, radio test,
+three-session peak, stack margin or complete static-allocation claim is made.
+
+The next design must either retain full-record compatibility with a proven
+capacity/lifetime solution, or explicitly propose a controlled deployment:
+small reviewed certificate chains, bounded host TLS writes while retaining the
+8192-byte body, and compatible broker output. A 2048/1024 candidate now has a
+working short-certificate example, but adoption still needs certificate-chain
+admission, complete crypto/TCP/IP storage costs and one-MQTT/two-HTTPS scheduling
+to fit the unchanged budgets. Those are outstanding design/implementation tasks,
+not approvals or completed firmware changes. Keep current limits until resolved.
 
 ### Dynamic TLS buffer assessment
 
