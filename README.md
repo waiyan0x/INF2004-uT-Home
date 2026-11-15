@@ -34,12 +34,15 @@ also covers rule switching, host reopen and broker recovery on the board.
 Generated verification is local-only under `build/controller/`.
 
 **Open blocker: network allocation.** The real target passes unchanged
-fixed-memory budgets (260,386/278,528 DRAM bytes), but reachable TLS/TCP/IP heap
+fixed-memory budgets (260,746/278,528 DRAM bytes), but reachable TLS/TCP/IP heap
 allocations still prevent whole-system static-memory acceptance. Compact
 configuration views reclaimed 24,600 fixed DRAM bytes; lwIP mailboxes use the
 existing fixed queue storage. ESP-TLS contexts, error records and temporary
 names now use 9,054 fixed bytes from that reclaimed capacity, with no heap
-fallback for these records. Software checks and the fresh target build pass.
+fallback for these records. Six lwIP connection records and two datagram
+envelopes now use another 352 fixed bytes. The 524-test target-facing suite,
+333-file C gate, manual review and fresh target build pass. The new image has
+not been installed; its live reconnect and overlapping-client checks remain open.
 Keep MQTT and HTTPS setup available together, with USB recovery retained. The
 pinned SDK's optional dynamic TLS buffers lost partial headers in a target-code
 software probe; the build now rejects that option. Next, design bounded TLS
@@ -53,9 +56,10 @@ Independent software work can continue on three-protocol Markdown coverage
 and Home Assistant display in the
 [completion plan](CONTRIBUTING.md#completion-plan). UI changes still require review.
 The host display adapter remains unimplemented. Current generated tests, gate,
-map reports are local-only under `build/tls-records/`; earlier configuration
-and TLS sizing, mailbox and session checks remain under `build/compact-json/`,
-`build/network-memory/` and `build/step1-verification/`.
+map reports are local-only under `build/lwip-records/`. Earlier ESP-TLS records,
+configuration and TLS sizing, mailbox and session checks remain under
+`build/tls-records/`, `build/compact-json/`, `build/network-memory/` and
+`build/step1-verification/`.
 The dynamic-buffer experiment and guard checks are local-only under
 `build/tls-capacity/`; the rejected experimental image was never flashed.
 

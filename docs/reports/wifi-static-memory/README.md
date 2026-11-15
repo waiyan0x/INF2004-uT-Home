@@ -12,27 +12,29 @@ TCP/IP or ESP-TLS contexts.
 The current build uses pinned ESP-IDF 6.1
 `fff9895c82d744c7237be8847347bdd1b07c6643`, kernel
 `ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2` and the maintained owned patches.
-Build-only dummy settings were used; no board was flashed and no live broker was
-contacted. Local generated evidence is in `build/tls-records/` and the isolated
-build directory `C:/Users/kkak4/esp/uthome-tls-records-20261114/`.
+The 15 November fixed-lwIP-record build used the existing private bench settings;
+no board was flashed. Local generated evidence is in `build/lwip-records/` and
+the isolated build directory `C:/Users/kkak4/esp/uthome-lwip-records-20261115b/`.
 The target's `evidence.json` SHA-256 is
-`08b8fdbe07b0dd4944aa2ac1edc1b2aa00080cd240d56cc0821dc746c6a81e67`.
+`02106a968b0cc9771a2117cd7fd91774120bce1a458b05b1fb04bb9bb5b5d547`.
+The application image SHA-256 is
+`19eefd77cb0a39abf4112bf3134245eddc41c9ff5ef095399aa61971ce39f897`.
 Source-snapshot verification passes against the original build inputs.
 
 | Fixed-memory group | Linked bytes | Unchanged cap | Headroom |
 |---|---:|---:|---:|
-| Application | 131,272 | 147,456 | 16,184 |
+| Application | 131,624 | 147,456 | 15,832 |
 | Task pool | 18,499 | 18,560 | 61 |
-| SDK/kernel | 54,229 | 55,296 | 1,067 |
+| SDK/kernel | 54,237 | 55,296 | 1,059 |
 | RAM code | 56,386 | 57,152 | 766 |
-| Total DRAM | 260,386 | 278,528 | 18,142 |
+| Total DRAM | 260,746 | 278,528 | 17,782 |
 | RTC, separate from DRAM | 60 | 128 | 68 |
 
 These are linker measurements, **not runtime free heap, task stack margins or
 ESP timing**. The published mailbox baseline (`eede615`) used 275,930 fixed DRAM
-bytes. Compact configuration views saved 24,600 bytes; fixed ESP-TLS records
-now reserve part of that reclaimed capacity. The current image is **15,544
-bytes smaller than that baseline**. All aggregate caps are unchanged.
+bytes. Compact configuration views saved 24,600 bytes; fixed ESP-TLS and lwIP
+records reserve part of that reclaimed capacity. The current image is
+**15,184 bytes smaller than that baseline**. All aggregate caps are unchanged.
 MQTT remains 1,816/1,824 bytes and HTTPS 3,098/3,104; future network storage needs
 an explicit module reservation within the application cap.
 
@@ -76,10 +78,14 @@ full lease cycles with allocator interception. A qualification regression attack
 missing, duplicated and escaped bindings and invalid linked symbols. These tests
 exercise records and build enforcement; they do not perform a TLS handshake.
 
-Record implementation verification: **490 target-facing tests and 56 C-policy tests passed**.
+Earlier ESP-TLS record implementation verification: **490 target-facing tests and 56 C-policy tests passed**.
 The full 329-file pinned C gate, manual review, warnings-as-errors target build,
 exact-source snapshot verification and every fixed-memory budget also pass.
-Generated reports are in the local evidence directory above. Previous foundation
+Those dummy-settings build reports are in `build/tls-records/` and
+`C:/Users/kkak4/esp/uthome-tls-records-20261114/`; that build's unchanged
+`evidence.json` SHA-256 is
+`08b8fdbe07b0dd4944aa2ac1edc1b2aa00080cd240d56cc0821dc746c6a81e67`.
+Previous foundation
 and runtime results remain in `build/compact-json/`; those unaffected suites were
 not rerun for this SDK-record change.
 
@@ -97,16 +103,49 @@ Focused tests cover 1,000 create/free cycles, shared exhaustion, exact-capacity
 and invalid requests, zero-valued messages, ISR posting and nonempty-close
 preservation. See the
 [adapter contract and manual review](../../../firmware/hal/ports/esp32c3/network/README.md#fixed-lwip-mailboxes).
-This closes mailbox backing for selected Wi-Fi service builds; shared capacity
-and live-network acceptance still require the board.
+This closes mailbox backing for selected Wi-Fi service builds; broader client
+overlap and the new image's live-network validation still require the board.
+
+### Fixed lwIP connection and datagram records
+
+`c3lrec` uses **352 bytes** within its own 352-byte application reservation:
+six 52-byte `struct netconn` objects, two 16-byte `struct netbuf` objects and
+eight one-byte lease flags. Only this owned object adds writable object storage
+relative to the earlier working Wi-Fi image. Overall linked DRAM grows by 360
+bytes; RAM-code and task-pool usage are unchanged. Aggregate caps are unchanged.
+
+Source-scoped replacements cover all NETCONN/NETBUF allocations and releases in
+the pinned `api_lib.c`, `api_msg.c` and `netbuf.c`. SDK protocol and cleanup code
+remain intact. The adapter returns NULL at exhaustion and uses the existing
+native interrupt boundary for shared access. Counts include listeners and UDP
+sockets, not just secure clients. There is no added task, mutex or heap fallback.
+See the [contract and manual review](../../../firmware/hal/ports/esp32c3/network/README.md#fixed-lwip-records).
+
+**524 target-facing tests passed**, including four direct record tests for
+independent capacity, zeroing/alignment, invalid releases, interrupt restoration
+and 1,000 reuse cycles with allocator interception. The full **333-file C gate**,
+manual review, warnings-as-errors target build, original-source verification and
+every module/group budget pass. The first target link exposed archive ordering;
+the final build explicitly retains the adapter and native exclusion functions.
+All **46 qualification tests** passed again after that correction. Target
+qualification checks the three exact substitution scopes, linked flash helpers
+and SDK lifecycle; the generic allocator remains for other lwIP pools.
+
+The new image is **unflashed**. The earlier working image remains on the ESP;
+the configured hotspot was not visible during this step. Live reconnect,
+overlapping MQTT/HTTPS clients, pool-exhaustion recovery and interrupt latency
+remain unverified for this change. Earlier [Wi-Fi/MQTT hardware results](../../../firmware/src/network/README.md#live-mqtt-check)
+do not qualify this new allocation path. Packet buffers, protocol control blocks
+and TLS state still allocate from the heap.
 
 ### Reachable allocation paths
 
 The following paths were checked in the pinned SDK source and selected compiler
 commands. The ELF still links `esp_tls_init`, `mbedtls_ssl_setup`,
 `esp_mbedtls_mem_calloc`, `netconn_alloc` and `memp_malloc`. The mbedTLS/lwIP
-units still have their original allocators. ESP-TLS record/name
-allocation and mailbox backing now use owned stores. Linking an allocator alone
+units retain their original allocators outside the three record-adapted API
+units. ESP-TLS records/names, lwIP connection/datagram records and mailbox
+backing use owned stores. Linking an allocator alone
 would not prove reachability;
 the owned entry paths below establish application use.
 
@@ -118,7 +157,8 @@ the owned entry paths below establish application use.
 | ESP-TLS contexts, error records and temporary names | `c3mqtt`/`c3https` still call the SDK lifecycle; two SDK units bind allocation to `c3tls`, and error trackers use linked fixed replacements | Context/name allocation is bounded for the selected three-session path; live handshake/reconnect acceptance remains |
 | MQTT and HTTPS encryption state | After fixed context admission, SDK setup enters mbedTLS for certificates, keys, persistent TLS hostnames and record buffers | Still heap-backed on first connection/reconnect; outside the contemplated Wi-Fi-driver exception |
 | TLS record buffers | `ssl_tls.c` allocates input/output buffers; `port/esp_mem.c` routes calloc to internal heap | Internal allocator, 16,384-byte input and 4,096-byte output content lengths; dynamic-buffer option off. This option does not eliminate allocation |
-| TCP/IP connections and packets | `lwipopts.h` sets `MEM_LIBC_MALLOC=1`, `MEMP_MEM_MALLOC=1`; `api/api_msg.c` allocates netconn records | Application network activity reaches general heap-backed pools |
+| lwIP connection/datagram records | Three API units bind NETCONN/NETBUF allocation/free to typed `c3lrec` stores | Six connections/two envelopes; software and target proof pass, live acceptance pending |
+| TCP/IP packet and control-block pools | `lwipopts.h` still sets `MEM_LIBC_MALLOC=1`, `MEMP_MEM_MALLOC=1`; other units keep SDK allocators | Application network activity still reaches general heap-backed pools |
 | lwIP mailbox backing | Wi-Fi builds link `c3lbox`; messages use existing `c3nq` payloads | Bounded software/target-link proof passes; shared capacity needs live acceptance |
 | Wi-Fi/SDK startup and events | `c3wsta` creates the network interface/event loop and registers callbacks; radio code uses SDK allocations | Inventory and justify any narrow driver exception; do not exempt all SDK networking by implication |
 
@@ -138,7 +178,7 @@ Local probe source, compiler arguments and results are in `build/compact-json/`.
 
 The context is already counted in `c3tls`; do not reserve it twice. Each remaining
 record-buffer pair needs **21,146 bytes**, before certificates, keys, transforms
-and handshake allocations. Even one pair exceeds the 16,184-byte application
+and handshake allocations. Even one pair exceeds the current 15,832-byte application
 headroom; two pairs need 42,292 bytes and three need 63,438. These are compile-time
 capacity observations with the current buffer lifetimes, not measured peaks.
 
@@ -228,9 +268,11 @@ SDK-option investigation, **not the network allocation blocker**.
    peripheral/configuration traffic. Verify no post-startup native object
    creation and classify every remaining heap event under an explicit policy.
 
-This is not completed resource acceptance. No runtime heap/stack measurement,
-live MQTT, hardware bus or Home Assistant acceptance is claimed. The persistent
-host controller follows this network allocation work.
+This is not completed resource acceptance. Earlier live MQTT/BMP388 checks and
+allocation-event counts are recorded in the network guide; they neither measure
+heap peak nor qualify the new lwIP-record image. Runtime stack headroom, wider
+secure-connection overlap and Home Assistant acceptance remain open. The
+persistent host controller is already implemented and software-tested.
 
 For reproduction, use the [target build guide](../../../tools/target/README.md)
 with `--runtime-port --configuration-app --static-net-queues --network-services wifi`

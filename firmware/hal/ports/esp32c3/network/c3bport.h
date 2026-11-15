@@ -1,6 +1,6 @@
 /**
  * @file c3bport.h
- * @brief Header-isolated native services for the BLE diagnostic component.
+ * @brief Header-isolated native services for SDK network components.
  */
 #ifndef UTHOME_C3BPORT_H
 #define UTHOME_C3BPORT_H

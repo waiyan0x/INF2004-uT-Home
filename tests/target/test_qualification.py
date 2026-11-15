@@ -491,6 +491,33 @@ class QualificationTests(unittest.TestCase):
             with self.assertRaises(qualification.QualificationError):
                 qualification.check_tls_storage(disabled_commands, disabled_symbols, False)
 
+    def test_lwip_records_reject_missing_escaped_and_wrong_bindings(self):
+        flags = ' -Dmemp_malloc=c3lrec_alloc -Dmemp_free=c3lrec_free'
+        commands = [dict(file='/sdk/lwip/src/api/' + name, command='gcc' + flags)
+                    for name in ('api_lib.c', 'api_msg.c', 'netbuf.c')]
+        names = ('c3lrec_alloc', 'c3lrec_free', 'c3bport_enter', 'c3bport_leave', 'netconn_alloc', 'netconn_free',
+                 'netbuf_delete', 'memp_malloc', 'memp_free')
+        symbols = {name: 0x42001000 + index * 32 for index, name in enumerate(names)}
+        self.assertTrue(qualification.check_lwip_records(commands, symbols, True)['enabled'])
+        self.assertEqual(qualification.check_lwip_records([], {}, False), {'enabled': False})
+        for damaged in (commands[:2], commands + [commands[0]],
+                        commands + [dict(file='/sdk/sockets.c', command='gcc' + flags)],
+                        [*commands[:2], dict(commands[2], command='gcc -Dmemp_malloc=c3lrec_alloc')],
+                        [*commands[:2], dict(commands[2], command='gcc' + flags + ' -Dmemp_free=c3lrec_free')],
+                        [*commands[:2], dict(commands[2], command=('gcc' + flags).replace('c3lrec_free', 'free'))]):
+            with self.subTest(commands=damaged), self.assertRaises(qualification.QualificationError):
+                qualification.check_lwip_records(damaged, symbols, True)
+        for missing in names:
+            with self.subTest(missing=missing), self.assertRaises(qualification.QualificationError):
+                qualification.check_lwip_records(commands, {k: v for k, v in symbols.items() if k != missing}, True)
+        for name in ('c3lrec_alloc', 'c3lrec_free', 'c3bport_enter', 'c3bport_leave'):
+            for address in (0, 0x40380000):
+                with self.subTest(name=name, address=address), self.assertRaises(qualification.QualificationError):
+                    qualification.check_lwip_records(commands, dict(symbols, **{name: address}), True)
+        for disabled_commands, disabled_symbols in ((commands, {}), ([], symbols)):
+            with self.assertRaises(qualification.QualificationError):
+                qualification.check_lwip_records(disabled_commands, disabled_symbols, False)
+
     def test_tls_build_rejects_dynamic_buffers_before_compilation(self):
         cmake = shutil.which('cmake')
         self.assertIsNotNone(cmake, 'CMake is required for target build guard tests')

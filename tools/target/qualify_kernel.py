@@ -96,7 +96,10 @@ RUNTIME_SOURCE_FILES = {
     'firmware/hal/ports/esp32c3/network/c3lbox.h': 'hal/c3lbox.h',
     'firmware/hal/ports/esp32c3/network/c3tls.c': 'hal/c3tls.c',
     'firmware/hal/ports/esp32c3/network/c3tls.h': 'hal/c3tls.h',
+    'firmware/hal/ports/esp32c3/network/c3lrec.c': 'hal/c3lrec.c',
+    'firmware/hal/ports/esp32c3/network/c3lrec.h': 'hal/c3lrec.h',
     'tests/target/runtime_port_board/main/tlsmem.cmake': 'main/tlsmem.cmake',
+    'tests/target/runtime_port_board/main/lwipmem.cmake': 'main/lwipmem.cmake',
     'firmware/hal/ports/esp32c3/network/c3nq.c': 'hal/c3nq.c',
     'firmware/hal/ports/esp32c3/network/c3nq.h': 'hal/c3nq.h',
     'tests/target/runtime_port_board/main/netqueue.cmake': 'main/netqueue.cmake',
@@ -735,6 +738,45 @@ def verify_tls_storage(work, enabled):
     return check_tls_storage(commands, symbols, enabled)
 
 
+def check_lwip_records(commands, symbols, enabled):
+    """Keep typed record allocation confined to the reviewed SDK API units."""
+    sources = {"api_lib.c", "api_msg.c", "netbuf.c"}
+    bindings = {"memp_malloc": "c3lrec_alloc", "memp_free": "c3lrec_free"}
+    observed = set()
+    for entry in commands:
+        name = Path(entry["file"]).name
+        found = re.findall(r'(?:^|\s)-D\s*"?(memp_malloc|memp_free)=([^\s"]+)"?', entry["command"])
+        expected = bindings if enabled and name in sources else {}
+        if dict(found) != expected or len(found) != len(expected):
+            raise QualificationError("lwIP record binding escaped its source: " + name)
+        if expected:
+            if name in observed:
+                raise QualificationError("Duplicate lwIP record compiler input: " + name)
+            observed.add(name)
+    if not enabled:
+        if any(name in symbols for name in bindings.values()):
+            raise QualificationError("lwIP records escaped selected Wi-Fi services")
+        return dict(enabled=False)
+    if observed != sources:
+        raise QualificationError("Missing lwIP record compiler input")
+    for name in (*bindings.values(), "c3bport_enter", "c3bport_leave"):
+        if not 0x42000000 <= symbols.get(name, 0) < 0x43000000:
+            raise QualificationError("lwIP record helper absent or consumes RAM code: " + name)
+    for name in ("netconn_alloc", "netconn_free", "netbuf_delete", "memp_malloc", "memp_free"):
+        if name not in symbols:
+            raise QualificationError("Selected SDK lwIP lifecycle missing: " + name)
+    return dict(enabled=True, allocator_sources=sorted(sources), bindings=bindings,
+                qualification="NETCONN/NETBUF records only; packet, PCB and TLS heap paths remain open")
+
+
+def verify_lwip_records(work, enabled):
+    commands = json.loads((work / "build/compile_commands.json").read_text(encoding="utf-8"))
+    output = run(["riscv32-esp-elf-nm", "-n", work / "build/uthome_runtime_port.elf"])
+    symbols = {name: int(address, 16) for address, _, name in
+               re.findall(r"^([0-9a-fA-F]+)\s+(\w)\s+(\S+)$", output, re.MULTILINE)}
+    return check_lwip_records(commands, symbols, enabled)
+
+
 def verify_queue_adapter(work, enabled, wifi_services=False):
     commands = json.loads((work / "build/compile_commands.json").read_text(encoding="utf-8"))
     owned = [entry for entry in commands if Path(entry["file"]).name == "c3nq.c"]
@@ -815,9 +857,9 @@ def verify_compile_profiles(work, startup_trace=False):
         profiles[source] = expected
     for path, command in commands.items():
         adapted = "-Dasm=__asm__" in command
-        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c")}):
+        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3lrec.c")}):
             raise QualificationError("SDK assembly spelling adaptation escaped its adapter")
-    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c"):
+    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3lrec.c"):
         owned_radio = (work / "project/hal" / name).read_text()
         if re.search(r"\b(?:asm|__asm__|typeof|__typeof__)\b", owned_radio):
             raise QualificationError("Owned radio adapter must remain C99: " + name)
@@ -1267,6 +1309,8 @@ def build(kernel, sdk, work, *legacy_args, selection=None, compat_patch=None,
             evidence["network_queue_adapter"] = verify_queue_adapter(
                 work, selection.static_net_queues, selection.network_services in ("wifi", "both"))
             evidence["tls_record_storage"] = verify_tls_storage(
+                work, selection.static_net_queues and selection.network_services in ("wifi", "both"))
+            evidence["lwip_record_storage"] = verify_lwip_records(
                 work, selection.static_net_queues and selection.network_services in ("wifi", "both"))
             evidence["static_task_link"] = verify_static_task_link(
                 work, static_tasks,

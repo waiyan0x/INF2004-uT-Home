@@ -425,3 +425,13 @@ its ABI. The [manual review](firmware/hal/ports/esp32c3/network/README.md#tls-re
 covers alignment, subobject lifetime, handle reuse, error conversions and bounds.
 No policy exception or language-profile expansion is added. This does not qualify
 the remaining mbedTLS/lwIP allocations or combined hardware behavior.
+
+## Fixed lwIP records
+
+`c3lrec` denotes typed lwIP connection and datagram-envelope records; `lrectest`
+is its host interrupt-mask double. Both use C99 and matching public prefixes.
+The SDK-only adapter reuses `c3bport` for native interrupt exclusion, with the
+existing SDK-header spelling adaptation and no owned assembly. The
+[manual review](firmware/hal/ports/esp32c3/network/README.md#lwip-record-c-review)
+covers SDK types, pointer lifetime, allocation scope and interrupt restoration.
+No new deviation or naming exception is introduced.

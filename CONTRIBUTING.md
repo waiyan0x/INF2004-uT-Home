@@ -108,7 +108,7 @@ rule must not require another build.
 | MQTT | Live BMP388 rule switching, target rejection, cached results and broker recovery verified; HTTPS reads work alongside MQTT | Wider secure-connection load and network allocation blocker |
 | UI | Existing Configuration Desk supports USB profiles and recovery | Runtime Markdown selection, rule loading/execution and result presentation |
 | Home Assistant | Intended host-adapter boundary is documented | Adapter and live integration are not implemented |
-| Verification | 519 target-facing tests, full 329-file C gate, checked target image and unchanged memory budgets; live Wi-Fi/MQTT/BMP388 and HTTPS read checks passed | Runtime SPI/UART, prolonged combined load and whole-system resource acceptance |
+| Verification | 524 target-facing tests, full 333-file C gate, checked target image and unchanged memory budgets; prior image passed live Wi-Fi/MQTT/BMP388 and HTTPS reads | New lwIP-record image on hardware, runtime SPI/UART, prolonged combined load and whole-system resource acceptance |
 
 The [15 November hardware check](firmware/src/network/README.md#current-hardware-check)
 resolved the observed Wi-Fi join failure with an explicit startup-power setting.
@@ -119,11 +119,11 @@ also passed the BMP388 rule-switching and rejection sequence, host reopen and
 broker recovery. The allocation requirement and complete three-protocol/UI/Home
 Assistant demonstration remain open.
 
-The current fixed-TLS-record build uses 260,386 of 278,528 fixed DRAM bytes,
-leaving 18,142 bytes in the total budget and 16,184 in the application group.
+The current fixed-network-record build uses 260,746 of 278,528 fixed DRAM bytes,
+leaving 17,782 bytes in the total budget and 15,832 in the application group.
 MQTT still has only 8 bytes within its module reservation; future network storage
 needs its own explicit reservation. Generated verification is under ignored
-`build/tls-records/`. Fixed-linker fit is not free-heap or stack
+`build/lwip-records/`. Fixed-linker fit is not free-heap or stack
 acceptance; TLS/TCP/IP allocation remains a concrete integration blocker.
 
 ### 1. Close session and resource risks first
@@ -139,28 +139,32 @@ The [transaction contract](firmware/src/services/transaction/README.md) specifie
 restarts, delayed replies, exact retries, ID exhaustion and generation changes.
 The C engine and host codec preserve original cached completion times and retain
 operation kind, byte counts and bus settings. One-shot CLI status and explicit
-boot binding are available; automatic/durable controller recovery belongs to
-Step 2. A reconnect never authorizes repeating a write with a new ID.
+boot binding are available; the persistent controller is described in Step 2.
+A reconnect never authorizes repeating a write with a new ID.
 
-Verification: all 490 target-facing tests (including 43 transaction/description
-cases) and 56 C-policy tests pass. The full 329-file C standard gate, manual
-review, fresh ESP32-C3 build, source-snapshot verification and unchanged
-group/total fixed-memory caps pass. New tests cover fixed TLS-record exhaustion,
-cleanup and 1,000 lease cycles, plus exact allocator-binding/link enforcement.
-These are record-lifecycle tests; live TLS handshake/reconnect and equipment
-acceptance remain unperformed.
+Verification: all 524 target-facing tests pass. The full 333-file C standard
+gate, manual review, fresh ESP32-C3 build, source-snapshot verification and unchanged
+group/total fixed-memory caps pass. New tests cover independent lwIP record
+exhaustion, cleanup, interrupt-mask restoration and 1,000 lease cycles, plus
+exact allocator-binding/link enforcement. The affected 46 qualification tests
+passed again after correcting archive link order. These are software/build
+results; the new lwIP-record image remains unflashed. Prior live network checks
+above apply to the previous image.
 
 The [current resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
 identifies reachable heap allocation in mbedTLS state/buffers,
-lwIP netconn/packet pools and other SDK state. The mailbox backing path now uses
+lwIP packet/control-block pools and other SDK state. The mailbox backing path uses
 the existing fixed queues, with exhaustion/reuse tests and linked-target proof;
 that change adds no fixed RAM or native objects. The Wi-Fi-driver exception does
 not exempt these application network paths. Static native tasks/queues alone
 are insufficient. Compact configuration views reclaimed 24,600 fixed DRAM bytes
 without changing the profile schema. `c3tls` now uses 9,054 fixed bytes for three
 typed ESP-TLS contexts, three error records and temporary names, preserving one
-MQTT plus two HTTPS sessions. Even one current encryption-buffer pair needs
-21,146 bytes, above the remaining 16,184-byte application headroom. A bounded
+MQTT plus two HTTPS sessions. `c3lrec` adds 352 fixed bytes for six connection
+records and two datagram envelopes, shared by listeners and active sockets.
+It adds no task or lock and returns deterministic errors on exhaustion.
+Even one current encryption-buffer pair needs 21,146 bytes, above the remaining
+15,832-byte application headroom. A bounded
 allocator therefore also needs a reviewed buffer-lifetime/capacity design.
 Keep the existing caps and TLS checks; sizing is not a measured runtime peak.
 The pinned SDK's dynamic-buffer mode is rejected after a software probe

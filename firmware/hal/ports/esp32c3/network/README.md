@@ -10,6 +10,7 @@ resource limits, build instructions, manual reviews and qualification evidence.
 | `c3boot` | Bounded native startup pool for selected static-network builds |
 | `c3lbox` | lwIP mailbox identities bound to the existing fixed queue payloads |
 | `c3tls` | Fixed ESP-TLS contexts, error trackers and temporary hostname storage |
+| `c3lrec` | Fixed typed lwIP connection and datagram-envelope records |
 | `c3nq`, `c3event` | Native queue/event synchronization and fixed resource bindings |
 | `c3ewait` | Stateless native notification, clock and context boundary for events |
 | `c3wifi` | Isolated Wi-Fi scan diagnostic |
@@ -128,6 +129,60 @@ partial-header failure is documented in the resource assessment below. The
 qualifier also rejects a linked `esp_mbedtls_add_rx_buffer` implementation.
 
 This closes ESP-TLS record/name allocation only. Encryption buffers,
-certificates/keys, retained TLS hostnames and lwIP connection/packet storage still
+certificates/keys, retained TLS hostnames and lwIP packet/control-block storage still
 need bounded allocation and live acceptance. See the
 [current resource assessment](../../../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
+
+## Fixed lwIP records
+
+Selected Wi-Fi services with static network queues replace `memp_malloc` and
+`memp_free` only in the pinned lwIP `api_lib.c`, `api_msg.c` and `netbuf.c`.
+These are the complete allocation/free sites for `MEMP_NETCONN` and
+`MEMP_NETBUF` in the pinned SDK. `c3lrec` stores actual `struct netconn` and
+`struct netbuf` objects. Capacity follows `MEMP_NUM_NETCONN` and `MEMP_NUM_NETBUF`:
+six connection records and two datagram envelopes in the selected build.
+
+Those are shared limits, including listeners, accepted connections and UDP
+sockets; they do not promise six simultaneous TLS sessions. The old heap-backed
+SDK pools did not enforce these record counts. Exhaustion now returns NULL
+through the SDK's existing error/packet-drop paths. No heap fallback is allowed.
+One MQTT plus two HTTPS session capacity remains configured. Queue capacity,
+packet storage and TLS allocations can still independently limit operation.
+
+SDK code retains initialization, protocol handling and cleanup. In particular,
+it must release PCBs, packet buffers and mailboxes and exclude all other users
+before returning a record. The adapter never frees pointees. A returned pointer
+expires on release; a stale pointer cannot identify a later lease at the same
+address. Unsupported kinds and NULL, foreign, interior or wrong-kind releases
+preserve active leases. Vendor sources, revisions and unrelated pool paths stay
+unchanged.
+
+### lwIP record C review
+
+Reviewed against the BARR-C checklist: C99, paired headers, minimal SDK includes,
+native `memp_t` ABI, actual typed/aligned objects, initialized state and bounded
+loops. No casts, pointer arithmetic, type punning or foreign-pointer dereferences
+are used. Zeroing matches the selected target's null/zero representations.
+Functions remain below 100 lines. Names, Boolean prefixes, const/static use,
+braces, equality order, integer ranges and deterministic errors were reviewed.
+
+The TCP/IP task and socket callers can share the pool. Each operation uses
+`c3bport_enter`/`leave` to preserve the exact previous native interrupt mask on
+the single-core C3. This covers selection, clearing and lease publication without
+adding a mutex, task or lazy kernel allocation. Calls require task context with
+cache enabled; the critical section contains no blocking SDK calls. It examines
+at most six or two entries and clears at most one typed record. These bounds
+are not measured interrupt latency, stack usage or hardware acceptance.
+
+Host tests compile the actual adapter with typed SDK declarations doubled. They
+check independent exhaustion, alignment, zeroing, isolation, invalid releases,
+nested interrupt-mask restoration and 1,000 full reuse cycles with heap calls
+intercepted. Assertions and warnings-as-errors stay enabled. They do not simulate
+TCP/IP or prove multicore behavior. The real build uses pinned SDK types; its
+qualification checks all three source substitutions, helper placement and
+retention of SDK cleanup and unrelated `memp_malloc`/`memp_free` paths.
+
+Run `python -B -m unittest discover -s tests/target -p test_lwip_records.py -v`
+with GCC and objcopy available. See the resource assessment for the fresh target
+build and budget result. TLS, packet payloads, protocol control blocks and other
+lwIP pools still need bounded storage and live acceptance.
