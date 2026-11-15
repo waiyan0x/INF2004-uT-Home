@@ -11,6 +11,7 @@ The program is rule-based; it does not train weights or interpret sensor values.
 | `controller.py` | Own connection state, automatic IDs/revisions, selected/active rules, pending commands and display freshness |
 | `journal.py` | Save exact commands and outcomes atomically, with an exclusive local SQLite lock |
 | `session.py` | Run the controller continuously with explicit JSON commands on standard input |
+| `homeassistant.py` | Publish read-only Home Assistant discovery and display state from controller snapshots |
 | `requirements.txt` | Pinned host MQTT dependency |
 | `requirements-dev.txt` | Additional pinned local TLS broker and certificate dependencies for tests |
 
@@ -157,6 +158,81 @@ serialized owner. Call `poll` regularly. UI and Home Assistant should consume
 the copied snapshot; do not mutate controller internals or create another
 command owner.
 
+## Home Assistant display
+
+Add `--home-assistant` to the same session command. It uses the same broker,
+CA and private `UTHOME_MQTT_USER` / `UTHOME_MQTT_PASSWORD` settings, with a
+separate display connection. The controller remains the only command owner.
+
+```powershell
+python -m tools.transaction.session --broker BROKER --ca BROKER_CA_FILE --node uthome-0123456789ab --state build/controller/uthome-0123456789ab.sqlite3 --home-assistant
+```
+
+Configure Home Assistant's MQTT integration to use that broker and its default
+`homeassistant` discovery prefix / `homeassistant/status` birth topic. The
+adapter registers one device with six sensors: operation status, active rule,
+protocol, raw bytes, TX bytes accepted and RX bytes received. It publishes
+display state only; it creates no buttons, command subscriptions or automatic
+peripheral operations. Follow the earlier `select`, `load`, `execute` sequence
+to switch BMP388 operations. Merely enabling the display or selecting a preview
+does not contact a peripheral.
+
+The host account needs these **additional** broker permissions for its own node;
+keep the existing transaction request/result permissions:
+
+| Direction | Topic | Purpose |
+|---|---|---|
+| Publish | `homeassistant/sensor/NODE/+/config` | Six retained discovery definitions |
+| Publish | `uthome/v1/NODE/display/state` | Non-retained JSON state, QoS 0 |
+| Publish | `uthome/v1/NODE/display/availability` | Retained online/offline and last will, QoS 1 |
+| Subscribe | `homeassistant/status` | Re-announce on Home Assistant startup/reload |
+
+Replace `NODE` with the MAC-derived identity. Home Assistant needs to read these
+discovery/state/availability topics and publish its birth status. The adapter's
+client ID is `NODE-display`; run only one display adapter per node. MQTT 3.1.1
+cannot reliably report denied publications to the sender, so confirm broker
+permissions if the session reports connected but no entities appear.
+
+The active rule is the ESP-acknowledged rule, independent of the selected preview.
+The operation-status sensor's attributes separate `configured` TX bytes/counts
+and requested RX length from `last_result` counts reported by the ESP. They also
+include boot identity, generation, request ID and `completed_ms` (milliseconds
+since ESP boot, **not UTC**). The raw/count sensors use only the controller's
+fresh successful execution result. An update acknowledgement, timeout, unknown
+outcome, disconnection or expiry clears those values. Zero bytes are valid; a
+successful write with no received bytes has an empty raw string and RX count 0.
+
+State has a half-second refresh interval when the owner can service it and is
+republished after discovery; meaningful changes publish on the next poll. Each HA
+sensor expires after two seconds without state updates, bounding stale display
+when the host stops or is busy waiting for a command. Sample freshness is still
+decided by the controller's original completion time, with normal network/HA
+delivery latency. Before load/execute/recovery the session clears the displayed
+raw result. A display connection failure emits a `display` event and retries
+with 1–30-second backoff; it does not replay a command or stop the controller.
+
+Discovery and adapter availability are retained; result state is not. A new
+display connection discards old queued messages and publishes a current snapshot.
+Home Assistant's `online` birth re-announces discovery and state without loading
+or executing a rule. Reopened journal data alone cannot make the ESP online.
+This follows Home Assistant's [discovery lifecycle](https://www.home-assistant.io/integrations/mqtt/#discovery-messages-and-availability)
+and [sensor availability/expiry](https://www.home-assistant.io/integrations/sensor.mqtt/).
+
+Host tests verify the messages through a real local MQTT broker and compiled C
+owner with simulated buses. **A running Home Assistant instance and a live ESP
+have not yet been tested together with this adapter.** The existing Configuration
+Desk has no Runtime Transactions view yet; its UI needs review before changes.
+
+For live acceptance, first confirm the board/image, idle plan and reviewed
+BMP388 wiring as described above. Start the session with the display option,
+then use the same explicit chip-ID / raw-pressure / chip-ID sequence. Check that
+HA shows rule and count changes, that `load` alone leaves raw bytes unavailable,
+and that the values expire after execution stops. Restart HA and the broker,
+then close/reopen the same host journal; verify no new execution request is sent
+by those recovery actions. Stop the host and confirm unavailable entities.
+Record actual HA version, firmware identity and observed results separately
+from the software checks before claiming that the full display path is accepted.
+
 ## One-shot codec and diagnostic client
 
 The low-level client remains useful for packet inspection and isolated tests:
@@ -197,7 +273,7 @@ certificates/passwords, verified TLS and topic-specific credentials:
 
 ```powershell
 $env:PYTHONPATH = 'tests/target;.'
-python -B -m unittest test_descriptions test_transaction_client test_transaction_controller test_transaction_mqtt test_txjob test_tx_owner
+python -B -m unittest test_descriptions test_transaction_client test_transaction_controller test_transaction_mqtt test_homeassistant test_txjob test_tx_owner
 ```
 
 The Markdown parity test loads one real C owner/HAL fixture, switches BMP388
@@ -224,7 +300,10 @@ profile was explicitly restored and checked after restart. No firmware rebuild
 or reflash occurred during rule switching. These results cover BMP388 I2C;
 runtime SPI/UART, prolonged load and full resource acceptance remain open.
 
-The Home Assistant discovery/display adapter remains to be implemented here.
-The adapter will publish discovery and display
-state from decoded replies; there is currently no Home Assistant display path
-in the cleaned firmware. UI changes require the user's review.
+The display tests cover Markdown A/B/A changes, zero bytes, update versus
+execution, rejected updates, failed reads, expiry, unknown outcomes and boot/
+generation changes. Local-broker tests check retained discovery, non-retained
+state, actual offline last will, host reopen, HA birth and broker restart without
+another C driver call. They also exercise the public `--home-assistant` option
+and show that display failure leaves explicit controller operations usable.
+These are MQTT-contract tests, not rendered Home Assistant or hardware acceptance.

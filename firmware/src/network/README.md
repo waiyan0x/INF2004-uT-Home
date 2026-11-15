@@ -1,7 +1,8 @@
 # Network services and ownership
 
 The delivery path is uT-Kernel -> Wi-Fi/TLS MQTT -> raw transaction replies.
-Home Assistant discovery/display belongs to the planned host adapter. ESPHome
+Home Assistant discovery/display belongs to the implemented
+[host adapter](../../../tools/transaction/README.md#home-assistant-display). ESPHome
 firmware, the native API listener and on-device discovery formatting have been
 removed. HTTP/USB configuration and existing read-only BLE diagnostics remain
 because they support board setup, ownership checks and recovery.
@@ -446,7 +447,8 @@ not replace the manual type, lifetime, concurrency and hardware review.
 - HTTPS configuration writes, two simultaneous HTTPS clients alongside MQTT,
   and prolonged load/exhaustion tests.
 - Independent I2C/SPI/UART physical transactions and combined-load measurements.
-- Host Home Assistant discovery/display adapter and actual UI observations.
+- Live Home Assistant display with ESP results; the host adapter has passed
+  local-broker/compiled-C tests, but actual Home Assistant UI observations remain open.
 
 Use the [team implementation plan](../../../CONTRIBUTING.md) to coordinate these
 checks. Historical experiment records were removed from this checkout at the

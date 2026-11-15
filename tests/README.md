@@ -11,6 +11,12 @@ tests also require `tools/transaction/requirements-dev.txt` (installed by CI).
 They start a loopback-only broker with temporary credentials/certificates and
 the compiled C owner with simulated buses; they do not contact equipment.
 
+`test_homeassistant` verifies the display adapter's public CLI option and MQTT
+messages using that same C owner and broker. It covers Markdown A/B/A switching,
+zero data, failure/expiry, retained discovery, non-retained state, actual last
+will, host/broker restarts and HA birth without additional driver calls. These
+checks do not run a Home Assistant instance or qualify its rendered display.
+
 The pinned JavaScript development checks use `package-lock.json`. With Node
 22.13 or later in the 22.x line, or Node 24+, run `npm ci --ignore-scripts` and
 `npm run lint`. `npm test` runs the same dashboard and visualiser Node suites

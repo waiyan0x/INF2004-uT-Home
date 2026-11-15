@@ -33,7 +33,7 @@ def dispatch(controller, command):
     return operations[action]()
 
 
-def run(factory, incoming, outgoing):
+def run(factory, incoming, outgoing, *, display_factory=None):
     """Input parsing cannot call MQTT; a single worker owns all controller state."""
     commands = queue.Queue(maxsize=8)
     idle, eof = object(), object()
@@ -47,9 +47,21 @@ def run(factory, incoming, outgoing):
 
     def owner():
         controller = None
+        display = None
+        previous_display = None
+        def show(view, *, invalidate=False):
+            nonlocal previous_display
+            if display is not None:
+                status = display.poll(view, invalidate=invalidate)
+                if status != previous_display:
+                    emit(dict(event='display', **status))
+                    previous_display = status
         try:
             controller = factory()
+            if display_factory is not None:
+                display = display_factory()
             controller.poll()
+            show(controller.snapshot())
             emit(dict(event='started', state=controller.snapshot()))
             initialized.set()
             previous = None
@@ -64,6 +76,8 @@ def run(factory, incoming, outgoing):
                     try:
                         if isinstance(command, Exception):
                             raise command
+                        if isinstance(command, dict) and command.get('action') in ('load', 'execute', 'recover'):
+                            show(controller.snapshot(), invalidate=True)
                         result = dispatch(controller, command)
                         if isinstance(result, dict) and result.get('status', 'ok') != 'ok':
                             state['failed'] = True
@@ -73,6 +87,7 @@ def run(factory, incoming, outgoing):
                         state['failed'] = True
                         emit(dict(event='error', error=str(error), state=controller.snapshot()))
                 view = controller.poll()
+                show(view)
                 signature = (view['connected'], view['status_fresh'], view['ready'],
                              view['issue'], view['error'], view['display']['available'],
                              view['observed'])
@@ -83,9 +98,13 @@ def run(factory, incoming, outgoing):
             state['failed'] = state['fatal'] = True
             emit(dict(event='fatal', error=str(error)))
         finally:
-            if controller is not None:
-                controller.close()
-            initialized.set()
+            try:
+                if display is not None:
+                    display.close()
+            finally:
+                if controller is not None:
+                    controller.close()
+                initialized.set()
 
     worker = threading.Thread(target=owner, name='transaction-owner')
     worker.start()
@@ -134,6 +153,8 @@ def main(argv=None):
     parser.add_argument('--state', type=Path, required=True, help='local persistent journal, normally under build/')
     parser.add_argument('--timeout', type=float, default=10)
     parser.add_argument('--freshness-ms', type=int, default=5000)
+    parser.add_argument('--home-assistant', action='store_true',
+                        help='publish read-only MQTT discovery and current display state')
     args = parser.parse_args(argv)
     if not 0 < args.timeout <= 30:
         parser.error('--timeout must be greater than zero and at most 30 seconds')
@@ -142,7 +163,11 @@ def main(argv=None):
         return Controller(args.state, args.node,
                           lambda: client.Mqtt(args.broker, args.port, args.ca, args.node, args.timeout),
                           freshness_ms=args.freshness_ms)
-    return run(factory, sys.stdin, sys.stdout)
+    display_factory = None
+    if args.home_assistant:
+        from .homeassistant import Display
+        display_factory = lambda: Display(args.broker, args.port, args.ca, args.node)
+    return run(factory, sys.stdin, sys.stdout, display_factory=display_factory)
 
 
 if __name__ == '__main__':

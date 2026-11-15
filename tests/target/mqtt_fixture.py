@@ -55,11 +55,14 @@ def certificates(folder):
 
 
 class LocalBroker:
-    def __init__(self, folder):
+    def __init__(self, folder, *, home_assistant=False):
         self.folder = Path(folder)
+        self.home_assistant = home_assistant
         certificates(self.folder)
         self.ca = self.folder / 'ca.pem'
         self.passwords = {name: secrets.token_hex(16) for name in ('controller-test', 'fixture-test')}
+        if home_assistant:
+            self.passwords['observer-test'] = secrets.token_hex(16)
         (self.folder / 'users.txt').write_text(''.join(name + ':' + sha512_crypt.using(rounds=5000).hash(value) + '\n'
                                                     for name, value in self.passwords.items()))
         self.port = 0
@@ -79,13 +82,21 @@ class LocalBroker:
 
     def _run(self):
         async def serve():
+            subscriptions = {'controller-test': [BASE+'result'], 'fixture-test': [BASE+'request']}
+            publications = {'controller-test': [BASE+'request'], 'fixture-test': [BASE+'result']}
+            if self.home_assistant:
+                display = f'uthome/v1/{NODE}/display/#'
+                discovery = f'homeassistant/sensor/{NODE}/+/config'
+                subscriptions['controller-test'].append('homeassistant/status')
+                publications['controller-test'].extend([display, discovery])
+                subscriptions['observer-test'] = [display, discovery]
+                publications['observer-test'] = ['homeassistant/status']
             broker = Broker(dict(listeners={'default': dict(type='tcp', bind=f'127.0.0.1:{self.port}',
                 ssl=True, certfile=str(self.folder/'server.pem'), keyfile=str(self.folder/'server.key'),
                 max_connections=4)}, timeout_disconnect_delay=0, plugins={
                     'amqtt.plugins.authentication.FileAuthPlugin': {'password_file': str(self.folder/'users.txt')},
                     'amqtt.plugins.topic_checking.TopicAccessControlListPlugin': {
-                        'acl': {'controller-test': [BASE+'result'], 'fixture-test': [BASE+'request']},
-                        'publish_acl': {'controller-test': [BASE+'request'], 'fixture-test': [BASE+'result']}}}))
+                        'acl': subscriptions, 'publish_acl': publications}}))
             await broker.start()
             self.port = broker._servers['default'].instance.sockets[0].getsockname()[1]
             self.ready.set()

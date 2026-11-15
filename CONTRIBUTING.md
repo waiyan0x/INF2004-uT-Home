@@ -83,6 +83,13 @@ demonstration.
 
 ## Completion plan
 
+**Current priority (15 November): finish the main demonstration workflow.**
+Further TLS/memory optimisation is deferred. Use the working network
+settings to finish operation selection, explicit rule changes, raw results and
+UI/Home Assistant integration. Resource compliance remains a final acceptance
+requirement; it is not waived or the next feature-development task. The numbered
+sections below track work areas, not a requirement to finish memory work first.
+
 The finished demonstration must let a user select reviewed peripheral Markdown
 and an operation on the host, inspect the proposed communication, load the rule,
 explicitly execute it and see raw bytes/status in the host UI and Home Assistant.
@@ -107,7 +114,7 @@ rule must not require another build.
 | Description compiler | `tools/transaction/description.py` compiles simple I2C register reads | SPI/UART operation descriptions; OLED source/description; SEN0390 review |
 | MQTT | Live BMP388 rule switching, target rejection, cached results and broker recovery verified; HTTPS reads work alongside MQTT | Wider secure-connection load and network allocation blocker |
 | UI | Existing Configuration Desk supports USB profiles and recovery | Runtime Markdown selection, rule loading/execution and result presentation |
-| Home Assistant | Intended host-adapter boundary is documented | Adapter and live integration are not implemented |
+| Home Assistant | Read-only host discovery/display adapter and CLI option; real-broker/compiled-C software tests | Live Home Assistant + ESP acceptance and use from the planned UI |
 | Verification | 531 target-facing tests plus 59 affected tests rerun after SDK-binding corrections; full 337-file C gate, checked target image, SDK setup/free instruction probe and unchanged memory budgets | Current image on hardware, runtime SPI/UART, prolonged combined load and whole-system resource acceptance |
 
 The [15 November hardware check](firmware/src/network/README.md#current-hardware-check)
@@ -130,7 +137,7 @@ needs its own explicit reservation. Generated verification is under ignored
 `build/tls-output/`. Fixed-linker fit is not free-heap or stack
 acceptance; TLS/TCP/IP allocation remains a concrete integration blocker.
 
-### 1. Close session and resource risks first
+### 1. Session contract and final resource acceptance
 
 **Session contract implemented; resource assessment complete; allocation
 remediation and board measurements remain open.** `TJ` v2 reuses the existing
@@ -182,8 +189,9 @@ input buffers need 50,160 bytes, 42,959 above current application headroom befor
 bookkeeping/crypto storage. This rules out a direct fixed-pool replacement.
 The encrypted host comparison now confirms that reduced record sizes break
 the maintained 8192-byte uploader and some valid certificate chains. A test-only
-uploader succeeds with 1024-byte writes and a short certificate. Next, specify
-and review a controlled certificate/record contract plus its complete memory
+uploader succeeds with 1024-byte writes and a short certificate. When resuming
+resource work, specify and review a controlled certificate/record contract plus
+its complete memory
 design before adopting smaller limits; keep the working firmware unchanged.
 The [compatibility decision](docs/reports/wifi-static-memory/README.md#tls-record-compatibility-decision)
 records the exact failures and remaining work. The
@@ -200,8 +208,9 @@ see the assessment's reproduction procedure.
 setup/recovery. Budget overlapping secure connections rather than removing
 HTTPS to save memory.
 
-**Next priority:** implement bounded network allocation with deterministic
-exhaustion and reconnect tests; then capture startup/reconnect/normal-operation
+**Deferred until the main demonstration is integrated:** implement bounded
+network allocation with deterministic exhaustion and reconnect tests; then
+capture startup/reconnect/normal-operation
 heap, native-object and stack evidence on the selected board. Do not mark
 whole-system static memory complete from the linker table or host tests.
 
@@ -300,16 +309,16 @@ delayed response, reconnect, rejected update and stale-display behavior.
 
 ### 6. Add Home Assistant display
 
-Implement a small host-side adapter using the same controller results. Publish
-stable discovery identities and JSON display state for status, raw hex, active
-rule/protocol and counts. Keep configured bytes distinct from ESP-reported
-counts; a received update acknowledgement is not a sensor reading.
+**Host implementation and MQTT-contract tests complete.** `homeassistant.py`
+consumes copied controller snapshots, and `session --home-assistant` enables it.
+It publishes stable discovery identities and state for status, raw hex, active
+rule/protocol and counts. Configured bytes/counts remain separate from reported
+results; an update acknowledgement never becomes a fresh reading. The existing
+Configuration Desk and firmware are unchanged by this host adapter.
 
-Handle adapter/ESP availability, state expiry, broker reconnection and Home
-Assistant birth/reload. Retain discovery definitions; keep raw result state and
-commands non-retained. Re-announcing discovery must never execute a peripheral
-operation. This uses the supported [MQTT discovery lifecycle](https://www.home-assistant.io/integrations/mqtt/#discovery-messages-and-availability)
-and [sensor availability/expiry](https://www.home-assistant.io/integrations/sensor.mqtt/).
+Tests cover adapter/ESP availability, expiry, broker reconnection, retained
+discovery, non-retained raw state and HA birth/reload. Re-announcing discovery
+adds no driver call. See the [setup, topics and limits](tools/transaction/README.md#home-assistant-display).
 
 Done: actual Home Assistant displays real ESP results and becomes unavailable
 when appropriate, including separate ESP, adapter, broker and HA restarts.

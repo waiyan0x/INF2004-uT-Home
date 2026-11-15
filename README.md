@@ -33,56 +33,34 @@ changes are injected in C fixture tests. The live BMP388 MQTT check below now
 also covers rule switching, host reopen and broker recovery on the board.
 Generated verification is local-only under `build/controller/`.
 
-**Open blocker: network allocation.** The real target passes unchanged
-fixed-memory budgets (269,378/278,528 DRAM bytes), but reachable TLS/TCP/IP heap
-allocations still prevent whole-system static-memory acceptance. Compact
-configuration views reclaimed 24,600 fixed DRAM bytes; lwIP mailboxes use the
-existing fixed queue storage. ESP-TLS contexts, error records and temporary
-names now use 9,054 fixed bytes from that reclaimed capacity, with no heap
-fallback for these records. Six lwIP connection records and two datagram
-envelopes now use another 352 fixed bytes. Three TLS output buffers now use
-13,303 fixed bytes, preserving one MQTT and two HTTPS connections. The
-531-test target-facing suite passed; all 59 affected TLS/qualification tests
-passed again after correcting SDK bindings. The 337-file C gate, manual review,
-fresh target build and direct SDK setup/cleanup instruction probe pass. Four
-enabled driver workspaces replace eight reserved workspaces, saving 4,672 bytes
-while retaining eight profile entries, source identities and safe rollback.
-The new image has not been installed; its live reconnect and overlapping-client
-checks remain open.
-Keep MQTT and HTTPS setup available together, with USB recovery retained. The
-pinned SDK's optional dynamic TLS buffers lost partial headers in a target-code
-software probe; the build now rejects that option. Next, design bounded TLS
-input and crypto storage with persistent partial-input state and capacity for
-overlapping connections, then address the remaining lwIP storage. The compiled
-SDK input probe now confirms that partial messages and unread plaintext outlive
-an owner call. Three full input buffers alone need 50,160 aligned bytes, exceeding
-the remaining application budget by 42,959 before bookkeeping/crypto storage.
-A direct static replacement therefore does not fit. The real encrypted host
-comparison now shows that smaller records break the current 8192-byte uploader
-and some valid certificate chains. A test-only segmented uploader works with a
-short certificate. Next, define the controlled certificate/record contract and
-complete its memory/lifetime design, or retain full compatibility through another
-proven design. Preserve working limits until reviewed and verified. See the
-[resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
-Wi-Fi, live BMP388 MQTT rule switching and broker recovery now pass on the
-connected board. HTTPS status reads also worked while MQTT was connected.
-Wider secure-connection load and allocation acceptance remain open.
-Independent software work can continue on three-protocol Markdown coverage
-and Home Assistant display in the
-[completion plan](CONTRIBUTING.md#completion-plan). UI changes still require review.
-The host display adapter remains unimplemented. Current generated tests, gate,
-map reports are local-only under `build/tls-output/`. Earlier driver workspace,
-lwIP and ESP-TLS record, configuration and TLS sizing, mailbox and session checks remain
-under `build/binding-memory/`, `build/lwip-records/`, `build/tls-records/`, `build/compact-json/`,
-`build/network-memory/` and
-`build/step1-verification/`.
-The dynamic-buffer experiment and guard checks are local-only under
-`build/tls-capacity/`; the rejected experimental image was never flashed.
-Receive-lifetime checks and capacity projections are under `build/tls-input/`;
-they use the existing ELF and make no firmware or hardware change.
-The smaller-record encrypted comparison is under `build/tls-profile/verified/`;
-its [decision and limits](docs/reports/wifi-static-memory/README.md#tls-record-compatibility-decision)
-distinguish expected compatibility failures from completed firmware work.
+**Current priority: finish the main demonstration.** Focus on selecting an
+operation, loading its rules, seeing raw bytes/status, and switching rules without
+reflashing. Further TLS/memory optimisation is deferred until this workflow is
+integrated. Keep working MQTT/HTTPS settings; resource compliance remains a
+final gate.
+
+The [Home Assistant display adapter](tools/transaction/README.md#home-assistant-display)
+is implemented on the host. Add `--home-assistant` to the existing controller
+session to publish six read-only entities from its copied state. Real-broker and
+compiled-C software tests cover A/B/A switching, zero bytes, expiry, failures and
+restarts without extra peripheral operations. A running Home Assistant instance
+and live ESP still need combined acceptance. Generated verification is local-only
+under `build/homeassistant/`.
+
+**Next:** review and build the Runtime Transactions view in the existing
+Configuration Desk, using this same controller; then complete the reviewed
+SPI/UART descriptions and physical demonstrations. Preserve the existing visual
+style and review proposed UI adjustments before implementation. See the
+[completion plan](CONTRIBUTING.md#completion-plan).
+
+**Final resource acceptance remains open.** The latest target fits unchanged
+fixed-memory budgets at 269,378/278,528 DRAM bytes, but reachable TLS/TCP/IP heap
+paths remain. That build is unflashed. Smaller TLS records break full uploads
+and some valid certificate chains, so working limits stay unchanged. The
+[resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
+retains the implemented fixed-storage changes, build identities and unresolved
+capacity/lifetime work. Its generated evidence remains under ignored `build/`;
+none of the host display tests qualifies target memory, timing or stack use.
 
 The latest [live network check](firmware/src/network/README.md#current-hardware-check)
 on 15 November 2026 established working Wi-Fi with the full project firmware.
@@ -157,8 +135,10 @@ flowchart LR
     S --> HA[Home Assistant]
 ```
 
-All MQTT topics use the same broker. The diagram is the planned complete path;
-the host display adapter remains to be built.
+All MQTT topics use the same broker. The host adapter now publishes discovery
+and state from the command-line controller. The Configuration Desk view and
+combined live Home Assistant/ESP
+acceptance remain to be completed.
 MQTT discovery registers Home Assistant entities; state topics supply their
 values. See the [Home Assistant MQTT documentation](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery).
 
