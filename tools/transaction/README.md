@@ -215,6 +215,15 @@ failed TLS handshakes around the unchanged pinned Paho 1.6.1 dependency.
 The pinned test broker currently warns about its legacy `acl` option; its typed
 configuration still uses that field. The warning is not suppressed.
 
+The [15 November live MQTT check](../../firmware/src/network/README.md#live-mqtt-check)
+used these maintained tools with a real ESP32-C3/BMP388. It verified A/B/A raw
+reads, host rejection, host journal reopen, broker recovery and an exact cached
+completion. A separate diagnostic owner, after closing the controller, verified
+ESP rejection of an oversized read while retaining the active rule. The normal
+profile was explicitly restored and checked after restart. No firmware rebuild
+or reflash occurred during rule switching. These results cover BMP388 I2C;
+runtime SPI/UART, prolonged load and full resource acceptance remain open.
+
 The Home Assistant discovery/display adapter remains to be implemented here.
 The adapter will publish discovery and display
 state from decoded replies; there is currently no Home Assistant display path

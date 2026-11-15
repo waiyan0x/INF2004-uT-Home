@@ -29,7 +29,8 @@ now owns IDs/revisions, rule selection/loading/execution, durable pending comman
 and display expiry. Software tests use the compiled C owner and a real local
 TLS MQTT broker, including lost replies and host/broker restarts without repeated
 I/O. The command-line session needs no UI changes. ESP restarts and generation
-changes are injected in C fixture tests; this is not live Wi-Fi acceptance.
+changes are injected in C fixture tests. The live BMP388 MQTT check below now
+also covers rule switching, host reopen and broker recovery on the board.
 Generated verification is local-only under `build/controller/`.
 
 **Open blocker: network allocation.** The real target passes unchanged
@@ -45,8 +46,9 @@ software probe; the build now rejects that option. Next, design bounded TLS
 storage with persistent partial-input state and enough capacity for overlapping
 connections, then address the remaining lwIP storage. See the
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
-Wi-Fi connection and hotspot recovery now pass on the connected board; live
-MQTT rule switching and overlapping secure connections remain to be tested.
+Wi-Fi, live BMP388 MQTT rule switching and broker recovery now pass on the
+connected board. HTTPS status reads also worked while MQTT was connected.
+Wider secure-connection load and allocation acceptance remain open.
 Independent software work can continue on three-protocol Markdown coverage
 and Home Assistant display in the
 [completion plan](CONTRIBUTING.md#completion-plan). UI changes still require review.
@@ -65,16 +67,23 @@ connected at a 10 dBm startup limit and repeatedly failed at 20 dBm; the earlier
 runtime-only override did not limit startup. The project now derives and checks
 both settings. It connected after an ESP restart and automatically recovered
 after a hotspot off/on cycle. Authenticated, certificate-verified HTTPS identity
-and status reads succeeded. Live MQTT and combined-load/resource acceptance
-remain open.
+and status reads succeeded.
+
+The follow-up [live MQTT check](firmware/src/network/README.md#live-mqtt-check)
+passed on that same firmware: Markdown-selected BMP388 reads changed from one
+received byte to three and back, an invalid update was rejected by the ESP while
+preserving the previous rule, and broker recovery retained the exact cached
+completion. HTTPS reads succeeded alongside MQTT. SPI/UART runtime-rule tests,
+HTTPS writes, Home Assistant/UI integration and resource acceptance remain open.
 
 The fixed project image is installed with private bench settings; active/saved
-profile 931 is unchanged. Fresh BMP388/radar samples and successful OLED
-transfers were observed. The full original flash backup is retained, and the
-laptop returned to its original Wi-Fi. Private settings, captures and image
-identities remain local-only under `build/wifi-20261115/`; earlier observations
-are under `build/bench-20261114/`. Confirm the current port, hotspot and broker
-address before reusing any bench setup.
+profile contents are restored under revision 933, with the original CRC
+3623560383. A final restart cleared the test rules and returned fresh BMP388/radar
+samples and successful OLED transfers. The full original flash backup is
+retained. Private settings, captures and image identities remain local-only under
+`build/mqtt-20261115/` and `build/wifi-20261115/`; earlier observations are under
+`build/bench-20261114/`. Confirm the current port, hotspot and broker address
+before reusing any bench setup; the temporary broker is not a persistent service.
 
 The existing configuration application and peripheral profiles remain for setup
 and recovery. Runtime transactions require an explicitly idle peripheral plan.

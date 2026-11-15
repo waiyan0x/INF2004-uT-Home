@@ -183,6 +183,9 @@ and map gates does not establish runtime stack/heap or physical bus acceptance.
 The [host controller](../../../../tools/transaction/README.md#persistent-controller)
 now preserves exact pending commands across process restarts, obtains cached
 receipts explicitly and expires display data. Its software tests run this C
-engine/owner with simulated buses and a real loopback TLS broker. Physical
-end-to-end MQTT and Home Assistant acceptance remain open; the Home Assistant
-adapter is still future work. No native API listener remains.
+engine/owner with simulated buses and a real loopback TLS broker. The
+[live BMP388 check](../../network/README.md#live-mqtt-check) now verifies MQTT
+rule switching, target rejection/preservation and cached-result recovery with
+actual I2C transfers on the same image. Runtime SPI/UART and full resource
+acceptance remain open. The Home Assistant adapter is still future work.
+No native API listener remains.

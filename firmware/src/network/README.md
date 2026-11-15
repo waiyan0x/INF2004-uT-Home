@@ -156,8 +156,8 @@ settings**, retaining the original peripheral profile. The laptop's original
 Wi-Fi was restored and its temporary test profile removed; no firewall rule
 changed. No MQTT broker was started during this Wi-Fi check.
 
-Live MQTT commands/results, broker reconnects, HTTPS configuration writes,
-overlapping secure connections and network heap/stack acceptance remain open.
+The following MQTT check extends this Wi-Fi result. HTTPS configuration writes,
+wider secure-connection load and network heap/stack acceptance remain open.
 Allocation counters are not free-heap/peak measurements, and unavailable worker
 stack measurements remain unmeasured.
 
@@ -170,6 +170,49 @@ remain under `build/bench-20261114/`. Settings, certificates, images and raw log
 must stay outside Git. USB Apply also saves the idle profile; follow the
 [explicit restoration guidance](../../../tools/config_transfer/README.md)
 instead of expecting a reboot to undo it.
+
+### Live MQTT check
+
+On 15 November 2026, the installed application was independently verified against
+the same image SHA-256 above. No firmware source change or reflash was required.
+The host used the private authenticated TLS broker, reviewed BMP388 Markdown,
+the maintained MQTT client/controller and actual I2C0 SDA0/SCL1 at address 0x77.
+An explicitly applied idle plan released the sensor workers before transactions.
+
+- The persistent controller loaded/executed A (`00`, RX 1 -> `50`), B (`04`,
+  RX 3 -> `05 6E 6B`), then A again within the same ESP boot and plan generation.
+  Update acknowledgements reported no bus transfer; executions reported TX 1
+  and the configured RX count. These are raw bytes, not pressure accuracy evidence.
+- A host-invalid preview was rejected before publication. After that controller
+  closed, a single diagnostic owner separately sent RX length 33 to the ESP.
+  The ESP returned `invalid`, retained B's revision, and successfully executed B
+  and then A. This distinguishes target rejection from host-only validation.
+- Closing/reopening the host journal and stopping/restarting the broker preserved
+  the last command identity and completion time. An explicit identical request
+  retrieved the same cached reply. No new command was automatically executed.
+  Two status queries timed out during broker recovery; readiness must be observed,
+  not inferred from Wi-Fi alone. Initial broker startup also had a delayed join;
+  its cause was not isolated, and no firewall change was required.
+- Certificate/name-verified TLS 1.2 HTTPS status reads returned HTTP 200 both with
+  MQTT ready and during the broker outage. This verifies one MQTT connection plus
+  a transient HTTPS read, not the maximum two-HTTPS-client load or HTTPS writes.
+
+The exact original profile bytes were restored and saved as revision 933 with
+CRC 3623560383, then verified after restart. The new boot had no test rule or
+command history; its active sensor plan correctly reported transactions not
+ready. BMP388/radar data returned fresh, and all three workers reported no bus
+errors/timeouts. OLED appearance was not observed. The 30-second normal-operation
+window counted 8,429 allocations and 8,423 frees, requesting 549,580 cumulative
+bytes across the audit's sources. These are not resident/peak heap figures or
+allocation attribution; whole-system static memory remains unqualified.
+
+Local-only evidence is under `build/mqtt-20261115/`: `controller-demo.jsonl`,
+`target-rejection.jsonl`, `broker-recovery.json`, `https-*.json`,
+`image-verify-restart.log`, `profile-restored.json`, `restored-running.json` and
+`final-mqtt-status.json`. The broker was stopped after testing. Keep credentials,
+packet journals and captures outside Git. Follow the
+[live-session procedure](../../../tools/transaction/README.md#prepare-a-live-session)
+for the next run; the diagnostic owner handoff is not a second concurrent client.
 
 ## HTTP and BLE observation contracts
 
@@ -398,10 +441,10 @@ not replace the manual type, lifetime, concurrency and hardware review.
 
 ## Remaining acceptance
 
-- Live broker TLS/reconnect with real settings; repeat Wi-Fi checks on the final
-  deployment network rather than extrapolating the hotspot result.
-- HTTPS configuration writes and overlapping MQTT/HTTPS connections.
-- A -> B -> rejected update -> B -> A over MQTT on one running image.
+- Repeat broker/Wi-Fi checks on the final deployment network; the current proof
+  uses one private hotspot and broker.
+- HTTPS configuration writes, two simultaneous HTTPS clients alongside MQTT,
+  and prolonged load/exhaustion tests.
 - Independent I2C/SPI/UART physical transactions and combined-load measurements.
 - Host Home Assistant discovery/display adapter and actual UI observations.
 
