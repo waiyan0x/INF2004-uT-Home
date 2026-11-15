@@ -320,8 +320,14 @@ Tests cover adapter/ESP availability, expiry, broker reconnection, retained
 discovery, non-retained raw state and HA birth/reload. Re-announcing discovery
 adds no driver call. See the [setup, topics and limits](tools/transaction/README.md#home-assistant-display).
 
-Done: actual Home Assistant displays real ESP results and becomes unavailable
-when appropriate, including separate ESP, adapter, broker and HA restarts.
+The [live trial](tools/transaction/README.md#current-live-trial) received discovery
+and ready-state messages, but completed no new rule execution. Post-idle-plan
+MQTT timeouts and an unstable local HA VM block combined acceptance; diagnose
+these before treating the display as demo-ready.
+
+Acceptance still required: actual Home Assistant displays real ESP results and
+becomes unavailable when appropriate, including separate ESP, adapter, broker
+and HA restarts.
 
 ### 7. Complete integrated acceptance
 

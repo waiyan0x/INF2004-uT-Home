@@ -58,6 +58,12 @@ afterward; reboot alone does not restore it. Follow the
 [configuration procedure](../config_transfer/README.md). The transaction
 controller never changes the plan, saved settings, wiring or installed image.
 
+After applying the idle plan, observe fresh MQTT status and readiness before
+sending a rule. Wi-Fi connectivity and a successful profile Apply do not prove
+that MQTT is responding. The current live trial below encountered repeated
+status timeouts at this boundary; do not bypass readiness or replay an uncertain
+command to continue a demonstration.
+
 Provision the board using the [network guide](../../firmware/src/network/README.md).
 Set `UTHOME_MQTT_USER` and `UTHOME_MQTT_PASSWORD` privately on the host.
 Keep CA files, credentials and journals outside tracked source, normally under
@@ -232,6 +238,40 @@ then close/reopen the same host journal; verify no new execution request is sent
 by those recovery actions. Stop the host and confirm unavailable entities.
 Record actual HA version, firmware identity and observed results separately
 from the software checks before claiming that the full display path is accepted.
+
+### Current live trial
+
+The 15 November 2026 trial used host implementation `be626550` and the connected
+ESP32-C3/BMP388 on the existing installed firmware. USB capabilities,
+authenticated node/boot identity and saved-profile CRC were checked; the flash
+image hash was not reread and no firmware was flashed.
+
+A real MQTT observer received all six discovery definitions and the adapter's
+ready-state message from a live ESP status snapshot. This did **not** complete
+the A/B/A result-display check: status queries timed out after applying the idle
+profile, including a load's readiness query before any update was published.
+After a physical reconnect, five status queries passed on the normal profile;
+another idle-plan attempt then failed to establish readiness. The cause remains
+unisolated. Keep this separate from the earlier successful controller-only
+[hardware run](../../firmware/src/network/README.md#live-mqtt-check).
+
+Home Assistant OS 18.4 / Core 2026.11.1 was installed locally and its MQTT
+integration accepted the private broker settings. VirtualBox repeatedly stalled
+and HA API reads timed out; a VMware comparison failed to start with a VM runtime
+access violation. Neither entity rendering nor HA restart/expiry acceptance is
+claimed. Both test VMs are stopped, with their disks and private account retained.
+
+Every attempted idle profile was explicitly restored. The final active/saved
+revision is 941, CRC 3623560383; BMP388/radar samples were fresh and all three
+workers reported transfers without errors/timeouts in the cleanup snapshot.
+The temporary broker is stopped. Local-only setup, unsuccessful attempts and
+cleanup evidence are under `build/homeassistant-live-20261115/`, especially
+`setup.json`, `cold-start-status-probes.json`, `mqtt-display-results*.jsonl` and
+`final-board.json`. VM disks, credentials, tokens and logs must stay ignored.
+
+Resume by isolating MQTT responsiveness across the normal-to-idle transition,
+then use a responsive HA instance for the combined acceptance above. Keep the
+existing freshness and readiness checks while diagnosing these failures.
 
 ## One-shot codec and diagnostic client
 

@@ -215,6 +215,14 @@ packet journals and captures outside Git. Follow the
 [live-session procedure](../../../tools/transaction/README.md#prepare-a-live-session)
 for the next run; the diagnostic owner handoff is not a second concurrent client.
 
+The later [display-adapter trial](../../../tools/transaction/README.md#current-live-trial)
+received discovery/ready-state messages but encountered MQTT status timeouts
+after applying the idle plan. A physical reconnect restored five successful
+status queries on the normal profile; the subsequent idle-plan attempt timed
+out again. This remains an open transition/reliability issue, not a replacement
+for the earlier successful run above. That trial flashed no new image and ended
+with the original profile restored as revision 941, CRC 3623560383.
+
 ## HTTP and BLE observation contracts
 
 ### HTTP admission and reads

@@ -43,12 +43,19 @@ The [Home Assistant display adapter](tools/transaction/README.md#home-assistant-
 is implemented on the host. Add `--home-assistant` to the existing controller
 session to publish six read-only entities from its copied state. Real-broker and
 compiled-C software tests cover A/B/A switching, zero bytes, expiry, failures and
-restarts without extra peripheral operations. A running Home Assistant instance
-and live ESP still need combined acceptance. Generated verification is local-only
-under `build/homeassistant/`.
+restarts without extra peripheral operations. The subsequent live trial received
+six discovery definitions and a ready-state display over MQTT, but completed no
+new rule load or execution: status replies became intermittent after applying the
+idle plan. Home Assistant OS 18.4 / Core 2026.11.1 was installed and connected to
+the broker, but its local VM repeatedly stalled. Combined display acceptance is
+still open. See the [trial limits](tools/transaction/README.md#current-live-trial);
+local-only evidence is under `build/homeassistant/` and
+`build/homeassistant-live-20261115/`.
 
-**Next:** review and build the Runtime Transactions view in the existing
-Configuration Desk, using this same controller; then complete the reviewed
+**Next:** isolate the MQTT status failure after switching to an idle plan, then
+repeat the live display check with a responsive Home Assistant instance. After
+that, review and build the Runtime Transactions view in the existing
+Configuration Desk using this same controller, then complete the reviewed
 SPI/UART descriptions and physical demonstrations. Preserve the existing visual
 style and review proposed UI adjustments before implementation. See the
 [completion plan](CONTRIBUTING.md#completion-plan).
@@ -80,10 +87,11 @@ completion. HTTPS reads succeeded alongside MQTT. SPI/UART runtime-rule tests,
 HTTPS writes, Home Assistant/UI integration and resource acceptance remain open.
 
 The fixed project image is installed with private bench settings; active/saved
-profile contents are restored under revision 933, with the original CRC
-3623560383. A final restart cleared the test rules and returned fresh BMP388/radar
-samples and successful OLED transfers. The full original flash backup is
-retained. Private settings, captures and image identities remain local-only under
+profile contents are now restored under revision 941, with the original CRC
+3623560383. The final display-trial snapshot showed fresh BMP388/radar samples
+and transfers from all three workers with no reported errors/timeouts. No new
+firmware was flashed. The full original flash backup is retained. Private
+settings, captures and image identities remain local-only under
 `build/mqtt-20261115/` and `build/wifi-20261115/`; earlier observations are under
 `build/bench-20261114/`. Confirm the current port, hotspot and broker address
 before reusing any bench setup; the temporary broker is not a persistent service.
