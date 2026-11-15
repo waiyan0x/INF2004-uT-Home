@@ -348,6 +348,38 @@ release must erase and reuse the slot, and injected failures at each of the four
 remaining setup allocations must leave no simulated heap objects. The report
 records the ELF hash and original SDK execution counts. The ELF is not modified.
 
+## TLS input lifetime and capacity probe
+
+`tls_input_probe.py` runs the existing SDK's receive path from a qualified,
+non-dynamic-buffer ELF. Use the same optional probe dependencies above. Pass a
+successful memory-budget report for that exact ELF; mismatched hashes reject.
+
+```powershell
+python -B -m tools.target.tls_input_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --memory-report build/tls-output/memory-final.json --output build/tls-input/new-sdk-report.json
+```
+
+Create the output folder first. Assertions must be enabled and reports are never
+overwritten. Three sessions exercise 12 partial-header cases, nine partial-body
+cases with 16 KiB content, three oversized fetches, three partial EOF cases and
+nine interleaved plaintext reads. Consumed plaintext must be erased; unread
+bytes remain attached to their own connection. A deliberate input-buffer alias
+is a negative control that must corrupt a pending header. It is an injected
+misuse, not a defect in the normal SDK. All session allocations must be released.
+
+The tool reuses the output probe's ELF loader, SDK setup and cleanup execution.
+Heap, transport, ROM byte copies and PSA hash operations are doubled. The read
+cases inject already-decrypted data; they do not test authentication, decryption,
+a handshake or radio hardware. No firmware or SDK source is changed. A passing
+result proves these input-lifetime checks, **not fixed receive allocation**.
+
+The report derives the input size from the SDK's actual allocation requests,
+then projects one/two/three independent eight-byte-aligned buffers against the
+supplied application/total budgets. Projections exclude pool metadata, extra
+link padding and remaining crypto/TCP/IP storage. Linker unassigned bytes are
+not runtime free heap. See the
+[capacity decision](../../docs/reports/wifi-static-memory/README.md#tls-input-lifetime-and-capacity-decision)
+before attempting buffer reuse or changing record limits.
+
 ## Authenticated HTTP configuration client
 
 `python -m tools.target.network_config --help` describes the separate mutating

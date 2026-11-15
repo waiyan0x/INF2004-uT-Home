@@ -280,6 +280,72 @@ record/cipher state across nonblocking retries, with a defined capacity policy
 for one MQTT and two HTTPS connections. Certificate validation and the existing
 dynamic-buffer rejection gates must remain intact.
 
+### TLS input lifetime and capacity decision
+
+The receive investigation uses the same qualified output-buffer ELF identified
+above; it changes no firmware, SDK setting or memory limit. Its reproducible
+[input probe](../../../tools/target/README.md#tls-input-lifetime-and-capacity-probe)
+passes 36 receive/read cases across one client and two server contexts: partial
+headers, partial bodies with 16 KiB content, oversize rejection before transport,
+EOF with partial data, and unread plaintext retained between small reads.
+The returned stack is overwritten between calls. Actual SDK fetch/read/cleanup
+instructions run; transport, heap, ROM byte copies and PSA hash calls are doubled.
+Plaintext is injected after the decryption boundary. This is not handshake,
+decryption, radio, timing or hardware acceptance.
+
+An additional negative control deliberately gives two contexts the same input
+buffer. The second fetch overwrites the first context's pending header despite
+serialized calls. The normal SDK uses separate allocations and passes the
+retention checks. Therefore one application owner is not sufficient justification
+for a shared receive scratch buffer: ownership persists beyond a single call.
+
+Each observed input allocation is 16,717 bytes. Rounding to the same eight-byte
+alignment used by the fixed output pool gives the following **projections**.
+They do not include pool bookkeeping, extra link padding or crypto/TCP/IP state.
+
+| Independent input buffers | Buffer storage | Additional application capacity needed | Projected total DRAM | Above unchanged total cap |
+|---|---:|---:|---:|---:|
+| One | 16,720 | 9,519 | 286,098 | 7,570 |
+| Two | 33,440 | 26,239 | 302,818 | 24,290 |
+| Three | 50,160 | 42,959 | 319,538 | 41,010 |
+
+The current linker exposes 321,296 bytes in its DRAM accounting. Three added
+buffers alone would leave only 1,758 unassigned bytes before bookkeeping and
+the remaining allocations. This is a size projection, not measured free heap,
+but raising a policy cap alone does not resolve the physical capacity problem.
+The generated report is local-only at `build/tls-input/sdk-input-final.json` and
+checks the ELF hash against `build/tls-output/memory-final.json`.
+
+**Decision: a direct three-buffer static replacement does not fit. Keep the
+working receive path until a complete capacity/lifetime design passes.** Fixed
+input storage is not implemented by this probe. The next implementation must
+satisfy one of these concrete designs before replacing that path:
+
+- Independent full buffers require at least 42,959 more application bytes,
+  plus bookkeeping and the remaining encryption allocations. Reclaiming active
+  task stacks or request/retry buffers requires proving their lifetime and
+  supported limits; the four permanent worker stacks cannot simply be borrowed
+  while their tasks still exist.
+- A shared full-record lease still needs at least 9,519 more application bytes
+  for one buffer. Its owner must retain partial headers/bodies, unread plaintext,
+  record counters and handshake state across retries, and release only after
+  every referencing SDK operation is finished. Setup, reset, cleanup, deadlines
+  and fairness for the other MQTT/HTTPS connections all need explicit handling.
+  The current SDK setup allocates a full input buffer for every context, so a
+  shared lease is an architectural adapter, not an allocator substitution.
+- A smaller-record deployment must first prove compatibility with the selected
+  broker, host clients, certificate chains and complete HTTPS configuration
+  uploads. The maximum-fragment-length API does not establish that contract by
+  itself, as documented above. Record limits, connection capacity and supported
+  clients must be reviewed before adopting such a profile.
+
+The recommended next feasibility check is an isolated smaller-record profile
+against the actual host/broker and SDK handshake paths, while retaining the
+working image. It must retain certificate/name checks and both MQTT and HTTPS.
+Do not enable it in the maintained firmware based only on small MQTT payloads,
+this input probe or a successful link. Whole-system static allocation remains
+blocked until one complete design fits and is verified.
+
 ### Dynamic TLS buffer assessment
 
 An isolated experiment based on `23f1f267d6afeff25c53ce370c8fd78c17ccd5c2`

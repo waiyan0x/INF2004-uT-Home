@@ -176,6 +176,16 @@ setup/cleanup lifecycle. Even one remaining TLS input buffer needs 16,717 bytes,
 above the remaining 7,201-byte application headroom. A bounded
 allocator therefore also needs a reviewed buffer-lifetime/capacity design.
 Keep the existing caps and TLS checks; sizing is not a measured runtime peak.
+The compiled SDK input probe passes 36 receive/read cases across three sessions
+and demonstrates why naive sharing loses pending data. Three independent aligned
+input buffers need 50,160 bytes, 42,959 above current application headroom before
+bookkeeping/crypto storage. This rules out a direct fixed-pool replacement.
+The next feasibility check is a smaller-record deployment against actual
+handshake, broker/client and HTTPS-upload requirements, kept separate from the
+working firmware until its limits are reviewed and verified. The
+[input capacity decision](docs/reports/wifi-static-memory/README.md#tls-input-lifetime-and-capacity-decision)
+also records the full-buffer and shared-lease alternatives. This is software
+evidence and a design checkpoint, not completed static receive storage.
 The pinned SDK's dynamic-buffer mode is rejected after a software probe
 reproduced partial-header loss across nonblocking reads. It cannot be used as a
 memory shortcut. A replacement must preserve partial input between owner calls,
