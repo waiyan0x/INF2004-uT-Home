@@ -90,10 +90,12 @@ struct cfgbind_state
     statusmon_t          monitor;
     cfgplan_t            candidate;
     activate_plan_t      plan;
-    cfgbind_slot_t       slots[UTHOME_PLAN_DEVICES];
-    bool                 b_initialized;
-    bool                 b_candidate;
-    bool                 b_busy;
+    /* Only enabled entries use driver storage; all eight identities remain
+     * in the copied plan. Slot order is not a sample's source index. */
+    cfgbind_slot_t slots[UTHOME_RUNTIME_MAX_DEVICE_TASKS];
+    bool           b_initialized;
+    bool           b_candidate;
+    bool           b_busy;
 };
 
 int cfgbind_init (cfgbind_state_t * p_state, const cfgbind_io_t * p_io);

@@ -1,4 +1,5 @@
 """Inject kernel failures into the real adapter; execution is tested on board."""
+from copy import deepcopy
 from pathlib import Path
 import shutil
 import json
@@ -164,12 +165,52 @@ class RuntimePortFailureTests(unittest.TestCase):
                                         comparison="above",threshold=0,duty_permille=200)]
             alt_path = Path(folder) / "alternate.json"
             alt_path.write_text(json.dumps(alternate,separators=(",",":")),encoding="utf-8")
+            compact = json.loads((ROOT / "configs/nodes/i2c-recipe-demo.json").read_bytes())
+            recipe = compact['devices'][0]
+            environment = json.loads((ROOT / "configs/nodes/two-environment-sensors.json").read_bytes())
+            compact['schema_version'] = '2.1.0'
+            compact['interfaces'] = compact['interfaces'][:1]
+            compact['queues'] = compact['queues'][:1] + environment['queues'][:1]
+            compact['devices'] = []
+            # Disabled entries still obey descriptor, pin and address limits.
+            for index in range(4):
+                device = deepcopy(rules['devices'][1])
+                device['device_id'] = f'output_{index}'
+                device['task']['name'] = f'output_worker_{index}'
+                device['interface']['output_gpio'] = 3 + index
+                device['enabled'] = False
+                compact['devices'].append(device)
+            for index in range(2):
+                device = deepcopy(recipe)
+                device['device_id'] = f'recipe_{index}'
+                device['task']['name'] = f'recipe_worker_{index}'
+                device['interface']['address'] = hex(0x30 + index)
+                compact['devices'].append(device)
+            for device in environment['devices']:
+                device['behaviour']['destination'] = compact['queues'][1]['id']
+                compact['devices'].append(device)
+            compact_env = {}
+            for mode in ('LATE', 'SWAP', 'FULL', 'EMPTY'):
+                candidate = deepcopy(compact)
+                if mode == 'SWAP':
+                    candidate['devices'] = [candidate['devices'][i] for i in (7, 0, 6, 1, 5, 2, 4, 3)]
+                elif mode == 'FULL':
+                    candidate['devices'][0]['enabled'] = True
+                    candidate['rules'] = [dict(rules['rules'][0], source='room_1',
+                                               target='output_0', metric='pressure_pa')]
+                elif mode == 'EMPTY':
+                    for device in candidate['devices']:
+                        device['enabled'] = False
+                compact_path = Path(folder) / f'compact-{mode}.json'
+                compact_path.write_text(json.dumps(candidate, separators=(',', ':')), encoding='utf-8')
+                compact_env[f'UTHOME_COMPACT_{mode}'] = str(compact_path)
             result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=10,
-                env=dict(os.environ, UTHOME_DISPLAY_PROFILE=str(profile_path),
+                env=dict(os.environ, **compact_env, UTHOME_DISPLAY_PROFILE=str(profile_path),
                          UTHOME_RULE_PROFILE=str(rule_path), UTHOME_ALT_RULE_PROFILE=str(alt_path)))
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("I2C permanent-lock ownership checks passed.", result.stdout)
             self.assertIn("SPI permanent-lock ownership checks passed.", result.stdout)
+            self.assertIn("Eight profile identities share four isolated driver workspaces.", result.stdout)
 
             from tools.config_transfer.workcost import decode_workcost
             costs = next(bytes.fromhex(line.split(':', 1)[1]) for line in result.stdout.splitlines()
@@ -265,7 +306,7 @@ class RuntimePortFailureTests(unittest.TestCase):
             light_path = Path(folder) / "light.json"
             light_path.write_text(json.dumps(light, separators=(",", ":")), encoding="utf-8")
             light_result = subprocess.run([str(light_binary)], capture_output=True, text=True, timeout=10,
-                env=dict(os.environ, UTHOME_DISPLAY_PROFILE=str(profile_path),
+                env=dict(os.environ, **compact_env, UTHOME_DISPLAY_PROFILE=str(profile_path),
                          UTHOME_RULE_PROFILE=str(rule_path), UTHOME_ALT_RULE_PROFILE=str(alt_path),
                          UTHOME_LIGHT_PROFILE=str(light_path)))
             self.assertEqual(light_result.returncode, 0, light_result.stdout + light_result.stderr)

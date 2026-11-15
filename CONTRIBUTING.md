@@ -108,7 +108,7 @@ rule must not require another build.
 | MQTT | Live BMP388 rule switching, target rejection, cached results and broker recovery verified; HTTPS reads work alongside MQTT | Wider secure-connection load and network allocation blocker |
 | UI | Existing Configuration Desk supports USB profiles and recovery | Runtime Markdown selection, rule loading/execution and result presentation |
 | Home Assistant | Intended host-adapter boundary is documented | Adapter and live integration are not implemented |
-| Verification | 524 target-facing tests, full 333-file C gate, checked target image and unchanged memory budgets; prior image passed live Wi-Fi/MQTT/BMP388 and HTTPS reads | New lwIP-record image on hardware, runtime SPI/UART, prolonged combined load and whole-system resource acceptance |
+| Verification | 524 target-facing tests, full 333-file C gate, checked target image and unchanged memory budgets; prior image passed live Wi-Fi/MQTT/BMP388 and HTTPS reads | Current image on hardware, runtime SPI/UART, prolonged combined load and whole-system resource acceptance |
 
 The [15 November hardware check](firmware/src/network/README.md#current-hardware-check)
 resolved the observed Wi-Fi join failure with an explicit startup-power setting.
@@ -119,11 +119,13 @@ also passed the BMP388 rule-switching and rejection sequence, host reopen and
 broker recovery. The allocation requirement and complete three-protocol/UI/Home
 Assistant demonstration remain open.
 
-The current fixed-network-record build uses 260,746 of 278,528 fixed DRAM bytes,
-leaving 17,782 bytes in the total budget and 15,832 in the application group.
+The current build uses 256,074 of 278,528 fixed DRAM bytes, leaving 22,454 bytes
+in the total budget and 20,504 in the application group. Reserving driver
+workspaces for the four enabled devices, while retaining eight profile entries,
+reclaimed 4,672 bytes from the preceding fixed-network-record build.
 MQTT still has only 8 bytes within its module reservation; future network storage
 needs its own explicit reservation. Generated verification is under ignored
-`build/lwip-records/`. Fixed-linker fit is not free-heap or stack
+`build/binding-memory/`. Fixed-linker fit is not free-heap or stack
 acceptance; TLS/TCP/IP allocation remains a concrete integration blocker.
 
 ### 1. Close session and resource risks first
@@ -144,12 +146,12 @@ A reconnect never authorizes repeating a write with a new ID.
 
 Verification: all 524 target-facing tests pass. The full 333-file C standard
 gate, manual review, fresh ESP32-C3 build, source-snapshot verification and unchanged
-group/total fixed-memory caps pass. New tests cover independent lwIP record
-exhaustion, cleanup, interrupt-mask restoration and 1,000 lease cycles, plus
-exact allocator-binding/link enforcement. The affected 46 qualification tests
-passed again after correcting archive link order. These are software/build
-results; the new lwIP-record image remains unflashed. Prior live network checks
-above apply to the previous image.
+group/total fixed-memory caps pass. The binding tests cover eight-entry profiles
+with four enabled devices at late/interleaved positions, unchanged sample
+identities, repeated driver replacement, five-worker rejection, rollback and
+retained cleanup failures. Existing lwIP capacity/lifecycle tests and all 46
+qualification tests also pass. These are software/build results; this image
+remains unflashed. Prior live network checks above apply to the previous image.
 
 The [current resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
 identifies reachable heap allocation in mbedTLS state/buffers,
@@ -164,7 +166,7 @@ MQTT plus two HTTPS sessions. `c3lrec` adds 352 fixed bytes for six connection
 records and two datagram envelopes, shared by listeners and active sockets.
 It adds no task or lock and returns deterministic errors on exhaustion.
 Even one current encryption-buffer pair needs 21,146 bytes, above the remaining
-15,832-byte application headroom. A bounded
+20,504-byte application headroom. A bounded
 allocator therefore also needs a reviewed buffer-lifetime/capacity design.
 Keep the existing caps and TLS checks; sizing is not a measured runtime peak.
 The pinned SDK's dynamic-buffer mode is rejected after a software probe

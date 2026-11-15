@@ -86,8 +86,12 @@ manifest stays conservative. The original GPIO2 prototype is not deployable.
 
 ## Activation and recovery
 
-Admission writes candidate scratch only. The binder owns scratch and eight
-distinct instance slots; never reinitialize or overwrite retained live resources.
+Admission writes candidate scratch only. The binder retains eight device
+descriptions and four distinct driver workspaces, matching the existing limit
+of four enabled workers. Enabled entries use workspaces in their plan order;
+disabled entries have no driver context but still reserve identity and wiring.
+Sample source indices remain the original positions in the eight-entry plan,
+not workspace indices. Never reinitialize or overwrite retained live resources.
 Shared buses open only for enabled users. Plan-level resources configure before
 worker preparation and release after every worker/driver cleanup succeeds.
 Failed configure also receives checked release; failed cleanup retains ownership.
@@ -289,6 +293,30 @@ context lifetimes are unchanged. Routing uses named sample constants and the
 shared sample-size lookup; the admitted IDs fit the existing uint16 queue field.
 Resource counters remain bounded by admission, include disabled reservations and
 advance explicitly. These changes need no ABI, wire-value or deviation changes.
+
+The four-workspace change was reviewed against the manual BARR-C checklist:
+C99 and existing paired modules; typed, application-lifetime union storage;
+bounded `size_t` indices checked before selecting a workspace; initialized NULL
+contexts for disabled entries; and unchanged callback signatures. Admission
+copies configuration and context pointers without writing any live workspace.
+Activation must finish stopping and cleaning every old driver before reuse;
+a failed release blocks replacement and retains its ownership. Rollback rebuilds
+the previous plan from copied settings. Source indices, descriptor limits,
+wiring reservations and worker counts remain unchanged. The in-memory binder
+layout is smaller, requiring a fresh target build, but no wire or saved-profile
+layout changes. No new production casts, heap calls, locks or deviations are
+introduced. Host fixture casts expose existing character arrays as read-only
+bytes for the synchronous parser; their storage remains alive throughout each
+call, with byte alignment and no unrelated structure reinterpretation.
+
+The binding harness alternates twenty times between eight-entry plans with
+four enabled devices at late and interleaved positions. It changes the driver
+type occupying each workspace, checks actual raw/environment sample source
+indices, and verifies that validation does not alter live storage. Five enabled
+workers are rejected; configure failure restores the old four-device plan;
+failed bus release retains ownership until explicit recovery; an all-disabled
+plan opens no bus. Both normal and light-diagnostic builds run these checks
+with assertions enabled and warnings treated as errors.
 
 The light diagnostic uses the same bounded plan, copied settings and static
 instance slots; its compile-time flag adds one capability bit only in the

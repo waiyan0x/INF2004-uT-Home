@@ -12,29 +12,31 @@ TCP/IP or ESP-TLS contexts.
 The current build uses pinned ESP-IDF 6.1
 `fff9895c82d744c7237be8847347bdd1b07c6643`, kernel
 `ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2` and the maintained owned patches.
-The 15 November fixed-lwIP-record build used the existing private bench settings;
-no board was flashed. Local generated evidence is in `build/lwip-records/` and
-the isolated build directory `C:/Users/kkak4/esp/uthome-lwip-records-20261115b/`.
+The 15 November build with four driver workspaces used the existing private
+bench settings; no board was flashed. Local generated evidence is in
+`build/binding-memory/` and the isolated build directory
+`C:/Users/kkak4/esp/uthome-binding-memory-20261115/`.
 The target's `evidence.json` SHA-256 is
-`02106a968b0cc9771a2117cd7fd91774120bce1a458b05b1fb04bb9bb5b5d547`.
+`945f0057acf8d1703cfac6c57dbb19f5e94510913bf13f98b64e4f0e4ddb8a42`.
 The application image SHA-256 is
-`19eefd77cb0a39abf4112bf3134245eddc41c9ff5ef095399aa61971ce39f897`.
+`2d212019df4245afe49d611a182de295f51c5fae880c09937e9b5ef8bccec21b`.
 Source-snapshot verification passes against the original build inputs.
 
 | Fixed-memory group | Linked bytes | Unchanged cap | Headroom |
 |---|---:|---:|---:|
-| Application | 131,624 | 147,456 | 15,832 |
+| Application | 126,952 | 147,456 | 20,504 |
 | Task pool | 18,499 | 18,560 | 61 |
 | SDK/kernel | 54,237 | 55,296 | 1,059 |
 | RAM code | 56,386 | 57,152 | 766 |
-| Total DRAM | 260,746 | 278,528 | 17,782 |
+| Total DRAM | 256,074 | 278,528 | 22,454 |
 | RTC, separate from DRAM | 60 | 128 | 68 |
 
 These are linker measurements, **not runtime free heap, task stack margins or
 ESP timing**. The published mailbox baseline (`eede615`) used 275,930 fixed DRAM
-bytes. Compact configuration views saved 24,600 bytes; fixed ESP-TLS and lwIP
-records reserve part of that reclaimed capacity. The current image is
-**15,184 bytes smaller than that baseline**. All aggregate caps are unchanged.
+bytes. Compact configuration views saved 24,600 bytes and enabled-only driver
+workspaces save another 4,672; fixed ESP-TLS and lwIP records reserve part of
+that reclaimed capacity. The current image is **19,856 bytes smaller than that
+baseline**. All aggregate caps are unchanged.
 MQTT remains 1,816/1,824 bytes and HTTPS 3,098/3,104; future network storage needs
 an explicit module reservation within the application cap.
 
@@ -54,6 +56,25 @@ mutations checked against an independent Python decoder, plus explicit numeric,
 string, capacity, depth and lifetime cases. Actual owned C is compiled with
 warnings as errors; allocator interception verifies no reader allocation calls.
 They remain part of the full target-facing regression suite.
+
+### Driver workspaces for enabled entries
+
+`cfgbind` now reserves four typed driver workspaces, matching the existing
+four-worker limit, while retaining eight configuration entries. Each target
+workspace occupies 1,168 bytes; removing four saves **4,672 fixed DRAM bytes**.
+The containing `c3app` module falls from 42,400 to **37,728 bytes**, with its
+transaction reservation reduced to the latter value. No group cap increases.
+Disabled entries still reserve names and wiring. Enabled entries retain their
+original sample source indices and reuse storage only after checked teardown.
+See the [binding contract and manual review](../../../firmware/src/config/README.md#activation-and-recovery).
+
+The full **524-test target-facing suite** and **333-file C gate** pass, as do
+the manual review, warnings-as-errors target build and fixed-memory budgets.
+New binding scenarios exercise late/interleaved positions, actual raw/environment
+sample identities, repeated changes of driver type, five-worker rejection,
+rollback, retained cleanup failure and an all-disabled plan. Both normal and
+light-diagnostic host variants run them. These are software/build results;
+the smaller image has not been installed or tested with physical peripherals.
 
 ### Fixed ESP-TLS records
 
@@ -110,9 +131,10 @@ overlap and the new image's live-network validation still require the board.
 
 `c3lrec` uses **352 bytes** within its own 352-byte application reservation:
 six 52-byte `struct netconn` objects, two 16-byte `struct netbuf` objects and
-eight one-byte lease flags. Only this owned object adds writable object storage
-relative to the earlier working Wi-Fi image. Overall linked DRAM grows by 360
-bytes; RAM-code and task-pool usage are unchanged. Aggregate caps are unchanged.
+eight one-byte lease flags. The fixed-record change added 352 bytes of writable
+object storage relative to the earlier working Wi-Fi image. Its linked DRAM
+grew by 360 bytes; RAM-code and task-pool usage were unchanged. Aggregate caps
+are unchanged.
 
 Source-scoped replacements cover all NETCONN/NETBUF allocations and releases in
 the pinned `api_lib.c`, `api_msg.c` and `netbuf.c`. SDK protocol and cleanup code
@@ -130,6 +152,13 @@ the final build explicitly retains the adapter and native exclusion functions.
 All **46 qualification tests** passed again after that correction. Target
 qualification checks the three exact substitution scopes, linked flash helpers
 and SDK lifecycle; the generic allocator remains for other lwIP pools.
+
+The preceding fixed-record evidence remains in `build/lwip-records/` and
+`C:/Users/kkak4/esp/uthome-lwip-records-20261115b/`. That build's unchanged
+`evidence.json` SHA-256 is
+`02106a968b0cc9771a2117cd7fd91774120bce1a458b05b1fb04bb9bb5b5d547`;
+its application image SHA-256 is
+`19eefd77cb0a39abf4112bf3134245eddc41c9ff5ef095399aa61971ce39f897`.
 
 The new image is **unflashed**. The earlier working image remains on the ESP;
 the configured hotspot was not visible during this step. Live reconnect,
@@ -178,7 +207,7 @@ Local probe source, compiler arguments and results are in `build/compact-json/`.
 
 The context is already counted in `c3tls`; do not reserve it twice. Each remaining
 record-buffer pair needs **21,146 bytes**, before certificates, keys, transforms
-and handshake allocations. Even one pair exceeds the current 15,832-byte application
+and handshake allocations. Even one pair exceeds the current 20,504-byte application
 headroom; two pairs need 42,292 bytes and three need 63,438. These are compile-time
 capacity observations with the current buffer lifetimes, not measured peaks.
 
@@ -186,6 +215,18 @@ The next design must account for buffer and handshake lifetimes as well as
 bounded allocation. The SDK's dynamic-record-buffer mode is unsuitable as-is
 for the nonblocking application, as the probe below demonstrates. No mbedTLS
 allocator binding or connection-policy change is implemented here.
+
+The pinned mbedTLS `ssl.h` contract for `mbedtls_ssl_conf_max_frag_len` also
+rules out treating a smaller receive buffer as a transparent fix. The MQTT
+client must explicitly request negotiation; the HTTPS server setting limits
+what it sends, without forcing arbitrary clients to send small records. For
+TLS, the documented setting affects application data, not handshake messages.
+The selected image uses TLS 1.2; TLS 1.3 and dynamic buffers remain disabled.
+Small MQTT packets or HTTP responses therefore do not prove a small TLS input
+requirement. Any replacement must retain partial headers, unread plaintext and
+record/cipher state across nonblocking retries, with a defined capacity policy
+for one MQTT and two HTTPS connections. Certificate validation and the existing
+dynamic-buffer rejection gates must remain intact.
 
 ### Dynamic TLS buffer assessment
 

@@ -153,7 +153,7 @@ int cfgbind_init (cfgbind_state_t * p_state, const cfgbind_io_t * p_io)
         return -1;
     }
     p_state->p_io = p_io;
-    for (size_t index = 0U; index < UTHOME_PLAN_DEVICES; ++index)
+    for (size_t index = 0U; index < UTHOME_RUNTIME_MAX_DEVICE_TASKS; ++index)
     {
         p_state->slots[index].p_owner = p_state;
     }
@@ -693,6 +693,7 @@ static bool make_plan (cfgbind_state_t * p_state)
     uint8_t display_pair   = 0U;
     uint8_t output_channel = 0U;
     uint8_t line_slot      = 0U;
+    size_t  active_slot    = 0U;
     for (size_t index = 0U; index < p_plan->device_count; ++index)
     {
         const cfgplan_device_t * p_device       = &p_candidate->devices[index];
@@ -751,12 +752,22 @@ static bool make_plan (cfgbind_state_t * p_state)
         memcpy(p_bound->component.name,
                p_device->name,
                sizeof(p_bound->component.name));
-        p_bound->component.p_context    = &p_state->slots[index];
+        if (p_device->b_enabled)
+        {
+            if (active_slot >= UTHOME_RUNTIME_MAX_DEVICE_TASKS)
+            {
+                return false;
+            }
+            /* Candidate construction never changes a live slot. Activation
+             * stops and cleans the old plan before reusing this storage. */
+            p_bound->component.p_context = &p_state->slots[active_slot];
+            ++active_slot;
+        }
         p_bound->component.p_operations = &g_device_ops;
         p_bound->worker =
             (rt_port_worker_t){.p_step    = step,
                                .p_cleanup = cleanup,
-                               .p_context = &p_state->slots[index]};
+                               .p_context = p_bound->component.p_context};
         p_bound->task =
             (rt_port_task_config_t){.priority = (uint8_t)p_device->priority,
                                     .stack_size_bytes = p_device->stack_bytes,

@@ -65,6 +65,8 @@ static void verify_output_binding (uint64_t * p_clock);
 static void verify_light_binding (void);
 static void verify_recipe_binding (void);
 static void verify_recipe_wire (uint32_t length, uint8_t first);
+static void verify_compact_binding (void);
+static void check_compact_sources (const activate_plan_t * p_plan);
 static int read_slot (void *    p_context,
                       unsigned  slot,
                       size_t    offset,
@@ -242,9 +244,117 @@ void bindtest_run (uint64_t * p_clock)
         verify_light_binding();
     }
     verify_recipe_binding();
+    verify_compact_binding();
     disctest_run(&g_io, &g_store);
     puts("Production admission/binding, shared resources, driver replacement "
          "and safe-empty recovery passed.");
+}
+
+/** @brief Keep sparse source identities independent of compact storage slots.
+ */
+static void check_compact_sources (const activate_plan_t * p_plan)
+{
+    size_t active = 0U;
+    assert(8U == p_plan->device_count);
+    for (size_t index = 0U; index < p_plan->device_count; ++index)
+    {
+        const activate_device_t * p_device = &p_plan->devices[index];
+        const rt_port_worker_t *  p_worker = &p_device->worker;
+        if (p_device->b_enabled)
+        {
+            assert(active < UTHOME_RUNTIME_MAX_DEVICE_TASKS);
+            assert(&g_binding.slots[active] == p_device->component.p_context);
+            assert(p_worker->p_context == p_device->component.p_context);
+            assert(0 == p_worker->p_step(p_worker->p_context));
+            if (0 == strncmp(p_device->component.name, "recipe_", 7U))
+            {
+                sample_raw_t sample = {0};
+                assert(0 == shared_consume(
+                                0, UTHOME_SAMPLE_RAW, &sample, sizeof(sample)));
+                assert(index == sample.header.source_index);
+            }
+            else
+            {
+                sample_environment_t sample = {0};
+                assert(0 == shared_consume(1,
+                                           UTHOME_SAMPLE_ENVIRONMENT,
+                                           &sample,
+                                           sizeof(sample)));
+                assert(index == sample.header.source_index);
+            }
+            ++active;
+        }
+        else
+        {
+            assert(NULL == p_device->component.p_context);
+            assert(NULL == p_worker->p_context);
+        }
+    }
+    assert(4U == active);
+}
+
+/** @brief Reuse only stopped slots while preserving rollback and recovery. */
+static void verify_compact_binding (void)
+{
+    const cfgctrl_ops_t * p_ops = cfgbind_operations();
+    cfgbind_slot_t        before[UTHOME_RUNTIME_MAX_DEVICE_TASKS] = {0};
+    activate_plan_t       previous                                = {0};
+    assert(4U == (sizeof(g_binding.slots) / sizeof(g_binding.slots[0])));
+    for (size_t cycle = 0U; cycle < 20U; ++cycle)
+    {
+        load_profile((0U == (cycle % 2U)) ? "UTHOME_COMPACT_LATE"
+                                          : "UTHOME_COMPACT_SWAP");
+        memcpy(before, g_binding.slots, sizeof(before));
+        assert(0 == p_ops->p_validate(&g_binding,
+                                      (const uint8_t *)g_display_profile,
+                                      strlen(g_display_profile)));
+        assert(0 == memcmp(before, g_binding.slots, sizeof(before)));
+        assert(0 == p_ops->p_activate(&g_binding));
+        check_compact_sources(&g_binding.plan);
+    }
+    previous = g_binding.plan;
+    memcpy(before, g_binding.slots, sizeof(before));
+    const unsigned opens = g_opens;
+    load_profile("UTHOME_COMPACT_FULL");
+    assert(0 != p_ops->p_validate(&g_binding,
+                                  (const uint8_t *)g_display_profile,
+                                  strlen(g_display_profile)));
+    assert(opens == g_opens);
+    assert(0 == memcmp(before, g_binding.slots, sizeof(before)));
+    check_compact_sources(&previous);
+    assert(0 == p_ops->p_validate(&g_binding,
+                                  (const uint8_t *)g_distance,
+                                  strlen(g_distance)));
+    g_pulses[0].open_error = PULSEIO_IO;
+    assert(1 == p_ops->p_activate(&g_binding));
+    g_pulses[0].open_error = 0;
+    check_compact_sources(&previous);
+    assert(0 == p_ops->p_validate(&g_binding,
+                                  (const uint8_t *)g_distance,
+                                  strlen(g_distance)));
+    g_close_error = -1;
+    assert(-1 == p_ops->p_activate(&g_binding));
+    assert(NULL != g_binding.p_i2c);
+    for (size_t index = 0U; index < UTHOME_RUNTIME_MAX_DEVICE_TASKS; ++index)
+    {
+        assert(0 == strcmp(before[index].component.name,
+                           g_binding.slots[index].component.name));
+    }
+    g_close_error = 0;
+    assert(0 == p_ops->p_recover(&g_binding));
+    assert(NULL == g_binding.p_i2c);
+    load_profile("UTHOME_COMPACT_EMPTY");
+    assert(0 == p_ops->p_validate(&g_binding,
+                                  (const uint8_t *)g_display_profile,
+                                  strlen(g_display_profile)));
+    assert(0 == p_ops->p_activate(&g_binding));
+    for (size_t index = 0U; index < g_binding.plan.device_count; ++index)
+    {
+        assert(NULL == g_binding.plan.devices[index].component.p_context);
+    }
+    assert(NULL == g_binding.p_i2c);
+    assert(0 == activate_clear());
+    puts("Eight profile identities share four isolated driver workspaces.");
 }
 
 /** @brief Reconfigure one compiled engine, publish faults and retain rollback.
