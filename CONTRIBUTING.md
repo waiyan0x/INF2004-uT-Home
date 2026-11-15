@@ -108,7 +108,7 @@ rule must not require another build.
 | MQTT | Live BMP388 rule switching, target rejection, cached results and broker recovery verified; HTTPS reads work alongside MQTT | Wider secure-connection load and network allocation blocker |
 | UI | Existing Configuration Desk supports USB profiles and recovery | Runtime Markdown selection, rule loading/execution and result presentation |
 | Home Assistant | Intended host-adapter boundary is documented | Adapter and live integration are not implemented |
-| Verification | 524 target-facing tests, full 333-file C gate, checked target image and unchanged memory budgets; prior image passed live Wi-Fi/MQTT/BMP388 and HTTPS reads | Current image on hardware, runtime SPI/UART, prolonged combined load and whole-system resource acceptance |
+| Verification | 531 target-facing tests plus 59 affected tests rerun after SDK-binding corrections; full 337-file C gate, checked target image, SDK setup/free instruction probe and unchanged memory budgets | Current image on hardware, runtime SPI/UART, prolonged combined load and whole-system resource acceptance |
 
 The [15 November hardware check](firmware/src/network/README.md#current-hardware-check)
 resolved the observed Wi-Fi join failure with an explicit startup-power setting.
@@ -119,13 +119,15 @@ also passed the BMP388 rule-switching and rejection sequence, host reopen and
 broker recovery. The allocation requirement and complete three-protocol/UI/Home
 Assistant demonstration remain open.
 
-The current build uses 256,074 of 278,528 fixed DRAM bytes, leaving 22,454 bytes
-in the total budget and 20,504 in the application group. Reserving driver
+The current build uses 269,378 of 278,528 fixed DRAM bytes, leaving 9,150 bytes
+in the total budget and 7,201 in the application group. Reserving driver
 workspaces for the four enabled devices, while retaining eight profile entries,
-reclaimed 4,672 bytes from the preceding fixed-network-record build.
+reclaimed 4,672 bytes. Three TLS output buffers now reserve 13,303 fixed bytes
+instead of using the heap for those requests; this changes allocation strategy,
+not TLS's total memory requirement.
 MQTT still has only 8 bytes within its module reservation; future network storage
 needs its own explicit reservation. Generated verification is under ignored
-`build/binding-memory/`. Fixed-linker fit is not free-heap or stack
+`build/tls-output/`. Fixed-linker fit is not free-heap or stack
 acceptance; TLS/TCP/IP allocation remains a concrete integration blocker.
 
 ### 1. Close session and resource risks first
@@ -144,13 +146,17 @@ operation kind, byte counts and bus settings. One-shot CLI status and explicit
 boot binding are available; the persistent controller is described in Step 2.
 A reconnect never authorizes repeating a write with a new ID.
 
-Verification: all 524 target-facing tests pass. The full 333-file C standard
+Verification: 531 target-facing tests passed; all 59 affected TLS/qualification
+tests passed again after the SDK-binding correction. The full 337-file C standard
 gate, manual review, fresh ESP32-C3 build, source-snapshot verification and unchanged
 group/total fixed-memory caps pass. The binding tests cover eight-entry profiles
 with four enabled devices at late/interleaved positions, unchanged sample
 identities, repeated driver replacement, five-worker rejection, rollback and
-retained cleanup failures. Existing lwIP capacity/lifecycle tests and all 46
-qualification tests also pass. These are software/build results; this image
+retained cleanup failures. TLS output tests cover three-buffer capacity, erasure,
+setup failure, same-sized unrelated allocations and 1,000 reuse cycles. The
+compiled SDK setup/free instruction probe also passes, with heap and hash calls
+doubled; it performs no TLS handshake. All 47 qualification tests pass.
+These are software/build results; this image
 remains unflashed. Prior live network checks above apply to the previous image.
 
 The [current resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
@@ -165,8 +171,9 @@ typed ESP-TLS contexts, three error records and temporary names, preserving one
 MQTT plus two HTTPS sessions. `c3lrec` adds 352 fixed bytes for six connection
 records and two datagram envelopes, shared by listeners and active sockets.
 It adds no task or lock and returns deterministic errors on exhaustion.
-Even one current encryption-buffer pair needs 21,146 bytes, above the remaining
-20,504-byte application headroom. A bounded
+`c3tout` now supplies three complete output buffers and preserves the SDK's
+setup/cleanup lifecycle. Even one remaining TLS input buffer needs 16,717 bytes,
+above the remaining 7,201-byte application headroom. A bounded
 allocator therefore also needs a reviewed buffer-lifetime/capacity design.
 Keep the existing caps and TLS checks; sizing is not a measured runtime peak.
 The pinned SDK's dynamic-buffer mode is rejected after a software probe

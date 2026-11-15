@@ -12,30 +12,30 @@ TCP/IP or ESP-TLS contexts.
 The current build uses pinned ESP-IDF 6.1
 `fff9895c82d744c7237be8847347bdd1b07c6643`, kernel
 `ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2` and the maintained owned patches.
-The 15 November build with four driver workspaces used the existing private
+The 15 November build with fixed TLS output buffers used the existing private
 bench settings; no board was flashed. Local generated evidence is in
-`build/binding-memory/` and the isolated build directory
-`C:/Users/kkak4/esp/uthome-binding-memory-20261115/`.
+`build/tls-output/` and the isolated build directory
+`C:/Users/kkak4/esp/uthome-tls-output-20261115b/`.
 The target's `evidence.json` SHA-256 is
-`945f0057acf8d1703cfac6c57dbb19f5e94510913bf13f98b64e4f0e4ddb8a42`.
+`c14034bf733a0899f7c80b243694a98a63934a6d6e3808ab3f35b2892bc0c3de`.
 The application image SHA-256 is
-`2d212019df4245afe49d611a182de295f51c5fae880c09937e9b5ef8bccec21b`.
+`33e9ef3f16d37a6ade28cc3c38cd8bbe1fbafb571d24c23f1342b31720ce15fa`.
 Source-snapshot verification passes against the original build inputs.
 
 | Fixed-memory group | Linked bytes | Unchanged cap | Headroom |
 |---|---:|---:|---:|
-| Application | 126,952 | 147,456 | 20,504 |
+| Application | 140,255 | 147,456 | 7,201 |
 | Task pool | 18,499 | 18,560 | 61 |
-| SDK/kernel | 54,237 | 55,296 | 1,059 |
+| SDK/kernel | 54,238 | 55,296 | 1,058 |
 | RAM code | 56,386 | 57,152 | 766 |
-| Total DRAM | 256,074 | 278,528 | 22,454 |
+| Total DRAM | 269,378 | 278,528 | 9,150 |
 | RTC, separate from DRAM | 60 | 128 | 68 |
 
 These are linker measurements, **not runtime free heap, task stack margins or
 ESP timing**. The published mailbox baseline (`eede615`) used 275,930 fixed DRAM
 bytes. Compact configuration views saved 24,600 bytes and enabled-only driver
-workspaces save another 4,672; fixed ESP-TLS and lwIP records reserve part of
-that reclaimed capacity. The current image is **19,856 bytes smaller than that
+workspaces save another 4,672; fixed ESP-TLS/lwIP records and TLS output buffers
+reserve part of that reclaimed capacity. The current image is **6,552 bytes smaller than that
 baseline**. All aggregate caps are unchanged.
 MQTT remains 1,816/1,824 bytes and HTTPS 3,098/3,104; future network storage needs
 an explicit module reservation within the application cap.
@@ -68,13 +68,61 @@ Disabled entries still reserve names and wiring. Enabled entries retain their
 original sample source indices and reuse storage only after checked teardown.
 See the [binding contract and manual review](../../../firmware/src/config/README.md#activation-and-recovery).
 
-The full **524-test target-facing suite** and **333-file C gate** pass, as do
+For the driver-workspace change, the **524-test target-facing suite** and
+**333-file C gate** passed, as did
 the manual review, warnings-as-errors target build and fixed-memory budgets.
 New binding scenarios exercise late/interleaved positions, actual raw/environment
 sample identities, repeated changes of driver type, five-worker rejection,
 rollback, retained cleanup failure and an all-disabled plan. Both normal and
 light-diagnostic host variants run them. These are software/build results;
 the smaller image has not been installed or tested with physical peripherals.
+
+That preceding build remains in `build/binding-memory/` and
+`C:/Users/kkak4/esp/uthome-binding-memory-20261115/`. Its unchanged
+`evidence.json` SHA-256 is
+`945f0057acf8d1703cfac6c57dbb19f5e94510913bf13f98b64e4f0e4ddb8a42`;
+its application image SHA-256 is
+`2d212019df4245afe49d611a182de295f51c5fae880c09937e9b5ef8bccec21b`.
+
+### Fixed TLS output buffers
+
+`c3tout` reserves **13,303 fixed bytes** within a 13,312-byte module budget:
+three 4,429-byte output buffers, each in an eight-byte-aligned 4,432-byte slot,
+three lease flags and the current setup pointer. This preserves one MQTT and
+two HTTPS connections. Total linked DRAM grew by 13,304 bytes from the preceding
+driver-workspace build, including one additional SDK/linker byte. It moves
+storage into the fixed budget; it does not reduce TLS's total memory need.
+
+Only `ssl_tls.c` binds its allocator/release calls to the adapter. A wrapper
+identifies the output-buffer request during the original synchronous SDK setup;
+other allocations retain the SDK heap path. Exhausting the three output slots
+fails setup without an output-buffer heap fallback. SDK cleanup erases the full
+slot before reuse. The SDK retains record offsets, encryption, partial-send
+state and cleanup order. Calls belong to the existing serialized application
+owner. No task, lock, certificate change or vendor-source edit is added. See the
+[contract and manual review](../../../firmware/hal/ports/esp32c3/network/README.md#tls-output-c-review).
+
+The **531-test target-facing suite passed**, followed by all **59 affected
+TLS/qualification tests** after correcting the SDK bindings. These include
+three-slot capacity/alignment, exhaustion, setup-failure cleanup, zeroization,
+same-sized unrelated allocation forwarding and 1,000 reuse cycles. The full
+**337-file C gate**, manual review, warnings-as-errors target build, original
+source-snapshot verification and unchanged fixed-memory caps pass. The first
+target build exposed ineffective allocator substitutions and a recursive native
+setup alias; its failed evidence remains in the unsuffixed local build folder.
+The final `b` build corrects both; neither image was flashed.
+
+The [SDK instruction probe](../../../tools/target/README.md#tls-output-allocation-probe)
+also passes on the final ELF. It executes 12 original SDK setup calls and 11
+cleanup calls, exercising a client plus two servers, fourth-session rejection,
+failure at each remaining setup allocation, erasure and reuse. No output-buffer
+request reaches the heap double. SDK heap, ROM byte-copy and PSA hash calls are
+doubled; this proves the compiled setup/cleanup path, **not a TLS handshake,
+network exchange, board timing or runtime memory peak**. Its report is
+`build/tls-output/sdk-output-proof.json`, bound to ELF SHA-256
+`50bd77870ef7d81ddc18ea26882c96c33eee200d167051637184f9e0b26d337a`.
+Live reconnect, overlapping MQTT/HTTPS clients and failure recovery remain open
+for this new allocation path.
 
 ### Fixed ESP-TLS records
 
@@ -171,10 +219,11 @@ and TLS state still allocate from the heap.
 
 The following paths were checked in the pinned SDK source and selected compiler
 commands. The ELF still links `esp_tls_init`, `mbedtls_ssl_setup`,
-`esp_mbedtls_mem_calloc`, `netconn_alloc` and `memp_malloc`. The mbedTLS/lwIP
-units retain their original allocators outside the three record-adapted API
-units. ESP-TLS records/names, lwIP connection/datagram records and mailbox
-backing use owned stores. Linking an allocator alone
+`esp_mbedtls_mem_calloc`, `netconn_alloc` and `memp_malloc`. Scoped substitutions
+cover two ESP-TLS units, three lwIP API units and `ssl_tls.c`; the TLS output
+adapter forwards all other requests to the SDK. ESP-TLS records/names, TLS
+output buffers, lwIP connection/datagram records and mailbox backing use owned
+stores. Linking an allocator alone
 would not prove reachability;
 the owned entry paths below establish application use.
 
@@ -184,8 +233,9 @@ the owned entry paths below establish application use.
 | Native task stacks/notifications | `c3task` and the owned compatibility patch reserve/seal startup slots | Software and target-link checks pass; runtime stack/creation counters need the board |
 | Native queues/semaphores/mutexes/event groups | `c3nq`/`c3event` pre-create native objects; SDK create/delete APIs lease/release fixed records | Bounded exhaustion/reuse; does not cover surrounding SDK heap storage |
 | ESP-TLS contexts, error records and temporary names | `c3mqtt`/`c3https` still call the SDK lifecycle; two SDK units bind allocation to `c3tls`, and error trackers use linked fixed replacements | Context/name allocation is bounded for the selected three-session path; live handshake/reconnect acceptance remains |
-| MQTT and HTTPS encryption state | After fixed context admission, SDK setup enters mbedTLS for certificates, keys, persistent TLS hostnames and record buffers | Still heap-backed on first connection/reconnect; outside the contemplated Wi-Fi-driver exception |
-| TLS record buffers | `ssl_tls.c` allocates input/output buffers; `port/esp_mem.c` routes calloc to internal heap | Internal allocator, 16,384-byte input and 4,096-byte output content lengths; dynamic-buffer option off. This option does not eliminate allocation |
+| MQTT and HTTPS encryption state | After fixed context admission, SDK setup enters mbedTLS for certificates, keys, persistent TLS hostnames and input buffers | Still heap-backed on first connection/reconnect; outside the contemplated Wi-Fi-driver exception |
+| TLS output buffers | `ssl_tls.c` setup leases one of three complete `c3tout` buffers; SDK failure/normal cleanup release it | Fixed 4,429-byte buffers for 4,096-byte content; software and compiled SDK setup/cleanup proof pass, live acceptance pending |
+| TLS input buffers | `ssl_tls.c` forwards input allocation to the SDK internal heap | 16,717-byte buffer for 16,384-byte content per connection; dynamic-buffer option remains off |
 | lwIP connection/datagram records | Three API units bind NETCONN/NETBUF allocation/free to typed `c3lrec` stores | Six connections/two envelopes; software and target proof pass, live acceptance pending |
 | TCP/IP packet and control-block pools | `lwipopts.h` still sets `MEM_LIBC_MALLOC=1`, `MEMP_MEM_MALLOC=1`; other units keep SDK allocators | Application network activity still reaches general heap-backed pools |
 | lwIP mailbox backing | Wi-Fi builds link `c3lbox`; messages use existing `c3nq` payloads | Bounded software/target-link proof passes; shared capacity needs live acceptance |
@@ -205,16 +255,18 @@ Local probe source, compiler arguments and results are in `build/compact-json/`.
 | `MBEDTLS_SSL_IN_BUFFER_LEN` | 16,717 |
 | `MBEDTLS_SSL_OUT_BUFFER_LEN` | 4,429 |
 
-The context is already counted in `c3tls`; do not reserve it twice. Each remaining
-record-buffer pair needs **21,146 bytes**, before certificates, keys, transforms
-and handshake allocations. Even one pair exceeds the current 20,504-byte application
-headroom; two pairs need 42,292 bytes and three need 63,438. These are compile-time
+Contexts are already counted in `c3tls`, and output buffers in `c3tout`; do not
+reserve them twice. Each remaining input buffer needs **16,717 bytes**, before
+certificates, keys, transforms and handshake allocations. Even one exceeds the
+current 7,201-byte application headroom; three need 50,151 bytes. The compiled
+setup probe requests 84-, 152-, 2,448- and 16,717-byte SDK allocations per setup;
+it does not run the handshake or establish a whole-connection peak. These are
 capacity observations with the current buffer lifetimes, not measured peaks.
 
 The next design must account for buffer and handshake lifetimes as well as
 bounded allocation. The SDK's dynamic-record-buffer mode is unsuitable as-is
-for the nonblocking application, as the probe below demonstrates. No mbedTLS
-allocator binding or connection-policy change is implemented here.
+for the nonblocking application, as the probe below demonstrates. The output
+adapter does not change input storage or the connection policy.
 
 The pinned mbedTLS `ssl.h` contract for `mbedtls_ssl_conf_max_frag_len` also
 rules out treating a smaller receive buffer as a transparent fix. The MQTT

@@ -34,23 +34,26 @@ also covers rule switching, host reopen and broker recovery on the board.
 Generated verification is local-only under `build/controller/`.
 
 **Open blocker: network allocation.** The real target passes unchanged
-fixed-memory budgets (256,074/278,528 DRAM bytes), but reachable TLS/TCP/IP heap
+fixed-memory budgets (269,378/278,528 DRAM bytes), but reachable TLS/TCP/IP heap
 allocations still prevent whole-system static-memory acceptance. Compact
 configuration views reclaimed 24,600 fixed DRAM bytes; lwIP mailboxes use the
 existing fixed queue storage. ESP-TLS contexts, error records and temporary
 names now use 9,054 fixed bytes from that reclaimed capacity, with no heap
 fallback for these records. Six lwIP connection records and two datagram
-envelopes now use another 352 fixed bytes. The 524-test target-facing suite,
-333-file C gate, manual review and fresh target build pass. Four enabled driver
-workspaces now replace eight reserved workspaces, saving a further 4,672 bytes
+envelopes now use another 352 fixed bytes. Three TLS output buffers now use
+13,303 fixed bytes, preserving one MQTT and two HTTPS connections. The
+531-test target-facing suite passed; all 59 affected TLS/qualification tests
+passed again after correcting SDK bindings. The 337-file C gate, manual review,
+fresh target build and direct SDK setup/cleanup instruction probe pass. Four
+enabled driver workspaces replace eight reserved workspaces, saving 4,672 bytes
 while retaining eight profile entries, source identities and safe rollback.
 The new image has not been installed; its live reconnect and overlapping-client
 checks remain open.
 Keep MQTT and HTTPS setup available together, with USB recovery retained. The
 pinned SDK's optional dynamic TLS buffers lost partial headers in a target-code
 software probe; the build now rejects that option. Next, design bounded TLS
-storage with persistent partial-input state and enough capacity for overlapping
-connections, then address the remaining lwIP storage. See the
+input and crypto storage with persistent partial-input state and capacity for
+overlapping connections, then address the remaining lwIP storage. See the
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
 Wi-Fi, live BMP388 MQTT rule switching and broker recovery now pass on the
 connected board. HTTPS status reads also worked while MQTT was connected.
@@ -59,9 +62,9 @@ Independent software work can continue on three-protocol Markdown coverage
 and Home Assistant display in the
 [completion plan](CONTRIBUTING.md#completion-plan). UI changes still require review.
 The host display adapter remains unimplemented. Current generated tests, gate,
-map reports are local-only under `build/binding-memory/`. Earlier lwIP and
-ESP-TLS records, configuration and TLS sizing, mailbox and session checks remain
-under `build/lwip-records/`, `build/tls-records/`, `build/compact-json/`,
+map reports are local-only under `build/tls-output/`. Earlier driver workspace,
+lwIP and ESP-TLS record, configuration and TLS sizing, mailbox and session checks remain
+under `build/binding-memory/`, `build/lwip-records/`, `build/tls-records/`, `build/compact-json/`,
 `build/network-memory/` and
 `build/step1-verification/`.
 The dynamic-buffer experiment and guard checks are local-only under

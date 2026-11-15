@@ -96,6 +96,8 @@ RUNTIME_SOURCE_FILES = {
     'firmware/hal/ports/esp32c3/network/c3lbox.h': 'hal/c3lbox.h',
     'firmware/hal/ports/esp32c3/network/c3tls.c': 'hal/c3tls.c',
     'firmware/hal/ports/esp32c3/network/c3tls.h': 'hal/c3tls.h',
+    'firmware/hal/ports/esp32c3/network/c3tout.c': 'hal/c3tout.c',
+    'firmware/hal/ports/esp32c3/network/c3tout.h': 'hal/c3tout.h',
     'firmware/hal/ports/esp32c3/network/c3lrec.c': 'hal/c3lrec.c',
     'firmware/hal/ports/esp32c3/network/c3lrec.h': 'hal/c3lrec.h',
     'tests/target/runtime_port_board/main/tlsmem.cmake': 'main/tlsmem.cmake',
@@ -738,6 +740,49 @@ def verify_tls_storage(work, enabled):
     return check_tls_storage(commands, symbols, enabled)
 
 
+def check_tls_output(commands, symbols, enabled):
+    """Require the scoped SDK allocator boundary and an unchanged setup alias."""
+    bindings = {'mbedtls_calloc': 'c3tout_alloc',
+                'mbedtls_free': 'c3tout_free',
+                'mbedtls_zeroize_and_free': 'c3tout_wipe'}
+    observed = 0
+    for entry in commands:
+        name = Path(entry['file']).name
+        found = re.findall(r'(?:^|\s)-D\s*"?(mbedtls_calloc|mbedtls_free|mbedtls_zeroize_and_free)=([^\s"]+)"?', entry['command'])
+        expected = bindings if enabled and name == 'ssl_tls.c' else {}
+        if dict(found) != expected or len(found) != len(expected):
+            raise QualificationError('TLS output binding escaped its source: ' + name)
+        observed += bool(expected)
+    owned = (*bindings.values(), 'c3tout_setup', 'c3tout_native_setup')
+    if not enabled:
+        if any(name in symbols for name in owned):
+            raise QualificationError('TLS output storage escaped selected Wi-Fi services')
+        return dict(enabled=False)
+    if observed != 1:
+        raise QualificationError('Missing or duplicate TLS output compiler input')
+    for name in owned:
+        if not 0x42000000 <= symbols.get(name, 0) < 0x43000000:
+            raise QualificationError('TLS output helper absent or consumes RAM code: ' + name)
+    if (symbols.get('__wrap_mbedtls_ssl_setup') != symbols['c3tout_setup']
+            or symbols.get('mbedtls_ssl_setup') != symbols['c3tout_native_setup']
+            or symbols['c3tout_setup'] == symbols['c3tout_native_setup']):
+        raise QualificationError('TLS setup must wrap, then call the unchanged SDK function')
+    for name in ('mbedtls_ssl_free', 'mbedtls_platform_zeroize', 'mbedtls_zeroize_and_free',
+                 'mbedtls_calloc', 'mbedtls_free'):
+        if name not in symbols:
+            raise QualificationError('Selected SDK TLS lifecycle missing: ' + name)
+    return dict(enabled=True, allocator_sources=['ssl_tls.c'], bindings=bindings,
+                output_slots=3, qualification='Output buffers only; receive and crypto heap paths remain open')
+
+
+def verify_tls_output(work, enabled):
+    commands = json.loads((work / 'build/compile_commands.json').read_text(encoding='utf-8'))
+    output = run(['riscv32-esp-elf-nm', '-n', work / 'build/uthome_runtime_port.elf'])
+    symbols = {name: int(address, 16) for address, _, name in
+               re.findall(r'^([0-9a-fA-F]+)\s+(\w)\s+(\S+)$', output, re.MULTILINE)}
+    return check_tls_output(commands, symbols, enabled)
+
+
 def check_lwip_records(commands, symbols, enabled):
     """Keep typed record allocation confined to the reviewed SDK API units."""
     sources = {"api_lib.c", "api_msg.c", "netbuf.c"}
@@ -857,9 +902,9 @@ def verify_compile_profiles(work, startup_trace=False):
         profiles[source] = expected
     for path, command in commands.items():
         adapted = "-Dasm=__asm__" in command
-        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3lrec.c")}):
+        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3lrec.c")}):
             raise QualificationError("SDK assembly spelling adaptation escaped its adapter")
-    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3lrec.c"):
+    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3lrec.c"):
         owned_radio = (work / "project/hal" / name).read_text()
         if re.search(r"\b(?:asm|__asm__|typeof|__typeof__)\b", owned_radio):
             raise QualificationError("Owned radio adapter must remain C99: " + name)
@@ -1309,6 +1354,8 @@ def build(kernel, sdk, work, *legacy_args, selection=None, compat_patch=None,
             evidence["network_queue_adapter"] = verify_queue_adapter(
                 work, selection.static_net_queues, selection.network_services in ("wifi", "both"))
             evidence["tls_record_storage"] = verify_tls_storage(
+                work, selection.static_net_queues and selection.network_services in ("wifi", "both"))
+            evidence["tls_output_storage"] = verify_tls_output(
                 work, selection.static_net_queues and selection.network_services in ("wifi", "both"))
             evidence["lwip_record_storage"] = verify_lwip_records(
                 work, selection.static_net_queues and selection.network_services in ("wifi", "both"))

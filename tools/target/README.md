@@ -327,6 +327,27 @@ does not emulate radio hardware, complete a TLS handshake or measure ESP timing.
 The [resource assessment](../../docs/reports/wifi-static-memory/README.md#dynamic-tls-buffer-assessment)
 records the source/build identity, result and remaining memory constraints.
 
+## TLS output allocation probe
+
+`tls_output_probe.py` checks the compiled `c3tout` adapter with the actual pinned
+SDK setup/free instructions. Use the same optional `unicorn==2.1.4` and
+`pyelftools` environment as the fragment reproducer, and a qualified Wi-Fi/static
+queue image built with the current 16,384/4,096-byte TLS content limits:
+
+```powershell
+python -B -m tools.target.tls_output_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --output build/tls-output/new-sdk-report.json
+```
+
+Run from the repository root with assertions enabled. Create the output folder
+first; reports are never overwritten. The tool uses ELF/DWARF offsets and runs
+the real SDK setup, buffer-pointer initialization and cleanup code. It doubles
+the heap, ROM byte-copy functions and PSA hash setup/abort; it does not perform
+a TLS handshake, network I/O or hardware timing. Three contexts must receive
+separate aligned output buffers, the fourth must fail without heap fallback,
+release must erase and reuse the slot, and injected failures at each of the four
+remaining setup allocations must leave no simulated heap objects. The report
+records the ELF hash and original SDK execution counts. The ELF is not modified.
+
 ## Authenticated HTTP configuration client
 
 `python -m tools.target.network_config --help` describes the separate mutating

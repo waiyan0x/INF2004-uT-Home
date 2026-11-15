@@ -10,6 +10,7 @@ resource limits, build instructions, manual reviews and qualification evidence.
 | `c3boot` | Bounded native startup pool for selected static-network builds |
 | `c3lbox` | lwIP mailbox identities bound to the existing fixed queue payloads |
 | `c3tls` | Fixed ESP-TLS contexts, error trackers and temporary hostname storage |
+| `c3tout` | Three fixed TLS output buffers; scoped SDK setup and cleanup |
 | `c3lrec` | Fixed typed lwIP connection and datagram-envelope records |
 | `c3nq`, `c3event` | Native queue/event synchronization and fixed resource bindings |
 | `c3ewait` | Stateless native notification, clock and context boundary for events |
@@ -128,10 +129,59 @@ The selected build rejects `CONFIG_MBEDTLS_DYNAMIC_BUFFER`; the pinned SDK's
 partial-header failure is documented in the resource assessment below. The
 qualifier also rejects a linked `esp_mbedtls_add_rx_buffer` implementation.
 
-This closes ESP-TLS record/name allocation only. Encryption buffers,
+This closes ESP-TLS record/name allocation only. Input encryption buffers,
 certificates/keys, retained TLS hostnames and lwIP packet/control-block storage still
 need bounded allocation and live acceptance. See the
 [current resource assessment](../../../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
+
+## Fixed TLS output buffers
+
+`c3tout` reserves three output buffers, one for MQTT and two for HTTPS. Each
+buffer has the pinned SDK's full `MBEDTLS_SSL_OUT_BUFFER_LEN` capacity (4,429
+bytes with the selected 4,096-byte content limit), with eight-byte alignment.
+It remains attached through handshake, partial writes and retries until SDK
+cleanup. Exhaustion returns NULL to the SDK's existing setup failure path;
+there is no heap fallback for an output buffer. TLS record limits, certificate
+checks and connection counts remain unchanged.
+
+The setup wrapper calls the original SDK function through a checked linker
+alias. A borrowed setup-context pointer lives only for that synchronous call.
+Only `ssl_tls.c` binds `mbedtls_calloc`, `mbedtls_free` and
+`mbedtls_zeroize_and_free` to this adapter. A request selects fixed storage only
+during setup, after the input buffer exists and before the output buffer has
+been assigned. A same-sized later allocation retains the SDK path. Other
+allocations deliberately remain with the SDK; this does not close whole-TLS
+heap use or replace the encryption implementation.
+
+Both setup-error free and normal zeroizing cleanup recognize exact output
+buffer identities and erase the complete buffer before releasing its lease.
+Other valid SDK pointers follow their original free/wipe functions. This is an
+SDK boundary, not an arbitrary-pointer allocator API. Buffer resizing and equal
+input/output sizes are rejected at compile time; the existing dynamic-buffer
+guard remains. All calls belong to the single serialized application owner in
+task context with cache enabled. Adding another TLS owner or enabling another
+SDK TLS consumer requires review of capacity and serialization.
+
+### TLS output C review
+
+Reviewed `c3tout.c/.h` and `touttest.c/.h` against the BARR-C checklist: C99,
+paired modules, named prototypes, fixed-width counters, initialized state,
+bounded three-entry searches, explicit failure results and no new casts.
+An alignment-only union supplies real character-array storage; it is never
+interpreted as a different object type. SDK context pointers have the actual
+pinned type and remain valid for the synchronous setup call. The private SDK
+layout/length macros are confined to this adapter; the target build checks its
+ABI and effective compiler profile. No naming, language or formatter exception
+is added, and vendor sources remain unchanged.
+
+The original SDK owns buffer pointer updates, retries and cleanup order. The
+adapter never releases a buffer at WANT_WRITE or uses stack-backed storage for
+partial data. It uses the SDK's explicit zeroization operation before making
+storage reusable. Only the selected output request has a fixed-pool guarantee;
+other SDK allocations are visible remaining work. Host tests intercept direct
+allocator calls in the owned module and separately count intentional SDK
+forwarding. They cover capacity, alignment, clearing, retained neighboring
+buffers, setup failures, same-sized unrelated requests and 1,000 full cycles.
 
 ## Fixed lwIP records
 

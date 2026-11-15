@@ -435,3 +435,10 @@ existing SDK-header spelling adaptation and no owned assembly. The
 [manual review](firmware/hal/ports/esp32c3/network/README.md#lwip-record-c-review)
 covers SDK types, pointer lifetime, allocation scope and interrupt restoration.
 No new deviation or naming exception is introduced.
+
+`c3tout` denotes fixed TLS output buffers; `touttest` is its host SDK-call
+double. Both use C99 and matching module prefixes. The adapter accesses the
+pinned private TLS layout and retains the original setup/cleanup algorithm;
+SDK headers stay outside the owned-code audit. See the
+[manual review](firmware/hal/ports/esp32c3/network/README.md#tls-output-c-review).
+No new language, formatter or compatibility exception is added.

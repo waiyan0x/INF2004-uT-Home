@@ -30,4 +30,17 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
             "-Wl,--wrap=${original}"
             "-Wl,--defsym=__wrap_${original}=${owned}")
     endforeach()
+    # Setup alone selects fixed output storage. Other mbedTLS allocations keep
+    # their SDK path; both failure-free and zeroizing cleanup must be bound.
+    idf_component_get_property(UTHOME_MBED_DIR mbedtls COMPONENT_DIR)
+    set_property(SOURCE "${UTHOME_MBED_DIR}/mbedtls/library/ssl_tls.c"
+        TARGET_DIRECTORY mbedtls APPEND PROPERTY COMPILE_DEFINITIONS
+        mbedtls_calloc=c3tout_alloc mbedtls_free=c3tout_free
+        mbedtls_zeroize_and_free=c3tout_wipe)
+    target_link_libraries(${COMPONENT_LIB} INTERFACE
+        "-Wl,--undefined=c3tout_setup"
+        "-Wl,--undefined=mbedtls_ssl_setup"
+        "-Wl,--wrap=mbedtls_ssl_setup"
+        "-Wl,--defsym=__wrap_mbedtls_ssl_setup=c3tout_setup"
+        "-Wl,--defsym=c3tout_native_setup=__real_mbedtls_ssl_setup")
 endif()
