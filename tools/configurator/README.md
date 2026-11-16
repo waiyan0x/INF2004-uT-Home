@@ -105,6 +105,63 @@ browser errors. Evidence is local-only under
 `build/runtime-ui-review-20261117/`. Physical ESP/HA acceptance remains open;
 this change does not resume TLS work or alter firmware.
 
+### Simulated operator walkthrough
+
+For this checkout's local HA setup, start its containers with
+`build/homeassistant-wsl-20261116/start-ha.ps1`, then run:
+
+```powershell
+.\build\homeassistant-wsl-20261116\run-runtime-desk.ps1
+```
+
+This private helper serves the actual Desk at `http://127.0.0.1:8080` with a fresh
+journal, the compiled C owner/HAL and simulated buses. Use only one fixture for
+synthetic node `uthome-0123456789ab`. It uses the existing scoped local broker
+settings; it performs no automatic load or execution and stops after 15 minutes.
+HA remains at `http://127.0.0.1:18123`.
+
+1. Open the fourth tab, **Runtime transactions**, beside **Live monitor** in the
+   existing Desk, then **Connect**. Wait for **MQTT ready** and
+   **HA publisher connected**.
+2. Select `bmp388`, `chip_id` and address `0x77`, then **Load rule**. Expect
+   **Rule loaded**, active `chip_id / revision 1`, and unavailable raw/TX/RX.
+3. Select `pressure_raw` without loading it. The preview changes to TX `04` and
+   Read 3 bytes; the active rule stays chip ID. **Execute active rule** still
+   returns `50`, with TX/RX `1 / 1`.
+4. **Load rule**, then **Execute active rule** once. Expect active
+   `pressure_raw / revision 2`, raw `00 00 00` and TX/RX `1 / 3`.
+5. Select `chip_id`, load and execute once. Expect revision 3, raw `50` and
+   TX/RX `1 / 1`.
+6. Leave it idle for five seconds. Expect **Result expired** and unavailable
+   raw/TX/RX, while the active rule remains. **Details** retains the last receipt
+   as history. The six HA entities follow the same freshness contract.
+7. **Disconnect**. The active rule and all six HA sensors become unavailable.
+
+Read each result promptly: one click performs one read, and the helper does not
+keep results fresh by repeating it. This sequence performs three simulated
+reads; loading, expiry and disconnect add none. Stop the helper with Ctrl+C or,
+from another shell at the repository root:
+
+```powershell
+Set-Content .\build\homeassistant-wsl-20261116\runtime-desk-control.txt -Value stop -Encoding utf8
+```
+
+Each run records API observations and operation counts under the ignored
+`build/homeassistant-wsl-20261116/desk-YYYYMMDD-HHMMSS/`. Keep user observations
+separate from those logs and from physical ESP acceptance. The helper and local
+credentials remain private setup artifacts.
+
+The user completed this walkthrough on 17 November 2026. They confirmed every
+result above, including changing the preview to pressure while the chip-ID rule
+remained active, then executing that chip-ID rule. The API record independently
+matched all three loads/results and HA states. Exactly three reads occurred;
+loading, expiry, disconnect and helper cleanup added none. The Desk disconnected,
+all six HA sensors became unavailable, and the user confirmed HA stayed responsive.
+Local evidence is in `desk-20261117-014224/` under the folder above, including
+separate `user-observations.json`, `events.jsonl` and `verification.json` files.
+The helper is stopped. This completes the simulated operator walkthrough;
+physical ESP/HA acceptance remains open.
+
 ## Configuration recipes
 
 The professor-feedback change starts with one bounded generic I2C operation:

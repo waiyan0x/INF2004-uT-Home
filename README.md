@@ -87,22 +87,24 @@ environment alive; systemd services alone did not keep it running. Login details
 test configuration, backups and verification are private under that ignored
 folder. The fixture is stopped, so its six sensors are correctly unavailable.
 
-**Next: walk through the implemented Runtime Transactions view; TLS work remains
-paused.** The approved compact tab is available in the existing
+**Next: complete the reviewed SPI/UART operation descriptions; TLS work remains
+paused.** The approved compact Runtime transactions tab is available in the existing
 [Configuration Desk](tools/configurator/README.md#runtime-transactions): choose
 a description, operation and address, then Load rule and Execute active rule.
 The new HTTP path passed the simulated A/B/A, expiry and journal-reopen check
 through MQTT and HA, with exactly three reads. Backend and desktop/mobile browser
-checks passed; physical ESP/HA acceptance remains separate. The local HA
-container and simulated six-sensor visual check are ready. A
+checks passed. The user then completed the
+[operator walkthrough](tools/configurator/README.md#simulated-operator-walkthrough):
+preview versus active rule, three explicit A/B/A reads, expiry and disconnect,
+with all six HA sensors unavailable afterward. Physical ESP/HA acceptance remains
+separate. The local HA container and simulated six-sensor visual check are ready. A
 [repeatable demo](tools/transaction/README.md#repeatable-simulated-display-demo)
 is available without the physical ESP. Physical ESP/HA acceptance stays open
 until transport work is resumed and MQTT readiness is repeatable.
 The [power-save comparison](tools/transaction/README.md#normal-profile-packet-capture)
 is complete, with the original image/profile restored and no root-cause claim.
-Use the same controller through the Desk for the next operator walkthrough,
-then complete the reviewed SPI/UART descriptions and physical demonstrations.
-Preserve the existing visual
+Complete the reviewed SPI/UART descriptions before their physical demonstrations;
+confirm current equipment and wiring before board work. Preserve the existing visual
 style and review proposed UI adjustments before implementation. See the
 [completion plan](CONTRIBUTING.md#completion-plan).
 

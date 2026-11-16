@@ -243,6 +243,9 @@ implemented. Its HTTP actions passed the local compiled-owner/MQTT/HA A/B/A,
 expiry and journal-reopen check on 17 November, with exactly three simulated
 operations and none added by loading or recovery. This supplements the existing
 HA checks; it is not physical ESP acceptance.
+The subsequent [operator walkthrough](../configurator/README.md#simulated-operator-walkthrough)
+was user-confirmed through the Desk controls, including preview/active separation,
+all three results, expiry and disconnection with a responsive HA page.
 
 For live acceptance, first confirm the board/image, idle plan and reviewed
 BMP388 wiring as described above. Start the session with the display option,
