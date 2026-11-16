@@ -58,6 +58,9 @@ afterward; reboot alone does not restore it. Follow the
 [configuration procedure](../config_transfer/README.md). The transaction
 controller never changes the plan, saved settings, wiring or installed image.
 
+Every plan-generation change closes MQTT and discards queued transport work.
+Reconnection includes TLS and a new subscription; recent connection failures
+can leave up to 30 seconds of retry backoff even for an intentional plan change.
 After applying the idle plan, observe fresh MQTT status and readiness before
 sending a rule. Wi-Fi connectivity and a successful profile Apply do not prove
 that MQTT is responding. The current live trial below encountered repeated
@@ -225,8 +228,10 @@ This follows Home Assistant's [discovery lifecycle](https://www.home-assistant.i
 and [sensor availability/expiry](https://www.home-assistant.io/integrations/sensor.mqtt/).
 
 Host tests verify the messages through a real local MQTT broker and compiled C
-owner with simulated buses. **A running Home Assistant instance and a live ESP
-have not yet been tested together with this adapter.** The existing Configuration
+owner with simulated buses. The [isolated HA check](#home-assistant-vm-check)
+also verifies entity states in a real Home Assistant instance. **A running Home
+Assistant instance and a live ESP have not yet completed acceptance together
+with this adapter.** The existing Configuration
 Desk has no Runtime Transactions view yet; its UI needs review before changes.
 
 For live acceptance, first confirm the board/image, idle plan and reviewed
@@ -269,9 +274,338 @@ cleanup evidence are under `build/homeassistant-live-20261115/`, especially
 `setup.json`, `cold-start-status-probes.json`, `mqtt-display-results*.jsonl` and
 `final-board.json`. VM disks, credentials, tokens and logs must stay ignored.
 
-Resume by isolating MQTT responsiveness across the normal-to-idle transition,
-then use a responsive HA instance for the combined acceptance above. Keep the
-existing freshness and readiness checks while diagnosing these failures.
+### Home Assistant VM check
+
+The 16 November follow-up isolates Home Assistant from the physical ESP and
+hotspot. HA OS 18.4 / Core 2026.11.1 runs in the existing local VirtualBox VM.
+An authenticated, certificate/name-verified TLS broker on host loopback serves
+the synthetic node `uthome-0123456789ab`; the existing compiled C owner uses
+simulated buses. No board was contacted, reset or flashed during this check.
+
+HA's authenticated state API verified all six discovered sensors, chip-ID /
+raw-pressure / chip-ID results (`50`, `00 00 00`, `50`), matching counts and
+configured/result attributes, and no raw result from loading alone. Results
+expired, and pausing publication for three seconds made all six entities
+unavailable. A Home Assistant Core restart and host-journal reopen recovered
+without increasing the three simulated operations; closing the display made
+all six entities unavailable. This verifies HA entity behavior, not physical
+sensor data or browser rendering. Browser automation was unavailable.
+
+The original VM configuration reproduced guest kernel RCU stalls, watchdog
+errors and VirtualBox heartbeat gaps up to 110 seconds during the restart
+trial. Disabling paravirtualization stalled earlier in boot. Restoring the
+default KVM paravirtualization and enabling the VM's high-precision event timer
+(`VBoxManage modifyvm uT-Home-HA-demo --hpet on`) allowed the full check to pass.
+After the Core restart, all 30 API probes over five minutes passed in 8–53 ms.
+VirtualBox then logged 97- and 252-second heartbeat gaps while shutting down,
+after shorter 8–10-second gaps. **HPET did not establish a stable VM.** The
+shutdown did not complete; the VM was powered off and its latest disk changes
+preserved. No successful final clean restart is claimed. The underlying
+host/hypervisor cause is not established. See the
+[VirtualBox timer option](https://docs.oracle.com/en/virtualization/virtualbox/7.2/user/vboxmanage.html)
+and the earlier [HA timing reports](https://github.com/home-assistant/operating-system/discussions/2292).
+Windows Hyper-V, Memory Integrity and firewall settings were not changed.
+
+The local web address remains `http://127.0.0.1:18123` (forwarded to this guest's
+configured port 80). The VM has 4 GB RAM, two CPUs and EFI. Guest loopback access
+was enabled for this isolated test; HA's MQTT integration now uses `10.0.2.2`
+port `18883`, a private fixture CA and account. These are test settings, not the
+physical ESP broker configuration. The original setup, a clean pre-test VM
+snapshot and copies of the stalled guest's disk changes are preserved locally.
+
+Evidence and private helpers are under `build/homeassistant-20261116/`, notably
+`acceptance3.jsonl`, `acceptance4.jsonl`, `stalled-kvm-final-vbox.log` and
+`hpet-startup.jsonl` / `hpet-responsiveness.jsonl`. Earlier failed harness attempts
+are retained. The private fixture was corrected to advance device time in real
+milliseconds; maintained
+firmware, host code, tests and dependencies were not changed. Use a fresh
+temporary broker and a new run label when repeating the isolated check. Keep
+credentials, VM disks and raw logs ignored. The VM and temporary Windows broker
+are now stopped. The next approved runtime is HA Container in WSL2 below.
+
+### Home Assistant Container in WSL2
+
+After the user's Windows restart on 16 November, the dedicated `uT-Home-HA`
+WSL2 distribution imported and started successfully. It runs Ubuntu 24.04.5,
+WSL 3.0.5 / kernel 6.18.58.1-1, Docker Engine 29.10.0 and Compose 5.7.1. The
+Ubuntu image checksum was verified against Microsoft's distribution catalogue;
+Docker was installed from its signed Ubuntu repository. HA is pinned to
+`2026.11.1`, Mosquitto to `2.1.2-alpine`; actual image digests are recorded locally.
+
+From the repository root, start the local demonstration with:
+
+```powershell
+.\build\homeassistant-wsl-20261116\start-ha.ps1
+```
+
+Open `http://127.0.0.1:18123`. Login details are in the local-only
+`build/homeassistant-wsl-20261116/private/ha-access.json`; keep that file private.
+HA uses the `Asia/Singapore` timezone. Run the start helper again after a Windows
+restart. It creates one hidden WSL keepalive process, guarded by a Linux file
+lock, then starts the containers. The initial trial showed that WSL exited after
+the installer finished, stopping HA and MQTT. This matches Microsoft's guidance
+that [systemd services do not keep WSL alive](https://learn.microsoft.com/en-us/windows/wsl/systemd#how-does-enabling-systemd-affect-wsl-architecture).
+No Windows login task or global WSL settings were added.
+
+To stop cleanly:
+
+```powershell
+.\build\homeassistant-wsl-20261116\stop-ha.ps1
+```
+
+The helper stops both containers before terminating only `uT-Home-HA`. HA has
+a 120-second stop grace period. Persistent data lives at `/opt/uthome-ha` inside
+the Linux filesystem, whose disk is under the ignored setup folder. Preserve
+that disk and the private configuration backup. Do not rerun the import or
+installation scripts as a routine start command.
+
+Both published ports bind to localhost: `18123` for HA and `18883` for TLS MQTT.
+HA connects to Docker hostname `mqtt:18883`, using a custom CA and the scoped
+`ha-test` account with certificate/name verification. Windows TLS access was
+verified too. No privileged container or hardware passthrough was needed.
+The broker ACLs and credentials serve only synthetic node `uthome-0123456789ab`;
+they are not the physical ESP broker configuration. Its ACL/password/key files
+are owned by the container's MQTT user with restricted permissions.
+
+The real-HA API check passed discovery of all six sensors, chip-ID / raw-pressure /
+chip-ID results (`50`, `00 00 00`, `50`), matching counts, load-without-execution,
+result expiry, publication-pause expiry, HA Core restart, MQTT restart and host
+journal reopen. Exactly three simulated operations occurred; recovery added none.
+Core restart recovered in about six seconds. Closing the fixture made all six
+entities unavailable. They remain unavailable while the fixture is stopped.
+These observations use the existing C owner/HAL with simulated buses, not a
+physical ESP or sensor.
+
+Both containers subsequently stopped with exit code 0 and no OOM kill. The
+dedicated WSL environment stopped, a configuration backup was taken, and the
+start helper recovered HA with the saved settings and six unavailable entities.
+All 30 subsequent API probes over five minutes passed in 3–25 ms. Final checks
+found both containers running with no Docker restarts or failed systemd units.
+The user confirmed that the dashboard loads normally. Automated browser control
+stopped because its tool could not enforce URL policy for the Windows browser;
+rendered sensor details were not inspected automatically. The bounded API check
+does not establish unattended long-term reliability or physical ESP acceptance.
+
+Local-only evidence and helpers are under `build/homeassistant-wsl-20261116/`:
+
+- `preparation.json`, installer/import logs and `ubuntu-download.json` retain
+  preparation evidence; `runtime-verification.json` records the subsequent run.
+- `acceptance1.jsonl`, `clean-stop-state.json`, `stopped-state.txt`,
+  `cold-start.json` and `post-cold-start.jsonl` record acceptance and recovery.
+- `compose.yaml`, `install-container.sh`, `start-ha.ps1`, `stop-ha.ps1`,
+  `mosquitto.conf` and `mqtt-acl` describe the local setup.
+- `private/ha-config-backup-20261116.tar.gz` holds the stopped configuration;
+  credentials, tokens, certificates and keys remain under `private/`.
+
+Keep these artifacts ignored. Use a fresh fixture journal for each run and the
+dedicated test broker for this local setup. The earlier refused localhost
+connection was caused by the observed WSL shutdown; a later PowerShell helper failure came from treating
+Docker progress on stderr as a terminating error. Both attempts are retained.
+The helpers now request quiet progress and check command exit codes.
+
+Installation references: [WSL](https://learn.microsoft.com/en-us/windows/wsl/install),
+[Docker Engine](https://docs.docker.com/engine/install/ubuntu/) and
+[HA Container](https://www.home-assistant.io/installation/linux#install-home-assistant-container).
+
+#### Repeatable simulated display demo
+
+On 17 November, the user visually confirmed all six sensors on the existing HA
+device page through chip-ID / raw-pressure / chip-ID switching, result expiry
+and display disconnection. The authenticated API independently matched every
+phase. Loading alone cleared raw/count values without executing a simulated
+operation. This completes the simulated display walkthrough; combined physical
+ESP/HA acceptance remains open, and TLS implementation work stays paused.
+
+With the containers running, open **Settings > Devices & services > Devices**
+in HA and select **uT-Home 0123456789ab**. From this checkout's root, run:
+
+```powershell
+.\build\homeassistant-wsl-20261116\run-ha-demo.ps1 -Auto
+```
+
+The local helper uses the existing compiled C owner/HAL, simulated buses and
+scoped test MQTT account. It creates a new journal and `events.jsonl` under
+`build/homeassistant-wsl-20261116/visual-YYYYMMDD-HHMMSS/`. Run only one fixture
+for this synthetic node. The automatic sequence lasts about one minute and
+stops its fixture afterward; HA and its broker remain running.
+
+| Phase | Active rule | Status | Raw bytes | TX / RX |
+|---|---|---|---|---|
+| Chip ID | `bmp388 / revision 1` | `execute_ok` | `50` | `1 / 1` |
+| Raw pressure | `bmp388 / revision 2` | `execute_ok` | `00 00 00` | `1 / 3` |
+| Chip ID again | `bmp388 / revision 3` | `execute_ok` | `50` | `1 / 1` |
+| Stop reads | Revision 3 remains | `result_expired` | Unavailable | Unavailable |
+| Disconnect display | Unavailable | Unavailable | Unavailable | Unavailable |
+
+Protocol stays `i2c` until display disconnection. In automatic mode, each data
+phase lasts about 12 seconds. Both modes execute a simulated read every two seconds
+to keep results fresh. Brief unavailable transitions during each new request
+are expected. Stopping reads allows the ordinary five-second freshness limit
+to expire; the helper does not change that limit or fabricate result timestamps.
+
+For a manual walkthrough, omit `-Auto`. The helper starts with chip ID and waits
+for phase changes. In a second PowerShell window at this checkout's root, use:
+
+```powershell
+Set-Content .\build\homeassistant-wsl-20261116\visual-phase.txt -Value 'pressure_raw' -Encoding utf8
+```
+
+Then use `chip_id_again`, `expiry`, `offline`, and `stop` as the value, one at a
+time after checking the display. Restart the helper to leave the offline phase.
+Manual mode stops after 15 minutes even without `stop`. The visual walkthrough
+used 48 simulated reads to hold results for observation; expiry/disconnection
+added none. Its user observations are recorded separately from API evidence in
+the private run folder. The earlier three-operation restart acceptance remains
+a separate result. These private helpers are local setup artifacts, not a new
+Configuration Desk UI or firmware change.
+
+### MQTT status investigation
+
+The 16 November follow-up used the user-confirmed unchanged bench, checked the
+current USB port/capabilities and preserved profile CRC, and sent only read-only
+`TJ` status queries. No rule update/execution, firmware flash or Home Assistant
+trial occurred. The installed flash hash was not reread. These observations
+extend the earlier trial; they do not establish its root cause.
+
+| Live observation | Result |
+|---|---|
+| Initial normal-profile controls | Two sets of five status queries passed |
+| First idle Apply | Reply timed out; boot identity changed without user intervention; original profile remained saved/active |
+| Normal profile after that reset | Five queries timed out; another five timed out after a temporary broker restart; USB/HTTPS remained responsive |
+| Second idle Apply | Succeeded; 3/8 status queries passed, followed by 0/5 after a quiet period |
+| Restored normal profile | Final 5/5 status queries passed; a separate preceding ping check lost 7/10 replies |
+
+Each MQTT probe had an eight-second deadline. Broker packet-event timestamps
+show resubscription about 34 seconds after the successful idle Apply. The first
+four queries had no ESP subscription to receive them. One later query was
+forwarded but its reply arrived about 11 seconds later; another forwarded query
+after the quiet period had no observed reply, followed by disconnection. The
+broker received and immediately answered the observed keepalive requests.
+Successful idle replies reported the same boot, generation 2 and readiness.
+Thus reconnect delay explains some timeouts; it does not explain all subsequent
+loss or the unattended reset. Ping loss on the normal plan is a broader network
+symptom, not proof of an RF, power, SDK or host cause. Two scoped Windows packet
+captures produced no packet events even while broker events were observed, so
+they cannot establish where packets were delayed or lost. The reset was not
+captured in a raw fault log; the later captured Apply did not reset.
+
+Software checks now exercise the actual C MQTT adapter with all samples absent,
+a generation change, resubscription, two keepalives and copied query/reply
+traffic. A separate compiled-C case verifies that recent failures retain the
+bounded 30-second backoff across a plan change, then resubscribe successfully.
+All 76 affected tests and the full pinned 340-file C gate passed. These tests
+use transport doubles and do not reproduce the live failure. No C source,
+generated C template, timeout policy or target image changed.
+
+The final active/saved profile is revision 943, CRC 3623560383, with fresh
+BMP388/radar samples and zero reported errors/timeouts on all three workers.
+The broker and captures were stopped, capture filters removed and the laptop's
+original network restored. Local-only evidence is under
+`build/mqtt-idle-20261116/`: the probe JSONL files, broker event logs,
+`post-restore-ping.txt`, `final-board.json` and software-check logs. Preserve the
+unsuccessful attempts alongside the successful control.
+
+#### Normal-profile packet capture
+
+The subsequent check, after HA Container acceptance, again used the user's
+confirmed unchanged bench. It kept active/saved profile 943 and CRC 3623560383
+throughout: no Apply, rule load/execution, reset or flash. All 20 MQTT status
+queries replied within their eight-second deadline, but took 0.152–6.982 seconds.
+Boot identity and generation stayed unchanged. USB continued to report Wi-Fi
+online and zero errors/timeouts on all three peripheral workers.
+
+A bounded Windows IP-level capture filtered to the ESP produced usable TCP
+headers. For the 6.982-second query, the broker forwarded the request in
+0.333 ms. Its TCP data appeared six times, with distinct IPv4 IDs, before the
+first observed advancing acknowledgment 6.791 seconds later. The result arrived
+about 3 ms after that acknowledgment. Repeated data also appeared in the other
+direction. This establishes retransmission/delayed acknowledgment on the ESP
+path; the host-side capture cannot locate the fault at the ESP, radio, hotspot
+or host interface. It does not establish a firmware fix.
+
+| Control | Observation |
+|---|---|
+| Local authenticated broker keepalives | Eight replies in 0.569–1.435 ms |
+| Laptop to actual hotspot gateway | 12/12 echo replies in 2–5 ms |
+| Laptop to ESP, one-second ping deadline | 7/20 echo replies |
+| Separate ESP check, three-second deadline | No ESP echo replies; eight local unreachable errors and four timeouts |
+| Phone moved to clear space 0.5–1 m from ESP | 9/20 ESP echo replies; gateway 12/12; five status replies in 0.188–3.305 seconds |
+
+The closer-phone capture still showed TCP retransmissions; placement did not
+clear the problem. These small sequential samples do not establish an RF cause
+or a reliable improvement. Windows counts local unreachable errors as received
+packets, so its summary for the three-second check is not eight ESP replies.
+
+Two PktMon attempts recorded counters but no packet events; their empty captures
+cannot locate loss. The later raw-IP captures contain 156 and 205 board packets
+and closed their sockets afterward. A local dependency-access error prevented
+one comparison attempt from publishing any MQTT query; it is retained separately
+from the successful rerun. An initial gateway probe used an assumed, incorrect
+address and is excluded from the gateway comparison.
+
+Evidence is local-only under `build/mqtt-followup-20261116/`, including
+`timing-analysis.json`, `phone-near/timing-analysis.json`, broker/packet logs and
+`normal-final.json`. The temporary broker stopped, capture filters were removed,
+and an explicit Wi-Fi rescan restored the laptop's original network and removed
+only the temporary bench profile. The physical board remains unchanged.
+
+The approved comparison used a diagnostic with Wi-Fi modem sleep disabled and
+a restored-original control to separate a setting effect from a reboot effect.
+The installed build's 257 staged source hashes match
+the private `ps-none-source` snapshot before its diagnostic changes. This is a
+hypothesis: the project leaves power saving at the SDK default, and
+[Espressif documents](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/api-guides/wifi-driver/wifi-performance-and-power-save.html#esp32-c3-wi-fi-power-saving-mode)
+that disabling modem sleep trades higher power consumption for lower receive
+latency. It does not explain the measured loss by itself. The private
+diagnostic now passes all 64 affected tests with warnings as errors, the full
+329-file pinned C gate, manual C review and the real-target build. Snapshot and
+artifact hashes verify; only `c3wsta.c` and its header differ among the staged
+target sources. SDK configuration, generated private setup and partition bytes
+match the installed build. Fixed DRAM remains 260,386/278,528 bytes, with identical
+per-module measurements/limits and aggregate caps. The two budget files have
+different hashes; their historical hashes are preserved.
+The build is `C:/Users/kkak4/esp/uthome-ps-none-20261116`,
+with image SHA-256
+`b57068ec0b5aad969adf1c24956a4568100774f632b0291d01293badeced5333`.
+The local `diagnostic-verification.json`, `diagnostic-review.json` and
+`firmware-trial-plan.json` specify the checks and backed-up, app-only A/B/A trial.
+The user authorized the temporary app-only write, full verified backup and
+restoration. The original installed application matched its recorded image hash.
+Each write was verified; after restoring the exact original 1 MiB application
+partition at `0x10000`, the entire 4 MiB flash matched the pre-trial backup.
+No Apply, rule load/execution or wiring change occurred.
+
+| Firmware control | ESP pings | Initial status queries |
+|---|---|---|
+| Restarted original | 20/20; 43–240 ms, mean 134 ms | 0/10 replies |
+| Modem sleep disabled | 20/20; 4–26 ms, mean 10 ms | Seven timeouts, then three replies |
+| Restored original | 20/20; 4–246 ms, mean 119 ms | Five timeouts, then five replies |
+
+Once the diagnostic connected, five additional queries passed in 23–201 ms.
+The restored original's successful replies took 23–234 ms. During captured early
+original-firmware attempts, TCP connected promptly but no TLS payload appeared
+before closure about 30 seconds later. These are observations for later transport
+work, not a diagnosed cause. Disabling modem sleep reduced observed ping latency
+but did not eliminate initial MQTT timeouts. The original also recovered; no
+production change was promoted from this bounded comparison.
+
+The final board retains profile 943 / CRC 3623560383, with fresh BMP388/radar/health
+samples and zero reported errors/timeouts on all three workers. The capture
+closed after 556 board packets. The broker logged closure and no port-8883
+listener remained; its process wrapper returned 1 and the log retained a warning
+about one message not broadcast during shutdown. The laptop's original network
+was restored. HA and its isolated broker remained running with zero container
+restarts; an authenticated HA API read took about 8 ms. All six simulated entities
+were correctly unavailable with their fixture stopped.
+
+Trial evidence is under `build/mqtt-powersave-20261116/`: `verification.json`,
+probe logs, `trial-raw.pcap`, final board snapshot and full-restoration verification.
+The full backup and original application remain private. The user reiterated
+that TLS work is intentionally paused to focus on HA; do not reopen TLS
+implementation as part of HA-only work. The timeout cause and unattended Apply
+reset remain unestablished. Keep readiness/freshness checks intact and physical
+ESP/HA acceptance open. The old VM instability remains a separate unresolved
+issue; the tested HA Container and simulated display path remain available.
 
 ## One-shot codec and diagnostic client
 

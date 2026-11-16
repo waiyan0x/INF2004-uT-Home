@@ -52,11 +52,51 @@ still open. See the [trial limits](tools/transaction/README.md#current-live-tria
 local-only evidence is under `build/homeassistant/` and
 `build/homeassistant-live-20261115/`.
 
-**Next:** isolate the MQTT status failure after switching to an idle plan, then
-repeat the live display check with a responsive Home Assistant instance. After
-that, review and build the Runtime Transactions view in the existing
-Configuration Desk using this same controller, then complete the reviewed
-SPI/UART descriptions and physical demonstrations. Preserve the existing visual
+The [MQTT status investigation](tools/transaction/README.md#mqtt-status-investigation)
+on 16 November reproduced idle-plan timeouts, but also observed MQTT timeouts
+and ping loss on the normal profile. A plan change can inherit a 30-second
+reconnect backoff; later delays/disconnections and one unattended reset during
+Apply remain unexplained. No firmware fix is established. Home Assistant VM
+instability remains a separate unresolved issue. A later check kept the normal
+profile fixed and captured repeated TCP packets with delayed acknowledgments.
+The local broker and hotspot gateway responded promptly; moving the phone closer
+did not clear ESP packet loss. The board's firmware and saved profile are unchanged.
+An approved original/diagnostic/original firmware comparison then showed lower
+ping latency with modem sleep disabled, but initial MQTT timeouts persisted in
+both modes. The original full flash was restored and verified; no fix was kept.
+The user reiterated that TLS work is intentionally paused to focus on HA.
+
+The separate [HA VM check](tools/transaction/README.md#home-assistant-vm-check)
+passed six-sensor A/B/A, expiry, HA Core restart and host-reopen checks using
+the compiled C owner with simulated buses and HA's authenticated state API.
+The VM still stalled during shutdown with HPET enabled; it is not a stable host.
+The approved [HA Container in WSL2](tools/transaction/README.md#home-assistant-container-in-wsl2)
+is now running at `http://127.0.0.1:18123`. The isolated six-sensor check passed
+with simulated buses, including HA and MQTT restarts without extra operations.
+Both containers stopped cleanly, the WSL environment restarted successfully,
+and all 30 API probes over five minutes passed in 3–25 ms. The user confirmed
+that the dashboard loads normally. On 17 November, the user also verified all
+six rendered sensors through chip-ID / raw-pressure / chip-ID switching,
+result expiry and display disconnection using the simulated fixture. This is
+separate from physical ESP acceptance. The old VM remains stopped with recovery
+copies saved.
+
+Use the local `build/homeassistant-wsl-20261116/start-ha.ps1` and `stop-ha.ps1`
+helpers described in the guide. The start helper keeps this dedicated WSL
+environment alive; systemd services alone did not keep it running. Login details,
+test configuration, backups and verification are private under that ignored
+folder. The fixture is stopped, so its six sensors are correctly unavailable.
+
+**Next: prepare the Runtime Transactions view; TLS work remains paused.** The
+local HA container and simulated six-sensor visual check are ready. A
+[repeatable demo](tools/transaction/README.md#repeatable-simulated-display-demo)
+is available without the physical ESP. Physical ESP/HA acceptance stays open
+until transport work is resumed and MQTT readiness is repeatable.
+The [power-save comparison](tools/transaction/README.md#normal-profile-packet-capture)
+is complete, with the original image/profile restored and no root-cause claim.
+Review and build the Runtime Transactions view in the existing Configuration
+Desk using this same controller, then complete the reviewed SPI/UART descriptions
+and physical demonstrations. Preserve the existing visual
 style and review proposed UI adjustments before implementation. See the
 [completion plan](CONTRIBUTING.md#completion-plan).
 
@@ -69,7 +109,7 @@ retains the implemented fixed-storage changes, build identities and unresolved
 capacity/lifetime work. Its generated evidence remains under ignored `build/`;
 none of the host display tests qualifies target memory, timing or stack use.
 
-The latest [live network check](firmware/src/network/README.md#current-hardware-check)
+The [live network check](firmware/src/network/README.md#current-hardware-check)
 on 15 November 2026 established working Wi-Fi with the full project firmware.
 Correct the configured SSID's exact spelling and use the reviewed private
 10 dBm startup/runtime setting for this board. The unchanged SDK example
@@ -87,12 +127,13 @@ completion. HTTPS reads succeeded alongside MQTT. SPI/UART runtime-rule tests,
 HTTPS writes, Home Assistant/UI integration and resource acceptance remain open.
 
 The fixed project image is installed with private bench settings; active/saved
-profile contents are now restored under revision 941, with the original CRC
-3623560383. The final display-trial snapshot showed fresh BMP388/radar samples
+profile contents are now restored under revision 943, with the original CRC
+3623560383. The final 16 November snapshot showed fresh BMP388/radar samples
 and transfers from all three workers with no reported errors/timeouts. No new
 firmware was flashed. The full original flash backup is retained. Private
 settings, captures and image identities remain local-only under
-`build/mqtt-20261115/` and `build/wifi-20261115/`; earlier observations are under
+`build/mqtt-idle-20261116/`, `build/mqtt-20261115/` and
+`build/wifi-20261115/`; earlier observations are under
 `build/bench-20261114/`. Confirm the current port, hotspot and broker address
 before reusing any bench setup; the temporary broker is not a persistent service.
 

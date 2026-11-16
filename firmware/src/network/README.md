@@ -223,6 +223,21 @@ out again. This remains an open transition/reliability issue, not a replacement
 for the earlier successful run above. That trial flashed no new image and ended
 with the original profile restored as revision 941, CRC 3623560383.
 
+The [current status investigation](../../../tools/transaction/README.md#mqtt-status-investigation)
+also observed failures on the normal plan, an unattended Apply reset and a
+30-second reconnect-backoff case. Later packet delays/disconnections remain
+unisolated; no firmware fix is claimed. A subsequent normal-profile capture
+showed repeated TCP data and delayed acknowledgments, including a 6.791-second
+wait before acknowledgment of one status request. Local broker/gateway controls
+were responsive; moving the hotspot phone closer did not clear ESP packet loss.
+These observations do not locate the fault. The board remains on profile 943
+with the same original CRC and unchanged firmware. See that guide for the
+separate live/software evidence and the completed power-save comparison. That
+approved comparison reduced ping latency with modem sleep disabled but retained
+initial MQTT timeouts in both modes. The full original flash and saved profile
+were restored and verified. No production change was kept. TLS work remains
+intentionally paused while Home Assistant work proceeds.
+
 ## HTTP and BLE observation contracts
 
 ### HTTP admission and reads

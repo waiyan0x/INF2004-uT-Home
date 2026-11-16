@@ -674,6 +674,43 @@ class EspBindingTests(unittest.TestCase):
         self.assertIn(b'transaction/result'+payload,output)
         self.assertEqual(self.lib.c3mqtt_result(payload,97),-1)
 
+    def test_mqtt_idle_generation_resubscribes_and_carries_queries_after_keepalive(self):
+        from tools.transaction.client import query
+        self.mqtt_session()
+        self.assertEqual(self.lib.c3mqtt_transactions(),0)
+        self.lib.c3mqtt_request.argtypes=[c.c_void_p,c.c_size_t,c.POINTER(c.c_size_t)]
+        self.lib.c3mqtt_result.argtypes=[c.c_char_p,c.c_size_t]
+        self.mqtt_pump(100)
+        self.assertTrue(any('/telemetry/' in item[2] for item in self.publishes))
+        self.lib.c3fake_generation(5)
+        for slot in range(8):
+            self.lib.c3fake_capture_result(slot,1)
+        self.mqtt_pump(1200)
+        self.assertEqual(self.mqtt_connects,2)
+        self.publishes.clear()
+        # Exercise the real adapter/parser with no samples across two keepalives.
+        # The owner is doubled here: its 96-byte reply is opaque to MQTT.
+        self.mqtt_pump(32000)
+        topic=b'uthome/v1/node/transaction/request'
+        for nonce in range(1,6):
+            payload=query(nonce)
+            body=len(topic).to_bytes(2,'big')+topic+payload
+            packet=b'\x30'+bytes([(len(body)%128)|128,len(body)//128])+body
+            self.lib.c3fake_input(0,packet,len(packet))
+            self.mqtt_pump(100)
+            received=c.create_string_buffer(96)
+            size=c.c_size_t()
+            self.assertEqual(self.lib.c3mqtt_request(received,96,c.byref(size)),0)
+            self.assertEqual((size.value,received.raw),(96,payload))
+            self.assertEqual(self.lib.c3mqtt_result(payload,96),0)
+            self.mqtt_pump(1000)
+        self.assertEqual([(topic,data) for _,_,topic,data in self.publishes],
+                         [('uthome/v1/node/transaction/result',query(nonce))
+                          for nonce in range(1,6)])
+        view=(c.c_uint32*4)()
+        self.assertEqual(self.lib.c3mqtt_status(view),0)
+        self.assertEqual((view[0],view[1],self.mqtt_connects),(5,0,2))
+
 
     def test_https_configuration_state_and_result_fit_max_width_without_io(self):
         f=self.configuration_fixture()

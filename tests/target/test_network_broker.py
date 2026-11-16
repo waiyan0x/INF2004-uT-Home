@@ -302,6 +302,37 @@ class BrokerTests(unittest.TestCase):
         self.assertEqual(self.closes,1)
         self.assertEqual(self.offer(b'new'),1)
 
+    def test_plan_change_after_recent_failures_retains_backoff_then_resubscribes(self):
+        self.connect_result=-1
+        for attempt in range(6):
+            self.assertEqual(self.step(1+attempt*30000),-1)
+        self.connect_result=1
+        self.now+=29999
+        self.subscribed()
+        connects=self.connects
+        self.assertEqual(self.view()['failures'],6)
+        self.assertEqual(self.step(generation=2),0)
+        self.assertEqual(self.view()['state'],0)
+        self.assertEqual(self.step(self.now+29999,generation=2),0)
+        self.assertEqual(self.connects,connects)
+        self.assertEqual(self.step(self.now+1,generation=2),0)
+        self.assertEqual(self.connects,connects+1)
+        self.step(generation=2)
+        self.input.extend(b'\x20\x02\x00\x00')
+        for _ in range(12):
+            self.step(generation=2)
+        self.assertEqual(self.view()['state'],8)
+        self.input.extend(b'\x90\x03\x00\x01\x00')
+        for _ in range(8):
+            self.step(generation=2)
+        self.assertEqual(self.view()['state'],5)
+        self.assertEqual(self.view()['failures'],6)
+        payload=bytes(range(96))
+        self.publish_request(payload)
+        for _ in range(145):
+            self.step(generation=2)
+        self.assertEqual(self.take_request(),(0,payload))
+
     def test_maximum_connect_fields_use_canonical_two_byte_length(self):
         self.config.client=b'n'*32
         self.config.user=b'u'*64
