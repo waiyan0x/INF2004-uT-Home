@@ -167,6 +167,13 @@ serialized owner. Call `poll` regularly. UI and Home Assistant should consume
 the copied snapshot; do not mutate controller internals or create another
 command owner.
 
+The [Configuration Desk Runtime transactions tab](../configurator/README.md#runtime-transactions)
+provides selection, Load rule, Execute active rule and result display using this
+same controller. Start the Desk with the broker, CA, node and journal settings,
+then connect explicitly in the tab. Close any command-line owner for that node
+first. One worker owns the controller and optional HA publisher; browser requests
+consume copied snapshots and queue explicit actions.
+
 ## Home Assistant display
 
 Add `--home-assistant` to the same session command. It uses the same broker,
@@ -231,8 +238,11 @@ Host tests verify the messages through a real local MQTT broker and compiled C
 owner with simulated buses. The [isolated HA check](#home-assistant-vm-check)
 also verifies entity states in a real Home Assistant instance. **A running Home
 Assistant instance and a live ESP have not yet completed acceptance together
-with this adapter.** The existing Configuration
-Desk has no Runtime Transactions view yet; its UI needs review before changes.
+with this adapter.** The approved Configuration Desk Runtime transactions tab is
+implemented. Its HTTP actions passed the local compiled-owner/MQTT/HA A/B/A,
+expiry and journal-reopen check on 17 November, with exactly three simulated
+operations and none added by loading or recovery. This supplements the existing
+HA checks; it is not physical ESP acceptance.
 
 For live acceptance, first confirm the board/image, idle plan and reviewed
 BMP388 wiring as described above. Start the session with the display option,

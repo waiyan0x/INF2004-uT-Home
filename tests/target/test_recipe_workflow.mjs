@@ -35,7 +35,7 @@ async function openDesk(drivers = ['i2c_recipe']) {
   vm.runInNewContext(source, {document, fetch, setTimeout() {}, clearTimeout() {},
     renderProfile() {}, renderTelemetry() {}, renderBoardState() {}, renderReviewPlan() {},
     updateDiscoveryControls() {}, renderDiscovery() {}, renderDatasheet() {},
-    parseRecipeFields, describeRecipe, setupWorkspace: () => () => {}});
+    parseRecipeFields, describeRecipe, setupWorkspace: () => () => {}, setupRuntime: () => ({activate() {}})});
   await new Promise(resolve => setImmediate(resolve));
   await get('connect').onclick();
   for (const [id, value] of Object.entries({'recipe-device': 'reader', 'recipe-bus': 'i2c0',

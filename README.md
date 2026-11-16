@@ -87,16 +87,22 @@ environment alive; systemd services alone did not keep it running. Login details
 test configuration, backups and verification are private under that ignored
 folder. The fixture is stopped, so its six sensors are correctly unavailable.
 
-**Next: prepare the Runtime Transactions view; TLS work remains paused.** The
-local HA container and simulated six-sensor visual check are ready. A
+**Next: walk through the implemented Runtime Transactions view; TLS work remains
+paused.** The approved compact tab is available in the existing
+[Configuration Desk](tools/configurator/README.md#runtime-transactions): choose
+a description, operation and address, then Load rule and Execute active rule.
+The new HTTP path passed the simulated A/B/A, expiry and journal-reopen check
+through MQTT and HA, with exactly three reads. Backend and desktop/mobile browser
+checks passed; physical ESP/HA acceptance remains separate. The local HA
+container and simulated six-sensor visual check are ready. A
 [repeatable demo](tools/transaction/README.md#repeatable-simulated-display-demo)
 is available without the physical ESP. Physical ESP/HA acceptance stays open
 until transport work is resumed and MQTT readiness is repeatable.
 The [power-save comparison](tools/transaction/README.md#normal-profile-packet-capture)
 is complete, with the original image/profile restored and no root-cause claim.
-Review and build the Runtime Transactions view in the existing Configuration
-Desk using this same controller, then complete the reviewed SPI/UART descriptions
-and physical demonstrations. Preserve the existing visual
+Use the same controller through the Desk for the next operator walkthrough,
+then complete the reviewed SPI/UART descriptions and physical demonstrations.
+Preserve the existing visual
 style and review proposed UI adjustments before implementation. See the
 [completion plan](CONTRIBUTING.md#completion-plan).
 

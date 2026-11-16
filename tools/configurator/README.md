@@ -12,6 +12,99 @@ standard HTTP server and local HTML/CSS/JavaScript; no Node build or new web
 framework is required. Offline review needs only the planner dependencies.
 The interface uses one fixed colour palette.
 
+## Runtime transactions
+
+The **Runtime transactions** tab uses the existing fonts, colours, cards and
+buttons. Profile, Review & apply and Live monitor keep their existing workflows.
+USB connection controls stay with those views; the runtime tab shows its own
+MQTT target and connection state. Descriptions can be previewed offline.
+
+To enable runtime actions, install the transaction requirements and supply the
+same local settings used by the [controller session](../transaction/README.md#persistent-controller):
+
+```powershell
+python -m pip install -r tools/transaction/requirements.txt
+python -B -m tools.configurator --port 8080 --broker BROKER --mqtt-port 8883 --ca BROKER_CA_FILE --node uthome-0123456789ab --state build/controller/uthome-0123456789ab.sqlite3 --home-assistant
+```
+
+Set `UTHOME_MQTT_USER` and `UTHOME_MQTT_PASSWORD` privately in that server's
+environment. Omit `--home-assistant` if no display publisher is needed. Keep one
+controller and one journal per node; close the command-line session before
+connecting the Desk to the same node. Startup and opening the tab do not connect
+to MQTT. Use **Connect** explicitly, after confirming the board, firmware, idle
+plan and reviewed wiring for any physical trial.
+
+The screen contains:
+
+1. A session row: node, MQTT readiness, HA publisher state and Connect/Disconnect.
+2. One selection card: reviewed Markdown description, operation and documented
+   address. A read-only line shows protocol, outgoing bytes, requested RX length,
+   rate and timeout, with relevant prerequisites beside the selection.
+3. **Load rule**, followed by the acknowledged active operation/revision and
+   **Execute active rule**. Selection alone changes only the preview; loading
+   replaces a rule without performing peripheral I/O. Execution uses the active
+   rule, even if another operation is selected in the preview.
+4. One result card: operation status, fresh raw bytes, reported TX/RX counts and
+   age. A collapsed **Details** section holds source references and the last
+   receipt, clearly marked historical when it is no longer current.
+
+For example, selecting `pressure_raw` previews TX `04` and RX length 3 while
+`chip_id / revision 1` remains active. Execute still uses chip ID until Load
+succeeds. After loading pressure and executing once, the three returned bytes
+may legitimately be `00 00 00`; this does not establish pressure accuracy.
+
+The current [controller](../transaction/README.md#persistent-controller) supplies
+readiness, IDs, revisions, durable command ownership and freshness. One
+server worker owns that controller and the optional HA publisher; the page
+consumes copied state. Broker/CA/credentials and the per-node journal stay in
+local server settings. The browser does not edit request counters, journal
+paths, wire packets or credentials. Connecting is explicit and performs no
+rule load or execution. HA publisher connectivity is not proof that HA rendered
+or received a message.
+
+| State | What the page shows or permits |
+|---|---|
+| Offline or not ready | Preview remains usable; Load/Execute disabled with the reason |
+| Rule accepted | Active operation/revision updates; live raw bytes/counts remain unavailable |
+| Execution complete | Current raw bytes/counts and age, including legitimate zero bytes |
+| Expired, failed snapshot or disconnected | Live bytes/counts clear; the last receipt stays in Details as history |
+| Unsupported operation | Explain its missing capability beside the preview; loading is disabled |
+| Rejected rule | Show rejection; preserve the acknowledged active rule |
+| Outcome unknown | Block Load/Execute; show Check status and Recover last result only as needed; never repeat uncertain I/O automatically |
+
+The existing five-second result freshness limit applies. The display clears
+before load/execute/recovery and when a snapshot is unavailable; copied state
+expires after two seconds without a worker/browser refresh. Plan-generation or
+boot changes invalidate the active rule through the controller. The runtime
+view does not apply an idle plan or save startup rules automatically. Keep the
+existing profile workflow for explicit setup/restoration.
+
+On small screens, fields stack and the four tabs remain keyboard accessible.
+The view uses the current reviewed-description compiler; unsupported SPI/UART
+or timing-dependent descriptions stay unavailable. Normal actions need no JSON
+editing. Details contains one historical receipt; there is no repeated-read mode.
+
+`GET /api/runtime-catalogue` compiles only repository descriptions, without
+peripheral I/O. Session-authenticated `POST /api/runtime` accepts `snapshot`,
+`connect`, `disconnect`, `load`, `execute`, `status` and `recover`. A load names
+the catalogue filename, operation, documented address and reviewed description
+SHA-256. Changed descriptions require another page review. Actions are queued
+to one owner; HTTP handlers never access the journal or MQTT client directly.
+The existing Host/Origin/session-token and request-size checks apply.
+
+Verification on 17 November 2026: eight owner/API checks and nine browser
+checks passed, alongside 23 existing Desk backend checks, 40 JavaScript checks
+and 26 existing Desk browser checks. Tests cover preview versus active state,
+load without I/O, one execution per click, delayed replies, rejected updates,
+unknown-outcome recovery, reconnect, expiry and narrow-screen layout. The new
+HTTP path also passed chip-ID / raw-pressure / chip-ID, expiry and journal-reopen
+checks through the compiled C owner, local TLS broker and HA Container, with
+exactly three simulated reads. A separate run drove the actual browser controls
+through first connect, A/B/A, expiry and disconnect with three reads and no
+browser errors. Evidence is local-only under
+`build/runtime-ui-review-20261117/`. Physical ESP/HA acceptance remains open;
+this change does not resume TLS work or alter firmware.
+
 ## Configuration recipes
 
 The professor-feedback change starts with one bounded generic I2C operation:

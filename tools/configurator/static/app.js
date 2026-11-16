@@ -2,9 +2,15 @@
 import { renderProfile, renderTelemetry, renderBoardState, renderReviewPlan, setupWorkspace } from './dashboard.js';
 import { renderDiscovery, updateDiscoveryControls } from './discovery.js';
 import { parseRecipeFields, describeRecipe } from './recipes.js';
+import { setupRuntime } from './runtime.js';
 const el = id => document.getElementById(id);
 const token = document.querySelector('meta[name="session"]').content;
-const showWorkspace = setupWorkspace();
+const runtime = setupRuntime();
+const showWorkspace = setupWorkspace(view => {
+  const active = view === 'runtime';
+  for (const id of ['usb-connection', 'notice', 'connection', 'appbarNode']) el(id).hidden = active;
+  runtime.activate(active);
+});
 let connected = false, busy = false, pendingTelemetry = null, reviewId = null, examples = {};
 let draftEdited = false, draftGeneration = 0;
 let discoveryFeatures = 0, recoveryRequired = false, discovered = null;

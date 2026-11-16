@@ -9,13 +9,15 @@ from tools.config_transfer.client import TransferError
 from .workflow import Workflow
 from .discovery import connection_presets
 from .recipes import recipe_catalogue
+from .runtime import Runtime, catalogue as runtime_catalogue
 
 STATIC = Path(__file__).with_name("static")
 LOGGER = logging.getLogger(__name__)
 ASSETS = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"),
           "/style.css": ("style.css", "text/css"), "/dashboard.js": ("dashboard.js", "text/javascript"),
           "/discovery.js": ("discovery.js", "text/javascript"),
-          "/recipes.js": ("recipes.js", "text/javascript")}
+          "/recipes.js": ("recipes.js", "text/javascript"),
+          "/runtime.js": ("runtime.js", "text/javascript")}
 # Explicit assets only: restoring the design must not expose the source tree.
 STYLE_FILES = (
     "main.css", "tokens.css", "fonts.css", "base.css",
@@ -79,6 +81,8 @@ class Handler(BaseHTTPRequestHandler):
                        "connections": connection_presets()}
             content.update(recipe_catalogue(self.server.workflow.catalogue.descriptors[("i2c_recipe", "1.0.0")]))
             return 200, content, "application/json"
+        if self.path == "/api/runtime-catalogue":
+            return 200, {"descriptions": runtime_catalogue()}, "application/json"
         return 404, {"error": "Not found"}, "application/json"
 
     def do_POST(self):
@@ -100,7 +104,8 @@ class Handler(BaseHTTPRequestHandler):
             body = parse_document(raw, limit)
             if not self.path.startswith("/api/"):
                 raise ValueError("Unknown operation")
-            result = self.server.workflow.dispatch(self.path[5:], body)
+            result = (self.server.runtime.dispatch(body) if self.path == "/api/runtime"
+                      else self.server.workflow.dispatch(self.path[5:], body))
             self.send(200, result)
         except (ImportError, OSError, ValueError, TransferError, RecursionError) as error:
             if authorized:
@@ -130,14 +135,15 @@ class LocalServer(ThreadingHTTPServer):
     request_queue_size = 32
 
 
-def make_server(port=8080, workflow=None):
+def make_server(port=8080, workflow=None, runtime=None):
     server = LocalServer(("127.0.0.1", port), Handler)
     server.workflow = workflow or Workflow()
+    server.runtime = runtime or Runtime()
     server.token = secrets.token_urlsafe(32)
     return server
 
-def serve(port=8080):
-    server = make_server(port)
+def serve(port=8080, runtime=None):
+    server = make_server(port, runtime=runtime)
     print(f"uT-Home: http://127.0.0.1:{server.server_port}", flush=True)
     try:
         server.serve_forever()
@@ -146,3 +152,4 @@ def serve(port=8080):
     finally:
         server.server_close()
         server.workflow.close()
+        server.runtime.close()

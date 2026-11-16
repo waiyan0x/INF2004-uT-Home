@@ -60,7 +60,7 @@
 </header>
 
 <main class="page">
-  <section class="section connection-section" aria-label="Board connection">
+  <section class="section connection-section" id="usb-connection" aria-label="Board connection">
     <div class="card connection-card">
       <div class="connection-row">
         <div class="field"><label class="field__label" for="port">Board connection</label><input class="input" id="port" placeholder="Serial port · /dev/cu.usbmodem… or COM8" maxlength="128"></div>
@@ -74,6 +74,7 @@
     <button class="workspace-tab" id="tab-profile" type="button" role="tab" aria-selected="true" aria-controls="workspace-profile" data-workspace-tab="profile">Profile</button>
     <button class="workspace-tab" id="tab-review" type="button" role="tab" aria-selected="false" aria-controls="workspace-review" tabindex="-1" data-workspace-tab="review">Review &amp; apply</button>
     <button class="workspace-tab" id="tab-monitor" type="button" role="tab" aria-selected="false" aria-controls="workspace-monitor" tabindex="-1" data-workspace-tab="monitor">Live monitor</button>
+    <button class="workspace-tab" id="tab-runtime" type="button" role="tab" aria-selected="false" aria-controls="workspace-runtime" tabindex="-1" data-workspace-tab="runtime">Runtime transactions</button>
   </div>
   <div class="alert alert--neutral workspace-notice" id="notice" role="status" aria-live="polite">Choose an example or import a profile, then validate and review.</div>
 
@@ -222,6 +223,42 @@
         <div class="tiles health-tiles" id="healthTiles"></div>
         <details class="card observation-details"><summary>Per-source observations</summary><div class="table-scroll" id="readings" aria-live="polite"></div></details>
         <details class="card observation-details"><summary>Queue and runtime details</summary><pre id="diagnostics"></pre></details>
+      </section>
+    </div>
+  </section>
+  <section id="workspace-runtime" role="tabpanel" aria-labelledby="tab-runtime" tabindex="0" hidden>
+    <div class="workspace-column">
+      <div class="card runtime-session" aria-label="Runtime connection">
+        <strong id="runtime-node">Runtime session</strong>
+        <span class="badge" id="runtime-connection">Not connected</span>
+        <span class="hint" id="runtime-ha">HA publisher disabled</span>
+        <button class="btn" id="runtime-connect" type="button" disabled>Connect</button>
+      </div>
+      <p class="hint" id="runtime-notice" role="status" aria-live="polite">Open this tab to review runtime operations.</p>
+      <section class="card" aria-labelledby="runtime-choose-heading">
+        <div class="section__head" data-accent="blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><use href="#i-braces"/></svg><h2 id="runtime-choose-heading">Choose operation</h2></div>
+        <div class="runtime-fields">
+          <div class="field"><label class="field__label" for="runtime-description">Description</label><select class="input" id="runtime-description"><option value="">Choose description</option></select></div>
+          <div class="field"><label class="field__label" for="runtime-operation">Operation</label><select class="input" id="runtime-operation" disabled><option value="">Choose operation</option></select></div>
+          <div class="field"><label class="field__label" for="runtime-address">Address</label><select class="input" id="runtime-address" disabled><option value="">Choose address</option></select></div>
+        </div>
+        <div class="alert alert--neutral runtime-preview"><span id="runtime-preview">Select a reviewed description and operation.</span><span class="hint" id="runtime-notes"></span></div>
+        <div class="toolbar"><button class="btn btn--primary" id="runtime-load" type="button" disabled>Load rule</button><span class="hint">Loading does not read the sensor.</span></div>
+        <div class="runtime-active">
+          <div><h3>Active rule</h3><p id="runtime-active">Unavailable</p><p class="hint">Selecting an operation does not change the active rule.</p></div>
+          <button class="btn btn--primary" id="runtime-execute" type="button" disabled>Execute active rule</button>
+        </div>
+      </section>
+      <section class="card" aria-labelledby="runtime-result-heading">
+        <div class="section__head" data-accent="cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><use href="#i-activity"/></svg><h2 id="runtime-result-heading">Latest result</h2><span class="badge" id="runtime-status">Unavailable</span></div>
+        <dl class="runtime-results">
+          <div><dt>Raw bytes</dt><dd id="runtime-raw">Unavailable</dd></div>
+          <div><dt>TX accepted</dt><dd id="runtime-tx">Unavailable</dd></div>
+          <div><dt>RX received</dt><dd id="runtime-rx">Unavailable</dd></div>
+          <div><dt>Age</dt><dd id="runtime-age">Unavailable</dd></div>
+        </dl>
+        <div class="toolbar" id="runtime-recovery" hidden><button class="btn" id="runtime-check" type="button">Check status</button><button class="btn" id="runtime-recover" type="button">Recover last result</button></div>
+        <details><summary>Details</summary><div class="details-body"><p class="hint">Source references and the last receipt. A receipt is history, not a current reading. The source PDF has not been verified by this session.</p><pre id="runtime-details">No receipt.</pre></div></details>
       </section>
     </div>
   </section>

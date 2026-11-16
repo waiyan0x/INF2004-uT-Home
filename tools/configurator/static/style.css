@@ -35,6 +35,27 @@ th { color: hsl(var(--muted-foreground)); font-weight: 500; }
   gap: var(--space-4);
   border-bottom: 1px solid hsl(var(--border));
   margin-bottom: var(--space-4);
+  overflow-x: auto;
+}
+
+/* Runtime transactions reuse the Desk's existing controls and surface tokens. */
+.runtime-session, .runtime-active { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4); }
+.runtime-session > * + *, .runtime-active > * + * { margin-top: 0; }
+.runtime-session .btn, .runtime-active .btn { margin-left: auto; }
+.runtime-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+.runtime-preview { flex-wrap: wrap; justify-content: space-between; }
+.runtime-preview .hint { margin: 0; }
+.runtime-active { margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid hsl(var(--border)); }
+.runtime-active p { margin-block: var(--space-2) 0; }
+.runtime-results { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: var(--space-4); }
+.runtime-results dt { color: hsl(var(--muted-foreground)); font-size: var(--text-sm); }
+.runtime-results dd { margin: var(--space-2) 0 0; overflow-wrap: anywhere; font-family: var(--font-mono); }
+#workspace-runtime .toolbar { align-items: center; }
+#runtime-notice { margin: 0; }
+@media (max-width: 559px) {
+  .runtime-fields { grid-template-columns: minmax(0, 1fr); }
+  .runtime-results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .runtime-active .btn { margin-left: 0; }
 }
 .workspace-tab {
   padding: var(--space-3) var(--space-2);

@@ -236,7 +236,7 @@ export function renderTelemetry(snapshot) {
 /** Switch views without changing the draft, board state or pending review.
  * @returns {(view: string, focus?: boolean) => void} Unknown views leave selection unchanged.
  */
-export function setupWorkspace() {
+export function setupWorkspace(onSelect = () => {}) {
   const tabs = [...document.querySelectorAll('[data-workspace-tab]')];
   function select(view, focus = false) {
     const selected = tabs.find(tab => tab.dataset.workspaceTab === view);
@@ -248,6 +248,7 @@ export function setupWorkspace() {
       el(tab.getAttribute('aria-controls')).hidden = !active;
     }
     if (focus) selected.focus();
+    onSelect(view);
   }
   for (const [index, tab] of tabs.entries()) {
     tab.addEventListener('click', () => select(tab.dataset.workspaceTab));

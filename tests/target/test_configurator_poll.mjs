@@ -54,7 +54,7 @@ test('a user review waits for an active observation without disabling the button
     renderProfile() {}, renderTelemetry() {}, renderBoardState() {},
     renderReviewPlan(plan, connected) { reviewPlans.push({plan, connected}); },
     updateDiscoveryControls() {}, renderDiscovery() {}, renderDatasheet() {},
-    setupWorkspace: () => () => {}, console });
+    setupWorkspace: () => () => {}, setupRuntime: () => ({activate() {}}), console });
   vm.runInContext(source, context);
   await new Promise(resolve => setImmediate(resolve));
   await get('connect').onclick();
