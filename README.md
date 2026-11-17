@@ -42,6 +42,9 @@ MQTT now reserves its full-size TLS input/output buffers and retained broker
 hostname; see the
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
 Continue with the remaining TLS handshake/crypto and TCP/IP allocations.
+The [compiled handshake-state proof](docs/reports/wifi-static-memory/README.md#handshake-state-lifetime-proof)
+now covers both renegotiation entries, retries, failure cleanup and required slot
+counts. Next implement the scoped typed stores; they are not installed in source yet.
 The simulated Runtime Desk and Home Assistant walkthrough is complete. Continue
 independent TLS checks and defer steps that need operator input. The
 [MQTT connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)

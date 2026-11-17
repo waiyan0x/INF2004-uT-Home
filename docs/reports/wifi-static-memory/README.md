@@ -10,9 +10,50 @@ full-profile setup/recovery uses USB. The host Desk and Home Assistant web
 interfaces remain available. No Wi-Fi-driver exception automatically exempts
 TLS, TCP/IP or ESP-TLS contexts.
 
+### Handshake-state lifetime proof
+
+The follow-up compiled SDK investigation confirms the proposed outer-state
+capacity: **two 84-byte transforms, two 144-byte sessions and one 2,448-byte
+handshake record**, totaling **2,904 typed bytes**. The allocator count limits
+in this experiment are simulated; fixed state storage is **not implemented**.
+Against the existing 8,244-byte application headroom, that payload leaves
+5,340 bytes before lease/scope metadata, other crypto and TCP/IP storage.
+
+The [maintained probe](../../../tools/target/README.md#tls-handshake-state-lifetime-probe)
+passes 100 cycles and 100 allocation-free in-progress retries through each of
+the two linked renegotiation entries. Active and negotiating pointers stay
+distinct; active contents and ownership survive initialization. Native wrapup
+promotes the new records and releases the old ones. All six injected allocation
+failures preserve the old active pointers/bytes, release negotiating records and
+allow complete cleanup. Independent negative controls show that reducing either
+the transform or session count to one fails initialization.
+
+This reuses the unchanged, unflashed hostname-build ELF identified below
+(`33f4eba9591f32ad6ce9a3b99a77e0ddc77fbe35907c9932752d12052f598204`).
+Fresh reports/logs are private under `build/tls-state-lifetime-20261117/`.
+Only the Python probe and existing guides changed; no fresh firmware build or
+C qualification is claimed for this investigation. Heap, ROM byte operations,
+PSA hash operations and handshake progress are doubled. Empty crypto state is
+advanced synthetically to native wrapup; authentication, cipher handover,
+handshake peaks and hardware behavior remain untested. Session-reset APIs are
+not linked in this ELF and are not covered.
+
+The implementation boundary needs the existing setup scope **and both**
+`mbedtls_ssl_start_renegotiation` and `mbedtls_ssl_renegotiate`. `ssl_msg.c`
+calls them for peer HelloRequest and record-counter limits respectively.
+The latter also calls the former within `ssl_tls.c`; a linker wrapper on the
+former alone cannot intercept that internal call. Global allocation-size
+matching is unsuitable because this same SDK unit also allocates variable-length
+ticket and copied-session data. The next adapter must select exact typed init
+requests within a borrowed-context scope and end selection after initialization;
+wrapup clears negotiating pointers again, so missing-pointer tests alone are
+not a sufficient general classifier. Test equal-sized unrelated requests before,
+during and after that phase. Preserve the existing renegotiation, certificate
+and record-size behavior, vendor pins and aggregate caps.
+
 ### Fixed retained MQTT hostname
 
-The latest 17 November step extends `c3tout`'s existing `ssl_tls.c` boundary with
+The preceding 17 November step extended `c3tout`'s existing `ssl_tls.c` boundary with
 one 254-byte hostname slot, retaining the current 253-character MQTT admission
 limit. A checked wrapper calls the unchanged SDK setter, so the SDK still owns
 copying, context flags, replacement and NULL clearing. Oversized input leaves

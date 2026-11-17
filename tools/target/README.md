@@ -378,6 +378,33 @@ remaining setup allocations must leave no simulated heap objects. The report
 records the ELF hash, DWARF/linked buffer capacities and original SDK execution
 counts. The ELF is not modified.
 
+## TLS handshake-state lifetime probe
+
+`tls_state_probe.py` exercises the compiled SDK's state-object lifecycle before
+implementing fixed typed stores. Use the existing optional Unicorn/pyelftools
+environment, the qualified Wi-Fi ELF and its matching passing memory report:
+
+```powershell
+python -B -m tools.target.tls_state_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --memory-report build/tls-name-fixed-20261117/memory.json --output build/tls-state/new-sdk-report.json
+```
+
+Create the output directory first. Assertions must remain enabled; existing
+reports and mismatched ELF/memory identities reject. SDK types are checked from
+DWARF. Both `mbedtls_ssl_start_renegotiation` and `mbedtls_ssl_renegotiate` run
+100 cycles plus 100 in-progress retries each. Tests check separate old/new
+pointers, retained active bytes, promotion, release and final cleanup. All three
+allocation failures run through each entry. Independent one-transform and
+one-session count limits must fail while preserving the active state.
+
+This uses a simulated allocator with proposed slot counts, not implemented fixed
+firmware storage. Heap, ROM byte operations and PSA hash calls are doubled;
+`mbedtls_ssl_handshake` returns WANT_READ through a double. Empty crypto state is
+advanced directly to native wrapup. No authentication, encrypted handshake,
+cipher handover, radio or runtime peak is tested. The current ELF has no linked
+session-reset API, and the probe does not claim reset coverage. The memory result
+is a typed-payload projection excluding metadata, certificates, keys, tickets
+and TCP/IP allocations. See the [current assessment](../../docs/reports/wifi-static-memory/README.md#handshake-state-lifetime-proof).
+
 ## TLS retained-hostname probe
 
 `tls_name_probe.py` checks the compiled fixed-name wrapper and the actual SDK
