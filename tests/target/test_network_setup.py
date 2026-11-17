@@ -8,19 +8,34 @@ from tools.target import network_setup
 
 
 def configuration(folder):
-    """Syntax-only PEM fixtures; never valid deployment credentials."""
-    (folder / 'certificate.pem').write_bytes(
-        b'-----BEGIN CERTIFICATE-----\nfixture\n-----END CERTIFICATE-----\n')
-    (folder / 'key.pem').write_bytes(
-        b'-----BEGIN PRIVATE KEY-----\nfixture\n-----END PRIVATE KEY-----\n')
-    values = dict(ssid='lab\u2019s AP', password='test-password', token='t' * 32,
-                  certificate_file='certificate.pem', key_file='key.pem')
+    """Private setup syntax fixture; never valid deployment credentials."""
+    values = dict(ssid='lab\u2019s AP', password='test-password')
     path = folder / 'settings.json'
     path.write_text(json.dumps(values))
     return path, values
 
 
 class NetworkSetupPowerTests(unittest.TestCase):
+    def test_mqtt_only_setup_has_no_server_keys_and_rejects_old_https_fields(self):
+        with tempfile.TemporaryDirectory() as name:
+            folder = Path(name)
+            path, values = configuration(folder)
+            ca = folder / 'broker-ca.pem'
+            ca.write_bytes(b'-----BEGIN CERTIFICATE-----\nfixture\n-----END CERTIFICATE-----\n')
+            values['mqtt'] = dict(address='127.0.0.1', server_name='broker.test', port=8883,
+                                  user='device', password='password', ca_file=ca.name)
+            path.write_text(json.dumps(values))
+            header, record = network_setup.generate(path)
+            self.assertIn(b'g_setup_mqtt_ca', header)
+            self.assertIn('mqtt_ca_sha256', record)
+            for symbol in (b'g_setup_certificate', b'g_setup_key', b'g_setup_token', b'UTHOME_SETUP_PORT'):
+                self.assertNotIn(symbol, header)
+            for field, value in (('token', 't' * 32), ('certificate_file', 'server.pem'),
+                                 ('key_file', 'server.key'), ('port', 8443)):
+                path.write_text(json.dumps(dict(values, **{field: value})))
+                with self.assertRaisesRegex(ValueError, 'invalid setup fields'):
+                    network_setup.generate(path)
+
     def test_omission_preserves_default_and_explicit_integer_caps(self):
         with tempfile.TemporaryDirectory() as name:
             path, values = configuration(Path(name))

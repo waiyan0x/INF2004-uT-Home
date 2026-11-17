@@ -29,9 +29,6 @@ static int diagnostic (void *                    p_context,
                        uint8_t *                 p_data,
                        size_t                    capacity,
                        size_t *                  p_size);
-#if UTHOME_NETWORK_WIFI
-static cfgmux_t g_mux = {0};
-#endif
 static cfgbind_state_t g_binding   = {0};
 static cfgctrl_t       g_control   = {0};
 static cfgstore_t      g_store     = {0};
@@ -89,14 +86,9 @@ int c3app_run (const uint8_t *       p_build_hash,
 #if UTHOME_NETWORK_WIFI || UTHOME_NETWORK_BLE
     /* Dynamic transport failures leave local restore/USB available. A static
      * build separately requires the complete reviewed task set before seal. */
+    (void)c3net_start(&g_control);
 #if UTHOME_NETWORK_WIFI
-    cfgmux_t * p_upload =
-        (0 == cfgmux_init(&g_mux, &g_control, &g_pump)) ? &g_mux : NULL;
-    /* Failed optional arbitration leaves USB/local operation available. */
-    (void)c3net_start(&g_control, p_upload);
-    (void)c3tx_start(&g_binding, p_upload, c3net_boot());
-#else
-    (void)c3net_start(&g_control, NULL);
+    (void)c3tx_start(&g_binding, c3net_boot());
 #endif
 #endif
 #if defined(UTHOME_STATIC_TASKS) && UTHOME_STATIC_TASKS
@@ -122,7 +114,7 @@ int c3app_run (const uint8_t *       p_build_hash,
         g_telemetry.service_error = cfgbind_service(&g_binding, now_ms);
         /* A malformed/disconnected transport never stops the active plan. */
 #if UTHOME_NETWORK_WIFI
-        if ((!cfgmux_busy(&g_mux)) && (!c3tx_busy()))
+        if (!c3tx_busy())
         {
             (void)cfgpump_step(&g_pump, now_ms);
         }

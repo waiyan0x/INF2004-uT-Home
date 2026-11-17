@@ -14,7 +14,7 @@ class Peer:
     def __init__(self, library):
         self.lib = c.CDLL(str(library))
         signatures = {
-            'start': (c.c_int, [c.c_bool, c.c_char_p, c.c_char_p, c.c_char_p, c.c_char_p]),
+            'start': (c.c_int, [c.c_char_p, c.c_char_p]),
             'close': (None, []), 'handshake': (c.c_int, []),
             'read': (c.c_int, [c.c_void_p, c.c_size_t]),
             'write': (c.c_int, [c.c_void_p, c.c_size_t]),
@@ -28,13 +28,12 @@ class Peer:
             function.restype, function.argtypes = result, arguments
         self.socket = None
 
-    def start(self, connection, folder, *, server=False, name='127.0.0.1', ca=None):
+    def start(self, connection, folder, *, name='127.0.0.1', ca=None):
         self.socket = connection
         self.wire = bytearray()
         self.records = []
         path = lambda value: str(value).encode()
-        self.check(self.lib.tlspeer_start(server, path(ca or folder/'ca.pem'),
-                                         path(folder/'server.pem'), path(folder/'server.key'), name.encode()))
+        self.check(self.lib.tlspeer_start(path(ca or folder/'ca.pem'), name.encode()))
 
     def check(self, result):
         if result < 0:

@@ -1,7 +1,7 @@
 # Configuration, USB and storage
 
 One controller owns the path from reviewed JSON to running devices:
-`cfgpump ÃƒÂ¢Ã¢â‚¬ Ã¢â‚¬â„¢ cfgctrl ÃƒÂ¢Ã¢â‚¬ Ã¢â‚¬â„¢ cfgbind/activate`, with `cfgstore ÃƒÂ¢Ã¢â‚¬ Ã¢â‚¬â„¢ c3store` for persistence.
+`cfgpump ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ cfgctrl ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ cfgbind/activate`, with `cfgstore ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ c3store` for persistence.
 The board independently checks every profile; a host-valid plan is not enough.
 Runtime, framing and storage do not dispatch on prototype device names.
 
@@ -400,8 +400,8 @@ Before successful verification it denies every write; afterwards it permits only
 `0x110000..0x115fff`. Bootloader, table, application, NVS and PHY writes remain
 denied. This is stricter than the SDK's default window. Dependency source bytes
 are unchanged, and qualification checks both substitutions and their scope.
-The current application does not support OTA. Authenticated HTTP Apply now uses
-the existing persistence path through cfgmux, as described below.
+The current application does not support OTA. Full-profile Apply uses the
+existing USB persistence path; the ESP HTTPS service has been removed.
 
 Manual BARR-C review: `cfgpart` is C99 with an immutable byte table, no native
 layout casts, no writable globals and subtraction-first bounds. The descriptor's
@@ -426,14 +426,3 @@ recurring display and PWM policy lives in the fixed-storage `oledwork` and
 `pwmwork` services. See [display](../services/display/README.md) and
 [actuator contracts](../services/actuator/README.md). This extraction preserves
 context field order, fixed union storage, driver configuration and cleanup order.
-
-## Network Apply arbitration
-
-`cfgmux.c/.h` borrows an idle cfgpump receiver for one authenticated HTTP upload.
-The application pauses USB parsing only during this lease. Complete requests call
-the unchanged cfgctrl Apply path; no second validator, save or recovery path is
-introduced. USB/controller IDs share one sequence with optimistic boot/revision
-preconditions. Exact retained retries do not save again. See the
-[network contract](../network/README.md#authenticated-configuration-apply-and-usb-arbitration)
-for limits, errors, cache eviction and uncertain outcomes. The original controller,
-pump, wire and store implementation files remain unchanged.

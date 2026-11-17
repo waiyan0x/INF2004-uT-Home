@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define UTHOME_TLS_CONNECTIONS 3U
+#define UTHOME_TLS_CONNECTIONS 1U
 #define UTHOME_TLS_NAME_BYTES  254U
 
 typedef struct

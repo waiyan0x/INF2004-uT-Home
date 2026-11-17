@@ -21,9 +21,9 @@ invalidate rules; rules do not persist over reboot. One owner serializes calls,
 with no heap, new task or kernel object. Requests and replies are copied; the
 component retains no borrowed MQTT/sample pointers.
 
-The service requires an explicitly idle peripheral plan and no admitted config
-upload. It never stops another worker automatically or consumes a sensor FIFO.
-USB/HTTP configuration waits while an asynchronous transfer or failed cleanup
+The service requires an explicitly idle peripheral plan. It never stops another
+worker automatically or consumes a sensor FIFO.
+USB configuration waits while an asynchronous transfer or failed cleanup
 retains the hardware. Cleanup failure keeps ownership until release succeeds.
 
 | Protocol | Current board binding | Transfer shape |
@@ -47,8 +47,9 @@ wrong-QoS and malformed messages. Use one controller and one outstanding command
 
 A read-only status query discovers the node's boot identity, current plan
 generation, active rule, readiness, busy/cleanup state and request history. Node
-identity is the MAC-derived topic identity, also returned by authenticated HTTP.
-Boot identity is the **same nonzero 64-bit startup value** used by HTTP/cfgmux.
+identity is the MAC-derived MQTT topic identity.
+Boot identity is the **same nonzero 64-bit startup value** supplied by the
+application network owner.
 A broker reconnect does not change it. Zero is allowed only as a query's discovery
 sentinel; command boot zero or a different boot is rejected before driver I/O.
 

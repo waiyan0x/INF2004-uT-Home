@@ -32,8 +32,6 @@ else:
     from build_modes import BuildMode, BuildSelection, QualificationError, UPSTREAM_EXAMPLES, resolve_mode
 
 RUNTIME_SOURCE_FILES = {
-    "firmware/src/config/cfgmux.c": "config/cfgmux.c",
-    "firmware/src/config/cfgmux.h": "config/cfgmux.h",
     "firmware/src/network/netbroker.c": "network/netbroker.c",
     "firmware/src/network/netbroker.h": "network/netbroker.h",
     "firmware/hal/ports/esp32c3/c3mqtt.c": "hal/c3mqtt.c",
@@ -42,16 +40,11 @@ RUNTIME_SOURCE_FILES = {
     "firmware/src/network/netmqtt.h": "network/netmqtt.h",
     "firmware/src/network/netretry.c": "network/netretry.c",
     "firmware/src/network/netretry.h": "network/netretry.h",
-    "firmware/src/network/nethttp.c": "network/nethttp.c",
-    "firmware/src/network/nethttp.h": "network/nethttp.h",
-    "firmware/src/network/netread.c": "network/netread.c",
     "firmware/src/network/netread.h": "network/netread.h",
     "firmware/src/network/netble.c": "network/netble.c",
     "firmware/src/network/netble.h": "network/netble.h",
     "firmware/hal/ports/esp32c3/c3wsta.c": "hal/c3wsta.c",
     "firmware/hal/ports/esp32c3/c3wsta.h": "hal/c3wsta.h",
-    "firmware/hal/ports/esp32c3/c3https.c": "hal/c3https.c",
-    "firmware/hal/ports/esp32c3/c3https.h": "hal/c3https.h",
     "firmware/hal/ports/esp32c3/c3gsvc.c": "hal/c3gsvc.c",
     "firmware/hal/ports/esp32c3/c3gsvc.h": "hal/c3gsvc.h",
     "firmware/app/c3net.c": "app/c3net.c",
@@ -724,11 +717,16 @@ def check_tls_storage(commands, symbols, enabled):
     for original, replacement in aliases.items():
         if original in symbols or symbols.get("__wrap_" + original) != symbols[replacement]:
             raise QualificationError("Invalid ESP-TLS error-tracker alias: " + original)
-    for name in ("esp_tls_init", "esp_tls_conn_destroy", "esp_mbedtls_server_session_delete"):
+    for name in ("esp_tls_init", "esp_tls_conn_destroy", "esp_mbedtls_cleanup"):
         if name not in symbols:
             raise QualificationError("Selected SDK TLS lifecycle missing: " + name)
+    for name in ("c3https_start", "nethttp_init", "cfgmux_init",
+                 "esp_tls_server_session_create", "esp_tls_server_session_init",
+                 "esp_mbedtls_server_session_delete"):
+        if name in symbols:
+            raise QualificationError("Removed HTTPS server remains linked: " + name)
     return dict(enabled=True, allocator_sources=sorted(sources), bindings=bindings,
-                error_aliases=aliases, context_slots=3, error_slots=3, hostname_bytes=254,
+                error_aliases=aliases, context_slots=1, error_slots=1, hostname_bytes=254,
                 qualification="ESP-TLS records only; mbedTLS and lwIP heap paths remain open")
 
 
@@ -772,7 +770,7 @@ def check_tls_output(commands, symbols, enabled):
         if name not in symbols:
             raise QualificationError('Selected SDK TLS lifecycle missing: ' + name)
     return dict(enabled=True, allocator_sources=['ssl_tls.c'], bindings=bindings,
-                output_slots=3, qualification='Output buffers only; receive and crypto heap paths remain open')
+                output_slots=1, qualification='Output buffers only; receive and crypto heap paths remain open')
 
 
 def verify_tls_output(work, enabled):
@@ -902,9 +900,9 @@ def verify_compile_profiles(work, startup_trace=False):
         profiles[source] = expected
     for path, command in commands.items():
         adapted = "-Dasm=__asm__" in command
-        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3lrec.c")}):
+        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3lrec.c")}):
             raise QualificationError("SDK assembly spelling adaptation escaped its adapter")
-    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3https.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3lrec.c"):
+    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3lrec.c"):
         owned_radio = (work / "project/hal" / name).read_text()
         if re.search(r"\b(?:asm|__asm__|typeof|__typeof__)\b", owned_radio):
             raise QualificationError("Owned radio adapter must remain C99: " + name)

@@ -8,7 +8,6 @@
 #include "activate.h"
 #include "shared.h"
 #include "c3gsvc.h"
-#include "c3https.h"
 #include "c3wsta.h"
 #include "c3mqtt.h"
 #include "esp_random.h"
@@ -22,8 +21,7 @@
 static netread_info_t g_info       = {0};
 static bool           gb_attempted = false;
 #if UTHOME_NETWORK_WIFI
-static bool gb_wifi  = false;
-static bool gb_https = false;
+static bool gb_wifi = false;
 #if UTHOME_SETUP_MQTT
 static bool gb_mqtt = false;
 #endif
@@ -31,14 +29,16 @@ static bool gb_mqtt = false;
 #if UTHOME_NETWORK_BLE
 static bool gb_ble = false;
 #endif
+#if UTHOME_NETWORK_BLE || (UTHOME_NETWORK_WIFI && UTHOME_SETUP_MQTT)
 static int capture (void *              p_context,
                     uint16_t            source,
                     sampcache_entry_t * p_entry,
                     uint64_t *          p_now);
+#endif
 static int metadata (const cfgctrl_t * p_control);
 
 /** @brief Boot identity and explicit local deployment inputs; no defaults. */
-int c3net_start (const cfgctrl_t * p_control, cfgmux_t * p_mux)
+int c3net_start (const cfgctrl_t * p_control)
 {
     uint8_t address[6] = {0};
     int     result     = 0;
@@ -69,23 +69,7 @@ int c3net_start (const cfgctrl_t * p_control, cfgmux_t * p_mux)
         return -1;
     }
 #if UTHOME_NETWORK_WIFI
-    if ((NULL != p_mux) && (0 != cfgmux_boot(p_mux, g_info.meta.boot_id)))
-    {
-        return -1;
-    }
-    g_info.b_configuration_supported = NULL != p_mux;
-
-    const c3https_config_t https = {.p_certificate = g_setup_certificate,
-                                    .p_key         = g_setup_key,
-                                    .p_token       = g_setup_token,
-                                    .certificate_size =
-                                        sizeof(g_setup_certificate),
-                                    .key_size   = sizeof(g_setup_key),
-                                    .token_size = sizeof(g_setup_token) - 1U,
-                                    .port       = UTHOME_SETUP_PORT,
-                                    .p_mux      = p_mux};
-    gb_https                     = 0 == c3https_start(&https);
-    gb_wifi                      = 0 == c3wsta_start(
+    gb_wifi = 0 == c3wsta_start(
                        g_setup_ssid, g_setup_password, UTHOME_SETUP_TX_POWER);
 #if UTHOME_SETUP_MQTT
     const c3mqtt_config_t broker = {.p_address     = g_setup_mqtt_address,
@@ -105,10 +89,6 @@ int c3net_start (const cfgctrl_t * p_control, cfgmux_t * p_mux)
     {
         result = -1;
     }
-#endif
-#if !UTHOME_NETWORK_WIFI
-    /* BLE has no configuration writes or upload owner. */
-    (void)p_mux;
 #endif
 #if UTHOME_NETWORK_BLE
     gb_ble = 0 == c3gsvc_start(&g_info);
@@ -143,15 +123,6 @@ int c3net_step (const cfgctrl_t * p_control, uint64_t now_ms)
             result = -1;
         }
         g_info.b_wifi_online = c3wsta_online();
-        if ((gb_https) && (!c3tx_busy()))
-        {
-            const int served = c3https_step(
-                now_ms, g_info.b_wifi_online, &g_info, capture, NULL);
-            if ((0 > served) || ((0 < served) && (0 != metadata(p_control))))
-            {
-                return -1;
-            }
-        }
 #if UTHOME_SETUP_MQTT
         if ((gb_mqtt) &&
             (0 !=
@@ -199,6 +170,7 @@ int c3net_observe (uint8_t * p_data, size_t capacity, size_t * p_size)
 }
 #endif
 
+#if UTHOME_NETWORK_BLE || (UTHOME_NETWORK_WIFI && UTHOME_SETUP_MQTT)
 /** @brief Never bypass shared serialization or consume display/rule queues. */
 static int capture (void *              p_context,
                     uint16_t            source,
@@ -210,6 +182,7 @@ static int capture (void *              p_context,
     (void)p_context;
     return shared_source(source, p_entry, p_now);
 }
+#endif
 
 /** @brief Copy controller/runtime state without mutating retry or save state.
  */
@@ -226,13 +199,6 @@ static int metadata (const cfgctrl_t * p_control)
     g_info.saved_revision       = p_control->saved_revision;
     g_info.runtime_state        = (uint32_t)status.state;
     g_info.b_durable_known      = p_control->b_saved_known;
-#if UTHOME_NETWORK_WIFI && UTHOME_SETUP_MQTT
-    g_info.b_mqtt_enabled = true;
-    if (0 != c3mqtt_status(&g_info.mqtt))
-    {
-        return -1;
-    }
-#endif
     return 0;
 }
 #endif

@@ -43,17 +43,6 @@ SDK_HEADER=r"""
 struct sockaddr { unsigned short sa_family; char sa_data[14]; };
 struct in_addr { uint32_t s_addr; };
 struct sockaddr_in { short sin_family; uint16_t sin_port; struct in_addr sin_addr; };
-int c3fake_recv(int fd,void *data,size_t size,int flags);
-int c3fake_send(int fd,const void *data,size_t size,int flags);
-int c3fake_socket(int domain,int type,int protocol);
-int c3fake_bind(int fd,const struct sockaddr *address,size_t size);
-int c3fake_listen(int fd,int backlog);
-int c3fake_setsockopt(int fd,int level,int name,const void *value,size_t size);
-int c3fake_accept(int fd,struct sockaddr *address,void *size);
-int c3fake_fcntl(int fd,int command,...);
-int c3fake_close(int fd);
-uint16_t c3fake_htons(uint16_t value);
-uint32_t c3fake_htonl(uint32_t value);
 /* Foreign SDK names and private fields used by the owned MQTT adapter. */
 #define ESP_TLS_CONNECTING 1
 #define FD_ZERO c3fake_fd_zero
@@ -64,18 +53,12 @@ void c3fake_connect_timeouts (uint32_t count);
 uint32_t c3fake_tls_polls (void);
 typedef struct { int socket; int conn_state; int sockfd;
  uint64_t rset; uint64_t wset; } esp_tls_t;
-typedef struct { const uint8_t *servercert_buf; unsigned int servercert_bytes;
- const uint8_t *serverkey_buf; unsigned int serverkey_bytes;
- unsigned int tls_handshake_timeout_ms; } esp_tls_cfg_server_t;
 typedef struct { const unsigned char *cacert_buf; unsigned int cacert_bytes;
  const char *common_name; bool non_block; int timeout_ms; } esp_tls_cfg_t;
 int esp_tls_conn_new_async(const char *,int,int,const esp_tls_cfg_t *,esp_tls_t *);
 int esp_tls_conn_destroy(esp_tls_t *);
 int inet_pton(int,const char *,void *);
 esp_tls_t *esp_tls_init(void);
-int esp_tls_server_session_init(esp_tls_cfg_server_t *cfg,int fd,esp_tls_t *tls);
-int esp_tls_server_session_continue_async(esp_tls_t *tls);
-void esp_tls_server_session_delete(esp_tls_t *tls);
 ssize_t esp_tls_conn_read(esp_tls_t *tls,void *data,size_t size);
 ssize_t esp_tls_conn_write(esp_tls_t *tls,const void *data,size_t size);
 typedef const char *esp_event_base_t;
@@ -179,7 +162,6 @@ uint16_t ble_att_mtu(uint16_t connection);
 
 FAKE_SOURCE=r"""
 #include "sdk.h"
-#include "c3https.h"
 #include "c3mqtt.h"
 #include "c3wsta.h"
 #include "c3gsvc.h"
@@ -190,17 +172,12 @@ struct fake_hs_config ble_hs_cfg={0};
 static event_handler_t *g_event;
 static gap_t *g_gap;
 static const struct ble_gatt_svc_def *g_services;
-static cfgmux_t *gp_test_mux;
-static int g_accept=-1;
-static int g_listener=50;
 static int g_deleted;
-static int g_closed[64];
-static esp_tls_t g_tls[2];
-static bool g_allocated[2];
+static esp_tls_t g_tls[1];
+static bool g_allocated[1];
 static int g_handshake;
 static uint32_t g_connect_timeouts = 0U;
 static uint32_t g_tls_polls = 0U;
-static int g_fail_setup;
 static int g_write_limit=17;
 static char g_input[64][1100];
 static size_t g_input_size[64];
@@ -226,19 +203,6 @@ static size_t g_notification_size;
 uint32_t c3bport_enter(void) { return 0U; }
 void c3bport_leave(uint32_t saved) { (void)saved; }
 void c3bport_exit(void) { }
-int c3fake_socket(int domain,int type,int protocol)
-{ (void)domain;(void)type;(void)protocol;return g_listener; }
-int c3fake_bind(int fd,const struct sockaddr *address,size_t size)
-{ (void)fd;(void)address;(void)size;return 0; }
-int c3fake_setsockopt(int fd,int level,int name,const void *value,size_t size)
-{ (void)fd;(void)level;(void)name;(void)value;(void)size;return 0; }
-int c3fake_listen(int fd,int backlog) { (void)fd;return backlog==2?0:-1; }
-int c3fake_accept(int fd,struct sockaddr *address,void *size)
-{ int value=g_accept;(void)fd;(void)address;(void)size;g_accept=-1;return value; }
-int c3fake_fcntl(int fd,int command,...) { (void)fd;(void)command;return 0; }
-int c3fake_close(int fd) { if(fd>=0 && fd<64) { ++g_closed[fd]; } return 0; }
-uint16_t c3fake_htons(uint16_t value) { return value; }
-uint32_t c3fake_htonl(uint32_t value) { return value; }
 esp_tls_t * esp_tls_init (void)
 {
     for (size_t index = 0U; index < (sizeof(g_tls) / sizeof(g_tls[0])); ++index)
@@ -305,13 +269,7 @@ int esp_tls_conn_new_async (const char * p_host, int size, int port,
     return b_watched ? g_handshake : 0;
 }
 int esp_tls_conn_destroy(esp_tls_t *tls)
-{ esp_tls_server_session_delete(tls);return 0; }
-int esp_tls_server_session_init(esp_tls_cfg_server_t *cfg,int fd,esp_tls_t *tls)
-{ (void)cfg;tls->socket=fd;return g_fail_setup; }
-int esp_tls_server_session_continue_async(esp_tls_t *tls)
-{ (void)tls;return g_handshake; }
-void esp_tls_server_session_delete(esp_tls_t *tls)
-{ for(int i=0;i<2;++i) { if(tls==&g_tls[i]) { g_allocated[i]=false; } } ++g_deleted; }
+{ if(tls==&g_tls[0]) { g_allocated[0]=false; } ++g_deleted;return 0; }
 ssize_t esp_tls_conn_read(esp_tls_t *tls,void *data,size_t size)
 { int fd=tls->socket;size_t n=g_input_size[fd];
   if(!n) { return ESP_TLS_ERR_SSL_WANT_READ; }
@@ -401,23 +359,12 @@ static int capture(void *context,uint16_t source,sampcache_entry_t *entry,uint64
   entry->header.status=1;entry->header.timestamp_ms=100;
   entry->value.environment.pressure_pa=100800;entry->value.environment.temperature_c=26;
   *now=150;return 0; }
-int c3fake_start(void)
-{ static const uint8_t cert[]="certificate";static const uint8_t key[]="key";
-  static const uint8_t token[]="0123456789abcdef0123456789abcdef";
-  c3https_config_t config={cert,key,token,sizeof(cert),sizeof(key),sizeof(token)-1,8443,gp_test_mux};
-  return c3https_start(&config); }
-void c3fake_mux(cfgmux_t *mux) { gp_test_mux=mux;g_info.b_configuration_supported=mux!=NULL; }
-int c3fake_drive(uint64_t now,int online)
-{ return c3https_step(now,online!=0,&g_info,capture,NULL); }
-void c3fake_accept_next(int fd) { g_accept=fd; }
 void c3fake_input(int fd,const char *data,size_t size)
 { if(size<=1100) { memcpy(g_input[fd],data,size);g_input_size[fd]=size; } }
 size_t c3fake_output(int fd,void *output)
 { memcpy(output,g_output[fd],g_output_size[fd]);return g_output_size[fd]; }
-int c3fake_closed(int fd) { return g_closed[fd]; }
 int c3fake_deleted(void) { return g_deleted; }
 void c3fake_handshake(int result) { g_handshake=result; }
-void c3fake_setup_error(int result) { g_fail_setup=result; }
 void c3fake_write_limit(int size) { g_write_limit=size; }
 void c3fake_event(int identifier)
 { g_event(NULL,identifier<=3?WIFI_EVENT:IP_EVENT,identifier,NULL); }
@@ -491,21 +438,17 @@ class EspBindingTests(unittest.TestCase):
             path=folder/name
             path.parent.mkdir(parents=True,exist_ok=True)
             path.write_text('#include "sdk.h"\n',encoding='utf-8')
-        sources=['firmware/hal/ports/esp32c3/'+name+'.c' for name in ['c3https','c3wsta','c3gsvc','c3mqtt']]
-        sources+=['firmware/src/network/'+name+'.c' for name in ['nethttp','netread','netble','netretry','netbroker','netmqtt']]
+        sources=['firmware/hal/ports/esp32c3/'+name+'.c' for name in ['c3wsta','c3gsvc','c3mqtt']]
+        sources+=['firmware/src/network/'+name+'.c' for name in ['netble','netretry','netbroker','netmqtt']]
         sources+=['firmware/src/runtime/sampcache.c']
-        sources+=['firmware/src/config/'+name+'.c' for name in ['cfgmux','cfgctrl','cfgstore','cfgwire','cfgbytes']]
         includes=[folder,ROOT/'firmware/src/config',ROOT/'firmware/include',ROOT/'firmware/src/network',
                   ROOT/'firmware/src/services',ROOT/'firmware/src/runtime',
                   ROOT/'firmware/hal/ports/esp32c3',ROOT/'firmware/hal/ports/esp32c3/network']
-        aliases={name:'c3fake_'+name for name in
-                 ['socket','bind','listen','accept','fcntl','close','htons','htonl','setsockopt']}
         cls.binary=folder/'bindings.dll'
         command=[compiler,'-std=c99','-Wall','-Wextra','-Werror','-pedantic','-shared',*(['-fPIC'] if sys.platform!='win32' else []),
                  '-DUTHOME_NETWORK_WIFI=1','-DUTHOME_NETWORK_BLE=1',
                  '-DUTHOME_MQTT_VALUE_BYTES=112','-DUTHOME_MQTT_PACKET_BYTES=384',
                  *['-I'+str(path) for path in includes],
-                 *['-D'+name+'='+value for name,value in aliases.items()],
                  *[str(ROOT/path) for path in sources],str(folder/'fake.c'),
                  '-o',str(cls.binary)]
         built=subprocess.run(command,capture_output=True,text=True)
@@ -521,13 +464,10 @@ class EspBindingTests(unittest.TestCase):
             '#include "sampcache.h"\nint shared_source(uint16_t source,'
             'sampcache_entry_t *entry,uint64_t *now);\n')
         (folder/'netsetup.h').write_text(
-            '#include <stdint.h>\n#define UTHOME_SETUP_PORT 8443U\n'
+            '#include <stdint.h>\n#define UTHOME_SETUP_MQTT 0U\n'
             '#define UTHOME_SETUP_TX_POWER 0U\n'
             'static const char g_setup_ssid[33]="ap";\n'
-            'static const char g_setup_password[64]="password";\n'
-            'static const uint8_t g_setup_certificate[]="certificate";\n'
-            'static const uint8_t g_setup_key[]="key";\n'
-            'static const uint8_t g_setup_token[]="0123456789abcdef0123456789abcdef";\n')
+            'static const char g_setup_password[64]="password";\n')
         for wifi,ble in [(1,0),(0,1),(1,1)]:
             compiled=subprocess.run([compiler,'-std=c99','-Wall','-Wextra','-Werror',
                 '-pedantic','-c',f'-DUTHOME_NETWORK_WIFI={wifi}',f'-DUTHOME_NETWORK_BLE={ble}',
@@ -536,12 +476,6 @@ class EspBindingTests(unittest.TestCase):
                 capture_output=True,text=True)
             if compiled.returncode:
                 raise AssertionError(compiled.stdout+compiled.stderr)
-        fixture_dir = Path(__file__).resolve().parent
-        if str(fixture_dir) not in sys.path:
-            sys.path.insert(0, str(fixture_dir))
-        from _network_config_fixture import ConfigLibrary
-        cls.config_library=ConfigLibrary()
-        cls.addClassCleanup(cls.config_library.close)
         cls.next_instance=0
 
     def setUp(self):
@@ -550,7 +484,6 @@ class EspBindingTests(unittest.TestCase):
         shutil.copyfile(self.binary,path)
         self.lib=c.CDLL(str(path))
         self.addCleanup(self.unload)
-        self.lib.c3fake_drive.argtypes=[c.c_uint64,c.c_int]
         self.lib.c3fake_input.argtypes=[c.c_int,c.c_char_p,c.c_size_t]
         self.lib.c3fake_output.argtypes=[c.c_int,c.c_void_p]
         self.lib.c3fake_output.restype=c.c_size_t
@@ -567,49 +500,10 @@ class EspBindingTests(unittest.TestCase):
         if sys.platform=='win32':
             _ctypes.FreeLibrary(self.lib._handle)
 
-    def output(self,fd=10):
+    def output(self,fd=0):
         output=(c.c_uint8*4096)()
         size=self.lib.c3fake_output(fd,output)
         return bytes(output[:size])
-
-    def drive(self,now=0,online=1):
-        return self.lib.c3fake_drive(now,online)
-
-    def request(self,path=b'/v1/status',token=b'0123456789abcdef0123456789abcdef'):
-        return b'GET '+path+b' HTTP/1.1\r\nHost: esp.local\r\nAuthorization: Bearer '+token+b'\r\n\r\n'
-
-    def configuration_fixture(self):
-        from _network_config_fixture import Fixture
-        self.config=Fixture(self.config_library)
-        self.lib.c3fake_mux.argtypes=[c.c_void_p]
-        self.lib.c3fake_mux(c.byref(self.config.mux))
-        self.assertEqual(self.lib.c3fake_start(),0)
-        self.lib.c3fake_write_limit(512)
-        self.clock=0
-        return self.config
-
-    def config_request(self,body=b'{"value":1}',id=1,revision=1,expected=0,token=b'op',boot=b'0000000000000001'):
-        return (b'POST /v1/configuration HTTP/1.1\r\nHost: node\r\n'
-                b'Authorization: Bearer 0123456789abcdef0123456789abcdef\r\n'
-                b'Content-Type: application/json\r\nContent-Length: '+str(len(body)).encode()+
-                b'\r\nX-Request-ID: '+str(id).encode()+b'\r\nX-Revision: '+str(revision).encode()+
-                b'\r\nX-Expected-Revision: '+str(expected).encode()+b'\r\nX-Expected-Boot-ID: '+boot+
-                b'\r\nX-Request-Token: '+token+b'\r\n\r\n'+body)
-
-    def exchange_config(self,data,fd=10):
-        self.lib.c3fake_accept_next(fd)
-        self.clock+=1;self.drive(self.clock)
-        self.lib.c3fake_input(fd,data,len(data))
-        changes=0
-        for _ in range(100):
-            self.clock+=1
-            changes+=self.drive(self.clock)>0
-            if self.lib.c3fake_closed(fd):break
-        output=self.output(fd)
-        header,body=output.split(b'\r\n\r\n',1)
-        self.assertLessEqual(len(output),512)
-        return int(header.split()[1]),json.loads(body),changes
-
 
 
     def mqtt_session(self,absent=range(1,8)):
@@ -676,14 +570,7 @@ class EspBindingTests(unittest.TestCase):
                 self.fail(f'unexpected packet {packet!r}')
 
 
-
-
-
     CAPTURE_RETRIES=100  # Mirrors C3MQTT_CAPTURE_RETRIES in c3mqtt.c.
-
-
-
-
 
 
     def test_mqtt_target_buffers_publish_binary_telemetry_without_discovery(self):
@@ -801,242 +688,6 @@ class EspBindingTests(unittest.TestCase):
         self.assertEqual(self.lib.c3mqtt_status(view),0)
         self.assertEqual((view[0],view[1],self.mqtt_connects),(5,0,2))
 
-
-    def test_https_configuration_state_and_result_fit_max_width_without_io(self):
-        f=self.configuration_fixture()
-        f.control.last_id=0xffffffff
-        f.control.active_revision=f.control.saved_revision=0xffffffff
-        f.mux.request_id=0xffffffff;f.mux.token=b'x'*64;f.mux.result=True
-        for index,value in enumerate([1,0xffffffff,0xffffffff,0xffffffff,0xffffffff,95]):
-            f.mux.reply[index]=value
-        before=(bytes(f.control),f.writes,f.syncs)
-        status,body,_=self.exchange_config(self.request(b'/v1/configuration'))
-        self.assertEqual((status,body['last_request_id'],body['max_body']),(200,0xffffffff,8192))
-        query=self.request(b'/v1/configuration/result').replace(b'\r\n\r\n',
-            b'\r\nX-Request-ID: 4294967295\r\nX-Request-Token: '+b'x'*64+b'\r\n\r\n')
-        status,body,_=self.exchange_config(query,11)
-        self.assertEqual((status,body['flags'],body['historical']),(200,95,False))
-        self.assertEqual((bytes(f.control),f.writes,f.syncs),before)
-
-    def test_https_configuration_uses_controller_and_exact_retry(self):
-        f=self.configuration_fixture()
-        status,body,changed=self.exchange_config(self.config_request())
-        self.assertEqual((status,body['controller_status'],body['active_revision'],body['saved_revision']),(200,1,1,1))
-        self.assertEqual(changed,1)
-        self.assertEqual(f.activations,1)
-        writes=f.writes
-        status,retried,_=self.exchange_config(self.config_request(),11)
-        self.assertEqual((status,retried),(200,body))
-        self.assertEqual((f.activations,f.writes),(1,writes))
-        status,_,_=self.exchange_config(self.config_request(b'{"value":2}'),12)
-        self.assertEqual(status,409)
-        self.assertEqual(f.activations,1)
-
-    def test_https_full_8192_body_is_streamed_into_existing_rx_storage(self):
-        f=self.configuration_fixture()
-        data=self.config_request(b'{"value":1}'+b' '*(8192-11))
-        self.lib.c3fake_accept_next(10);self.drive(1)
-        now=1
-        for offset in range(0,len(data),500):
-            chunk=data[offset:offset+500]
-            self.lib.c3fake_input(10,chunk,len(chunk))
-            for _ in range(5):
-                now+=1;self.drive(now)
-        for _ in range(5):
-            now+=1;self.drive(now)
-        header,body=self.output().split(b'\r\n\r\n',1)
-        self.assertIn(b'200',header)
-        self.assertEqual(json.loads(body)['controller_status'],1)
-        self.assertEqual((f.activations,f.control.active_size),(1,8192))
-        self.assertFalse(f.mux.lease)
-
-    def test_https_auth_rejection_preconditions_and_malformed_body_do_not_save(self):
-        f=self.configuration_fixture()
-        bad=self.config_request().replace(b'Bearer 0123456789abcdef0123456789abcdef',b'Bearer wrong')
-        self.assertEqual(self.exchange_config(bad)[0],401)
-        self.assertFalse(f.mux.lease)
-        self.assertEqual(self.exchange_config(self.config_request(boot=b'0000000000000002'),11)[0],409)
-        status,body,_=self.exchange_config(self.config_request(b'{'),12)
-        self.assertEqual((status,body['controller_status']),(422,3))
-        self.assertEqual((f.activations,f.writes),(0,0))
-
-    def test_https_partial_upload_disconnect_and_deadline_release_usb_lease(self):
-        f=self.configuration_fixture()
-        data=self.config_request()[:-5]
-        self.lib.c3fake_accept_next(10);self.drive(1)
-        self.lib.c3fake_input(10,data,len(data))
-        for now in range(2,12):self.drive(now)
-        self.assertTrue(f.mux.lease)
-        self.drive(12,0)
-        self.assertFalse(f.mux.lease)
-        self.assertEqual((f.activations,f.writes),(0,0))
-        self.lib.c3fake_accept_next(11);self.drive(13)
-        self.lib.c3fake_input(11,data,len(data))
-        for now in range(14,22):self.drive(now)
-        self.assertTrue(f.mux.lease)
-        self.drive(10014)
-        self.assertFalse(f.mux.lease)
-        self.assertEqual(f.control.last_id,0)
-
-    def test_https_result_survives_delivery_loss_usb_query_and_uncertain_save(self):
-        from tools.config_transfer.protocol import Command,encode_request
-        f=self.configuration_fixture();f.fail_sync=5
-        self.lib.c3fake_write_limit(-26752)
-        self.lib.c3fake_accept_next(10);self.drive(1)
-        data=self.config_request();self.lib.c3fake_input(10,data,len(data))
-        for now in range(2,12):self.drive(now)
-        self.assertEqual(f.control.last_id,1)
-        self.assertFalse(f.mux.lease)
-        writes=f.writes
-        self.drive(12,0)
-        f.usb(encode_request(Command.QUERY,2,0))
-        self.lib.c3fake_write_limit(512)
-        query=self.request(b'/v1/configuration/result').replace(b'\r\n\r\n',b'\r\nX-Request-ID: 1\r\nX-Request-Token: op\r\n\r\n')
-        self.clock=12
-        status,body,_=self.exchange_config(query,11)
-        self.assertEqual((status,body['controller_status'],body['saved_revision'],body['historical']),(200,2,0,True))
-        self.assertEqual((f.activations,f.writes),(1,writes))
-        self.assertEqual(self.exchange_config(self.config_request(),12)[0],409)
-
-    def test_https_two_posts_have_one_upload_and_no_coalesced_trailing_apply(self):
-        f=self.configuration_fixture()
-        data=self.config_request()[:-2]
-        self.lib.c3fake_accept_next(10);self.drive(1)
-        self.lib.c3fake_input(10,data,len(data))
-        for now in range(2,8):self.drive(now)
-        self.assertTrue(f.mux.lease)
-        self.clock=8
-        self.assertEqual(self.exchange_config(self.config_request(token=b'other'),11)[0],503)
-        self.assertTrue(f.mux.lease)
-        self.drive(self.clock+1,0)
-        self.clock+=1
-        self.assertFalse(f.mux.lease)
-        self.assertEqual(self.exchange_config(self.config_request()+b'x',12)[0],400)
-        self.assertEqual(f.activations,0)
-
-    def test_https_usb_arriving_during_upload_waits_then_runs_with_global_id(self):
-        from tools.config_transfer.protocol import Command,encode_request,decode_reply
-        f=self.configuration_fixture()
-        data=self.config_request()
-        self.lib.c3fake_accept_next(10);self.drive(1)
-        self.lib.c3fake_input(10,data[:-2],len(data)-2)
-        for now in range(2,9):self.drive(now)
-        self.assertTrue(f.mux.lease)
-        f.rx.extend(encode_request(Command.QUERY,2,0))
-        before=f.read_calls
-        for _ in range(5):f.usb_step()
-        self.assertEqual(f.read_calls,before)
-        self.assertEqual(f.control.last_id,0)
-        self.lib.c3fake_input(10,data[-2:],2)
-        for now in range(9,20):self.drive(now)
-        self.assertFalse(f.mux.lease)
-        self.assertEqual(f.control.last_id,1)
-        for _ in range(20):
-            f.usb_step()
-            if len(f.tx)>=48:break
-        reply=decode_reply(bytes(f.tx),command=Command.QUERY,request_id=2,revision=0)
-        self.assertEqual(reply.active_revision,1)
-        self.assertEqual(f.control.last_id,2)
-        self.assertEqual(f.activations,1)
-
-    def test_https_slow_body_progress_does_not_extend_absolute_upload_deadline(self):
-        f=self.configuration_fixture()
-        data=self.config_request()
-        self.lib.c3fake_accept_next(10);self.drive(1)
-        self.lib.c3fake_input(10,data[:-5],len(data)-5)
-        for now in range(2,9):self.drive(now)
-        self.assertTrue(f.mux.lease)
-        for now in (2000,4000,6000,8000):
-            self.lib.c3fake_input(10,b' ',1);self.drive(now)
-            self.assertTrue(f.mux.lease)
-        self.drive(10002)
-        self.assertFalse(f.mux.lease)
-        self.assertEqual((f.control.last_id,f.activations,f.writes),(0,0,0))
-        self.assertEqual(f.begin(),200)
-        f.abort()
-
-    def test_https_response_deadline_starts_after_controller_work(self):
-        f=self.configuration_fixture()
-        self.lib.c3fake_accept_next(10);self.drive(1)
-        data=self.config_request();self.lib.c3fake_input(10,data,len(data))
-        changed=False
-        for now in range(2,20):
-            if self.drive(now)>0:
-                changed=True;break
-        self.assertTrue(changed)
-        self.assertEqual((f.activations,f.control.saved_revision),(1,1))
-        writes=f.writes
-        # Model the owner's next clock sample after long synchronous flash work.
-        self.drive(20000)
-        for now in range(20001,20010):self.drive(now)
-        header,body=self.output().split(b'\r\n\r\n',1)
-        self.assertEqual(header.split(b'\r\n',1)[0].split()[1],b'200')
-        self.assertEqual(json.loads(body)['controller_status'],1)
-        self.assertEqual(f.writes,writes)
-
-    def test_https_real_read_dispatch_partial_writes_and_exact_close(self):
-        self.assertEqual(self.lib.c3fake_start(),0)
-        self.lib.c3fake_accept_next(10)
-        self.drive()
-        data=self.request(b'/v1/telemetry?source=2')
-        self.lib.c3fake_input(10,data,len(data))
-        for now in range(1,60):
-            self.drive(now)
-        headers,body=self.output().split(b'\r\n\r\n')
-        self.assertIn(b'200',headers)
-        self.assertIn(b'application/octet-stream',headers)
-        self.assertEqual(len(body),112)
-        self.assertEqual(body[:4],b'\x01\x01\x01\x01')
-        self.assertEqual(self.lib.c3fake_closed(10),1)
-        self.assertEqual(self.lib.c3fake_deleted(),1)
-
-    def test_https_handshake_deadline_and_capacity_rejection(self):
-        self.lib.c3fake_start()
-        self.lib.c3fake_handshake(-26880)
-        for fd in [10,11,12]:
-            self.lib.c3fake_accept_next(fd)
-            self.drive(fd)
-        self.assertEqual(self.lib.c3fake_closed(12),1)
-        self.assertEqual(self.lib.c3fake_deleted(),0)
-        self.drive(10012)
-        self.assertEqual(self.lib.c3fake_deleted(),2)
-        for fd in [10,11,12]:
-            self.assertEqual(self.lib.c3fake_closed(fd),1)
-
-    def test_https_offline_setup_failure_and_restart_do_not_double_close(self):
-        self.lib.c3fake_start()
-        self.lib.c3fake_setup_error(-1)
-        self.lib.c3fake_accept_next(10)
-        self.drive()
-        self.assertEqual(self.lib.c3fake_closed(10),1)
-        self.assertEqual(self.lib.c3fake_deleted(),1)
-        self.drive(1,0)
-        self.drive(2,0)
-        self.assertEqual(self.lib.c3fake_closed(10),1)
-        self.lib.c3fake_setup_error(0)
-        self.lib.c3fake_accept_next(11)
-        self.drive(3)
-        data=self.request(token=b'wrong')
-        self.lib.c3fake_input(11,data,len(data))
-        for now in range(4,50):
-            self.drive(now)
-        self.assertIn(b'401',self.output(11))
-
-    def test_https_write_want_preserves_packet_and_deadline(self):
-        self.lib.c3fake_start()
-        self.lib.c3fake_accept_next(10)
-        self.drive()
-        data=self.request()
-        self.lib.c3fake_input(10,data,len(data))
-        self.drive(1)
-        self.lib.c3fake_write_limit(-26752)
-        self.drive(2)
-        self.assertEqual(self.output(),b'')
-        self.lib.c3fake_write_limit(2000)
-        self.drive(3)
-        body=self.output().split(b'\r\n\r\n')[1]
-        self.assertEqual(json.loads(body)['saved_revision'],11)
-        self.assertEqual(self.lib.c3fake_closed(10),1)
 
     def test_wifi_association_ip_loss_and_reconnect(self):
         self.assertEqual(self.lib.c3wsta_start(b'my-ap',b'password',0),0)
@@ -1290,10 +941,7 @@ class SetupTests(unittest.TestCase):
         spec.loader.exec_module(cls.setup)
 
     def configuration(self,folder):
-        (folder/'cert.pem').write_text('-----BEGIN CERTIFICATE-----\nfixture\n-----END CERTIFICATE-----\n')
-        (folder/'key.pem').write_text('-----BEGIN PRIVATE KEY-----\nfixture\n-----END PRIVATE KEY-----\n')
-        values=dict(ssid='my-ap',password='password',token='a'*32,
-                    certificate_file='cert.pem',key_file='key.pem')
+        values=dict(ssid='my-ap',password='password')
         path=folder/'private.json'
         path.write_text(json.dumps(values))
         return path,values
@@ -1323,8 +971,7 @@ int main(void)
     {
         return 1;
     }
-    if (('p' != g_setup_password[0]) || ('a' != g_setup_token[0]) ||
-        ('-' != g_setup_certificate[0]) || ('-' != g_setup_key[0]))
+    if ('p' != g_setup_password[0])
     {
         return 2;
     }
@@ -1362,7 +1009,7 @@ int main(void)
             self.setup.generate(source)
             source.write_text(json.dumps(config))
             self.setup.generate(source)
-            for field,value in [('password','p\u00e9ssword'),('token','\u00e9'*32)]:
+            for field,value in [('password','p\u00e9ssword')]:
                 with self.subTest(field=field):
                     source.write_text(json.dumps({**config,field:value}))
                     with self.assertRaises(ValueError):
@@ -1380,7 +1027,6 @@ int main(void)
                     source.write_text(json.dumps(config))
                     with self.assertRaises(ValueError):
                         self.setup.generate(source)
-
 
 
     def test_private_setup_staging_and_mutation_detection(self):

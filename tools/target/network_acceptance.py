@@ -19,7 +19,7 @@ import struct
 import time
 import uuid
 
-from tools.target.network_client import BleReassembler, decode_mqtt, fetch
+from tools.target.network_client import BleReassembler, decode_mqtt
 
 MAX_PACKET=1154
 IDENTITY='ec441e20-8a4b-4aee-9db3-75b77d880011'
@@ -39,18 +39,6 @@ def diagnostics(value):
     if value['state']>=len(STATES):
         raise ValueError('unknown MQTT state')
     return dict(value,state_name=STATES[value['state']] if value['enabled'] else 'disabled')
-
-
-def https_capture(origin,ca,token,source):
-    identity=fetch(origin,'identity',token,ca=ca)
-    status=fetch(origin,'status',token,ca=ca)
-    sample=fetch(origin,'telemetry',token,source=source,ca=ca)
-    if identity.get('boot_id')!=status.get('boot_id') or status.get('boot_id')!=sample['boot_id']:
-        raise ValueError('boot changed; restart capture')
-    if (status.get('runtime_generation')!=sample['runtime_generation'] or
-            status.get('active_revision')!=sample['active_revision']):
-        raise ValueError('plan changed; restart capture')
-    return dict(identity=identity,status=status,mqtt=diagnostics(status.get('mqtt')),sample=sample)
 
 
 def _budget(sock,deadline):
@@ -214,9 +202,6 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--report',type=Path,help='new JSON output; never overwrites')
     sub=parser.add_subparsers(dest='transport',required=True)
-    https=sub.add_parser('https')
-    https.add_argument('origin');https.add_argument('--ca',required=True)
-    https.add_argument('--token-env',default='UTHOME_TOKEN');https.add_argument('--source',type=int,choices=range(8),default=0)
     mqtt=sub.add_parser('mqtt')
     mqtt.add_argument('--address',required=True);mqtt.add_argument('--server-name',required=True)
     mqtt.add_argument('--port',type=int,default=8883);mqtt.add_argument('--ca',required=True)
@@ -235,9 +220,7 @@ def main(argv=None):
     result=dict(kind='network-client-observation',transport=args.transport,
                 whole_system_qualified=False,firmware_identity_verified=False)
     try:
-        if args.transport=='https':
-            data=https_capture(args.origin,args.ca,os.environ.get(args.token_env,''),args.source)
-        elif args.transport=='mqtt':
+        if args.transport=='mqtt':
             data=mqtt_capture(args.address,args.server_name,args.port,args.ca,
                  os.environ.get(args.user_env,''),os.environ.get(args.password_env,''),
                  args.node,args.count,args.timeout)

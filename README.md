@@ -33,7 +33,11 @@ changes are injected in C fixture tests. The live BMP388 MQTT check below now
 also covers rule switching, host reopen and broker recovery on the board.
 Generated verification is local-only under `build/controller/`.
 
-**Current priority: TLS transport and resource work, resumed on 17 November.**
+**Current priority: finish MQTT TLS transport and resource work.**
+At the user's request on 17 November, the [ESP HTTPS service](firmware/src/network/README.md#esp-https-removal)
+and its host setup commands are removed. Full saved-profile setup/recovery uses
+USB; runtime rules/results use MQTT over verified TLS. The host Configuration Desk
+and Home Assistant web interfaces are unchanged. The new image is unflashed.
 The simulated Runtime Desk and Home Assistant walkthrough is complete. Continue
 independent TLS checks and defer steps that need operator input. The
 [MQTT connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
@@ -116,9 +120,9 @@ style and review proposed UI adjustments before implementation. See the
 [completion plan](CONTRIBUTING.md#completion-plan).
 
 **Final resource acceptance remains open.** The latest target fits unchanged
-fixed-memory budgets at 269,378/278,528 DRAM bytes, but reachable TLS/TCP/IP heap
-paths remain. That build is unflashed. Smaller TLS records break full uploads
-and some valid certificate chains, so working limits stay unchanged. The
+fixed-memory budgets after removing HTTPS, but reachable TLS/TCP/IP heap
+paths remain. That build is unflashed. Smaller TLS records can still break valid
+broker certificate chains, so working limits stay unchanged. The
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
 retains the implemented fixed-storage changes, build identities and unresolved
 capacity/lifetime work. Its generated evidence remains under ignored `build/`;
@@ -139,7 +143,9 @@ passed on that same firmware: Markdown-selected BMP388 reads changed from one
 received byte to three and back, an invalid update was rejected by the ESP while
 preserving the previous rule, and broker recovery retained the exact cached
 completion. HTTPS reads succeeded alongside MQTT. SPI/UART runtime-rule tests,
-HTTPS writes, Home Assistant/UI integration and resource acceptance remain open.
+physical Home Assistant/UI integration and resource acceptance remain open.
+Those HTTPS read observations describe the earlier installed image; HTTPS is no
+longer part of the maintained firmware.
 
 The fixed project image is installed with private bench settings; active/saved
 profile contents are now restored under revision 943, with the original CRC

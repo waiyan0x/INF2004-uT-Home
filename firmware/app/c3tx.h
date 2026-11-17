@@ -6,14 +6,11 @@
 #define UTHOME_C3TX_H
 struct cfgbind_state;
 #include "uthome/txjob.h"
-#include "cfgmux.h"
-int c3tx_start (const struct cfgbind_state * p_binding,
-                const cfgmux_t *             p_mux,
-                uint64_t                     boot_id);
+int c3tx_start (const struct cfgbind_state * p_binding, uint64_t boot_id);
 /* Prevent configuration changes while asynchronous UART/cleanup retains pins.
  */
 bool c3tx_busy (void);
-/* Same application owner as USB, HTTP and MQTT. Never called by an ISR. */
+/* Same application owner as USB and MQTT. Never called by an ISR. */
 void c3tx_step (uint64_t now_ms, uint32_t generation, bool b_online);
 #endif
 

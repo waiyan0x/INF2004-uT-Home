@@ -158,14 +158,6 @@ class ClientTests(unittest.TestCase):
             decoded=receiver.feed(fragment,5+index/100)
         self.assertEqual(decoded['quality'],'fresh')
 
-    def test_client_rejects_insecure_urls_and_invalid_tokens_before_network(self):
-        for origin in ['http://esp.local','https://user:pass@esp.local',
-                       'https://esp.local/path','https://esp.local/?x=1']:
-            with self.assertRaises(ValueError):
-                client.fetch(origin,'status','a'*32)
-        with self.assertRaises(ValueError):
-            client.fetch('https://esp.local','status','bad\r\ntoken')
-
 
 if __name__=='__main__':
     unittest.main()

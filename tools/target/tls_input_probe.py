@@ -47,12 +47,12 @@ def capacity(memory, elf_hash, sizes):
     assert memory['passed'], 'Use a passing fixed-memory report'
     assert memory['artifacts']['build/uthome_runtime_port.elf']['sha256'] == elf_hash, (
         'Memory report must describe this exact ELF')
-    assert len(set(sizes)) == 1 and len(sizes) == 3, sizes
+    assert len(sizes) == 1, sizes
     stride = (sizes[0] + 7) & ~7
     groups, budgets = memory['groups'], memory['budgets']
     headroom = budgets['application_fixed_limit'] - groups['application_fixed']
     projections = []
-    for count in (1, 2, 3):
+    for count in (1,):
         added = stride * count
         projections.append({
             'buffers': count, 'buffer_bytes_without_bookkeeping': added,
@@ -74,22 +74,21 @@ def verify(path, memory):
     probe = InputProbe(path)
     assert 'esp_mbedtls_add_rx_buffer' not in probe.symbols, 'Dynamic-buffer image is unsupported'
     state = handshake_over(path)
-    contexts = [SSL + i * 0x400 for i in range(3)]
-    for address, endpoint in ((CONFIG, 0), (CONFIG + 0x400, 1)):
-        assert probe.run('mbedtls_ssl_config_defaults', address, endpoint, 0, 0) == 0
+    contexts = [SSL]
+    assert probe.run('mbedtls_ssl_config_defaults', CONFIG, 0, 0, 0) == 0
     sizes, inputs = [], []
     for index, context in enumerate(contexts):
         probe.run('mbedtls_ssl_init', context)
-        assert probe.run('c3tout_setup', context, CONFIG if index == 0 else CONFIG + 0x400) == 0
+        assert probe.run('c3tout_setup', context, CONFIG) == 0
         probe.set_field(context, 'f_recv', RECV)
         pointer = probe.field(context, 'in_buf')
         inputs.append(pointer)
         sizes.append(probe.live[pointer])
-    assert len(set(inputs)) == 3
+    assert len(set(inputs)) == 1
     memory_result = capacity(memory, digest, sizes)
 
-    # Interleave three independent partial headers, then resume in reverse order.
-    headers = [bytes([0x15 + i, 3, 3, 0, 17 + i]) for i in range(3)]
+    # The single MQTT connection must retain each partial header across calls.
+    headers = [bytes.fromhex('1703030011')]
     for split in range(1, 5):
         for index, context in enumerate(contexts):
             probe.set_field(context, 'in_left', 0)
@@ -100,7 +99,7 @@ def verify(path, memory):
             assert probe.pending(context) == headers[index]
 
     # Full-size content is fetched, not decrypted or semantically validated.
-    records = [bytes.fromhex('1703034000') + bytes([0x31 + i]) * 16384 for i in range(3)]
+    records = [bytes.fromhex('1703034000') + b'1' * 16384]
     for split in (1, 128, 16383):
         for index, context in enumerate(contexts):
             probe.set_field(context, 'in_left', 0)
@@ -122,22 +121,9 @@ def verify(path, memory):
         assert probe.fetch(context, 5, [headers[index][:2], 0]) == -0x7280
         assert probe.pending(context) == headers[index][:2]
 
-    # A deliberate alias is a negative control, not a defect in the normal SDK.
-    first, second = contexts[:2]
-    second_header = probe.field(second, 'in_hdr')
-    probe.set_field(first, 'in_left', 0)
-    assert probe.fetch(first, 5, [bytes.fromhex('1703'), WANT_READ]) == WANT_READ
-    probe.set_field(second, 'in_buf', inputs[0])
-    probe.set_field(second, 'in_hdr', probe.field(first, 'in_hdr'))
-    probe.set_field(second, 'in_left', 0)
-    assert probe.fetch(second, 5, [bytes.fromhex('1603030006')]) == 0
-    assert probe.pending(first) == bytes.fromhex('1603')
-    probe.set_field(second, 'in_buf', inputs[1])
-    probe.set_field(second, 'in_hdr', second_header)
-
     # Inject already-decrypted application data and run the real read path.
-    payloads = [bytes((i + index * 19) % 256 for i in range(257)) for index in range(3)]
-    consumed = [0, 0, 0]
+    payloads = [bytes(i % 256 for i in range(257))]
+    consumed = [0]
     scratch = SSL + 0x1800
     for index, context in enumerate(contexts):
         pointer = probe.field(context, 'in_msg')
@@ -158,7 +144,7 @@ def verify(path, memory):
             assert (bytes(probe.uc.mem_read(pointer, len(remaining))) == remaining
                     if remaining else pointer == 0)
             probe.uc.mem_write(STACK, bytes([0x5A]) * STACK_SIZE)
-    assert consumed == [257, 257, 257]
+    assert consumed == [257]
     for context in contexts:
         probe.run('mbedtls_ssl_free', context)
     assert not probe.live, probe.live
@@ -166,9 +152,8 @@ def verify(path, memory):
             'elf_sha256': digest, 'fixed_input_storage_implemented': False,
             'doubles': ['SDK heap', 'transport', 'ROM byte copies', 'PSA hash setup/abort'],
             'injected_state': 'Post-decryption plaintext for the application-read cases',
-            'sessions': 3, 'header_split_cases': 12, 'body_split_cases': 9,
-            'oversize_cases': 3, 'partial_eof_cases': 3, 'plaintext_read_cases': 9,
-            'deliberate_shared_buffer_corruption_reproduced': True,
+            'sessions': 1, 'header_split_cases': 4, 'body_split_cases': 3,
+            'oversize_cases': 1, 'partial_eof_cases': 1, 'plaintext_read_cases': 3,
             'sdk_fetch_calls': probe.fetch_calls, 'sdk_setup_cleanup_calls': probe.calls,
             'capacity': memory_result}
 

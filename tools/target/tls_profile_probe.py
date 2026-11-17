@@ -5,7 +5,6 @@ not ESP sockets, hardware, static-allocation acceptance or configuration apply.
 Generated keys, logs and results must stay in a new ignored build directory.
 """
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 import hashlib
 import ipaddress
@@ -24,7 +23,6 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 import paho.mqtt.client as mqtt
 
-from .network_config import request
 from .qualify_kernel import SDK_REVISION, pinned_checkout
 from .tls_profile_peer import Peer, TLSError, packet, receive_packet, text_field
 
@@ -33,8 +31,6 @@ sys.path.insert(0, str(ROOT/'tests/target'))
 from mqtt_fixture import BASE, LocalBroker, certificates
 
 MBEDTLS_REVISION = 'a2b32072ea898afc1ed5b6caf6931e36028c91d6'
-BOOT = '0000000000000001'
-TOKEN = 'test-only-local-token'
 
 
 def large_chain(folder):
@@ -131,104 +127,14 @@ def broker_case(peer, broker, *, name='127.0.0.1', ca=None, exchange=False):
     return result
 
 
-def response():
-    # Deliberately report rejection: this fixture never runs configuration apply.
-    data = json.dumps(dict(version=1, boot_id=BOOT, request_id=1, controller_status=3,
-                           active_revision=0, saved_revision=0, active_crc=0, saved_crc=0,
-                           flags=0, historical=False)).encode()
-    return (b'HTTP/1.1 422 Unprocessable Content\r\nContent-Type: application/json\r\n'
-            + f'Content-Length: {len(data)}\r\nConnection: close\r\n\r\n'.encode()+data)
-
-
-def upload(origin, folder, body, segmented):
-    if not segmented:
-        return request(origin, 'apply', TOKEN, str(folder/'ca.pem'), request_id=1,
-                       revision=1, expected=0, boot=BOOT, request_token='local-test', profile=body)
-    # Experimental client, not a change to the maintained client or firmware.
-    context = ssl.create_default_context(cafile=str(folder/'ca.pem'))
-    port = int(origin.rsplit(':', 1)[1])
-    with socket.create_connection(('127.0.0.1', port), timeout=5) as raw:
-        with context.wrap_socket(raw, server_hostname='127.0.0.1') as secure:
-            headers = (f'POST /v1/configuration HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n'
-                       f'Authorization: Bearer {TOKEN}\r\nContent-Type: application/json\r\n'
-                       f'Content-Length: {len(body)}\r\nX-Request-ID: 1\r\nX-Request-Token: local-test\r\n'
-                       f'X-Revision: 1\r\nX-Expected-Revision: 0\r\nX-Expected-Boot-ID: {BOOT}\r\n'
-                       'Connection: close\r\n\r\n').encode()
-            secure.sendall(headers)
-            for offset in range(0, len(body), 1024):
-                secure.sendall(body[offset:offset+1024])
-            received = b''
-            expected = response()
-            while len(received) < len(expected):
-                data = secure.recv(512)
-                if not data:
-                    break
-                received += data
-            assert received == expected
-            return {'outcome': 'rejected', 'saved_at_completion': False}
-
-
-def https_case(peer, folder, size, segmented=False):
-    body = b'{}' + b' '*(size-2)
-    result = {'body_bytes': size, 'segmented_test_client': segmented,
-              'body_received': 0, 'handshake': False, 'application_executed': False}
-    with socket.socket() as listener, ThreadPoolExecutor(max_workers=1) as worker:
-        listener.bind(('127.0.0.1', 0))
-        listener.listen(1)
-        listener.settimeout(5)
-        origin = f'https://127.0.0.1:{listener.getsockname()[1]}'
-        future = worker.submit(upload, origin, folder, body, segmented)
-        try:
-            connection, _ = listener.accept()
-            peer.start(connection, folder, server=True)
-            result.update(peer.handshake())
-            result['handshake'] = True
-            received = b''
-            while b'\r\n\r\n' not in received:
-                received += peer.read()
-                assert len(received) < 2048
-            header, received = received.split(b'\r\n\r\n', 1)
-            assert f'Content-Length: {size}'.lower().encode() in header.lower()
-            result['body_received'] = len(received)
-            while len(received) < size:
-                received += peer.read()
-                result['body_received'] = len(received)
-            assert received == body
-            peer.write(response())
-        except TLSError as error:
-            result.update(tls_error=error.code, description=str(error))
-        finally:
-            result['received_records'] = peer.records
-            peer.close()
-        try:
-            reply = future.result(timeout=5)
-            assert reply['outcome'] == 'rejected' and not reply['saved_at_completion']
-            result['reply_received'] = True
-        except (OSError, ValueError) as error:
-            result.update(reply_received=False, client_error=type(error).__name__)
-            # Only fresh local fixtures are contacted; no deployed credentials.
-            result['client_reason'] = str(getattr(error, 'reason', error))
-    return result
-
-
-def verify_cases(cases, incoming, outgoing):
+def verify_cases(cases, incoming):
     assert cases['mqtt_small']['mqtt_echo_bytes'] == 96
     for name in ('wrong_ca', 'wrong_name'):
         assert not cases[name]['handshake'] and cases[name]['verify_flags'] != 0
         assert cases[name]['tls_error'] == -0x2700, cases[name]
-    assert cases['https_small']['body_received'] == 512 and cases['https_small']['reply_received']
-    assert cases['https_segmented']['body_received'] == 8192 and cases['https_segmented']['reply_received']
-    if incoming == 16384:
-        assert cases['https_full']['body_received'] == 8192 and cases['https_full']['reply_received']
-    else:
-        assert cases['https_full']['handshake'] and not cases['https_full']['reply_received']
-        assert cases['https_full']['body_received'] == 0 and cases['https_full']['tls_error'] == -135
     assert cases['mqtt_chain']['handshake'] == (incoming >= 4096)
-    assert cases['https_chain']['reply_received'] == (outgoing >= 4096)
     if incoming < 4096:
         assert cases['mqtt_chain']['tls_error'] == -135
-    if outgoing < 4096:
-        assert cases['https_chain']['tls_error'] == -138
 
 
 def main(argv=None):
@@ -263,7 +169,7 @@ def main(argv=None):
                                 hashlib.sha256(path.read_bytes()).hexdigest() for path in (
                                     *sorted((ROOT/'tests/target/tls_profile').glob('*')),
                                     Path(__file__), ROOT/'tools/target/tls_profile_peer.py',
-                                    ROOT/'tools/target/network_config.py', ROOT/'tests/target/mqtt_fixture.py')}}
+                                    ROOT/'tests/target/mqtt_fixture.py')}}
     try:
         for broker in brokers:
             broker.start()
@@ -277,11 +183,7 @@ def main(argv=None):
             cases['wrong_ca'] = broker_case(peer, brokers[0], ca=wrong/'ca.pem')
             cases['wrong_name'] = broker_case(peer, brokers[0], name='wrong.invalid')
             cases['mqtt_chain'] = broker_case(peer, brokers[1])
-            cases['https_small'] = https_case(peer, small, 512)
-            cases['https_full'] = https_case(peer, small, 8192)
-            cases['https_segmented'] = https_case(peer, small, 8192, segmented=True)
-            cases['https_chain'] = https_case(peer, large, 512)
-            verify_cases(cases, incoming, outgoing)
+            verify_cases(cases, incoming)
             print(f'{incoming}/{outgoing}: compatibility expectations passed', flush=True)
         report['expectations_passed'] = True
     finally:

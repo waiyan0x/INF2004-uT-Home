@@ -31,7 +31,6 @@ typedef struct
 static mbedtls_ssl_context g_peer;
 static mbedtls_ssl_config  g_config;
 static mbedtls_x509_crt    g_certificate;
-static mbedtls_pk_context  g_key;
 static tlspeer_queue_t     g_incoming;
 static tlspeer_queue_t     g_outgoing;
 /* Both suites are enabled in the selected ESP image; host crypto stays
@@ -44,35 +43,27 @@ static int
 send_bytes (void * p_context, const unsigned char * p_data, size_t size);
 static int
 receive_bytes (void * p_context, unsigned char * p_data, size_t capacity);
-static int configure_peer (bool         b_server,
-                           const char * p_ca,
-                           const char * p_certificate,
-                           const char * p_key);
+static int configure_peer (const char * p_ca);
 
-int tlspeer_start (bool         b_server,
-                   const char * p_ca,
-                   const char * p_certificate,
-                   const char * p_key,
-                   const char * p_name)
+int tlspeer_start (const char * p_ca, const char * p_name)
 {
     int status;
 
     mbedtls_ssl_init(&g_peer);
     mbedtls_ssl_config_init(&g_config);
     mbedtls_x509_crt_init(&g_certificate);
-    mbedtls_pk_init(&g_key);
     g_incoming.used = 0U;
     g_outgoing.used = 0U;
     if (PSA_SUCCESS != psa_crypto_init())
     {
         return MBEDTLS_ERR_SSL_INTERNAL_ERROR;
     }
-    status = configure_peer(b_server, p_ca, p_certificate, p_key);
+    status = configure_peer(p_ca);
     if (0 == status)
     {
         status = mbedtls_ssl_setup(&g_peer, &g_config);
     }
-    if ((0 == status) && (!b_server))
+    if (0 == status)
     {
         status = mbedtls_ssl_set_hostname(&g_peer, p_name);
     }
@@ -88,7 +79,6 @@ void tlspeer_close (void)
     mbedtls_ssl_free(&g_peer);
     mbedtls_ssl_config_free(&g_config);
     mbedtls_x509_crt_free(&g_certificate);
-    mbedtls_pk_free(&g_key);
     memset(&g_incoming, 0, sizeof(g_incoming));
     memset(&g_outgoing, 0, sizeof(g_outgoing));
 }
@@ -188,14 +178,10 @@ receive_bytes (void * p_context, unsigned char * p_data, size_t capacity)
     return (int)size;
 }
 
-static int configure_peer (bool         b_server,
-                           const char * p_ca,
-                           const char * p_certificate,
-                           const char * p_key)
+static int configure_peer (const char * p_ca)
 {
     int status = mbedtls_ssl_config_defaults(&g_config,
-                                             b_server ? MBEDTLS_SSL_IS_SERVER
-                                                      : MBEDTLS_SSL_IS_CLIENT,
+                                             MBEDTLS_SSL_IS_CLIENT,
                                              MBEDTLS_SSL_TRANSPORT_STREAM,
                                              MBEDTLS_SSL_PRESET_DEFAULT);
 
@@ -206,28 +192,13 @@ static int configure_peer (bool         b_server,
     mbedtls_ssl_conf_min_tls_version(&g_config, MBEDTLS_SSL_VERSION_TLS1_2);
     mbedtls_ssl_conf_max_tls_version(&g_config, MBEDTLS_SSL_VERSION_TLS1_2);
     mbedtls_ssl_conf_ciphersuites(&g_config, g_ciphers);
-    mbedtls_ssl_conf_authmode(&g_config,
-                              b_server ? MBEDTLS_SSL_VERIFY_NONE
-                                       : MBEDTLS_SSL_VERIFY_REQUIRED);
-    status = mbedtls_x509_crt_parse_file(&g_certificate,
-                                         b_server ? p_certificate : p_ca);
+    mbedtls_ssl_conf_authmode(&g_config, MBEDTLS_SSL_VERIFY_REQUIRED);
+    status = mbedtls_x509_crt_parse_file(&g_certificate, p_ca);
     if (0 != status)
     {
         return status;
     }
-    if (b_server)
-    {
-        status = mbedtls_pk_parse_keyfile(&g_key, p_key, NULL);
-        if (0 == status)
-        {
-            status =
-                mbedtls_ssl_conf_own_cert(&g_config, &g_certificate, &g_key);
-        }
-    }
-    else
-    {
-        mbedtls_ssl_conf_ca_chain(&g_config, &g_certificate, NULL);
-    }
+    mbedtls_ssl_conf_ca_chain(&g_config, &g_certificate, NULL);
     return status;
 }
 

@@ -80,8 +80,8 @@ software checks.
 
 Selected Wi-Fi services with static network queues bind `calloc`, `free` and
 `strndup` only in the pinned `esp_tls.c` and `esp_tls_mbedtls.c` units to `c3tls`.
-Three actual `esp_tls_t` objects support the existing one MQTT plus two HTTPS
-connections. Three separate error records retain the public SDK error type;
+One actual `esp_tls_t` object supports the single MQTT connection. One
+separate error record retains the public SDK error type;
 four error-tracker entry points are linked to owned implementations. The
 original tracker implementation must not remain linked. Vendor files and pins
 are unchanged, and the SDK still owns connection setup and TLS/socket cleanup.
@@ -101,7 +101,7 @@ enabled. There is no new task, kernel object or cross-task lock. Cleanup must
 finish before a context/error lease is returned. Released storage is cleared,
 and every handle expires on release; a stale pointer cannot identify a later
 lease at the same address. NULL and foreign releases leave the pools unchanged.
-Acquisition/release examines at most three entries; name copying is bounded by
+Acquisition/release examines one entry; name copying is bounded by
 253 bytes. These are operation bounds, not ESP timing or stack measurements.
 
 ### TLS record C review
@@ -119,7 +119,7 @@ formatter change or owned GNU syntax is introduced.
 
 The target gate verifies the two allocator substitution scopes, all four error
 aliases, absence of original error functions, flash placement and retained SDK
-client/server cleanup. Host tests compile the actual owned module with SDK type
+client cleanup and absence of the removed HTTPS server. Host tests compile the actual owned module with SDK type
 declarations doubled; they check alignment, zeroing, independent error fields,
 hostname limits, exhaustion, failed-initialization cleanup and 1,000 complete
 lease cycles under allocator interception. They do not perform TLS handshakes.
@@ -136,13 +136,12 @@ need bounded allocation and live acceptance. See the
 
 ## Fixed TLS output buffers
 
-`c3tout` reserves three output buffers, one for MQTT and two for HTTPS. Each
-buffer has the pinned SDK's full `MBEDTLS_SSL_OUT_BUFFER_LEN` capacity (4,429
+`c3tout` reserves one output buffer for MQTT. The buffer has the pinned SDK's full `MBEDTLS_SSL_OUT_BUFFER_LEN` capacity (4,429
 bytes with the selected 4,096-byte content limit), with eight-byte alignment.
 It remains attached through handshake, partial writes and retries until SDK
 cleanup. Exhaustion returns NULL to the SDK's existing setup failure path;
 there is no heap fallback for an output buffer. TLS record limits, certificate
-checks and connection counts remain unchanged.
+checks remain unchanged; HTTPS capacity has been removed.
 
 The setup wrapper calls the original SDK function through a checked linker
 alias. A borrowed setup-context pointer lives only for that synchronous call.
@@ -166,7 +165,7 @@ SDK TLS consumer requires review of capacity and serialization.
 
 Reviewed `c3tout.c/.h` and `touttest.c/.h` against the BARR-C checklist: C99,
 paired modules, named prototypes, fixed-width counters, initialized state,
-bounded three-entry searches, explicit failure results and no new casts.
+bounded one-entry searches, explicit failure results and no new casts.
 An alignment-only union supplies real character-array storage; it is never
 interpreted as a different object type. SDK context pointers have the actual
 pinned type and remain valid for the synchronous setup call. The private SDK
@@ -180,8 +179,7 @@ partial data. It uses the SDK's explicit zeroization operation before making
 storage reusable. Only the selected output request has a fixed-pool guarantee;
 other SDK allocations are visible remaining work. Host tests intercept direct
 allocator calls in the owned module and separately count intentional SDK
-forwarding. They cover capacity, alignment, clearing, retained neighboring
-buffers, setup failures, same-sized unrelated requests and 1,000 full cycles.
+forwarding. They cover capacity, alignment, clearing, exhaustion, setup failures, same-sized unrelated requests and 1,000 full cycles.
 
 ## Fixed lwIP records
 
@@ -196,7 +194,7 @@ Those are shared limits, including listeners, accepted connections and UDP
 sockets; they do not promise six simultaneous TLS sessions. The old heap-backed
 SDK pools did not enforce these record counts. Exhaustion now returns NULL
 through the SDK's existing error/packet-drop paths. No heap fallback is allowed.
-One MQTT plus two HTTPS session capacity remains configured. Queue capacity,
+One MQTT TLS session remains configured after HTTPS removal. Queue capacity,
 packet storage and TLS allocations can still independently limit operation.
 
 SDK code retains initialization, protocol handling and cleanup. In particular,

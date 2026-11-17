@@ -108,35 +108,25 @@ class AcceptanceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 client.diagnostics(bad)
 
-    def test_https_capture_rejects_boot_or_generation_changes(self):
-        identity=dict(boot_id='one')
-        status=dict(boot_id='one',runtime_generation=3,active_revision=2,
-                    mqtt=dict(enabled=True,state=5,failures=0,replaced=0,discarded=0))
-        sample=dict(boot_id='one',runtime_generation=3,active_revision=2)
-        with patch.object(client,'fetch',side_effect=[identity,status,sample]):
-            self.assertEqual(client.https_capture('origin','ca','token',0)['mqtt']['state_name'],'ready')
-        for changed in [dict(sample,boot_id='two'),dict(sample,runtime_generation=4)]:
-            with patch.object(client,'fetch',side_effect=[identity,status,changed]),self.assertRaises(ValueError):
-                client.https_capture('origin','ca','token',0)
 
     def test_cli_failure_report_is_sanitized_and_never_overwritten(self):
         with tempfile.TemporaryDirectory() as folder:
             target=Path(folder)/'capture.json'
-            with patch.object(client,'https_capture',side_effect=ValueError('secret')),contextlib.redirect_stdout(io.StringIO()):
-                code=client.main(['--report',str(target),'https','https://node','--ca','ca.pem'])
+            with patch.object(client,'mqtt_capture',side_effect=ValueError('secret')),contextlib.redirect_stdout(io.StringIO()):
+                code=client.main(['--report',str(target),'mqtt','--address','127.0.0.1','--server-name','node','--node','node','--ca','ca.pem'])
             self.assertEqual(code,1)
             self.assertNotIn('secret',target.read_text())
             original=target.read_bytes()
-            with patch.object(client,'https_capture') as capture,contextlib.redirect_stderr(io.StringIO()),self.assertRaises(SystemExit):
-                client.main(['--report',str(target),'https','https://node','--ca','ca.pem'])
+            with patch.object(client,'mqtt_capture') as capture,contextlib.redirect_stderr(io.StringIO()),self.assertRaises(SystemExit):
+                client.main(['--report',str(target),'mqtt','--address','127.0.0.1','--server-name','node','--node','node','--ca','ca.pem'])
             capture.assert_not_called()
             self.assertEqual(target.read_bytes(),original)
 
     def test_invalid_report_directory_and_ble_mtu_fail_before_contact(self):
         with tempfile.TemporaryDirectory() as folder:
             target=Path(folder)/'missing'/'capture.json'
-            with patch.object(client,'https_capture') as capture,contextlib.redirect_stderr(io.StringIO()),self.assertRaises(SystemExit):
-                client.main(['--report',str(target),'https','https://node','--ca','ca.pem'])
+            with patch.object(client,'mqtt_capture') as capture,contextlib.redirect_stderr(io.StringIO()),self.assertRaises(SystemExit):
+                client.main(['--report',str(target),'mqtt','--address','127.0.0.1','--server-name','node','--node','node','--ca','ca.pem'])
             capture.assert_not_called()
         with patch.dict(sys.modules,{'bleak':SimpleNamespace(BleakClient=None)}):
             with self.assertRaises(ValueError):

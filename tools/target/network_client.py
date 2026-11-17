@@ -1,33 +1,16 @@
-"""Read-only HTTPS client and bounded BLE decoder; never a PC gateway.
-
-Examples:
-  python tools/target/network_client.py https://esp.local status --ca device-ca.pem
-  python tools/target/network_client.py https://esp.local telemetry --source 2 --ca device-ca.pem
-
-Set UTHOME_TOKEN in the environment; do not put secrets in command history.
-HTTPS certificate/hostname verification is mandatory. This client does not
-provision credentials, apply configuration, or start an ESP network service.
-"""
+"""Bounded MQTT telemetry decoder and BLE frame reassembly."""
 from __future__ import annotations
 
-import argparse
-import json
 import math
-import os
 import re
-from pathlib import Path
-import ssl
 import struct
 import time
-from urllib.error import HTTPError
-from urllib.parse import urlsplit
-from urllib.request import HTTPSHandler, HTTPRedirectHandler, build_opener
 
 FRAME_BYTES = 112
 
 
 def decode_frame(data: bytes) -> dict:
-    """Strictly decode one HTTP sensor body or reassembled BLE v1 frame."""
+    """Strictly decode one MQTT sensor payload or reassembled BLE v1 frame."""
     if len(data) != FRAME_BYTES:
         raise ValueError('sensor frame must be exactly 112 bytes')
     version, kind, quality, status, source = struct.unpack_from('<BBBBH', data)
@@ -176,65 +159,3 @@ class BleReassembler:
             self.reset()
             return decode_frame(frame)
         return None
-
-
-class NoRedirects(HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        raise ValueError('redirect refused to protect Authorization credential')
-
-
-def fetch(base: str, operation: str, token: str, source: int = 0,
-          ca: str | None = None) -> dict:
-    """Bounded verified HTTPS read; no redirects and no mutation retries."""
-    parts = urlsplit(base)
-    if (parts.scheme != 'https' or not parts.hostname or parts.username or
-            parts.password or parts.query or parts.fragment or parts.path not in ('', '/')):
-        raise ValueError('use an HTTPS origin without credentials or path')
-    if (not 16 <= len(token) <= 64 or
-            any(ord(char) < 0x21 or ord(char) > 0x7e for char in token)):
-        raise ValueError('invalid token')
-    if operation not in ('identity', 'status', 'telemetry') or not 0 <= source <= 7:
-        raise ValueError('invalid operation/source')
-    context = ssl.create_default_context(cafile=ca)
-    opener = build_opener(HTTPSHandler(context=context), NoRedirects())
-    path = f'/v1/{operation}'
-    if operation == 'telemetry':
-        path += f'?source={source}'
-    from urllib.request import Request
-    req = Request(base.rstrip('/') + path,
-                  headers={'Authorization': 'Bearer ' + token, 'Connection': 'close'})
-    with opener.open(req, timeout=10) as response:
-        body = response.read(2049)
-        if len(body) > 2048:
-            raise ValueError('response exceeds bound')
-        if operation == 'telemetry':
-            if response.headers.get_content_type() != 'application/octet-stream':
-                raise ValueError('unexpected telemetry content type')
-            return decode_frame(body)
-        if response.headers.get_content_type() != 'application/json':
-            raise ValueError('unexpected status content type')
-        return json.loads(body)
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('origin')
-    parser.add_argument('operation', choices=['identity', 'status', 'telemetry'])
-    parser.add_argument('--source', type=int, choices=range(8), default=0)
-    parser.add_argument('--ca', type=str)
-    parser.add_argument('--token-env', default='UTHOME_TOKEN')
-    args = parser.parse_args()
-    token = os.environ.get(args.token_env, '')
-    try:
-        result = fetch(args.origin, args.operation, token, args.source, args.ca)
-    except HTTPError as error:
-        # Do not print request headers or server-provided exception bodies.
-        parser.exit(1, f'HTTP request failed: {error.code}\n')
-    except (ValueError, OSError) as error:
-        parser.exit(1, f'{type(error).__name__}: request failed\n')
-    print(json.dumps(result, indent=2, allow_nan=False))
-    return 0
-
-
-if __name__ == '__main__':
-    raise SystemExit(main())

@@ -249,7 +249,7 @@ evidence, writing a new result outside that evidence directory.
 The station-08 map is the policy basis. Existing reviewed per-object limits are
 retained where the station links the same module. `c3app` receives one additional
 256-byte block above its 42,240-byte measurement; new station objects round
-`c3https` to 3,200 bytes (128-byte boundary), `c3net` to 96 bytes and `c3wsta`
+`c3net` to 96 bytes and `c3wsta`
 to 64 bytes (16-byte boundaries). `c3task` retains its reviewed 18,504-byte
 reservation, 35 bytes above the station measurement. Exact-size static pools
 remain exact so any capacity change requires review. BLE-only `c3ble` and
@@ -278,8 +278,8 @@ folder and the same network memory budget for a meaningful comparison.
 
 ## Network observations and flash-size analysis
 
-`python -m tools.target.network_acceptance --help` lists finite read-only HTTPS,
-MQTT and optional BLE capture commands. They require explicit endpoints and
+`python -m tools.target.network_acceptance --help` lists finite read-only MQTT
+and optional BLE capture commands. They require explicit endpoints and
 never flash, read USB, apply configuration or publish MQTT. Reports cannot be
 overwritten; a capture is not whole-system qualification. The implementation
 checks use offline socket/BLE doubles only.
@@ -371,8 +371,8 @@ Run from the repository root with assertions enabled. Create the output folder
 first; reports are never overwritten. The tool uses ELF/DWARF offsets and runs
 the real SDK setup, buffer-pointer initialization and cleanup code. It doubles
 the heap, ROM byte-copy functions and PSA hash setup/abort; it does not perform
-a TLS handshake, network I/O or hardware timing. Three contexts must receive
-separate aligned output buffers, the fourth must fail without heap fallback,
+a TLS handshake, network I/O or hardware timing. The MQTT context must receive
+its aligned output buffer, a second must fail without heap fallback,
 release must erase and reuse the slot, and injected failures at each of the four
 remaining setup allocations must leave no simulated heap objects. The report
 records the ELF hash and original SDK execution counts. The ELF is not modified.
@@ -388,12 +388,10 @@ python -B -m tools.target.tls_input_probe ABSOLUTE_WORK_DIR/build/uthome_runtime
 ```
 
 Create the output folder first. Assertions must be enabled and reports are never
-overwritten. Three sessions exercise 12 partial-header cases, nine partial-body
-cases with 16 KiB content, three oversized fetches, three partial EOF cases and
-nine interleaved plaintext reads. Consumed plaintext must be erased; unread
-bytes remain attached to their own connection. A deliberate input-buffer alias
-is a negative control that must corrupt a pending header. It is an injected
-misuse, not a defect in the normal SDK. All session allocations must be released.
+overwritten. One MQTT session exercises four partial-header cases, three
+partial-body cases with 16 KiB content, one oversized fetch, one partial EOF
+case and three plaintext reads. Consumed plaintext must be erased; unread bytes
+remain attached to the connection. All session allocations must be released.
 
 The tool reuses the output probe's ELF loader, SDK setup and cleanup execution.
 Heap, transport, ROM byte copies and PSA hash operations are doubled. The read
@@ -402,7 +400,7 @@ a handshake or radio hardware. No firmware or SDK source is changed. A passing
 result proves these input-lifetime checks, **not fixed receive allocation**.
 
 The report derives the input size from the SDK's actual allocation requests,
-then projects one/two/three independent eight-byte-aligned buffers against the
+then projects one independent eight-byte-aligned input buffer against the
 supplied application/total budgets. Projections exclude pool metadata, extra
 link padding and remaining crypto/TCP/IP storage. Linker unassigned bytes are
 not runtime free heap. See the
@@ -427,16 +425,13 @@ hashes and a JSON report. It refuses disabled Python assertions and existing
 output directories. Fresh one-day test keys, certificates and broker credentials
 stay in the ignored output directory. It never opens serial or installs firmware.
 
-Eight cases run per profile: authenticated MQTT with a 96-byte round trip;
-wrong trust root; wrong server name; a longer valid broker certificate chain;
-512-byte and 8192-byte uploads through the maintained `network_config` client;
-an experimental 8192-byte upload split into 1024-byte TLS writes; and HTTPS with
-the longer server certificate chain. The report records negotiated protocol,
-cipher, verification flags, received record sizes and exact errors. Expected
-compatibility failures are asserted as failures, not reclassified as successes.
+Four cases run per profile: authenticated MQTT with a 96-byte round trip;
+wrong trust root; wrong server name; and a longer valid broker certificate chain.
+The report records negotiated protocol, cipher, verification flags, received
+record sizes and exact errors. Expected compatibility failures remain failures.
 The SDK aliases SSL bad-input/buffer-too-small results to PSA -135/-138; the
 Python binding labels those explicitly because the legacy SDK error formatter
-otherwise produces misleading text for them.
+otherwise produces misleading text.
 
 `tls_profile_peer.py` drives the serialized C peer in
 `tests/target/tls_profile/`. Its two 32 KiB ciphertext queues are **host transport
@@ -448,23 +443,19 @@ are enabled in the selected ESP build; the host build is not the ESP ABI or its
 complete compile-time feature set. The empty host `sdkconfig.h` supplies the
 include expected by the SDK bignum/ecp wrappers without enabling hardware paths.
 
-The HTTPS body is a synthetic JSON object padded with whitespace. The fixture
-checks exact delivery and returns a deliberately rejected application result;
-it never runs the configuration controller or writes flash. MQTT uses the
-existing authenticated AMQTT fixture and a test packet encoder, not `c3mqtt`.
-One C connection runs at a time. No three-connection capacity, no-heap claim,
-ESP timing, radio compatibility, arbitrary certificate compatibility or hardware
-acceptance follows from this experiment. The segmented uploader is test-only;
-the maintained client and firmware stay unchanged. See the
-[compatibility decision](../../docs/reports/wifi-static-memory/README.md#tls-record-compatibility-decision).
+MQTT uses the existing authenticated AMQTT fixture and a test packet encoder,
+not `c3mqtt`. One C connection runs at a time. No no-heap claim, ESP timing,
+radio compatibility, arbitrary certificate compatibility or hardware acceptance
+follows from this experiment. The removed HTTPS upload cases remain only in
+earlier immutable reports. See the [compatibility decision](../../docs/reports/wifi-static-memory/README.md#tls-record-compatibility-decision).
 
 ### Host TLS fixture C review
 
-The 15 November 2026 review covers `tlspeer.c/.h` and the empty host SDK header.
+The 17 November 2026 review covers `tlspeer.c/.h` and the empty host SDK header.
 They follow the maintained templates and ordinary C99, with matching public
 prefixes and no new exception. SDK callbacks retain their declared types without
 function-pointer casts. A single owner serializes all calls; start/close own the
-context/config/certificate/key lifetime. File paths and names are used only
+client context/config/CA lifetime. File paths and names are used only
 during start; the SDK copies/parses their contents. Read/write buffers remain
 caller-owned, and a WANT_READ/WRITE retry retains the same write bytes/length.
 The configured cipher list has static lifetime. Returned protocol/cipher strings
@@ -477,55 +468,7 @@ The two `size_t`-to-`int` callback casts are bounded by the 32768-byte queue and
 the host compiler's `INT_MAX`; send also asserts the conversion bound. External
 status codes remain signed. State is initialized before use and released after
 every case. Owned C has no loops, task/ISR, MMIO, assembly or allocator calls;
-SDK heap/entropy/crypto are intentionally real host implementations. The HTTPS
-server does not request client certificates, matching bearer-token setup;
-both client roles verify server trust/name. No verification bypass was added.
-The full pinned 340-file C gate and 24 encrypted compatibility cases passed;
-the cases include expected rejections. This is manual/host verification only.
-
-## Authenticated HTTP configuration client
-
-`python -m tools.target.network_config --help` describes the separate mutating
-client. `network_acceptance` remains read-only. Supply a trusted CA and set
-UTHOME_TOKEN privately in the environment; do not put credentials in shell history.
-These are client examples for a later authorized bench session, not build steps:
-
-```powershell
-python -m tools.target.network_config https://DEVICE:8443 --ca CA.pem --report state-01.json state
-python -m tools.target.network_config https://DEVICE:8443 --ca CA.pem --report apply-01.json apply --request-id 11 --boot-id 0123456789abcdef --request-token operation-11 --revision 8 --expected-revision 7 --profile node.json
-python -m tools.target.network_config https://DEVICE:8443 --ca CA.pem --report result-01.json result --request-id 11 --boot-id 0123456789abcdef --request-token operation-11
-```
-
-Replace every example ID/revision/boot with freshly observed values. Coordinate
-IDs with USB clients. The tool neither allocates IDs nor retries mutations. It
-reserves a new report before contact, validates bounded typed replies, matches
-boot/ID and checks saved revision/CRC/flags. Result GET describes completion,
-possibly historical; query state separately. A lost reply, 404, cache eviction or
-uncertain save does not authorize a fresh Apply. Profile bytes are sent exactly;
-the node performs full schema validation. No flashing, serial access, redirects,
-credential provisioning or MQTT publication occurs. Full transport/error/resource
-specifications are in the maintained network guide.
-
-Reproduce the new routing/client tests with:
-`python -m unittest tests.target.test_network_config tests.target.test_network_config_client`.
-The ESP transport tests are `tests.target.test_network_esp`; use the project's
-pinned compiler/formatter environment. All automated HTTP mutation tests use
-local doubles and fake storage, never a live device.
-
-Configuration-client reports now include an explicit `outcome` in addition to
-controller fields. Interpret it as follows; the client never retries automatically:
-
-| Outcome | Operator action |
-|---|---|
-| saved_at_completion | Save was confirmed at that completion; if historical, query state before assuming it remains current |
-| active_unsaved | Runtime may have changed; persistence is not confirmed. Query state and follow existing USB recovery guidance before another mutation |
-| rejected | Review the original full profile and validation constraints; do not resend unchanged input |
-| stale / conflict | Re-read state, coordinate USB IDs/revisions, then explicitly decide the next operation |
-| recovery_required / storage_error | Inspect state and use the existing controller recovery procedure; do not blindly repeat writes |
-| not_confirmed | Delivery or admission is unknown. Query matching result then state; missing/evicted/rebooted results do not authorize replay |
-| state_observed | Read-only observation, not proof that an earlier Apply succeeded |
-
-Retain the operation's boot ID, request ID, token and exact original profile bytes
-outside the device until resolved. Historical completion is never upgraded to
-current state. The network guide's acceptance checklist separates offline test
-coverage from board observations and Member 1's resource/timing approval.
+SDK heap/entropy/crypto are intentionally real host implementations. The single
+client verifies server trust/name; no verification bypass is added. Current
+checks and fresh target evidence are in the [network guide](../../firmware/src/network/README.md#esp-https-removal).
+This remains manual/host verification, separate from physical acceptance.

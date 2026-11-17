@@ -148,6 +148,6 @@ broker or board and do not establish hardware acceptance. See the
 
 The separate [TLS record compatibility probe](../tools/target/README.md#tls-record-compatibility-probe)
 builds the pinned SDK's TLS library on the host and runs real encrypted loopback
-MQTT/HTTPS, including full uploads and valid/rejected certificates. It needs the
+MQTT, including valid/rejected certificates and a 96-byte round trip. It needs the
 SDK checkout, so it is an explicit experiment outside the ordinary unit suite.
 It does not qualify target memory, simultaneous sessions or physical hardware.

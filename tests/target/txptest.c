@@ -48,13 +48,6 @@ bool txptest_idle (const cfgbind_state_t * p_state)
     return (NULL != p_state) && gb_idle;
 }
 
-/** @brief No HTTP upload in this isolated owner fixture. */
-bool txptest_mux (const cfgmux_t * p_mux)
-{
-    (void)p_mux;
-    return false;
-}
-
 /** @brief Model the native software ring draining, independent of RX. */
 int txptest_empty (const void * p_owner, bool * pb_empty)
 {
@@ -111,7 +104,7 @@ int txptest_start (void)
     spifake_init(&g_spi);
     uartfake_init(&g_uart);
     g_uart.read_limit = 1U;
-    return c3tx_start(&g_binding, NULL, UINT64_C(0x1122334455667788));
+    return c3tx_start(&g_binding, UINT64_C(0x1122334455667788));
 }
 
 /** @brief Reject a second unread host request rather than replace it. */

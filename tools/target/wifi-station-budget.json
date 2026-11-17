@@ -8,7 +8,7 @@
     "task_pool_fixed": 18469,
     "kernel_sdk_fixed": 53066,
     "ram_code": 56348,
-    "module_margin_policy": "Retain reviewed diagnostic limits for unchanged station modules; reserve one additional 256-byte block for c3app, round new c3https to 128 bytes and c3net/c3wsta to 16 bytes, and retain the reviewed c3task reservation. Exact-size pools require explicit review before growth. BLE-only c3ble/c3gatt are absent from this required Wi-Fi-only map."
+    "module_margin_policy": "Retain reviewed diagnostic limits for unchanged station modules; reserve one additional 256-byte block for c3app, round c3net/c3wsta to 16 bytes; the retired HTTPS reservation is removed, and retain the reviewed c3task reservation. Exact-size pools require explicit review before growth. BLE-only c3ble/c3gatt are absent from this required Wi-Fi-only map."
   },
   "required_evidence": {
     "configuration_application": true,
@@ -60,7 +60,6 @@
     "c3nq.c.obj": 12288,
     "c3boot.c.obj": 12288,
     "c3event.c.obj": 450,
-    "c3https.c.obj": 3200,
     "c3net.c.obj": 96,
     "c3wsta.c.obj": 64,
     "c3task.c.obj": 18504

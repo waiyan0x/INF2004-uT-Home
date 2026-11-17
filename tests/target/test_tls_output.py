@@ -105,12 +105,12 @@ class TlsOutputTests(unittest.TestCase):
                 self.lib.c3tout_wipe(pointer, size)
                 setattr(context, name, None)
 
-    def test_three_sessions_exhaust_without_output_heap_fallback(self):
-        contexts = [self.open()[1] for _ in range(3)]
+    def test_one_session_exhaust_without_output_heap_fallback(self):
+        contexts = [self.open()[1] for _ in range(1)]
         outputs = [context.output for context in contexts]
         self.assertTrue(all(outputs))
-        self.assertEqual(len(set(outputs)), 3)
-        self.assertEqual(self.lib.touttest_count(0), 3)  # inputs only
+        self.assertEqual(len(set(outputs)), 1)
+        self.assertEqual(self.lib.touttest_count(0), 1)  # inputs only
         for index, pointer in enumerate(outputs):
             self.assertEqual(pointer % c.alignment(c.c_uint64), 0)
             self.assertEqual(c.string_at(pointer, OUTPUT_BYTES), bytes(OUTPUT_BYTES))
@@ -118,14 +118,13 @@ class TlsOutputTests(unittest.TestCase):
         result, rejected = self.open()
         self.assertNotEqual(result, 0)
         self.assertFalse(rejected.input or rejected.output)
-        self.assertEqual(self.lib.touttest_count(0), 4)  # rejected input freed
-        self.close(contexts[1])
-        self.assertEqual(c.string_at(outputs[1], OUTPUT_BYTES), bytes(OUTPUT_BYTES))
+        self.assertEqual(self.lib.touttest_count(0), 2)  # rejected input freed
+        self.close(contexts[0])
+        self.assertEqual(c.string_at(outputs[0], OUTPUT_BYTES), bytes(OUTPUT_BYTES))
         result, replacement = self.open()
         self.assertEqual(result, 0)
-        self.assertEqual(replacement.output, outputs[1])
-        for index in (0, 2):
-            self.assertEqual(c.string_at(outputs[index], OUTPUT_BYTES), bytes([index + 1]) * OUTPUT_BYTES)
+        self.assertEqual(replacement.output, outputs[0])
+        self.assertEqual(c.string_at(replacement.output, OUTPUT_BYTES), bytes(OUTPUT_BYTES))
 
     def test_setup_failures_release_slots_and_clear_selection_scope(self):
         for failure in (1, 2):
@@ -138,13 +137,13 @@ class TlsOutputTests(unittest.TestCase):
         self.assertTrue(pointer)
         self.assertEqual(self.lib.touttest_count(0), before + 1)
         self.lib.c3tout_free(pointer)
-        self.assertTrue(all(self.open()[0] == 0 for _ in range(3)))
+        self.assertTrue(all(self.open()[0] == 0 for _ in range(1)))
 
     def test_same_size_later_in_setup_uses_sdk_not_another_output_slot(self):
-        contexts = [self.open(3)[1] for _ in range(3)]
+        contexts = [self.open(3)[1] for _ in range(1)]
         self.assertTrue(all(context.output for context in contexts))
-        self.assertEqual(self.lib.touttest_count(0), 6)  # inputs and later objects
-        self.assertEqual(self.lib.touttest_count(3), 3)
+        self.assertEqual(self.lib.touttest_count(0), 2)  # inputs and later objects
+        self.assertEqual(self.lib.touttest_count(3), 1)
         self.assertNotEqual(self.open()[0], 0)
 
     def test_both_cleanup_paths_erase_entire_buffer_without_sdk_free(self):
@@ -166,7 +165,7 @@ class TlsOutputTests(unittest.TestCase):
     def test_reconnect_cycles_reuse_all_storage(self):
         expected = None
         for _ in range(1000):
-            contexts = [self.open()[1] for _ in range(3)]
+            contexts = [self.open()[1] for _ in range(1)]
             outputs = [context.output for context in contexts]
             self.assertTrue(all(outputs))
             if expected is None:

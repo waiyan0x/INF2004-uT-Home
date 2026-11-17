@@ -10,7 +10,9 @@ python -B -m tools.configurator --port 8080
 Open `http://127.0.0.1:8080`. Stop the server with Ctrl+C. The UI uses Python's
 standard HTTP server and local HTML/CSS/JavaScript; no Node build or new web
 framework is required. Offline review needs only the planner dependencies.
-The interface uses one fixed colour palette.
+The interface uses one fixed colour palette. Removing the ESP HTTPS service
+does not change this host web interface. Full-profile setup uses USB; runtime
+transactions use MQTT over TLS.
 
 ## Runtime transactions
 

@@ -19,7 +19,7 @@ idf_component_register(SRCS "../discovery/discuart.c" "../discovery/disci2c.c" "
                        "../drivers/hc_sr04.c" "../drivers/hcinst.c" "../drivers/pwminst.c"
                        "../hal/c3pulse.c" "../hal/c3pwm.c"
                        "../config/cfgbytes.c" "../config/cfgwire.c"
-                       "../config/cfgstore.c" "../config/cfgmux.c" "../config/cfgctrl.c"
+                       "../config/cfgstore.c" "../config/cfgctrl.c"
                        "../third_party/bmp3/bmp3.c"
                        INCLUDE_DIRS "../network" "../discovery" "../automation" "../services" "../app" "../config" "../runtime" "../include" "../hal/include"
                                     "../hal" "../drivers" "../third_party/bmp3"
@@ -74,7 +74,7 @@ set_source_files_properties("../discovery/discuart.c" "../discovery/disci2c.c" "
     "../hal/pulseio.c" "../hal/pwmio.c"
     "../drivers/hc_sr04.c" "../drivers/hcinst.c" "../drivers/pwminst.c"
     "../config/cfgbytes.c" "../config/cfgwire.c"
-    "../config/cfgstore.c" "../config/cfgmux.c" "../config/cfgctrl.c"
+    "../config/cfgstore.c" "../config/cfgctrl.c"
     "../hal/c3bwait.c" "../hal/c3i2c.c" "../hal/c3spi.c"
     PROPERTIES COMPILE_OPTIONS "-std=c99;${UTHOME_WARNINGS}")
 # Pinned external LL headers use GNU typeof. The adapter's owned source is C99;
@@ -287,9 +287,9 @@ endif()
 if(UTHOME_NETWORK_WIFI)
     if(NOT CONFIG_LWIP_IPV4 OR CONFIG_LWIP_IPV6 OR CONFIG_LWIP_DHCPS OR
        CONFIG_ESP_WIFI_SOFTAP_SUPPORT OR CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT OR
-       NOT CONFIG_ESP_TLS_USING_MBEDTLS OR NOT CONFIG_MBEDTLS_TLS_SERVER OR
+       NOT CONFIG_ESP_TLS_USING_MBEDTLS OR NOT CONFIG_MBEDTLS_TLS_CLIENT OR CONFIG_MBEDTLS_TLS_SERVER OR
        NOT CONFIG_MBEDTLS_SSL_PROTO_TLS1_2 OR CONFIG_ESP_WIFI_NVS_ENABLED OR
-       NOT CONFIG_LWIP_MAX_SOCKETS EQUAL 6 OR NOT CONFIG_LWIP_SO_REUSE)
+       NOT CONFIG_LWIP_MAX_SOCKETS EQUAL 6 OR CONFIG_LWIP_SO_REUSE)
         message(FATAL_ERROR "Wi-Fi services require reviewed station/TLS/socket/RAM-only settings")
     endif()
 endif()

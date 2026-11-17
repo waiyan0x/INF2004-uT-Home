@@ -19,7 +19,8 @@ Reviewed descriptions live in [datasheets](../../datasheets/README.md).
 Handwritten three-protocol examples live in [configs/transactions](../../configs/transactions).
 The [firmware contract](../../firmware/src/services/transaction/README.md) defines
 bounds, ownership, errors and wire fields. Complete node profiles are different
-objects; keep using the configuration tools for setup and recovery.
+objects; use the USB configuration tools for setup and recovery. The ESP HTTPS
+service was removed on 17 November 2026; MQTT still verifies broker TLS.
 
 ## Compile without equipment
 

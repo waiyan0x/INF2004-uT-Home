@@ -88,9 +88,9 @@ startup and task implementation are in that dependency's `config/`,
 
 ## On-device wireless integration gate
 
-Wi-Fi and BLE must run on the ESP under uT-Kernel. The planned services are BLE
-identification/status/telemetry and Wi-Fi MQTT telemetry plus bounded HTTP
-status/configuration. They are not integrated into the ordinary USB application.
+Wi-Fi and BLE run on the ESP under uT-Kernel. The optional application services
+provide BLE identification/status/telemetry and Wi-Fi MQTT telemetry plus runtime
+rules/results. Full saved-profile setup and recovery use USB; ESP HTTPS is removed.
 The [network guide](src/network/README.md) owns compatibility contracts,
 task-stack, notification, timer, TLS and SDK-allocation limitations.
 
@@ -109,7 +109,7 @@ do not establish a tick mismatch.
 
 Inventory all infrastructure tasks, stacks, objects and buffers separately from
 the four peripheral slots. Define bounded connections, payloads and queued work;
-precreate resources needed for reconnects. Audit BLE, lwIP, MQTT, HTTP, credential
+precreate resources needed for reconnects. Audit BLE, lwIP, MQTT, credential
 storage and any TLS path, not just the Wi-Fi driver. Do not copy upstream demos'
 automatic NVS erase or open-access settings into the application.
 

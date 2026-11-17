@@ -32,9 +32,9 @@ def generate(source):
     if len(raw)>4096:
         raise ValueError('setup JSON exceeds bound')
     config=json.loads(raw.decode('utf-8'),object_pairs_hook=unique)
-    required={'ssid','password','token','certificate_file','key_file'}
+    required={'ssid','password'}
     if (not isinstance(config,dict) or not required<=config.keys() or
-            config.keys()-required-{'port','mqtt','tx_power_quarter_dbm'}):
+            config.keys()-required-{'mqtt','tx_power_quarter_dbm'}):
         raise ValueError('invalid setup fields')
     tx_power=config.get('tx_power_quarter_dbm',0)
     if ('tx_power_quarter_dbm' in config and
@@ -46,29 +46,11 @@ def generate(source):
     ssid_bytes=ssid.encode('utf-8')
     if not 1<=len(ssid_bytes)<=32:
         raise ValueError('SSID exceeds byte bound')
-    for name,minimum,maximum in [('password',8,63),('token',32,64)]:
-        value=config[name]
-        if (not isinstance(value,str) or not minimum<=len(value)<=maximum or
-                any(ord(char)<(0x21 if name=='token' else 0x20) or ord(char)>0x7e for char in value)):
-            raise ValueError('invalid setup text')
-    port=config.get('port',8443)
-    if type(port) is not int or not 1<=port<=65535:
-        raise ValueError('invalid HTTPS port')
+    password=config['password']
+    if (not isinstance(password,str) or not 8<=len(password)<=63 or
+            any(ord(char)<0x20 or ord(char)>0x7e for char in password)):
+        raise ValueError('invalid setup password')
     blobs={}
-    for name in ['certificate','key']:
-        relative=config[name+'_file']
-        if not isinstance(relative,str) or not relative or '\0' in relative:
-            raise ValueError('invalid PEM input path')
-        data=(source.parent/relative).resolve().read_bytes()
-        if not 1<=len(data)<=8191 or b'\0' in data:
-            raise ValueError('PEM exceeds bound')
-        if name=='certificate' and b'-----BEGIN CERTIFICATE-----' not in data:
-            raise ValueError('missing certificate PEM')
-        if name=='key' and not any(marker in data for marker in
-                [b'-----BEGIN PRIVATE KEY-----',b'-----BEGIN EC PRIVATE KEY-----',
-                 b'-----BEGIN RSA PRIVATE KEY-----']):
-            raise ValueError('missing unencrypted private key PEM')
-        blobs[name]=data+b'\0'
     mqtt=config.get('mqtt')
     mqtt_text={}
     if mqtt is not None:
@@ -98,7 +80,7 @@ def generate(source):
     lines=['/** @file netsetup.h',
            ' * @brief Private generated development setup; never publish. */',
            '#ifndef UTHOME_NETSETUP_H','#define UTHOME_NETSETUP_H',
-           '#include <stdint.h>',f'#define UTHOME_SETUP_PORT ({port}U)']
+           '#include <stdint.h>']
     lines.append(f'#define UTHOME_SETUP_MQTT ({int(mqtt is not None)}U)')
     lines.append(f'#define UTHOME_SETUP_TX_POWER ({tx_power}U)')
     if mqtt is not None:
@@ -117,7 +99,6 @@ def generate(source):
         for start in range(0,len(data),10):
             lines.append('    '+', '.join(f'0x{byte:02x}U' for byte in data[start:start+10])+',')
         lines.append('};')
-    blobs['token']=config['token'].encode('ascii')+b'\0'
     for name,data in blobs.items():
         lines.append(f'static const uint8_t g_setup_{name}[] = {{')
         for start in range(0,len(data),10):
@@ -126,8 +107,7 @@ def generate(source):
     lines+=['#endif','','/* End of file. */','','']
     header=format_header('\n'.join(lines).encode('utf-8'))
     record=dict(source=str(source),source_sha256=digest(raw),
-                certificate_sha256=digest(blobs['certificate']),
-                key_sha256=digest(blobs['key']),generated_sha256=digest(header),
+                generated_sha256=digest(header),
                 phy_max_wifi_tx_power=20 if tx_power==0 else max(10,min(20,tx_power//4)))
     if mqtt is not None:
         record['mqtt_ca_sha256']=digest(blobs['mqtt_ca'])

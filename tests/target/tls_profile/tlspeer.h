@@ -10,16 +10,11 @@
 #include <stdint.h>
 
 /**
- * @brief Start one TLS 1.2 peer; client verifies the CA and expected DNS name.
- * Paths/name are borrowed only during this call. Server requires certificate
- * and key paths; client requires CA and name. Call close after any outcome.
+ * @brief Start one TLS 1.2 client; verify the CA and expected DNS name.
+ * Path/name are borrowed only during this call. Call close after any outcome.
  * One owner serializes every API. This fixture uses the SDK's host heap.
  */
-int tlspeer_start (bool         b_server,
-                   const char * p_ca,
-                   const char * p_certificate,
-                   const char * p_key,
-                   const char * p_name);
+int tlspeer_start (const char * p_ca, const char * p_name);
 
 /** @brief Free the peer and clear the host-only ciphertext transport queues. */
 void tlspeer_close (void);

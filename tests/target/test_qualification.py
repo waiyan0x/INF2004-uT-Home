@@ -468,10 +468,10 @@ class QualificationTests(unittest.TestCase):
             'esp_tls_get_and_clear_error_type': 'c3tls_error_get',
         }
         names = ['c3tls_alloc', 'c3tls_free', 'c3tls_dup', *aliases.values(),
-                 'esp_tls_init', 'esp_tls_conn_destroy', 'esp_mbedtls_server_session_delete']
+                 'esp_tls_init', 'esp_tls_conn_destroy', 'esp_mbedtls_cleanup']
         symbols = {name: 0x42001000 + index * 32 for index, name in enumerate(names)}
         symbols.update({'__wrap_' + original: symbols[owned] for original, owned in aliases.items()})
-        self.assertEqual(qualification.check_tls_storage(commands, symbols, True)['context_slots'], 3)
+        self.assertEqual(qualification.check_tls_storage(commands, symbols, True)['context_slots'], 1)
         self.assertEqual(qualification.check_tls_storage([], {}, False), {'enabled': False})
         for damaged in (commands[:1], commands + [commands[0]],
                         commands + [dict(file='/sdk/crypto.c', command='gcc' + flags)],
@@ -480,6 +480,8 @@ class QualificationTests(unittest.TestCase):
             with self.subTest(commands=damaged), self.assertRaises(qualification.QualificationError):
                 qualification.check_tls_storage(damaged, symbols, True)
         for damaged in (dict(symbols, c3tls_alloc=0),
+                        dict(symbols, esp_tls_server_session_init=0x42003000),
+                        dict(symbols, c3https_start=0x42003000),
                         dict(symbols, esp_mbedtls_add_rx_buffer=0x42003000),
                         dict(symbols, c3tls_free=0x40380000),
                         dict(symbols, esp_tls_internal_event_tracker_create=0x42002000),
@@ -501,7 +503,7 @@ class QualificationTests(unittest.TestCase):
         symbols = {name: 0x42001000 + index * 32 for index, name in enumerate(names)}
         symbols['__wrap_mbedtls_ssl_setup'] = symbols['c3tout_setup']
         symbols['c3tout_native_setup'] = symbols['mbedtls_ssl_setup']
-        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['output_slots'], 3)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['output_slots'], 1)
         self.assertEqual(qualification.check_tls_output([], {}, False), {'enabled': False})
         for damaged in ([], commands * 2,
                         commands + [dict(file='/sdk/crypto.c', command='gcc' + flags)],

@@ -1,6 +1,6 @@
 /**
  * @file c3tout.c
- * @brief Retain three aligned TLS output buffers through SDK retries/cleanup.
+ * @brief Retain the MQTT TLS output buffer through SDK retries/cleanup.
  */
 /* Buffer lengths and setup state belong to the pinned SDK's private ABI. */
 #define MBEDTLS_ALLOW_PRIVATE_ACCESS
@@ -18,7 +18,7 @@
 #error "Fixed TLS output requires distinct sizes without buffer resizing."
 #endif
 
-#define C3TOUT_SLOTS 3U
+#define C3TOUT_SLOTS 1U
 
 typedef union
 {

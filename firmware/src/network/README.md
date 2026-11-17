@@ -4,8 +4,9 @@ The delivery path is uT-Kernel -> Wi-Fi/TLS MQTT -> raw transaction replies.
 Home Assistant discovery/display belongs to the implemented
 [host adapter](../../../tools/transaction/README.md#home-assistant-display). ESPHome
 firmware, the native API listener and on-device discovery formatting have been
-removed. HTTP/USB configuration and existing read-only BLE diagnostics remain
-because they support board setup, ownership checks and recovery.
+removed. USB configuration and existing read-only BLE diagnostics support
+board setup, ownership checks and recovery. The ESP HTTPS service was removed
+on 17 November 2026 at the user's request; MQTT TLS remains required.
 
 ## Module map
 
@@ -13,8 +14,8 @@ because they support board setup, ownership checks and recovery.
 |---|---|
 | Portable resource compatibility | `netring`, `netwait`, `netpool`, `netevent`: bounded queues, deadlines, resource leases and event snapshots |
 | Portable MQTT | `netmqtt`, `netbroker`, `netretry`: packet codec, one pending publication/request, connection state and capped retry |
-| HTTP/BLE codecs | `nethttp`, `netread`, `netble`: bounded authenticated requests and copied observations |
-| ESP transports | `c3wsta`, `c3mqtt`, `c3https`, `c3gsvc` under the HAL: SDK/socket boundaries |
+| Copied observations | `netread.h` supplies shared metadata/capture types; `netble` encodes bounded MQTT/BLE sensor frames |
+| ESP transports | `c3wsta`, `c3mqtt`, `c3gsvc` under the HAL: SDK/socket boundaries |
 | Application owner | `c3net` supplies metadata/copies; `c3tx` serializes runtime transactions with configuration |
 
 The [HAL network guide](../../hal/ports/esp32c3/network/README.md) explains the
@@ -59,12 +60,14 @@ Select the normal configuration application with `--runtime-port
 compatibility/resource patches, the task-observer patch, and
 `--network-settings PRIVATE_SETTINGS.json`.
 
-The settings parser accepts required `ssid`, `password`, `token`,
-`certificate_file`, `key_file`; optional `port` (HTTPS default 8443),
+The settings parser requires `ssid` and `password`; optional fields are
 `tx_power_quarter_dbm` and `mqtt`. MQTT fields are exactly `address` (numeric
-IPv4), `server_name`, `port`, `user`, `password`, `ca_file`. PEM paths resolve
-relative to the settings file. The removed `esphome_lab` key is rejected; update
-private development settings explicitly instead of assuming port 6053 remains.
+IPv4), `server_name`, `port`, `user`, `password`, `ca_file`. The broker CA path
+resolves relative to the settings file. HTTPS `token`, `certificate_file`,
+`key_file` and top-level `port` are rejected. Remove them in a new private settings
+copy before rebuilding; retain the original inputs with the old image/backup.
+The new image needs no device server certificate, private key or bearer token.
+The superseded `esphome_lab` key also remains unsupported.
 
 Settings, generated headers and firmware can contain credentials. Keep them
 outside Git. Immutable-input hashes detect changes between staging and build;
@@ -91,7 +94,7 @@ and other SDK state. They are outside an automatic Wi-Fi-driver exemption.
 The fixed mailbox adapter now removes the separate `sys_mbox_new` backing
 allocation in Wi-Fi service builds; it does not remove packet/connection/TLS
 allocations. `c3tls` now bounds ESP-TLS contexts, error trackers and temporary
-hostname copies for the existing one MQTT plus two HTTPS connections. Its
+hostname scratch for the single MQTT connection. Its
 source-scoped bindings retain the SDK lifecycle and reject exhaustion without
 heap fallback. Encryption buffers, certificates/keys and retained mbedTLS names
 are still separate open paths; see the [TLS record contract](../../hal/ports/esp32c3/network/README.md#fixed-esp-tls-records).
@@ -157,7 +160,7 @@ settings**, retaining the original peripheral profile. The laptop's original
 Wi-Fi was restored and its temporary test profile removed; no firewall rule
 changed. No MQTT broker was started during this Wi-Fi check.
 
-The following MQTT check extends this Wi-Fi result. HTTPS configuration writes,
+The following MQTT check extends this Wi-Fi result. Prolonged MQTT load,
 wider secure-connection load and network heap/stack acceptance remain open.
 Allocation counters are not free-heap/peak measurements, and unavailable worker
 stack measurements remain unmeasured.
@@ -295,67 +298,62 @@ control flow. The radio component now exposes the required private SDK header
 to Wi-Fi builds, including builds with static queues disabled. No new BARR-C
 deviation is needed.
 
-## HTTP and BLE observation contracts
+## ESP HTTPS removal
 
-### HTTP admission and reads
+On 17 November 2026 the user replaced the earlier requirement to retain HTTPS.
+The ESP listener, authenticated HTTP parser/replies, profile-upload mux and host
+HTTPS commands are removed. The build selects TLS client-only mode and rejects
+linked server entry points. `c3tls` and `c3tout` each reserve one MQTT session;
+record limits and broker CA/name verification stay unchanged. Shared TCP/IP
+queues/records still serve SDK traffic and have not been resized from a TLS count.
 
-`nethttp_init` initializes one connection with a 16..64-byte visible-ASCII secret.
-Use a securely generated per-device credential, provisioned through a reviewed
-setup path; token syntax checks do not establish entropy. Call `nethttp_feed` for
-received chunks and with zero bytes during idle polls. It returns 0 incomplete,
-200 authenticated/admitted, or a terminal HTTP error. Deadline is absolute 10 s
-from initialization, including idle clients. Clock regression terminates with 408.
-Terminal contexts are never reused. Limit accepted sockets in the future adapter;
-this parser does not itself implement a listening socket or connection pool.
+Use [USB configuration](../../../tools/config_transfer/README.md) for full-profile
+Apply, export, restore and recovery, including explicit idle-plan preparation.
+Runtime rules/results use MQTT. The host Configuration Desk and Home Assistant
+web interfaces are unchanged. Older installed firmware may still expose HTTPS;
+this source change does not install an image or establish a live timeout fix.
 
-HTTP/1.1 and a nonempty Host are required. Header capacity is exactly 1024 bytes,
-line length <=256, fields <=16, URI <=96. Reject bare CR/LF, controls, non-ASCII,
-folded/invalid field names, duplicate Host/Authorization/Content-Length, nonzero or
-noncanonical Content-Length and every Transfer-Encoding. Authentication compares
-all 64 credential positions without an early matching-prefix exit; this is not a
-hardware timing side-channel certification. Secret context storage must be erased
-by its lifecycle owner after all users stop. Replies contain no credentials.
+Verification passed: **509 target-facing tests**, the full pinned **333-file
+C gate**, manual BARR-C review, a fresh warnings-as-errors ESP32-C3 build and
+original-source snapshot verification. Twelve encrypted MQTT compatibility cases
+matched their expected outcomes, including wrong-CA/name rejection. Compiled
+RV32 probes passed all 12 connect cases, one-slot output exhaustion/erasure/reuse
+with eight SDK setup and seven cleanup calls, and 12 input-retention/read cases.
+The instruction probes double transport/heap/ROM/hash boundaries; input-read
+cases inject post-decryption data. They do not qualify encrypted board behavior.
 
-Implemented endpoints, all requiring `Authorization: Bearer TOKEN`:
+The new build is `C:/Users/kkak4/esp/uthome-mqtt-only-20261117/`.
+Application SHA-256:
+`bef502e50e545a6b3613a6c9fdb2c9c8359e251fcaf3ba8113b2639c3d500f62`.
+Its `evidence.json` SHA-256 is
+`be7a1c899ddd074762af0d8abdc393dff4db6ce68ba59ae25d35c11abb4861a6`.
+Fixed DRAM is **251,346/278,528 bytes**, 18,032 below the preceding retry build.
+Application storage is **122,228/147,456**, leaving 25,228 bytes. The two TLS
+module reservations shrink and the HTTPS reservation is removed; all aggregate
+caps stay unchanged. Private evidence/settings are under
+`build/remove-https-20261117/`. No board, serial port or live network was accessed.
+The image is **unflashed**; installation and physical acceptance remain deferred.
 
-| Endpoint | Body / behavior |
-|---|---|
-| GET /v1/identity | JSON version, node_id, 16-hex-digit boot_id, configuration_supported reflects controller binding |
-| GET /v1/status | JSON version, boot_id, active_revision, saved_revision, runtime_generation, runtime_state, durable_known, wifi_online |
-| GET /v1/telemetry?source=N | N is exactly one digit 0..7; canonical 112-byte binary sensor frame below |
-| GET /v1/configuration | Controller boot/revision/request state; no profile or credentials |
-| POST /v1/configuration | Authenticated bounded full-profile Apply through cfgmux/cfgctrl; specification below |
-| GET /v1/configuration/result | Latest retained HTTP completion, matched by request ID and token |
+### HTTPS removal C review
 
-Other routes, including capabilities and pagination from the
-proposal, currently return 404; other methods return 405. Invalid credentials
-return 401 with WWW-Authenticate: Bearer; oversize aggregate headers 431; malformed
-framing 400; receive expiry 408. Capturing an absent source returns 404; busy/error
-or inconsistent source metadata returns 503. All replies close the connection,
-disable caching and declare exact Content-Length. Error JSON has version 1 and
-error `request_unavailable`; HTTP status carries the error class. Only the configuration POST accepts a body, under the contract below.
+The remaining application hooks use C99 and matching updated public declarations
+and callers. Removing `cfgmux` also removes its borrowed-upload state and busy
+check; USB remains gated by `c3tx_busy` while asynchronous bus work retains pins.
+`cfgbind_discovery_ready` still rejects transactions when plan workers own buses.
+All calls remain on the serialized application owner; callback metadata is copied
+and no ISR accesses the changed state. The shared `netread.h` types retain only
+MQTT/BLE fields; wire formats and the USB controller/store are unchanged.
 
-`netread_reply` receives owner-copied controller/runtime metadata and a named
-capture callback. Production binding should delegate capture to `shared_source`;
-metadata and capture must be serialized with configuration activation. It does
-not infer live metadata from globals or call cfgctrl. Missing/fault samples still
-return a valid binary frame; 200 does not assert successful sensor measurements.
-It copies output into caller-owned transmit storage and never holds a shared
-guard across encoding or partial socket writes. Output >=512 bytes is the
-provisional complete-response reservation; short buffers fail without partial
-reply writes. Sensor source indices include disabled plan entries; correlate
-boot/revision/generation and the copied device name, never assume fixed identity.
+The one-slot TLS stores retain typed/aligned storage, initialization, erasure,
+bounded lookup and deterministic exhaustion with no heap fallback for those
+leases. SDK cleanup finishes before reuse, including reconnect/failure paths.
+The host TLS fixture now owns only a verified client and no server key; its
+borrowed path/name and copied ciphertext lifetime rules are unchanged. Removed
+arguments and fields introduce no casts, tasks, locks, allocations, hardware
+register operations, language extensions or new BARR-C deviations. Dependencies,
+formatter and aggregate memory caps are unchanged.
 
-Identity/status use application/json. Implemented telemetry deliberately uses
-application/octet-stream, one source per request, sharing BLE's exact canonical
-frame. This is a smaller implemented subset than the proposed paginated JSON API;
-do not advertise the proposal as supported. Only device sources 0..7 are routed
-through HTTP currently; global health slots are not exposed by this endpoint.
-
-TLS termination, credential provisioning, rate limiting, TCP lifecycle, certificate
-trust/time bootstrap and shared controller arbitration remain integration gates.
-The parser's credential check does not make plaintext HTTP secure. Production
-must bind it behind authenticated TLS; it is not an onboard HTTPS server yet.
+## MQTT and BLE observation contracts
 
 ### Canonical sensor frame v1 (112 bytes)
 
@@ -415,120 +413,23 @@ call in these modules yet. Existing c3gatt uptime diagnostics remain unchanged.
 Pairing/encryption and BLE storage still need review. Do not describe a passing
 encoder test as a BLE sensor reading observed on a phone.
 
-## Authenticated configuration Apply and USB arbitration
-
-Wi-Fi firmware now binds HTTPS to `cfgmux`, which calls the existing serialized
-`cfgctrl_handle(CFGWIRE_APPLY)`. Validation, activation, two-slot persistence and
-recovery remain the existing controller operations. There is no second Apply/save
-implementation. BLE and MQTT remain telemetry-only. HTTP supports full-profile
-Apply with persistence; standalone Save, recovery, reset and provisioning remain
-unsupported. A missing controller binding makes configuration operations unavailable.
-
-Every endpoint requires the existing HTTPS Bearer credential. POST requires exact
-`Content-Type: application/json`, canonical decimal `Content-Length` 1..8192,
-`X-Request-ID` (1..UINT32_MAX), `X-Revision` (1..UINT32_MAX),
-`X-Expected-Revision` (0..UINT32_MAX), `X-Expected-Boot-ID` (16 lowercase hex),
-and `X-Request-Token` (1..64 ASCII letters/digits or `._-`). Duplicate transaction
-headers, leading zeros, signs, overflow, transfer encoding and malformed framing
-are rejected. Content encoding is unsupported (415), Expect is unsupported (417),
-oversize bodies return 413. The body is the complete existing node JSON, with
-its original schema, device/resource validation and persistence behavior.
-
-GET `/v1/configuration` returns version, boot_id, last_request_id, active_revision,
-saved_revision, durable_known, recovery, busy and max_body. Choose a global ID
-above last_request_id, a new revision and the observed active revision/boot as
-preconditions. A concurrent USB request can invalidate these values: return 409,
-inspect state and resolve the conflict explicitly. USB IDs are never rewritten.
-State and result reads do not consume IDs or evict the controller cache.
-
-Only one HTTP upload may borrow the existing idle USB receiver's 8192 bytes.
-Partial USB frames, retained unread bytes or pending USB replies prevent admission
-(503). While leased, application USB parsing pauses; USB backpressure can cause a
-host timeout and require resynchronization. Local sensor/display workers continue.
-There is no request queue, second profile buffer, new task or new lock. Two TLS
-clients, 128-byte RX chunks and the 512-byte response reservation remain unchanged.
-The existing ten-second receive deadline bounds headers plus upload. Disconnect,
-AP loss, timeout or malformed upload releases the lease without invoking Apply.
-Only a complete admitted body reaches the controller. A coalesced excess body is
-rejected before dispatch; subsequent bytes cannot create a second request.
-
-Completion JSON has version, boot_id, request_id, controller_status,
-active_revision, saved_revision, active_crc, saved_crc, flags and historical.
-Saved completion returns 200, validator rejection 422, stale/conflict 409, and
-storage/recovery/active-but-unsaved outcomes 503. Pre-controller errors do not
-consume an ID; requests dispatched to cfgctrl follow its existing ID/cache rules.
-The owner refreshes network revision metadata immediately after Apply and before
-further sensor observations. The response-send deadline starts after controller
-work, rather than charging synchronous validation/flash work to socket sending.
-
-GET `/v1/configuration/result` requires X-Request-ID and X-Request-Token and returns
-only the latest retained matching HTTP completion (404 otherwise). It does not
-read flash or rerun Apply. `historical` means another controller request has since
-advanced the global ID; completion fields are facts at completion, not fresh
-state. Compare a new state query before interpreting current revisions.
-
-An exact POST retry is permitted only while that HTTP request still owns the
-controller's latest cached body: all metadata and every body byte must match.
-It returns the retained outcome without validation/save side effects. A USB
-request can evict this POST retry cache (409), while the historical result GET
-remains available until a later HTTP completion. Tokens/results are bounded,
-RAM-only and per boot. Uncertain saves remain uncertain; no automatic retry,
-new-ID replay or reboot recovery is inferred. After a lost reply query the result,
-then state; use the existing USB recovery procedure when required.
-
-Resource review: Wi-Fi fixed application RAM is 155297/155648 bytes (351 bytes
-headroom), SDK/kernel 57735/65536, RAM code 56278/57344, total DRAM 269310/278528,
-RTC 60/128. This adds 168 fixed application bytes to the previous diagnostic
-build. BLE-only fixed totals are unchanged. Aggregate ceilings fit, but unchanged
-module budgets still reject unapproved c3https/c3mqtt/c3net/c3wsta entries (BLE:
-c3gsvc/c3net). Member 1 approval, SDK heap/task peaks, flash-save scheduling and
-real concurrent-client/USB behavior remain unqualified. Combined Wi-Fi/BLE still
-exceeds the existing app partition; separate images remain the supported builds.
-
-Software checks: 123 network tests, four USB regressions, 36 qualification-tool
-tests and the 321-file pinned-format C gate passed. Tests exercise actual cfgctrl,
-cfgpump and cfgstore with fake storage plus HTTPS SDK doubles: malformed/8KiB
-bodies, auth, preconditions, overlapping uploads, USB arbitration, uncertain save,
-exact retry, cache eviction, disconnect and timeout. Host admission fixtures use
-a small strict JSON schema; production retains the full cfgdisc validator.
-Manual C review checked borrowed-buffer lifetime, release paths, subtraction-first
-bounds, owner serialization, preserved wire enums, exact-byte retry comparison,
-no lock across flash/SDK work, and no new coding exceptions. Hardware timing,
-TLS allocation and flash acceptance require physical checks on the selected image.
-
-See the target-tools guide for explicit client commands. Store fresh build,
-memory and test records under ignored `build/`.
-
-## Verification and manual BARR-C review
+## Verification
 
 Run the full pinned C standard gate and affected target tests with GCC warnings
-as errors and assertions enabled. `test_network_esp` uses actual owned transport
-sources with explicit SDK/TLS doubles and the board MQTT buffer limits;
-`test_network_broker` checks framing/subscription/priority paths. These are
-software checks, not a live radio, broker TLS or Home Assistant acceptance test.
-
-Review for the cleanup: `c3https` retains its fixed 512-byte TLS reply buffer,
-two-client bound and serialized configuration path; the plaintext/native branch
-is gone. `c3mqtt` retains copied telemetry, broker deadlines and reply priority,
-without discovery cursors/JSON state or their extra capture work. `c3net` still
-checks transaction ownership before configuration and uses copied source data.
-The removed `netread` transaction pointer was an internal display handoff, not a
-wire field. Existing casts/SDK ABIs and fixed storage remain; no new allocator,
-ISR mutation, task, language scope or deviation was introduced.
-
-A fresh real-target build, unchanged memory limits and hardware acceptance are
-required before claiming the cleaned image is qualified. C gate success does
-not replace the manual type, lifetime, concurrency and hardware review.
+as errors and assertions enabled. `test_network_esp` exercises actual MQTT,
+Wi-Fi and BLE wrappers using explicit SDK doubles; `test_network_broker` checks
+framing/subscription/priority paths. USB controller/pump/store suites retain
+Apply, restore, recovery and interrupted-transfer coverage. These checks do not
+qualify live radio, timing, heap use or physical ESP/Home Assistant integration.
 
 ## Remaining acceptance
 
 - Repeat broker/Wi-Fi checks on the final deployment network; the current proof
   uses one private hotspot and broker.
-- HTTPS configuration writes, two simultaneous HTTPS clients alongside MQTT,
-  and prolonged load/exhaustion tests.
+- MQTT reconnect, prolonged load/exhaustion and USB Apply during network traffic.
 - Independent I2C/SPI/UART physical transactions and combined-load measurements.
 - Live Home Assistant display with ESP results; the host adapter has passed
-  local-broker/compiled-C tests, but actual Home Assistant UI observations remain open.
+  local-broker/compiled-C and rendered simulated-HA tests; physical acceptance remains open.
 
 Use the [team implementation plan](../../../CONTRIBUTING.md) to coordinate these
 checks. Historical experiment records were removed from this checkout at the

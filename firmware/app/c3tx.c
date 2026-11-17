@@ -13,15 +13,12 @@
 static txjob_t                 g_job                 = {0};
 static txport_t                g_port                = {0};
 static const cfgbind_state_t * gp_binding            = NULL;
-static const cfgmux_t *        gp_mux                = NULL;
 static uint8_t                 g_request[TXJOB_WIRE] = {0};
 static uint8_t                 g_reply[TXJOB_WIRE]   = {0};
 static bool                    gb_reply              = false;
 
 /** @brief Bind permanent owner storage before restore and audit sealing. */
-int c3tx_start (const cfgbind_state_t * p_binding,
-                const cfgmux_t *        p_mux,
-                uint64_t                boot_id)
+int c3tx_start (const cfgbind_state_t * p_binding, uint64_t boot_id)
 {
     if ((NULL == p_binding) || (NULL != gp_binding))
     {
@@ -38,7 +35,6 @@ int c3tx_start (const cfgbind_state_t * p_binding,
         return -1;
     }
     gp_binding = p_binding;
-    gp_mux     = p_mux;
     return 0;
 }
 
@@ -80,8 +76,7 @@ void c3tx_step (uint64_t now_ms, uint32_t generation, bool b_online)
     size_t size = 0U;
     if (0 == c3mqtt_request(g_request, sizeof(g_request), &size))
     {
-        const bool b_idle = (cfgbind_discovery_ready(gp_binding)) &&
-                            ((NULL == gp_mux) || (!cfgmux_busy(gp_mux)));
+        const bool b_idle = cfgbind_discovery_ready(gp_binding);
         if ((TXJOB_WIRE == size) && (3U == g_request[3]))
         {
             gb_reply = 0 == txjob_query(&g_job,

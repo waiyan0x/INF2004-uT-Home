@@ -113,7 +113,7 @@ rule must not require another build.
 | ESP decision program | `txjob` validates/stores a rule, chooses execution and preserves it on a rejected update; host journal recovers exact cached completions | Live combined-system acceptance |
 | Generic operations | `txport` reaches actual I2C, SPI-write and raw UART HALs through `c3tx` | Physical acceptance, initialization prerequisites and selected timing extensions |
 | Description compiler | `tools/transaction/description.py` compiles simple I2C register reads | SPI/UART operation descriptions; OLED source/description; SEN0390 review |
-| MQTT | Live BMP388 rule switching, target rejection, cached results and broker recovery verified; HTTPS reads work alongside MQTT | Wider secure-connection load and network allocation blocker |
+| MQTT | Live BMP388 rule switching, target rejection, cached results and broker recovery verified on the earlier image; HTTPS now removed | Wider secure-connection load and network allocation blocker |
 | UI | Existing Configuration Desk supports USB profiles and recovery | Runtime Markdown selection, rule loading/execution and result presentation |
 | Home Assistant | Read-only host discovery/display adapter and CLI option; real-broker/compiled-C software tests | Live Home Assistant + ESP acceptance and use from the planned UI |
 | Verification | 531 target-facing tests plus 59 affected tests rerun after SDK-binding corrections; full 337-file C gate, checked target image, SDK setup/free instruction probe and unchanged memory budgets | Current image on hardware, runtime SPI/UART, prolonged combined load and whole-system resource acceptance |
@@ -127,22 +127,19 @@ also passed the BMP388 rule-switching and rejection sequence, host reopen and
 broker recovery. The allocation requirement and complete three-protocol/UI/Home
 Assistant demonstration remain open.
 
-The current build uses 269,378 of 278,528 fixed DRAM bytes, leaving 9,150 bytes
-in the total budget and 7,201 in the application group. Reserving driver
-workspaces for the four enabled devices, while retaining eight profile entries,
-reclaimed 4,672 bytes. Three TLS output buffers now reserve 13,303 fixed bytes
-instead of using the heap for those requests; this changes allocation strategy,
-not TLS's total memory requirement.
-MQTT still has only 8 bytes within its module reservation; future network storage
-needs its own explicit reservation. Generated verification is under ignored
-`build/tls-output/`. Fixed-linker fit is not free-heap or stack
-acceptance; TLS/TCP/IP allocation remains a concrete integration blocker.
+The HTTPS-free build uses **251,346/278,528 fixed DRAM bytes**, leaving 27,182
+bytes in the total budget and 25,228 in the application group. This reclaims
+18,032 bytes from the prior retry image. MQTT still has only 8 bytes within its
+module reservation; additional TLS storage needs an explicit reservation.
+The [current assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
+records the one-session stores, unchanged aggregate caps and unflashed build.
+Fixed-linker fit is not free-heap, stack or timing acceptance.
 
 ### 1. Session contract and final resource acceptance
 
 **Session contract implemented; resource assessment complete; allocation
 remediation and board measurements remain open.** `TJ` v2 reuses the existing
-HTTP/cfgmux boot identity and adds a read-only MQTT status query without growing
+application boot identity and adds a read-only MQTT status query without growing
 the 96-byte messages. It reports active rule, generation, busy/cleanup/readiness,
 last completion, pending request and boot-relative times. Device identifiers are
 now at most 15 characters; v1 wire packets and transaction JSON are rejected.
@@ -174,40 +171,20 @@ the existing fixed queues, with exhaustion/reuse tests and linked-target proof;
 that change adds no fixed RAM or native objects. The Wi-Fi-driver exception does
 not exempt these application network paths. Static native tasks/queues alone
 are insufficient. Compact configuration views reclaimed 24,600 fixed DRAM bytes
-without changing the profile schema. `c3tls` now uses 9,054 fixed bytes for three
-typed ESP-TLS contexts, three error records and temporary names, preserving one
-MQTT plus two HTTPS sessions. `c3lrec` adds 352 fixed bytes for six connection
-records and two datagram envelopes, shared by listeners and active sockets.
-It adds no task or lock and returns deterministic errors on exhaustion.
-`c3tout` now supplies three complete output buffers and preserves the SDK's
-setup/cleanup lifecycle. Even one remaining TLS input buffer needs 16,717 bytes,
-above the remaining 7,201-byte application headroom. A bounded
-allocator therefore also needs a reviewed buffer-lifetime/capacity design.
-Keep the existing caps and TLS checks; sizing is not a measured runtime peak.
-The compiled SDK input probe passes 36 receive/read cases across three sessions
-and demonstrates why naive sharing loses pending data. Three independent aligned
-input buffers need 50,160 bytes, 42,959 above current application headroom before
-bookkeeping/crypto storage. This rules out a direct fixed-pool replacement.
-The encrypted host comparison now confirms that reduced record sizes break
-the maintained 8192-byte uploader and some valid certificate chains. A test-only
-uploader succeeds with 1024-byte writes and a short certificate. When resuming
-resource work, specify and review a controlled certificate/record contract plus
-its complete memory
-design before adopting smaller limits; keep the working firmware unchanged.
-The [compatibility decision](docs/reports/wifi-static-memory/README.md#tls-record-compatibility-decision)
-records the exact failures and remaining work. The
-[input capacity decision](docs/reports/wifi-static-memory/README.md#tls-input-lifetime-and-capacity-decision)
-also records the full-buffer and shared-lease alternatives. This is software
-evidence and a design checkpoint, not completed static receive storage.
-The pinned SDK's dynamic-buffer mode is rejected after a software probe
-reproduced partial-header loss across nonblocking reads. It cannot be used as a
-memory shortcut. A replacement must preserve partial input between owner calls,
-bound record lengths before allocation and budget overlapping connection state;
-see the assessment's reproduction procedure.
+without changing the profile schema. The user authorized removal of the ESP HTTPS service on 17 November. The
+listener, HTTP/profile-upload code and host commands are gone; full-profile setup
+and recovery use USB. Runtime rules and results still use MQTT over verified TLS,
+and the host Configuration Desk/Home Assistant web interfaces remain available.
+This supersedes the earlier requirement to retain MQTT plus two HTTPS sessions.
 
-**Required setup:** MQTT and HTTPS must remain available together; retain USB
-setup/recovery. Budget overlapping secure connections rather than removing
-HTTPS to save memory.
+`c3tls` and `c3tout` now reserve one MQTT context/error record and output buffer.
+The [removal verification](firmware/src/network/README.md#esp-https-removal) and
+[resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
+record the fresh build and measured headroom. TLS input, crypto and TCP/IP state
+still need bounded storage. Keep full record limits and certificate checks while
+designing that storage. The pinned dynamic-buffer option remains rejected because
+it loses partial headers across nonblocking retries. No cap increase or new
+allocation exception is authorized by removing HTTPS.
 
 **TLS work resumed on 17 November:** implement bounded network allocation with
 deterministic exhaustion and reconnect tests, then

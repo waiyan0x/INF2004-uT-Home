@@ -120,26 +120,25 @@ class TlsStorageTests(unittest.TestCase):
     def tearDown(self):
         self.assertEqual(self.lib.heaptrap_count(), 0)
 
-    def test_three_contexts_exhaust_reuse_and_zero_storage(self):
-        contexts = [self.lib.c3tls_alloc(1, 128) for _ in range(3)]
-        self.assertEqual(len(set(contexts)), 3)
+    def test_one_context_exhaust_reuse_and_zero_storage(self):
+        contexts = [self.lib.c3tls_alloc(1, 128) for _ in range(1)]
+        self.assertEqual(len(set(contexts)), 1)
         for context in contexts:
             self.assertTrue(context)
             self.assertEqual(context % c.alignment(c.c_uint64), 0)
             self.assertEqual(c.string_at(context, 128), bytes(128))
             c.memset(context, 0xA5, 128)
         self.assertFalse(self.lib.c3tls_alloc(1, 128))
-        self.lib.c3tls_free(contexts[1])
-        self.assertEqual(c.string_at(contexts[1], 128), bytes(128))
-        self.assertEqual(self.lib.c3tls_alloc(1, 128), contexts[1])
-        self.assertEqual(c.string_at(contexts[0], 128), bytes([0xA5]) * 128)
+        self.lib.c3tls_free(contexts[0])
+        self.assertEqual(c.string_at(contexts[0], 128), bytes(128))
+        self.assertEqual(self.lib.c3tls_alloc(1, 128), contexts[0])
         self.assertFalse(self.lib.c3tls_alloc(1, 128))
 
     def test_bad_sizes_and_foreign_release_preserve_full_pool(self):
         for count, size in ((0, 128), (2, 64), (1, 127), (1, 129),
                             (c.c_size_t(-1).value, 128), (1, c.c_size_t(-1).value)):
             self.assertFalse(self.lib.c3tls_alloc(count, size))
-        contexts = [self.lib.c3tls_alloc(1, 128) for _ in range(3)]
+        contexts = [self.lib.c3tls_alloc(1, 128) for _ in range(1)]
         stranger = c.create_string_buffer(16)
         for address in (None, c.addressof(stranger), contexts[0] + 8):
             self.lib.c3tls_free(address)
@@ -179,8 +178,8 @@ class TlsStorageTests(unittest.TestCase):
         self.assertEqual(list(public), [0, 0, 0])
 
     def test_error_exhaustion_invalid_calls_and_failure_cleanup(self):
-        errors = [self.lib.c3tls_error_create() for _ in range(3)]
-        self.assertEqual(len(set(errors)), 3)
+        errors = [self.lib.c3tls_error_create() for _ in range(1)]
+        self.assertEqual(len(set(errors)), 1)
         self.assertFalse(self.lib.c3tls_error_create())
         context = self.lib.c3tls_alloc(1, 128)
         # SDK init frees its context when no error tracker is available.
@@ -197,17 +196,17 @@ class TlsStorageTests(unittest.TestCase):
         self.assertEqual(self.lib.c3tls_error_get(errors[0], 4, None), 0x102)
         self.assertEqual(self.lib.c3tls_error_get(errors[0], 4, c.byref(value)), 0)
         self.assertEqual(value.value, -123)
-        self.lib.c3tls_error_destroy(errors[1])
-        self.assertEqual(self.lib.c3tls_error_get(errors[1], 1, c.byref(value)), 0x102)
-        self.assertEqual(self.lib.c3tls_error_create(), errors[1])
+        self.lib.c3tls_error_destroy(errors[0])
+        self.assertEqual(self.lib.c3tls_error_get(errors[0], 1, c.byref(value)), 0x102)
+        self.assertEqual(self.lib.c3tls_error_create(), errors[0])
 
     def test_repeated_full_lifecycle_reuses_all_records(self):
         expected = None
         for iteration in range(1000):
-            contexts = [self.lib.c3tls_alloc(1, 128) for _ in range(3)]
-            errors = [self.lib.c3tls_error_create() for _ in range(3)]
+            contexts = [self.lib.c3tls_alloc(1, 128) for _ in range(1)]
+            errors = [self.lib.c3tls_error_create() for _ in range(1)]
             self.assertTrue(all(contexts) and all(errors))
-            self.assertEqual(len(set(contexts + errors)), 6)
+            self.assertEqual(len(set(contexts + errors)), 2)
             if expected is None:
                 expected = contexts + errors
             self.assertEqual(contexts + errors, expected)

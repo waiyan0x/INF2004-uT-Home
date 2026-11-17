@@ -35,7 +35,7 @@ class OwnerTests(unittest.TestCase):
         includes={ROOT/'firmware/include', ROOT/'firmware/third_party/bmp3', cls.folder, ROOT/'tests/target'}
         includes.update(path.parent for path in (ROOT/'firmware').rglob('*.h') if 'third_party' not in str(path))
         aliases={'c3bind_operations':'txptest_bind','cfgbind_discovery_ready':'txptest_idle',
-                 'cfgmux_busy':'txptest_mux','c3uart_tx_empty':'txptest_empty',
+                 'c3uart_tx_empty':'txptest_empty',
                  'c3mqtt_request':'txptest_request','c3mqtt_result':'txptest_result'}
         cls.binary=cls.folder/'owner.so'
         subprocess.run([shutil.which('gcc'),'-std=c99','-Wall','-Wextra','-Werror','-pedantic',

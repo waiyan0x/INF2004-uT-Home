@@ -5,6 +5,7 @@
 #ifndef UTHOME_C3MQTT_H
 #define UTHOME_C3MQTT_H
 #include "netread.h"
+#include "netbroker.h"
 
 typedef struct
 {

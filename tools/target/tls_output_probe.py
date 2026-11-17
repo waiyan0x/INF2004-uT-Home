@@ -77,32 +77,30 @@ class OutputProbe(Probe):
 def verify(path):
     probe = OutputProbe(path)
     assert probe.run('mbedtls_ssl_config_defaults', CONFIG, 0, 0, 0) == 0
-    assert probe.run('mbedtls_ssl_config_defaults', CONFIG + 0x400, 1, 0, 0) == 0
-    contexts = [SSL + i * 0x400 for i in range(4)]
+    contexts = [SSL + i * 0x400 for i in range(2)]
     outputs = []
-    for i, context in enumerate(contexts[:3]):
+    for i, context in enumerate(contexts[:1]):
         probe.run('mbedtls_ssl_init', context)
-        assert probe.run('c3tout_setup', context, CONFIG if i == 0 else CONFIG + 0x400) == 0
+        assert probe.run('c3tout_setup', context, CONFIG) == 0
         pointer = probe.field(context, 'out_buf')
         assert pointer not in probe.live and pointer % 8 == 0
         assert bytes(probe.uc.mem_read(pointer, 4429)) == bytes(4429)
         assert probe.field(context, 'out_hdr') == pointer + 8
         outputs.append(pointer)
         probe.uc.mem_write(pointer, bytes([0x31 + i]) * 4429)
-    assert len(set(outputs)) == 3
+    assert len(set(outputs)) == 1
     assert 4429 not in probe.allocations, probe.allocations
-    probe.run('mbedtls_ssl_init', contexts[3])
+    probe.run('mbedtls_ssl_init', contexts[1])
     before = dict(probe.live)
-    assert probe.run('c3tout_setup', contexts[3], CONFIG + 0x400) != 0
+    assert probe.run('c3tout_setup', contexts[1], CONFIG) != 0
     assert probe.live == before
     for i, pointer in enumerate(outputs):
         assert bytes(probe.uc.mem_read(pointer, 4429)) == bytes([0x31 + i]) * 4429
+    probe.run('mbedtls_ssl_free', contexts[0])
+    assert bytes(probe.uc.mem_read(outputs[0], 4429)) == bytes(4429)
+    assert probe.run('c3tout_setup', contexts[1], CONFIG) == 0
+    assert probe.field(contexts[1], 'out_buf') == outputs[0]
     probe.run('mbedtls_ssl_free', contexts[1])
-    assert bytes(probe.uc.mem_read(outputs[1], 4429)) == bytes(4429)
-    assert probe.run('c3tout_setup', contexts[3], CONFIG + 0x400) == 0
-    assert probe.field(contexts[3], 'out_buf') == outputs[1]
-    for i in (0, 2, 3):
-        probe.run('mbedtls_ssl_free', contexts[i])
     assert not probe.live, probe.live
     for failure in (1, 2, 3, 4):
         probe.run('mbedtls_ssl_init', contexts[0])
@@ -111,10 +109,10 @@ def verify(path):
         probe.run('mbedtls_ssl_free', contexts[0])
         assert not probe.live
         probe.fail_call = None
-    for context in contexts[:3]:
+    for context in contexts[:1]:
         probe.run('mbedtls_ssl_init', context)
         assert probe.run('c3tout_setup', context, CONFIG) == 0
-    for context in contexts[:3]:
+    for context in contexts[:1]:
         probe.run('mbedtls_ssl_free', context)
     assert not probe.live
     return {'passed': True,

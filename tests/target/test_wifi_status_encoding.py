@@ -102,13 +102,9 @@ def build_status_check(folder: Path, source: Path) -> Path:
     write_header(folder, 'netsetup.h',
                  '#include <stdint.h>\n'
                  '#define UTHOME_SETUP_MQTT     0\n'
-                 '#define UTHOME_SETUP_PORT     8443U\n'
                  '#define UTHOME_SETUP_TX_POWER 0U\n'
                  'static const char    g_setup_ssid[]        = "ap";\n'
-                 'static const char    g_setup_password[]    = "password";\n'
-                 'static const uint8_t g_setup_certificate[] = "certificate";\n'
-                 'static const uint8_t g_setup_key[]         = "key";\n'
-                 'static const uint8_t g_setup_token[]       = "token";\n')
+                 'static const char    g_setup_password[]    = "password";\n')
     write_header(folder, 'statuscheck.h',
                  '#include "c3net.h"\n#include "c3wsta.h"\n')
     harness = folder / 'statuscheck.c'

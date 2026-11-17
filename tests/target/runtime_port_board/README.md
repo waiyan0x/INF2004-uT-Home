@@ -90,7 +90,7 @@ and confirm serial ownership before a new capture.
 BLE diagnostics are separate from these core checks. `--ble-probe` selects
 nonconnectable advertising; adding `--ble-gatt-probe` selects a 45-second read-only
 uptime service, with one connection permitted and no configuration commands.
-See the [network guide](../../../firmware/src/network/README.md#http-and-ble-observation-contracts)
+See the [network guide](../../../firmware/src/network/README.md#mqtt-and-ble-observation-contracts)
 for its contract and C review. SDK allocations remain exposed and unqualified.
 
 ## Buddy 1 radio resource acceptance
