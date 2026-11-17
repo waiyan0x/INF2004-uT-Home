@@ -74,10 +74,11 @@ earlier slow USB close did not recur. The subsequent
 [diagnostic idle-transition trace](tools/transaction/README.md#diagnostic-idle-transition-trace)
 passed 398/398 normal queries, then lost replies after Apply. Captures show
 TCP setup failing before TLS, followed by Wi-Fi beacon loss; the board did not
-reboot. The original full flash/profile and laptop network are restored.
-Investigate the Wi-Fi path alongside remaining TLS allocation work before
-combined HA acceptance. The timeout cause and runtime resource compliance
-remain unresolved.
+reboot. The original full flash/profile and laptop network are restored. A
+[radio-awake comparison](tools/transaction/README.md#prepared-wi-fi-power-save-comparison)
+has passed software/build checks and awaits installation approval. Investigate
+the Wi-Fi path alongside remaining TLS allocation work before combined HA
+acceptance. The timeout cause and runtime resource compliance remain unresolved.
 
 The [Home Assistant display adapter](tools/transaction/README.md#home-assistant-display)
 is implemented on the host. Add `--home-assistant` to the existing controller

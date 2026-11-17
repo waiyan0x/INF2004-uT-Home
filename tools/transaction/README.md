@@ -795,6 +795,34 @@ network was restored with the temporary profile removed. HA services were
 unchanged. Private evidence and derived checks are under
 `build/mqtt-idle-trace-20261117/trial-results.json`. No owned C changed.
 
+#### Prepared Wi-Fi power-save comparison
+
+A private diagnostic based on `53e3ae26c2e66d710d9e9b02c79bb33ec2df5868`
+disables Wi-Fi modem sleep after station startup and reports any failure through
+the existing startup-error path. This tests a hypothesis from the trace above;
+it is not an established fix or a change to the maintained firmware default.
+Keeping the radio awake increases power use. The earlier power-save comparison
+predated the connect-retry correction and did not test the idle transition.
+
+The isolated patch and checks are under `build/wifi-idle-ps-none-20261117/`.
+All **52** affected/USB tests, the full **336-file** pinned C-standard gate,
+manual BARR-C review, real ESP32-C3 build and source-snapshot check pass.
+Fixed DRAM remains **272,322/278,528 bytes**, with every group cap unchanged.
+Only `c3wsta.c/h` differ among target source inputs from the default-power
+diagnostic; SDK configuration, TLS/private setup and partition layout match.
+The new application SHA-256 is
+`c4e84d32d9e3b8c0ee86e7b7efa4f517895d7f318f6ae30e67343bfc86c92d9f`.
+Software checks do not establish radio behavior or runtime resource compliance.
+
+The private `build/wifi-idle-compare-20261117/trial-plan.json` awaits installation
+approval. It requires a fresh, independently verified full-flash backup, the
+same normal/quiet controls and one idle Apply only after reliable normal replies.
+If the radio-awake run passes, repeat with the exact default-power diagnostic
+identified above. Restore and independently verify the full original flash after
+each image, then restore the entry laptop network and stop trial helpers.
+Bounded TCP-header/USB observations stay private; no transaction or HA change
+is planned. Neither image has been installed for this comparison.
+
 ## One-shot codec and diagnostic client
 
 The low-level client remains useful for packet inspection and isolated tests:
