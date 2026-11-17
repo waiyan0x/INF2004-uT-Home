@@ -795,7 +795,7 @@ network was restored with the temporary profile removed. HA services were
 unchanged. Private evidence and derived checks are under
 `build/mqtt-idle-trace-20261117/trial-results.json`. No owned C changed.
 
-#### Prepared Wi-Fi power-save comparison
+#### Wi-Fi power-save comparison
 
 A private diagnostic based on `53e3ae26c2e66d710d9e9b02c79bb33ec2df5868`
 disables Wi-Fi modem sleep after station startup and reports any failure through
@@ -814,14 +814,42 @@ The new application SHA-256 is
 `c4e84d32d9e3b8c0ee86e7b7efa4f517895d7f318f6ae30e67343bfc86c92d9f`.
 Software checks do not establish radio behavior or runtime resource compliance.
 
-The private `build/wifi-idle-compare-20261117/trial-plan.json` awaits installation
-approval. It requires a fresh, independently verified full-flash backup, the
-same normal/quiet controls and one idle Apply only after reliable normal replies.
-If the radio-awake run passes, repeat with the exact default-power diagnostic
-identified above. Restore and independently verify the full original flash after
-each image, then restore the entry laptop network and stop trial helpers.
-Bounded TCP-header/USB observations stay private; no transaction or HA change
-is planned. Neither image has been installed for this comparison.
+The user approved that exact image and the default-power control on 17 November,
+confirming the bench was unchanged. A fresh full 4 MiB backup independently
+verified against the original hash above. Each image preserved the normal profile,
+completed the same normal/quiet sequence and then performed one guarded idle Apply.
+
+| Mode | Normal status replies | Replies after idle quiet interval | Median normal reply time |
+|---|---|---|---|
+| Radio awake | 465/465 | 10/10 | 27 ms |
+| Default power saving | 397/397 | 10/10 | 220 ms |
+
+Both runs also passed five fresh pre-Apply queries. Apply completed in 63/64 ms,
+saved profile 944 / CRC 2760408070 and advanced generation to 2. Each first
+recovery query timed out, followed by ten ready replies and then the successful
+60-second quiet check above. Boot identity and USB uptime stayed continuous;
+Wi-Fi reported no disconnect and MQTT failure/replacement/discard counters stayed
+zero. Idle retained no workers and reported no apply/service/recovery error.
+
+Each new ESP TCP connection completed with one SYN and one SYN-ACK, about
+1.16/1.06 seconds after Apply. The timed-out query was published before that
+connection completed, consistent with a brief reconnect gap. The earlier sustained
+TCP/beacon-loss failure did not recur. This sequential pair shows lower latency
+with the radio awake, but does not establish modem sleep as the fault or justify
+promoting the diagnostic as a reliability fix.
+
+The full original flash was restored and independently verified after each image.
+The final original control timed out three times, then answered two queries;
+its startup delay remains unisolated. Profile 943 and the original CRC returned,
+with three workers and zero worker errors/timeouts. All four captures and the
+broker exited, the listener closed, and the entry laptop network was restored
+with the temporary profile removed. Shutdown warnings are retained in the private
+evidence; process/listener cleanup was independently checked. No new transaction
+or HA change occurred. Raw captures, invariant checks and file hashes are bound by
+`build/wifi-idle-compare-20261117/trial-results.json`. No production power-saving
+change was retained. Further diagnosis must distinguish intermittent Wi-Fi/TCP
+loss from startup/reconnect gaps; remaining TLS allocation and combined acceptance
+work stays open.
 
 ## One-shot codec and diagnostic client
 
