@@ -33,11 +33,13 @@ changes are injected in C fixture tests. The live BMP388 MQTT check below now
 also covers rule switching, host reopen and broker recovery on the board.
 Generated verification is local-only under `build/controller/`.
 
-**Current priority: finish the main demonstration.** Focus on selecting an
-operation, loading its rules, seeing raw bytes/status, and switching rules without
-reflashing. Further TLS/memory optimisation is deferred until this workflow is
-integrated. Keep working MQTT/HTTPS settings; resource compliance remains a
-final gate.
+**Current priority: TLS transport and resource work, resumed on 17 November.**
+The simulated Runtime Desk and Home Assistant walkthrough is complete. Continue
+independent TLS checks and defer steps that need operator input. The
+[MQTT connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
+now passes software checks and a fresh target build. Installation and a physical
+comparison require approval under the existing target procedure. Resource
+compliance remains a final gate.
 
 The [Home Assistant display adapter](tools/transaction/README.md#home-assistant-display)
 is implemented on the host. Add `--home-assistant` to the existing controller
@@ -56,7 +58,7 @@ The [MQTT status investigation](tools/transaction/README.md#mqtt-status-investig
 on 16 November reproduced idle-plan timeouts, but also observed MQTT timeouts
 and ping loss on the normal profile. A plan change can inherit a 30-second
 reconnect backoff; later delays/disconnections and one unattended reset during
-Apply remain unexplained. No firmware fix is established. Home Assistant VM
+Apply remain unexplained. Those trials established no firmware fix. Home Assistant VM
 instability remains a separate unresolved issue. A later check kept the normal
 profile fixed and captured repeated TCP packets with delayed acknowledgments.
 The local broker and hotspot gateway responded promptly; moving the phone closer
@@ -64,7 +66,7 @@ did not clear ESP packet loss. The board's firmware and saved profile are unchan
 An approved original/diagnostic/original firmware comparison then showed lower
 ping latency with modem sleep disabled, but initial MQTT timeouts persisted in
 both modes. The original full flash was restored and verified; no fix was kept.
-The user reiterated that TLS work is intentionally paused to focus on HA.
+TLS work was paused at that checkpoint while HA integration proceeded.
 
 The separate [HA VM check](tools/transaction/README.md#home-assistant-vm-check)
 passed six-sensor A/B/A, expiry, HA Core restart and host-reopen checks using
@@ -87,8 +89,13 @@ environment alive; systemd services alone did not keep it running. Login details
 test configuration, backups and verification are private under that ignored
 folder. The fixture is stopped, so its six sensors are correctly unavailable.
 
-**Next: complete the reviewed SPI/UART operation descriptions; TLS work remains
-paused.** The approved compact Runtime transactions tab is available in the existing
+**Next: qualify the TLS retry correction on the board after installation approval,
+and complete the remaining TLS storage design.** The new image is unflashed.
+The software reproduction establishes a connect-retry defect. Its contribution
+to the earlier live timeouts still needs a controlled comparison. Packet loss,
+the unattended Apply reset and old VM instability remain open.
+The reviewed SPI/UART operation descriptions follow this work.
+The approved compact Runtime transactions tab is available in the existing
 [Configuration Desk](tools/configurator/README.md#runtime-transactions): choose
 a description, operation and address, then Load rule and Execute active rule.
 The new HTTP path passed the simulated A/B/A, expiry and journal-reopen check

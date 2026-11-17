@@ -427,7 +427,7 @@ device page through chip-ID / raw-pressure / chip-ID switching, result expiry
 and display disconnection. The authenticated API independently matched every
 phase. Loading alone cleared raw/count values without executing a simulated
 operation. This completes the simulated display walkthrough; combined physical
-ESP/HA acceptance remains open, and TLS implementation work stays paused.
+ESP/HA acceptance remains open. TLS work resumed afterward on 17 November.
 
 With the containers running, open **Settings > Devices & services > Devices**
 in HA and select **uT-Home 0123456789ab**. From this checkout's root, run:
@@ -613,10 +613,12 @@ were correctly unavailable with their fixture stopped.
 
 Trial evidence is under `build/mqtt-powersave-20261116/`: `verification.json`,
 probe logs, `trial-raw.pcap`, final board snapshot and full-restoration verification.
-The full backup and original application remain private. The user reiterated
-that TLS work is intentionally paused to focus on HA; do not reopen TLS
-implementation as part of HA-only work. The timeout cause and unattended Apply
-reset remain unestablished. Keep readiness/freshness checks intact and physical
+The full backup and original application remain private. TLS work was paused
+during this HA-focused comparison and resumed on 17 November. The subsequent
+[SDK connect-retry correction](../../firmware/src/network/README.md#mqtt-tls-connect-retry)
+passes software checks and a target build. Its effect on the earlier live
+timeouts requires an approved physical comparison. The unattended Apply
+reset remains unestablished. Keep readiness/freshness checks intact and physical
 ESP/HA acceptance open. The old VM instability remains a separate unresolved
 issue; the tested HA Container and simulated display path remain available.
 

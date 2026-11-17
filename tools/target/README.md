@@ -289,6 +289,35 @@ from existing build artifacts; failed builds stay failed. Exact specifications,
 commands, resource requests and acceptance matrix are maintained in the
 [network guide](../../firmware/src/network/README.md#usb-wi-fi-troubleshooting).
 
+## TLS connect retry probe
+
+`tls_connect_probe.py` executes the compiled `c3mqtt` connect callback and the
+pinned ESP-TLS connect path in RV32 instruction emulation. It uses the existing
+optional `unicorn==2.1.4` and `pyelftools` dependencies. Run from the root with
+an ESP configuration-application ELF that contains DWARF information.
+
+```powershell
+python -B -m tools.target.tls_connect_probe ORIGINAL_ELF --expect stalled --output build/tls-retry/original.json
+python -B -m tools.target.tls_connect_probe CORRECTED_ELF --expect recovered --output build/tls-retry/corrected.json
+```
+
+Create the report directory first. Existing reports and disabled Python
+assertions are rejected. Each image runs twelve cases across the raw SDK and
+owned adapter, with zero, one or three initial readiness timeouts and either
+read or write readiness afterward. The raw SDK control keeps reproducing the
+cleared-set defect. The original adapter also stalls, and the corrected adapter
+reaches the handshake once readiness arrives. Continued empty-set polls are
+checked explicitly. The probe starts at the established SDK connecting state
+and reads context/configuration offsets and global locations from target DWARF.
+It requires the selected image's eight-byte VFS descriptor sets.
+
+Socket readiness, socket-error reads, TLS context creation, the handshake and
+ROM helpers are doubled. The report records these boundaries, the exact ELF
+hash and every poll/result. This check establishes connect-state progression.
+Radio, encrypted handshakes, board timing and physical recovery need live
+acceptance. The [network guide](../../firmware/src/network/README.md#mqtt-tls-connect-retry)
+records the completed before/after check and the fresh target build.
+
 ## TLS fragment reproducer
 
 `tls_fragment_probe.py` reproduces the pinned SDK's optional dynamic-buffer

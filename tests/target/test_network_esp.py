@@ -54,7 +54,16 @@ int c3fake_fcntl(int fd,int command,...);
 int c3fake_close(int fd);
 uint16_t c3fake_htons(uint16_t value);
 uint32_t c3fake_htonl(uint32_t value);
-typedef struct { int socket; } esp_tls_t;
+/* Foreign SDK names and private fields used by the owned MQTT adapter. */
+#define ESP_TLS_CONNECTING 1
+#define FD_ZERO c3fake_fd_zero
+#define FD_SET c3fake_fd_set
+void c3fake_fd_zero (uint64_t * p_set);
+void c3fake_fd_set (int h_socket, uint64_t * p_set);
+void c3fake_connect_timeouts (uint32_t count);
+uint32_t c3fake_tls_polls (void);
+typedef struct { int socket; int conn_state; int sockfd;
+ uint64_t rset; uint64_t wset; } esp_tls_t;
 typedef struct { const uint8_t *servercert_buf; unsigned int servercert_bytes;
  const uint8_t *serverkey_buf; unsigned int serverkey_bytes;
  unsigned int tls_handshake_timeout_ms; } esp_tls_cfg_server_t;
@@ -189,6 +198,8 @@ static int g_closed[64];
 static esp_tls_t g_tls[2];
 static bool g_allocated[2];
 static int g_handshake;
+static uint32_t g_connect_timeouts = 0U;
+static uint32_t g_tls_polls = 0U;
 static int g_fail_setup;
 static int g_write_limit=17;
 static char g_input[64][1100];
@@ -228,13 +239,71 @@ int c3fake_fcntl(int fd,int command,...) { (void)fd;(void)command;return 0; }
 int c3fake_close(int fd) { if(fd>=0 && fd<64) { ++g_closed[fd]; } return 0; }
 uint16_t c3fake_htons(uint16_t value) { return value; }
 uint32_t c3fake_htonl(uint32_t value) { return value; }
-esp_tls_t *esp_tls_init(void)
-{ for(int i=0;i<2;++i) { if(!g_allocated[i]) { g_allocated[i]=true;return &g_tls[i]; } } return NULL; }
+esp_tls_t * esp_tls_init (void)
+{
+    for (size_t index = 0U; index < (sizeof(g_tls) / sizeof(g_tls[0])); ++index)
+    {
+        if (!g_allocated[index])
+        {
+            g_allocated[index] = true;
+            memset(&g_tls[index], 0, sizeof(g_tls[index]));
+            return &g_tls[index];
+        }
+    }
+    return NULL;
+}
 int inet_pton(int family,const char *text,void *out)
 { (void)family;(void)out;return strcmp(text,"127.0.0.1")==0; }
-int esp_tls_conn_new_async(const char *host,int size,int port,const esp_tls_cfg_t *cfg,esp_tls_t *tls)
-{ (void)host;(void)size;(void)port;(void)tls;
- return cfg->non_block && cfg->cacert_buf && cfg->common_name ? g_handshake : -1; }
+/** Clear a foreign socket-set double. */
+void c3fake_fd_zero (uint64_t * p_set)
+{
+    *p_set = 0U;
+}
+/** The test socket is always within the double's 64-bit set. */
+void c3fake_fd_set (int h_socket, uint64_t * p_set)
+{
+    *p_set |= UINT64_C(1) << h_socket;
+}
+/** Supply readiness timeouts for the next connect attempt. */
+void c3fake_connect_timeouts (uint32_t count)
+{
+    g_connect_timeouts = count;
+}
+/** Read the number of simulated readiness polls. */
+uint32_t c3fake_tls_polls (void)
+{
+    return g_tls_polls;
+}
+/** Model the pinned SDK's destructive select sets between owner calls. */
+int esp_tls_conn_new_async (const char * p_host, int size, int port,
+                           const esp_tls_cfg_t * p_config, esp_tls_t * p_tls)
+{
+    /* Address/port parsing is outside this SDK readiness double. */
+    (void)p_host;
+    (void)size;
+    (void)port;
+    if ((!p_config->non_block) || (NULL == p_config->cacert_buf) ||
+        (NULL == p_config->common_name))
+    {
+        return -1;
+    }
+    if (0 == p_tls->conn_state)
+    {
+        p_tls->conn_state = ESP_TLS_CONNECTING;
+        p_tls->rset = UINT64_C(1);
+        p_tls->wset = UINT64_C(1);
+    }
+    ++g_tls_polls;
+    const bool b_watched = 0U != ((p_tls->rset | p_tls->wset) & UINT64_C(1));
+    p_tls->rset = 0U;
+    p_tls->wset = 0U;
+    if (0U != g_connect_timeouts)
+    {
+        --g_connect_timeouts;
+        return 0;
+    }
+    return b_watched ? g_handshake : 0;
+}
 int esp_tls_conn_destroy(esp_tls_t *tls)
 { esp_tls_server_session_delete(tls);return 0; }
 int esp_tls_server_session_init(esp_tls_cfg_server_t *cfg,int fd,esp_tls_t *tls)
@@ -414,7 +483,7 @@ class EspBindingTests(unittest.TestCase):
         folder=Path(cls.folder.name)
         (folder/'sdk.h').write_text(SDK_HEADER,encoding='utf-8')
         (folder/'fake.c').write_text(FAKE_SOURCE,encoding='utf-8')
-        headers=['lwip/inet.h','esp_tls.h','lwip/sockets.h','esp_event.h','esp_netif.h','esp_wifi.h',
+        headers=['lwip/inet.h','esp_tls.h','esp_tls_private.h','lwip/sockets.h','esp_event.h','esp_netif.h','esp_wifi.h',
                  'esp_random.h','nimble/nimble_port.h','nimble/nimble_port_freertos.h',
                  'host/ble_hs.h','host/util/util.h','services/gap/ble_svc_gap.h',
                  'services/gatt/ble_svc_gatt.h']
@@ -630,6 +699,27 @@ class EspBindingTests(unittest.TestCase):
             self.assertEqual(retain, 0)
             self.assertEqual(len(payload), 112)
             self.assertEqual(decode_mqtt(topic, payload)['source_index'], 0)
+
+    def test_mqtt_tls_rearms_socket_after_connect_timeouts_and_reopen(self):
+        self.mqtt_session(absent=range(8))
+        self.assertEqual(self.lib.c3mqtt_transactions(), 0)
+        self.lib.c3fake_connect_timeouts.argtypes = [c.c_uint32]
+        self.lib.c3fake_tls_polls.restype = c.c_uint32
+        self.lib.c3fake_connect_timeouts(3)
+        self.mqtt_pump(3)
+        self.assertEqual(self.lib.c3fake_tls_polls(), 3)
+        self.assertEqual(self.mqtt_connects, 0)
+        self.mqtt_pump(20)
+        self.assertEqual(self.lib.c3fake_tls_polls(), 4)
+        self.assertEqual(self.mqtt_connects, 1)
+        self.assertTrue(self.lib.c3mqtt_ready())
+
+        self.lib.c3fake_connect_timeouts(2)
+        self.lib.c3fake_generation(8)
+        self.mqtt_pump(40, dt=1000)
+        self.assertEqual(self.lib.c3fake_tls_polls(), 7)
+        self.assertEqual(self.mqtt_connects, 2)
+        self.assertTrue(self.lib.c3mqtt_ready())
 
     def test_mqtt_command_subscription_and_priority_result(self):
         self.assertEqual(self.lib.c3fake_mqtt_start(),0)

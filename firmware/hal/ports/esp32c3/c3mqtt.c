@@ -6,6 +6,7 @@
 #if UTHOME_NETWORK_WIFI
 #include "netbroker.h"
 #include "esp_tls.h"
+#include "esp_tls_private.h"
 #include "esp_random.h"
 #include "lwip/inet.h"
 #include "lwip/sockets.h"
@@ -248,6 +249,15 @@ static int connect_step (void * p_context)
         {
             return -1;
         }
+    }
+    if (ESP_TLS_CONNECTING == gp_tls->conn_state)
+    {
+        /* Pinned esp_tls_low_level_conn initializes these sets only once.
+         * select clears them on timeout; each retry must watch the socket.
+         */
+        FD_ZERO(&gp_tls->rset);
+        FD_SET(gp_tls->sockfd, &gp_tls->rset);
+        gp_tls->wset = gp_tls->rset;
     }
     return esp_tls_conn_new_async(g_config.p_address,
                                   (int)strlen(g_config.p_address),

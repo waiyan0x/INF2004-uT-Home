@@ -22,6 +22,11 @@ The application image SHA-256 is
 `33e9ef3f16d37a6ade28cc3c38cd8bbe1fbafb571d24c23f1342b31720ce15fa`.
 Source-snapshot verification passes against the original build inputs.
 
+The 17 November [MQTT connect retry build](../../../firmware/src/network/README.md#mqtt-tls-connect-retry)
+also passes source-snapshot verification and every fixed-memory reservation.
+Its group usage and caps match the table below. The new image is unflashed,
+and its separate build identities and private evidence are linked in that guide.
+
 | Fixed-memory group | Linked bytes | Unchanged cap | Headroom |
 |---|---:|---:|---:|
 | Application | 140,255 | 147,456 | 7,201 |

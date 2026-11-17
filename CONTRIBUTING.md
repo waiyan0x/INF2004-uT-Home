@@ -83,12 +83,13 @@ demonstration.
 
 ## Completion plan
 
-**Current priority (15 November): finish the main demonstration workflow.**
-Further TLS/memory optimisation is deferred. Use the working network
-settings to finish operation selection, explicit rule changes, raw results and
-UI/Home Assistant integration. Resource compliance remains a final acceptance
-requirement; it is not waived or the next feature-development task. The numbered
-sections below track work areas, not a requirement to finish memory work first.
+**Current priority (17 November): resume TLS transport and resource work.**
+The simulated Runtime Desk and HA operator walkthrough has passed. Continue
+independent TLS work and defer steps needing operator input. The
+[connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
+has software and target-build verification. Its physical comparison requires
+installation approval. Whole-system resource compliance remains a final
+acceptance requirement. The numbered sections below track the remaining areas.
 
 The finished demonstration must let a user select reviewed peripheral Markdown
 and an operation on the host, inspect the proposed communication, load the rule,
@@ -208,8 +209,8 @@ see the assessment's reproduction procedure.
 setup/recovery. Budget overlapping secure connections rather than removing
 HTTPS to save memory.
 
-**Deferred until the main demonstration is integrated:** implement bounded
-network allocation with deterministic exhaustion and reconnect tests; then
+**TLS work resumed on 17 November:** implement bounded network allocation with
+deterministic exhaustion and reconnect tests, then
 capture startup/reconnect/normal-operation
 heap, native-object and stack evidence on the selected board. Do not mark
 whole-system static memory complete from the linker table or host tests.

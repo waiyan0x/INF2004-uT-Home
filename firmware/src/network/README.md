@@ -235,8 +235,65 @@ with the same original CRC and unchanged firmware. See that guide for the
 separate live/software evidence and the completed power-save comparison. That
 approved comparison reduced ping latency with modem sleep disabled but retained
 initial MQTT timeouts in both modes. The full original flash and saved profile
-were restored and verified. No production change was kept. TLS work remains
-intentionally paused while Home Assistant work proceeds.
+were restored and verified. No production change was kept from that comparison.
+TLS work resumed on 17 November after the simulated HA/Desk walkthrough.
+
+### MQTT TLS connect retry
+
+The pinned SDK initializes its `select` read/write sets when TCP connection
+starts. A readiness timeout clears both sets, but subsequent calls to
+`esp_tls_low_level_conn` reuse them. With the configured one-millisecond poll,
+one timeout can leave later calls watching no socket until the broker's
+30-second connection deadline expires. This provides a concrete software
+mechanism for a TCP connection that never starts its TLS handshake.
+
+The existing `c3mqtt` adapter now reconstructs those sets from the SDK-owned
+socket before each retry in `ESP_TLS_CONNECTING`. The SDK continues to own
+socket creation, error handling, TLS setup and certificate verification.
+The correction uses the pinned private context layout and the existing
+serialized application owner. It adds zero mutable storage.
+
+On 17 November, 122 affected network/TLS/build-qualification tests passed.
+The final adapter fixture rerun passed all 38 tests, including three timed-out
+polls followed by connection and another two timed-out polls after reopening.
+The [compiled connect probe](../../../tools/target/README.md#tls-connect-retry-probe)
+also passed 12 cases on each of the original and corrected RV32 images. The
+original adapter stalls after a timeout, while the corrected adapter reaches
+the handshake when the socket becomes readable or writable. The probe executes
+the actual adapter and SDK connect instructions with socket readiness and TLS
+handshake boundaries doubled.
+
+The full pinned 340-file C gate, manual review, warnings-as-errors ESP32-C3
+build, original-source snapshot verification and every fixed-memory budget
+passed. Total DRAM is 269,378/278,528 bytes, with application storage at
+140,255/147,456. Every group has the same usage and cap as the preceding TLS
+output-buffer build.
+
+The fresh build is `C:/Users/kkak4/esp/uthome-tls-retry-20261117/`.
+Its application image SHA-256 is
+`4d01003367559ad591ae0cef4f103679a4b862902af88345bc2c83c079dfb05f`.
+Its `evidence.json` SHA-256 is
+`446751c37d77e0efd0bc2989f4b6f0984f7fab10e324e9c12c475d3224653462`.
+Private reports and logs are under `build/tls-retry-20261117/`.
+The image is unflashed. A backed-up physical comparison is deferred pending
+installation approval. The earlier packet loss, later status delays and
+unattended Apply reset still require their own observations. The remaining
+TLS/TCP/IP storage work is tracked in the
+[resource assessment](../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
+
+#### Connect retry C review
+
+The changed adapter uses C99 and the existing matching header/API. The new
+branch reads the pinned SDK's connection state and updates its existing
+`fd_set` objects only while connecting. The socket was created by the SDK
+before entering that state and remains owned until SDK destruction. `FD_ZERO`
+and `FD_SET` retain the SDK's declared types and descriptor bounds. There are
+no added casts, allocations, loops, tasks, interrupts or native objects.
+The application owner serializes state access and cleanup. Initial connection,
+handshake retries, error states and certificate settings retain their existing
+control flow. The radio component now exposes the required private SDK header
+to Wi-Fi builds, including builds with static queues disabled. No new BARR-C
+deviation is needed.
 
 ## HTTP and BLE observation contracts
 
