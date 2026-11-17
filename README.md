@@ -82,9 +82,12 @@ profile and laptop network are restored; its final startup control answered 2/5
 queries. Continue investigating intermittent Wi-Fi/TCP failure alongside remaining
 TLS allocation work before combined HA acceptance. The timeout cause and runtime
 resource compliance remain unresolved. A
-[laptop-hotspot trial](tools/transaction/README.md#prepared-laptop-hotspot-comparison)
-is prepared after a successful host start/stop check; exact-image installation
-approval is pending.
+[laptop-hotspot comparison](tools/transaction/README.md#laptop-hotspot-comparison)
+then passed 390/390 normal queries and 11/11 after the idle quiet interval.
+Its first recovery query preceded TCP reconnection and timed out; ten ready
+replies followed. Two normal replies took 1.09/4.31 seconds with repeated TCP
+data, so this run establishes neither a reliability fix nor a phone-hotspot
+fault. The original full flash/profile and host settings are restored.
 
 The [Home Assistant display adapter](tools/transaction/README.md#home-assistant-display)
 is implemented on the host. Add `--home-assistant` to the existing controller

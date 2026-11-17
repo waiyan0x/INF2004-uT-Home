@@ -851,7 +851,7 @@ change was retained. Further diagnosis must distinguish intermittent Wi-Fi/TCP
 loss from startup/reconnect gaps; remaining TLS allocation and combined acceptance
 work stays open.
 
-#### Prepared laptop-hotspot comparison
+#### Laptop-hotspot comparison
 
 No second router or phone is available. A host-only preflight on 17 November
 successfully started and stopped a temporary 2.4 GHz WPA2 Windows hotspot.
@@ -870,15 +870,59 @@ fresh target build and source-snapshot verification pass. Fixed DRAM remains
 **272,322/278,528 bytes**, with every group cap passing. Application SHA-256:
 `fad05dade7124d73693a4bcf26edc0c381f1616b9995c30d1800cb98a4263594`.
 
-The concrete private `trial-plan.json` awaits installation approval. It requires
-a fresh verified full-flash backup, the same normal/quiet controls, one idle
-Apply only after reliable replies, and a full verified original restoration.
-The host uses a temporary broker firewall rule restricted to its executable,
-hotspot interface/address, port and subnet; remove that exact rule during
-cleanup. Captures are bounded TCP headers, and no runtime transaction or HA
-change is planned. The ESP has not been flashed for this trial. The laptop
-becomes both AP and broker, changing the forwarding path as well as the AP;
-a passing run alone would not establish the phone hotspot as the cause.
+The user approved that exact image and backed-up trial on 17 November. A fresh
+full 4 MiB backup matched the original hash above and independently verified.
+The candidate's written regions and unchanged saved-profile region verified
+before startup. The ESP joined the laptop hotspot and reported MQTT ready.
+
+Two host setup corrections are retained in the private evidence. The firewall
+command needed the native Windows spelling of the same approved executable
+path. The first host client attempt rejected the new numeric address because
+it was absent from the broker certificate. A process-local address mapping then
+used the existing `uthome-bench.local` identity with certificate verification
+enabled; no certificate, global DNS setting or firmware change was needed.
+The corrected timed controls began about 172 seconds after the ESP boot, so
+they do not measure cold-start MQTT latency.
+
+| Normal-profile phase | Status replies |
+|---|---:|
+| Initial readiness | 1/1 |
+| Three minutes, USB closed | 147/147 |
+| Three minutes, USB polling | 144/144 |
+| Two minutes after a 90-second status pause | 98/98 |
+
+All **390/390** queries replied. Median time was 221 ms; two replies took
+1.09 and 4.31 seconds. Both slow queries coincided with repeated host TCP data
+at the same sequence number and delayed received ESP traffic. The Windows
+IP-level capture cannot locate the loss or delay in the radio, AP, ESP or host.
+
+Five fresh pre-Apply queries passed. The single idle Apply completed in 64 ms,
+saved profile 944 / CRC 2760408070 and advanced generation 1 to 2. The first
+recovery query timed out, followed by ten ready replies and **11/11** after the
+60-second quiet interval. One SYN/SYN-ACK exchange completed the new TCP
+connection 1.124 seconds after Apply. The timed-out query reached the broker
+before that connection completed, consistent with a brief reconnect gap.
+Boot identity and USB uptime stayed continuous; Wi-Fi reported no disconnect,
+MQTT failure/replacement/discard counters stayed zero, and idle retained no
+workers or apply/service/recovery errors. No rule load or runtime transaction
+was sent.
+
+The full original flash was restored and independently verified. Active/saved
+profile 943 and the original CRC returned, with three workers and zero worker
+errors/timeouts. Restoration was checked through USB; no new original-image
+MQTT control was planned. Both captures and the broker exited, port 8883
+closed, the exact scoped firewall rule was removed, and the hotspot stopped.
+Neo_5G and persistent hotspot settings were preserved. Broker warnings remain
+in the evidence; process/listener cleanup was independently verified.
+
+This later run changes both the AP implementation and forwarding path because
+the laptop is AP and broker. The earlier sustained TCP/beacon-loss failure did
+not recur, but slow TCP traffic remains observable. This does not establish a
+phone-hotspot fault or a firmware fix. Remaining TLS allocations, runtime peaks,
+combined physical HA acceptance and the separate old VM issue stay open.
+No maintained C or HA service changed. Raw evidence, setup corrections,
+restoration checks and file hashes are bound by
+`build/ap-compare-20261117/trial-results.json`.
 
 ## One-shot codec and diagnostic client
 
