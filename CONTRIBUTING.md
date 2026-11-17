@@ -91,7 +91,10 @@ current equipment checks. The user lifted the earlier deferral on 17 November. T
 has software and target-build verification. The approved
 [cumulative board comparison](tools/transaction/README.md#backed-up-tls-board-comparison)
 passed initial status and broker reconnection, then lost normal-profile replies
-before any idle Apply. The original image/profile were restored; sustained MQTT
+before any idle Apply. A later
+[USB/TCP diagnostic trial](tools/transaction/README.md#usb-mqtt-observation-board-trial)
+did not reproduce that stall; both original-image controls also passed.
+The original image/profile were restored after each trial. Sustained MQTT
 reliability and whole-system resource compliance remain final
 acceptance requirements. The numbered sections below track the remaining areas.
 

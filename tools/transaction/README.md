@@ -668,6 +668,52 @@ Evidence is local-only under `build/tls-bench-20261117/`, including
 The full backup remains outside the repository. Continue with the later
 normal-profile stall before another idle-plan or combined ESP/HA demonstration.
 
+#### USB MQTT observation board trial
+
+The subsequent approved trial used commit
+`11dac9bed9c9f15224c87ce2f2836459c5d4fe51`, application SHA-256
+`16fd4deaf35d81642efd40f12c6d4da061066feb29b39d493e46ccc0c5bef443`.
+This adds copied MQTT state/counters to USB observation. The confirmed unchanged
+bench stayed on its normal profile, with a fresh independently verified full
+backup before installation. No profile Apply, rule load or execution occurred.
+
+| Sequential control | Status replies | Successful query time |
+|---|---:|---|
+| Restarted original | 5/5 | 0.213–0.426 s |
+| Diagnostic image, five-minute normal window | 241/242 | 0.021–0.413 s |
+| Three-minute window containing one broker restart | 140/142 | 0.025–0.415 s |
+| Restored original | 5/5 | 0.106–0.416 s |
+
+The first candidate request reached the broker 3.300 seconds before the new
+candidate subscription completed; it timed out. All 241 subsequent queries in
+that window answered. The restart window had one host connection-loss error and
+one timeout, followed by 106 successful queries. Both candidate windows retained
+one boot identity and generation 1. USB MQTT failures changed from zero to one
+at the controlled restart; replacement/discard counters stayed zero. The three
+workers reported zero errors/timeouts at each final observation.
+
+The later normal-profile stall did not recur. Both original-image controls also
+passed, so this sequential run does not isolate a firmware improvement or close
+the earlier timeout/reset investigation. Frequent USB polling and a short run
+limit the result; longer tracing with quiet intervals remains necessary before
+idle-plan or combined ESP/HA acceptance.
+
+Windows TCP-header captures covered the active query windows. The normal
+capture reached its limit during an approximately 30-second host serial-close
+delay; the helper returned 1 because its lifetime check included that cleanup.
+This was after the final query and USB observation, not a board/profile guard
+failure. The restart-window serial close took about 1 ms. The host delay remains
+unexplained; these IP-level captures do not locate a radio fault.
+
+The full original 4 MiB flash was restored and independently verified against
+`7e2a57e7ba24af6578ac3d0309254c993ef9490bb7cdbf02f312e032572fb096`.
+Active/saved profile 943 and CRC 3623560383 were preserved. Both temporary
+brokers and the elevated capture helper exited, port 8883 closed, and the entry
+laptop network was restored with the temporary profile removed. HA services
+were unchanged; the old VM issue and runtime allocation/peak-memory gates remain
+open. Private evidence is under `build/mqtt-observe-bench-20261117/`, including
+`trial-results.json`, USB/TCP captures, broker events and flash verification logs.
+
 ## One-shot codec and diagnostic client
 
 The low-level client remains useful for packet inspection and isolated tests:

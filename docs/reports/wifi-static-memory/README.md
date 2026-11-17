@@ -76,6 +76,10 @@ The readiness guard prevented idle Apply. The original full flash and profile
 were restored and verified. This establishes encrypted board exchanges, but
 does not isolate ticket removal, qualify sustained reliability or close the
 runtime allocation/peak-memory gates. The separate old HA VM issue is unchanged.
+The later [USB observation build and board trial](../../../tools/transaction/README.md#usb-mqtt-observation-board-trial)
+preserved every fixed-memory category, captured normal traffic and broker
+recovery, and restored the original flash. Its short successful post-startup
+windows do not close runtime resource or sustained-reliability qualification.
 
 ### Fixed TLS derivation inputs
 

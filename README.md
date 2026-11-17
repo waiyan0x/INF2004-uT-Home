@@ -38,7 +38,7 @@ At the user's request on 17 November, the [ESP HTTPS service](firmware/src/netwo
 and its host setup commands are removed. Full saved-profile setup/recovery uses
 USB; runtime rules/results use MQTT over verified TLS. The host Configuration Desk
 and Home Assistant web interfaces are unchanged. The latest candidate was
-[temporarily tested on the board](tools/transaction/README.md#backed-up-tls-board-comparison);
+[temporarily tested on the board](tools/transaction/README.md#usb-mqtt-observation-board-trial);
 the original full flash was restored and verified afterward.
 MQTT now reserves its full-size TLS input/output buffers, retained broker
 hostname, typed outer handshake state, temporary certificate head and retained
@@ -64,9 +64,13 @@ candidate answered initial and post-broker-restart status queries, then timed
 out on the normal profile before any idle Apply. The updated
 [read-only USB observation](tools/config_transfer/README.md#read-only-wi-fi-and-mqtt-status)
 now exposes the existing MQTT state and failure/publication counters. Its host
-checks, fresh target build and fixed-memory gate pass; it is not yet installed.
-Next, correlate these observations with TCP traffic during a backed-up normal-profile
-trial. The timeout cause and runtime resource compliance remain unresolved.
+checks, fresh target build and fixed-memory gate pass. The subsequent backed-up
+diagnostic trial captured five minutes of normal traffic and a broker restart;
+the later stall did not recur, and both original-image controls also passed.
+The original full flash and profile were restored. Continue the remaining TLS
+allocation work and longer normal-profile tracing with quiet intervals before
+idle-plan/combined HA acceptance. The timeout cause and runtime resource
+compliance remain unresolved.
 
 The [Home Assistant display adapter](tools/transaction/README.md#home-assistant-display)
 is implemented on the host. Add `--home-assistant` to the existing controller

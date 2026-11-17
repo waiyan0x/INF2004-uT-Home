@@ -55,5 +55,8 @@ cannot be disabled. The pump retains its 48-byte maximum write chunks for the
 Verification on 17 November 2026: 73 affected host tests and the full pinned
 BARR-C gate (334 files) passed. The fresh ESP32-C3 build and snapshot check
 passed. Fixed application memory remains 143185/147456 bytes and total DRAM
-272322/278528 bytes; no fixed-memory category grew. This build is not yet
-installed or accepted on hardware, and runtime heap/stack peaks remain open.
+272322/278528 bytes; no fixed-memory category grew. The subsequent
+[backed-up board trial](../../tools/transaction/README.md#usb-mqtt-observation-board-trial)
+observed these MQTT fields during normal traffic and broker recovery, then
+restored the original flash. The later stall did not recur; sustained hardware
+acceptance and runtime heap/stack peaks remain open.

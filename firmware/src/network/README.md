@@ -120,6 +120,10 @@ allowing USB observations to be correlated with MQTT replies and TCP captures.
 Version-1 firmware supplies the station fields and leaves MQTT fields absent.
 See the [wire contract](../config/README.md#wire-version-1) and
 [host command](../../../tools/config_transfer/README.md#read-only-wi-fi-and-mqtt-status).
+The [backed-up USB/TCP trial](../../../tools/transaction/README.md#usb-mqtt-observation-board-trial)
+verified these fields during normal traffic and broker recovery. The later
+stall did not recur; the original image/profile were restored and the timeout
+cause remains unresolved.
 The optional `tx_power_quarter_dbm` accepts 8-84 quarter-dBm units and applies
 before each connection attempt. The build also derives the radio's startup
 limit from it: divide by four, round down, then clamp to the pinned SDK's
@@ -297,7 +301,8 @@ It answered initial and post-broker-restart queries, then lost normal-profile
 replies before any idle Apply. That comparison does not isolate this correction
 from the other changes. The original full flash was restored. Packet loss,
 later status delays and the unattended Apply reset still require their own
-observations. The remaining
+observations. The subsequent USB/TCP trial did not reproduce the later stall
+and does not isolate this correction either. The remaining
 TLS/TCP/IP storage work is tracked in the
 [resource assessment](../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
 
