@@ -11,11 +11,17 @@ ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_BYTES = 4429
 INPUT_BYTES = 16717
 NAME_BYTES = 254
+STATE_SIZES = {'transform_new': 84, 'session_new': 144, 'handshake': 2448,
+               'transform': 84, 'session': 144}
 
 
 class Context(c.Structure):
     _fields_ = [('input', c.c_void_p), ('output', c.c_void_p),
-                ('hostname', c.c_void_p), ('flags', c.c_uint32)]
+                ('hostname', c.c_void_p), ('flags', c.c_uint32),
+                ('config', c.c_void_p), ('transform_new', c.c_void_p),
+                ('session_new', c.c_void_p), ('handshake', c.c_void_p),
+                ('transform', c.c_void_p), ('session', c.c_void_p),
+                ('state', c.c_int), ('renegotiation', c.c_int)]
 
 
 class Config(c.Structure):
@@ -37,20 +43,33 @@ class TlsOutputTests(unittest.TestCase):
         # types. The target build uses the full, unmodified SDK declarations.
         (cls.directory / 'mbedtls/ssl.h').write_text(
             '#include "touttest.h"\n#define MBEDTLS_PRIVATE(field) field\n'
-            '#define MBEDTLS_ERR_SSL_BAD_INPUT_DATA (-135)\n')
+            '#define MBEDTLS_ERR_SSL_BAD_INPUT_DATA (-135)\n'
+            '#define MBEDTLS_SSL_HANDSHAKE_OVER 16\n'
+            '#define MBEDTLS_SSL_RENEGOTIATION_IN_PROGRESS 1\n')
         for header in ('mbedtls/platform.h', 'mbedtls/platform_util.h'):
             (cls.directory / header).write_text('#include "touttest.h"\n')
         (cls.directory / 'ssl_misc.h').write_text(
             '#define MBEDTLS_SSL_IN_BUFFER_LEN 16717\n'
-            '#define MBEDTLS_SSL_OUT_BUFFER_LEN 4429\n')
+            '#define MBEDTLS_SSL_OUT_BUFFER_LEN 4429\n'
+            '#define MBEDTLS_SSL_PROTO_TLS1_2\n'
+            '#define MBEDTLS_SSL_CLI_C\n'
+            '#define MBEDTLS_SSL_RENEGOTIATION\n')
         port = ROOT / 'firmware/hal/ports/esp32c3/network'
         flags = ['-std=c99', '-Wall', '-Wextra', '-Werror', '-pedantic',
                  '-DUTHOME_NETWORK_WIFI=1', '-DUTHOME_STATIC_NET_QUEUES=1',
                  '-Dmbedtls_ssl_context=touttest_context_t',
                  '-Dmbedtls_ssl_config=touttest_config_t',
+                 '-Dmbedtls_ssl_transform=touttest_transform_t',
+                 '-Dmbedtls_ssl_session=touttest_session_t',
+                 '-Dmbedtls_ssl_handshake_params=touttest_handshake_t',
                  '-Din_buf=p_in_buf', '-Dout_buf=p_out_buf', '-Dhostname=p_hostname',
+                 '-Dconf=p_config', '-Dtransform_negotiate=p_transform_new',
+                 '-Dsession_negotiate=p_session_new', '-Dhandshake=p_handshake',
+                 '-Drenego_status=renegotiation',
                  '-Dc3tout_native_setup=touttest_setup',
                  '-Dc3tout_native_name=touttest_name',
+                 '-Dc3tout_native_start=touttest_start',
+                 '-Dc3tout_native_renegotiate=touttest_renegotiate',
                  '-Dmbedtls_calloc=touttest_alloc',
                  '-Dmbedtls_free=touttest_free',
                  '-Dmbedtls_platform_zeroize=touttest_zeroize',
@@ -83,6 +102,9 @@ class TlsOutputTests(unittest.TestCase):
         for name, args, result in (
                 ('c3tout_setup', [c.POINTER(Context), c.POINTER(Config)], c.c_int),
                 ('c3tout_set_name', [c.POINTER(Context), c.c_char_p], c.c_int),
+                ('c3tout_start', [c.POINTER(Context)], c.c_int),
+                ('c3tout_renegotiate', [c.POINTER(Context)], c.c_int),
+                ('touttest_promote', [c.POINTER(Context)], None),
                 ('c3tout_alloc', [c.c_size_t, c.c_size_t], c.c_void_p),
                 ('c3tout_free', [c.c_void_p], None),
                 ('c3tout_wipe', [c.c_void_p, c.c_size_t], None),
@@ -91,25 +113,36 @@ class TlsOutputTests(unittest.TestCase):
             function = getattr(self.lib, name)
             function.argtypes, function.restype = args, result
         self.contexts = []
+        self.configs = []
+        self.reserved = []
 
     def tearDown(self):
         for context in self.contexts:
             self.close(context)
+        for pointer in self.reserved:
+            self.lib.c3tout_free(pointer)
         self.assertEqual(self.lib.heaptrap_count(), 0)
 
     def open(self, failure=0):
         context = Context()
         self.contexts.append(context)
-        result = self.lib.c3tout_setup(c.byref(context), c.byref(Config(failure)))
+        config = Config(failure)
+        self.configs.append(config)
+        result = self.lib.c3tout_setup(c.byref(context), c.byref(config))
         return result, context
 
     def close(self, context):
         for name, size in (('input', INPUT_BYTES), ('output', OUTPUT_BYTES),
-                           ('hostname', NAME_BYTES)):
+                           ('hostname', NAME_BYTES), *STATE_SIZES.items()):
             pointer = getattr(context, name)
             if pointer:
                 self.lib.c3tout_wipe(pointer, size)
                 setattr(context, name, None)
+
+    def release_reservations(self):
+        for pointer in self.reserved:
+            self.lib.c3tout_free(pointer)
+        self.reserved.clear()
 
     def test_hostname_copy_boundaries_replacement_and_clear(self):
         context = Context()
@@ -250,6 +283,7 @@ class TlsOutputTests(unittest.TestCase):
                 setattr(context, name, None)
                 self.assertEqual(self.lib.touttest_count(1), before)
                 self.assertEqual(c.string_at(pointer, size), bytes(size))
+            self.close(context)
 
     def test_output_exhaustion_returns_new_input_lease(self):
         result, owner = self.open()
@@ -285,7 +319,8 @@ class TlsOutputTests(unittest.TestCase):
         for _ in range(1000):
             result, context = self.open()
             self.assertEqual(result, 0)
-            pointers = (context.input, context.output)
+            pointers = (context.input, context.output, context.transform_new,
+                        context.session_new, context.handshake)
             self.assertTrue(all(pointers))
             if expected is None:
                 expected = pointers
@@ -293,11 +328,167 @@ class TlsOutputTests(unittest.TestCase):
             self.close(context)
         self.assertEqual(self.lib.touttest_count(0), 0)
 
+    def test_states_keep_active_and_negotiating_records_distinct(self):
+        for entry in ('c3tout_start', 'c3tout_renegotiate'):
+            result, context = self.open()
+            self.assertEqual(result, 0)
+            self.lib.touttest_promote(c.byref(context))
+            for _ in range(50):
+                active = (context.transform, context.session)
+                for pointer, size in zip(active, (84, 144)):
+                    c.memset(pointer, 0x5A, size)
+                before = self.lib.touttest_count(0)
+                self.assertEqual(getattr(self.lib, entry)(c.byref(context)), -0x6900)
+                pending = (context.transform_new, context.session_new, context.handshake)
+                self.assertEqual(len(set((*active, *pending))), 5)
+                self.assertTrue(all(pending))
+                self.assertEqual(self.lib.touttest_count(0), before)
+                for pointer, size in zip(active, (84, 144)):
+                    self.assertEqual(c.string_at(pointer, size), b'\x5a' * size)
+                self.assertEqual(self.lib.c3tout_renegotiate(c.byref(context)), -0x6900)
+                self.assertEqual((context.transform_new, context.session_new,
+                                  context.handshake), pending)
+                self.assertEqual(self.lib.touttest_count(0), before + 3)
+                self.lib.touttest_promote(c.byref(context))
+                self.assertEqual((context.transform, context.session), pending[:2])
+                for pointer, size in zip((*active, pending[2]), (84, 144, 2448)):
+                    self.assertEqual(c.string_at(pointer, size), bytes(size))
+            self.close(context)
+
+    def test_each_state_store_exhausts_without_heap_and_reuses(self):
+        for field, capacity in (('transform_new', 2), ('session_new', 2), ('handshake', 1)):
+            before = self.lib.touttest_count(0)
+            for _ in range(capacity):
+                result, holder = self.open()
+                self.assertEqual(result, 0)
+                pointer = getattr(holder, field)
+                self.reserved.append(pointer)
+                setattr(holder, field, None)
+                self.close(holder)
+                c.memset(pointer, 0xA5, STATE_SIZES[field])
+            result, rejected = self.open()
+            self.assertEqual(result, -141)
+            self.assertFalse(rejected.input or rejected.output or rejected.transform_new
+                             or rejected.session_new or rejected.handshake)
+            self.assertEqual(self.lib.touttest_count(0), before)
+            old = tuple(self.reserved)
+            for pointer in old:
+                self.assertEqual(c.string_at(pointer, STATE_SIZES[field]),
+                                 b'\xa5' * STATE_SIZES[field])
+            self.release_reservations()
+            for pointer in old:
+                self.assertEqual(c.string_at(pointer, STATE_SIZES[field]),
+                                 bytes(STATE_SIZES[field]))
+            result, replacement = self.open()
+            self.assertEqual(result, 0)
+            self.assertIn(getattr(replacement, field), old)
+            self.close(replacement)
+
+    def test_each_renegotiation_failure_preserves_active_state(self):
+        for entry in ('c3tout_start', 'c3tout_renegotiate'):
+            for field in ('transform_new', 'session_new', 'handshake'):
+                result, owner = self.open()
+                self.assertEqual(result, 0)
+                self.lib.touttest_promote(c.byref(owner))
+                # Borrow existing buffers only to reserve the spare state slot.
+                holder = Context(input=owner.input, output=owner.output, config=owner.config)
+                self.assertEqual(self.lib.c3tout_start(c.byref(holder)), -0x6900)
+                pointer = getattr(holder, field)
+                self.reserved.append(pointer)
+                setattr(holder, field, None)
+                holder.input = holder.output = None
+                self.close(holder)
+                active = (owner.transform, owner.session)
+                for current, size in zip(active, (84, 144)):
+                    c.memset(current, 0x5A, size)
+                before = self.lib.touttest_count(0)
+                self.assertEqual(getattr(self.lib, entry)(c.byref(owner)), -141)
+                self.assertEqual((owner.transform, owner.session), active)
+                self.assertFalse(owner.transform_new or owner.session_new or owner.handshake)
+                self.assertEqual(self.lib.touttest_count(0), before)
+                for current, size in zip(active, (84, 144)):
+                    self.assertEqual(c.string_at(current, size), b'\x5a' * size)
+                self.release_reservations()
+                self.assertEqual(getattr(self.lib, entry)(c.byref(owner)), -0x6900)
+                self.close(owner)
+
+    def test_partial_state_reinitialization_keeps_existing_record_identities(self):
+        fields = ('transform_new', 'session_new', 'handshake')
+        for mask in range(8):
+            result, context = self.open()
+            self.assertEqual(result, 0)
+            old = tuple(getattr(context, field) for field in fields)
+            for index, field in enumerate(fields):
+                if mask & (1 << index):
+                    self.lib.c3tout_free(getattr(context, field))
+                    setattr(context, field, None)
+            before = self.lib.touttest_count(0)
+            self.assertEqual(self.lib.c3tout_start(c.byref(context)), -0x6900)
+            self.assertEqual(tuple(getattr(context, field) for field in fields), old)
+            self.assertEqual(self.lib.touttest_count(0), before)
+            self.close(context)
+
+    def test_state_cleanup_wipes_full_typed_records_on_both_paths(self):
+        for wipe in (False, True):
+            result, context = self.open()
+            self.assertEqual(result, 0)
+            for field in ('transform_new', 'session_new', 'handshake'):
+                pointer, size = getattr(context, field), STATE_SIZES[field]
+                self.assertEqual(pointer % c.alignment(c.c_uint32), 0)
+                self.assertEqual(c.string_at(pointer, size), bytes(size))
+                c.memset(pointer, 0xA5, size)
+                before = self.lib.touttest_count(1)
+                if wipe:
+                    self.lib.c3tout_wipe(pointer, 1)
+                else:
+                    self.lib.c3tout_free(pointer)
+                setattr(context, field, None)
+                self.assertEqual(self.lib.touttest_count(1), before)
+                self.assertEqual(c.string_at(pointer, size), bytes(size))
+            self.close(context)
+
+    def test_same_sized_state_requests_outside_init_phase_keep_heap_path(self):
+        result, context = self.open(6)
+        self.assertEqual(result, 0)
+        self.assertTrue(context.transform and context.session)
+        self.assertFalse(context.transform_new or context.session_new or context.handshake)
+        self.assertEqual(self.lib.touttest_count(0), 16)
+        for size in (84, 144, 2448):
+            pointer = self.lib.c3tout_alloc(1, size)
+            self.assertTrue(pointer)
+            self.lib.c3tout_free(pointer)
+        self.assertEqual(self.lib.touttest_count(0), 19)
+
+    def test_invalid_renegotiation_and_retry_do_not_arm_state_selection(self):
+        result, context = self.open()
+        self.assertEqual(result, 0)
+        before = self.lib.touttest_count(0)
+        self.assertEqual(self.lib.c3tout_renegotiate(None), -135)
+        saved = context.config
+        context.config = None
+        self.assertEqual(self.lib.c3tout_renegotiate(c.byref(context)), -135)
+        context.config = saved
+        self.assertEqual(self.lib.c3tout_renegotiate(c.byref(context)), -135)
+        self.lib.touttest_promote(c.byref(context))
+        context.renegotiation = 1  # missing negotiating fields during a retry
+        self.assertEqual(self.lib.c3tout_renegotiate(c.byref(context)), -0x6900)
+        self.assertEqual(self.lib.touttest_count(0), before + 12)
+
     def test_variable_buffers_are_rejected_before_build(self):
         result = subprocess.run([*self.command, '-DMBEDTLS_SSL_VARIABLE_BUFFER_LENGTH',
                                  '-o', str(self.directory / 'rejected.o')], capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('without buffer resizing', result.stderr)
+
+    def test_unsupported_tls_state_profiles_are_rejected_before_build(self):
+        for profile in ('MBEDTLS_SSL_PROTO_TLS1_3', 'MBEDTLS_SSL_SRV_C',
+                        'MBEDTLS_SSL_PROTO_DTLS'):
+            with self.subTest(profile=profile):
+                result = subprocess.run([*self.command, '-D' + profile,
+                                         '-o', str(self.directory / 'rejected.o')],
+                                        capture_output=True, text=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('TLS', result.stderr)
 
 
 if __name__ == '__main__':

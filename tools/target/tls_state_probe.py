@@ -1,8 +1,8 @@
-"""Measure compiled TLS state lifetimes before designing fixed typed storage.
+"""Check fixed TLS state storage with compiled SDK lifecycle instructions.
 
-SDK allocation, renegotiation entry, wrapup and cleanup instructions run. Empty
-crypto state is advanced to wrapup synthetically; the handshake entry returns
-WANT_READ through a double. This is not handshake/authentication or hardware proof.
+Empty crypto state advances to native wrapup synthetically; handshake progress
+returns WANT_READ through a double. No authentication, crypto peak or hardware
+acceptance follows. The ELF's actual typed arrays and leases remain in use.
 """
 import argparse
 from collections import Counter
@@ -11,84 +11,174 @@ import json
 from pathlib import Path
 
 from elftools.elf.elffile import ELFFile
-from unicorn.riscv_const import UC_RISCV_REG_A0, UC_RISCV_REG_A1
 from .tls_fragment_probe import CONFIG, SSL, WANT_READ
-from .tls_output_probe import OutputProbe
+from .tls_output_probe import OutputProbe, record_storage
 
 FIELDS = ('transform', 'session', 'transform_negotiate', 'session_negotiate', 'handshake')
-ENTRIES = ('mbedtls_ssl_start_renegotiation', 'mbedtls_ssl_renegotiate')
+ENTRIES = ('c3tout_start', 'c3tout_renegotiate')
+TYPES = {'transform': ('mbedtls_ssl_transform', 84, 2),
+         'session': ('mbedtls_ssl_session', 144, 2),
+         'handshake': ('mbedtls_ssl_handshake_params', 2448, 1)}
 
 
-def state_sizes(path):
-    names = {'mbedtls_ssl_transform': 'transform', 'mbedtls_ssl_session': 'session',
-             'mbedtls_ssl_handshake_params': 'handshake'}
+def state_storage(path):
+    """Bind typed record arrays and one-byte leases to this exact linked ELF."""
     result = {}
     with path.open('rb') as stream:
-        for unit in ELFFile(stream).get_dwarf_info().iter_CUs():
+        elf = ELFFile(stream)
+        assert elf.elfclass == 32 and elf.little_endian
+        for unit in elf.get_dwarf_info().iter_CUs():
+            source = unit.get_top_DIE().attributes['DW_AT_name'].value.decode()
+            if Path(source.replace('\\', '/')).name != 'c3tout.c':
+                continue
             for die in unit.iter_DIEs():
                 name = die.attributes.get('DW_AT_name')
-                if die.tag != 'DW_TAG_structure_type' or not name or 'DW_AT_byte_size' not in die.attributes:
+                if die.tag != 'DW_TAG_variable' or not name:
                     continue
-                kind = names.get(name.value.decode())
-                if kind:
-                    size = die.attributes['DW_AT_byte_size'].value
-                    assert kind not in result or result[kind] == size
-                    result[kind] = size
-    assert result == dict(transform=84, session=144, handshake=2448), result
+                name = name.value.decode()
+                matches = [(kind, lease) for kind in TYPES for lease in (False, True)
+                           if name == (f'gb_{kind}_used' if lease else f'g_{kind}s')]
+                if not matches:
+                    continue
+                kind, lease = matches[0]
+                location = die.attributes['DW_AT_location'].value
+                assert len(location) == 5 and location[0] == 3  # DW_OP_addr, RV32
+                address = int.from_bytes(location[1:], 'little')
+                array = die.get_DIE_from_attribute('DW_AT_type')
+                assert array.tag == 'DW_TAG_array_type'
+                bounds = [c for c in array.iter_children() if c.tag == 'DW_TAG_subrange_type']
+                assert len(bounds) == 1
+                count = bounds[0].attributes['DW_AT_upper_bound'].value + 1
+                item = array.get_DIE_from_attribute('DW_AT_type')
+                while item.tag == 'DW_TAG_typedef':
+                    item = item.get_DIE_from_attribute('DW_AT_type')
+                size = item.attributes['DW_AT_byte_size'].value
+                expected_type, expected_size, expected_count = TYPES[kind]
+                assert count == expected_count
+                if lease:
+                    assert item.tag == 'DW_TAG_base_type' and size == 1
+                else:
+                    assert item.tag == 'DW_TAG_structure_type'
+                    assert item.attributes['DW_AT_name'].value.decode() == expected_type
+                    assert size == expected_size and address % 4 == 0
+                symbols = elf.get_section_by_name('.symtab').get_symbol_by_name(name)
+                assert any(s['st_value'] == address and s['st_size'] == size * count for s in symbols)
+                slot = result.setdefault(kind, {})
+                key = 'leases' if lease else 'address'
+                assert key not in slot
+                slot[key] = address
+                if not lease:
+                    slot.update(size=size, count=count, linked_bytes=size * count)
+    assert set(result) == set(TYPES), 'ELF must contain all fixed state arrays'
+    ranges = []
+    for slot in result.values():
+        assert set(slot) == {'address', 'leases', 'size', 'count', 'linked_bytes'}
+        ranges += [(slot['address'], slot['linked_bytes']), (slot['leases'], slot['count'])]
+    ranges += [(slot['address'], slot['linked_bytes']) for slot in record_storage(path).values()]
+    ranges.sort()
+    assert all(start + size <= next_start for (start, size), (next_start, _) in zip(ranges, ranges[1:]))
     return result
 
 
+def slots(storage):
+    for kind, store in storage.items():
+        for index in range(store['count']):
+            yield kind, store['address'] + index * store['size'], store['size'], store['leases'] + index
+
+
+def assert_storage(probe, storage, expected):
+    """Free outer records must be zero, including the SDK session verify field."""
+    actual = set()
+    for _, address, size, lease in slots(storage):
+        value = bytes(probe.uc.mem_read(lease, 1))
+        assert value in (b'\0', b'\1')
+        if value == b'\1':
+            actual.add(address)
+        else:
+            assert bytes(probe.uc.mem_read(address, size)) == bytes(size)
+    assert actual == set(expected), (actual, expected)
+    assert not probe.live, probe.live
+
+
+def reserve_slots(probe, storage, kind):
+    """Occupy currently free leases to inject exhaustion without changing code."""
+    reserved = {}
+    for found, address, size, lease in slots(storage):
+        if found == kind and bytes(probe.uc.mem_read(lease, 1)) == b'\0':
+            assert bytes(probe.uc.mem_read(address, size)) == bytes(size)
+            content = b'\xa5' * size
+            probe.uc.mem_write(address, content)
+            probe.uc.mem_write(lease, b'\1')
+            reserved[address] = content
+    assert reserved
+    return reserved
+
+
 class StateProbe(OutputProbe):
-    def __init__(self, path, limits):
-        self.limits = limits
-        self.peak = Counter()
-        self.denials = 0
+    def __init__(self, path, storage):
+        self.storage = storage
         self.handshake_calls = 0
+        self.phase_checks = 0
         super().__init__(path)
+        assert not any(name in self.symbols for name in
+                       ('mbedtls_ssl_session_reset', 'mbedtls_ssl_session_reset_int')), (
+            'Session reset requires a separately reviewed allocation scope')
         self.hook(self.symbols['mbedtls_ssl_handshake'], self.handshake)
+        self.hook(self.symbols['psa_hash_setup'], self.hash_setup)
+
+    def phase_closed(self):
+        pending = int.from_bytes(self.uc.mem_read(self.symbols['g_state_pending'], 4), 'little')
+        assert pending == 0, pending
+        self.phase_checks += 1
+
+    def hash_setup(self, *args):
+        self.phase_closed()
+        self.finish(0)
 
     def handshake(self, *args):
+        self.phase_closed()
         self.handshake_calls += 1
         self.finish(WANT_READ)
-
-    def calloc(self, *args):
-        size = self.uc.reg_read(UC_RISCV_REG_A0) * self.uc.reg_read(UC_RISCV_REG_A1)
-        assert size in self.limits, ('Unexpected allocation outside scoped records', size)
-        counts = Counter(self.live.values())
-        if counts[size] >= self.limits[size]:
-            self.allocations.append(size)
-            self.denials += 1
-            self.finish(0)
-            return
-        super().calloc(*args)
-        self.peak |= Counter(self.live.values())
 
     def pointers(self):
         return {name: self.field(SSL, name) for name in FIELDS}
 
     def active(self):
-        return {self.field(SSL, name): bytes(self.uc.mem_read(self.field(SSL, name), size))
-                for name, size in (('transform', 84), ('session', 144))}
+        return {self.field(SSL, name): bytes(self.uc.mem_read(self.field(SSL, name), TYPES[name][1]))
+                for name in ('transform', 'session')}
 
     def unchanged(self, active):
         for pointer, content in active.items():
-            assert pointer in self.live
             assert bytes(self.uc.mem_read(pointer, len(content))) == content
 
+    def check_pointers(self, pointers):
+        for name, pointer in pointers.items():
+            kind = name.removesuffix('_negotiate')
+            assert pointer in [a for k, a, _, _ in slots(self.storage) if k == kind]
+        assert len(set(pointers.values())) == len(pointers)
 
-def prepare(path, limits):
-    probe = StateProbe(path, limits)
+
+def initialize(path, storage):
+    probe = StateProbe(path, storage)
     probe.run('mbedtls_ssl_init', SSL)
     assert probe.run('mbedtls_ssl_config_defaults', CONFIG, 0, 0, 0) == 0
     probe.run('mbedtls_ssl_conf_renegotiation', CONFIG, 1)  # SDK ENABLED value
+    return probe
+
+
+def prepare(path, storage):
+    probe = initialize(path, storage)
     assert probe.run('c3tout_setup', SSL, CONFIG) == 0
-    assert Counter(probe.live.values()) == Counter({84: 1, 144: 1, 2448: 1})
-    initial = probe.pointers()
+    initial = {name: pointer for name, pointer in probe.pointers().items() if pointer}
+    assert set(initial) == {'transform_negotiate', 'session_negotiate', 'handshake'}
+    probe.check_pointers(initial)
+    assert_storage(probe, storage, initial.values())
     probe.run('mbedtls_ssl_handshake_wrapup', SSL)
     assert probe.field(SSL, 'transform') == initial['transform_negotiate']
     assert probe.field(SSL, 'session') == initial['session_negotiate']
     assert probe.field(SSL, 'handshake') == 0
-    assert Counter(probe.live.values()) == Counter({84: 1, 144: 1})
+    assert_storage(probe, storage, probe.active())
+    assert not probe.allocations
     return probe
 
 
@@ -96,87 +186,117 @@ def verify(path, memory):
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     assert memory['passed']
     assert memory['artifacts']['build/uthome_runtime_port.elf']['sha256'] == digest
-    sizes = state_sizes(path)
-    limits = {84: 2, 144: 2, 2448: 1}
+    storage = state_storage(path)
     results = []
     for entry in ENTRIES:
-        probe = prepare(path, limits)
+        probe = prepare(path, storage)
         for _ in range(100):
             old = probe.pointers()
             active = probe.active()
-            before = len(probe.allocations)
             assert probe.run(entry, SSL) == WANT_READ
-            assert probe.allocations[before:] == [84, 144, 2448]
             negotiating = probe.pointers()
-            assert len(set(negotiating.values())) == 5 and all(negotiating.values())
+            probe.check_pointers(negotiating)
             assert negotiating['transform'] == old['transform']
             assert negotiating['session'] == old['session']
             probe.unchanged(active)
-            assert Counter(probe.live.values()) == Counter(limits)
-            # An in-progress retry must use existing negotiating records.
-            before = len(probe.allocations)
-            assert probe.run('mbedtls_ssl_renegotiate', SSL) == WANT_READ
-            assert probe.pointers() == negotiating and len(probe.allocations) == before
+            assert_storage(probe, storage, negotiating.values())
+            assert probe.run('c3tout_renegotiate', SSL) == WANT_READ
+            assert probe.pointers() == negotiating
             probe.unchanged(active)
             probe.run('mbedtls_ssl_handshake_wrapup', SSL)
             assert probe.field(SSL, 'transform') == negotiating['transform_negotiate']
             assert probe.field(SSL, 'session') == negotiating['session_negotiate']
             for name in ('transform_negotiate', 'session_negotiate', 'handshake'):
                 assert probe.field(SSL, name) == 0
-            for pointer in (*active, negotiating['handshake']):
-                assert pointer not in probe.live
-            assert Counter(probe.live.values()) == Counter({84: 1, 144: 1})
+            assert_storage(probe, storage, probe.active())
+            assert not probe.allocations
         probe.run('mbedtls_ssl_free', SSL)
-        assert not probe.live and not probe.denials
-        assert probe.peak == Counter(limits)
+        assert_storage(probe, storage, [])
+        assert not probe.allocations
         results.append(dict(entry=entry, cycles=100, allocation_free_retries=100,
-                            peak_live_slots=dict(probe.peak), handshake_double_calls=probe.handshake_calls))
+                            peak_live_slots={k: v['count'] for k, v in storage.items()},
+                            handshake_double_calls=probe.handshake_calls,
+                            initialization_phase_checks=probe.phase_checks))
+
+    # Reinitialize existing records and every missing-record combination. Only
+    # empty crypto state is removed: hash allocation/progress remain doubled.
+    reinitializations = []
+    names = ('transform_negotiate', 'session_negotiate', 'handshake')
+    for missing in range(8):
+        probe = initialize(path, storage)
+        assert probe.run('c3tout_setup', SSL, CONFIG) == 0
+        before = probe.pointers()
+        for bit, name in enumerate(names):
+            if missing & (1 << bit):
+                probe.run('c3tout_free', before[name])
+                probe.write_field(name, 0)
+        assert probe.run('c3tout_start', SSL) == WANT_READ
+        after = {name: probe.field(SSL, name) for name in names}
+        probe.check_pointers(after)
+        for bit, name in enumerate(names):
+            if not missing & (1 << bit):
+                assert after[name] == before[name]
+        assert probe.field(SSL, 'transform') == probe.field(SSL, 'session') == 0
+        assert_storage(probe, storage, after.values())
+        probe.run('mbedtls_ssl_free', SSL)
+        assert_storage(probe, storage, [])
+        assert not probe.allocations
+        reinitializations.append(dict(missing_mask=missing, existing_pointers_preserved=True,
+                                      heap_requests=0))
 
     failures = []
-    for entry in ENTRIES:
-        for failure in (1, 2, 3):
-            probe = prepare(path, limits)
+    for entry in ('c3tout_setup', *ENTRIES):
+        for kind in TYPES:
+            probe = initialize(path, storage) if entry == 'c3tout_setup' else prepare(path, storage)
             old = probe.pointers()
-            active = probe.active()
-            probe.fail_call = len(probe.allocations) + failure
-            assert probe.run(entry, SSL) == -141  # PSA_ERROR_INSUFFICIENT_MEMORY
+            active = {} if entry == 'c3tout_setup' else probe.active()
+            reserved = reserve_slots(probe, storage, kind)
+            arguments = (SSL, CONFIG) if entry == 'c3tout_setup' else (SSL,)
+            assert probe.run(entry, *arguments) == -141  # PSA_ERROR_INSUFFICIENT_MEMORY
             probe.unchanged(active)
+            probe.unchanged(reserved)
             assert all(probe.field(SSL, name) == old[name] for name in ('transform', 'session'))
-            assert set(probe.live) == set(active) and probe.handshake_calls == 0
+            assert probe.handshake_calls == 0
             for name in ('transform_negotiate', 'session_negotiate', 'handshake'):
                 assert probe.field(SSL, name) == 0
+            assert_storage(probe, storage, set(active) | set(reserved))
+            for pointer in reserved:
+                probe.run('c3tout_free', pointer)
             probe.run('mbedtls_ssl_free', SSL)
-            assert not probe.live
-            failures.append(dict(entry=entry, failed_allocation=failure, active_state_preserved=True))
+            assert_storage(probe, storage, [])
+            assert not probe.allocations
+            failures.append(dict(entry=entry, exhausted_kind=kind,
+                                 active_and_reserved_state_preserved=True, heap_fallback=False))
 
-    # Negative controls isolate each insufficient proposed record count.
-    controls = []
-    for size in (84, 144):
-        reduced = dict(limits)
-        reduced[size] = 1
-        probe = prepare(path, reduced)
-        old = probe.pointers()
-        active = probe.active()
-        assert probe.run(ENTRIES[0], SSL) == -141 and probe.denials == 1
+    # Outside the synchronous initialization scope equal-size requests stay heap-owned.
+    probe = prepare(path, storage)
+    active = probe.active()
+    for kind, (_, size, _) in TYPES.items():
+        pointer = probe.run('c3tout_alloc', 1, size)
+        assert probe.live == {pointer: size}
+        assert pointer not in [address for _, address, _, _ in slots(storage)]
+        probe.run('c3tout_free', pointer)
         probe.unchanged(active)
-        assert all(probe.field(SSL, name) == old[name] for name in ('transform', 'session'))
-        assert set(probe.live) == set(active)
-        probe.run('mbedtls_ssl_free', SSL)
-        assert not probe.live
-        controls.append(dict(record_bytes=size, proposed_slots=1, rejected=True))
+        assert_storage(probe, storage, active)
+    probe.run('mbedtls_ssl_free', SSL)
+    assert_storage(probe, storage, [])
+    assert Counter(probe.allocations) == Counter({84: 1, 144: 1, 2448: 1})
 
-    payload = sum(size * count for size, count in limits.items())
     headroom = memory['budgets']['application_fixed_limit'] - memory['groups']['application_fixed']
-    return dict(passed=True, elf_sha256=digest, state_sizes=sizes,
-                scope='Compiled state lifecycle with synthetic wrapup; no handshake, crypto peak or hardware proof',
-                doubles=['SDK heap with candidate count limits', 'ROM byte operations',
-                         'PSA hash setup/abort', 'mbedtls_ssl_handshake returning WANT_READ'],
-                lifecycle_cases=results, allocation_failures=failures, negative_controls=controls,
-                fixed_state_storage_implemented=False,
+    return dict(passed=True, elf_sha256=digest, state_storage=storage,
+                scope='Compiled fixed-state lifecycle with synthetic wrapup; no handshake, crypto peak or hardware proof',
+                doubles=['SDK heap', 'ROM byte operations', 'PSA hash setup/abort',
+                         'mbedtls_ssl_handshake returning WANT_READ'],
+                injected_state='Occupied free leases; removed empty records for reinit; zero crypto state for wrapup',
+                lifecycle_cases=results, reinitialization_cases=reinitializations,
+                allocation_failures=failures,
+                unrelated_equal_size_heap_cases=3, lifecycle_state_heap_requests=0,
+                fixed_state_storage_implemented=True,
                 session_reset_linked='mbedtls_ssl_session_reset' in probe.symbols,
-                capacity=dict(projection_only=True, typed_payload_bytes=payload,
-                              application_headroom=headroom, remaining_before_metadata=headroom-payload,
-                              excludes='Lease/scope metadata, certificates, keys, tickets and TCP/IP storage'))
+                capacity=dict(projection_only=False,
+                              typed_payload_bytes=sum(v['linked_bytes'] for v in storage.values()),
+                              application_headroom=headroom,
+                              excludes='Runtime peaks and remaining certificate/key/ticket/TCPIP allocations'))
 
 
 def main():

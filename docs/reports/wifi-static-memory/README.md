@@ -10,17 +10,79 @@ full-profile setup/recovery uses USB. The host Desk and Home Assistant web
 interfaces remain available. No Wi-Fi-driver exception automatically exempts
 TLS, TCP/IP or ESP-TLS contexts.
 
+### Fixed TLS handshake state
+
+The 17 November implementation now gives `c3tout` two typed transforms, two
+typed sessions and one typed handshake record. The SDK retains its original
+initialization, renegotiation, promotion and cleanup algorithms. Both entry
+wrappers are checked, and an ordered initialization scope prevents later
+equal-sized requests from taking a state slot. Recognized exhaustion returns
+NULL without heap fallback; exact-pointer release erases the full record.
+See the [contract and manual C review](../../../firmware/hal/ports/esp32c3/network/README.md#fixed-tls-handshake-state).
+
+All **87 affected tests**, the full **333-file pinned C gate**, manual BARR-C
+review, fresh warnings-as-errors target build, exact source snapshot and all
+memory reservations passed. Host tests include all eight missing-state masks,
+both renegotiation entries, retries, exhaustion, erasure/reuse and unrelated
+requests before, during and after initialization/promotion. No exception,
+dependency revision, TLS record limit or aggregate memory cap changed.
+
+The [compiled state probe](../../../tools/target/README.md#tls-handshake-state-lifetime-probe)
+passed **200 cycles, 200 retries, eight reinitializations and nine exhaustion
+cases** against the actual typed arrays and lease code. It observed **zero
+state-record heap requests** in those lifecycle cases. Active pointers/bytes
+survive failure; promotion releases old records, and all free records are zero.
+Selection is closed before native hash setup and doubled handshake progress.
+Equal-sized out-of-scope requests still reach the SDK allocator. The previous
+heap-state ELF is rejected. The current ELF also passes record-buffer setup/free,
+all 12 receive/read cases, all 12 connect-retry cases and the hostname probe's
+100 reconnect cycles plus three occupied-state setup failures. Probe CLI guards
+reject disabled assertions, report overwrite and mismatched ELF/memory hashes.
+
+The probes double heap, ROM byte operations, PSA hash calls and handshake
+progress. Empty crypto state advances synthetically to native wrapup; removed
+empty records and occupied leases inject reinitialization/exhaustion conditions.
+No authentication, cipher handover, radio, board timing or runtime peak is
+qualified. Client-only TLS 1.2 with renegotiation is enforced; DTLS, TLS 1.3,
+server profiles and linked session-reset APIs are outside the reviewed scope.
+
+| Fixed-memory group | Linked bytes | Unchanged cap | Headroom |
+|---|---:|---:|---:|
+| Application | 142,129 | 147,456 | 5,327 |
+| Task pool | 18,499 | 18,560 | 61 |
+| SDK/kernel | 54,252 | 55,296 | 1,044 |
+| RAM code | 56,386 | 57,152 | 766 |
+| Total DRAM | 271,266 | 278,528 | 7,262 |
+| RTC, separate from DRAM | 60 | 128 | 68 |
+
+`c3tout` uses **24,338/24,352 bytes**. Typed state adds 2,904 bytes and scope/lease
+metadata adds 13 application bytes. Its module reservation remains within the
+existing application cap. Certificate/key, internal ticket and TCP/IP allocations
+remain open; this is not whole-system static-memory qualification or closure of
+the observed physical MQTT timeout cause.
+
+The fresh image is **unflashed** at
+`C:/Users/kkak4/esp/uthome-tls-state-fixed-20261117/`.
+Application SHA-256:
+`97a6c1c21c034dabcf089f45fee1fe59660e8d3151489632de6320d45a7fa6ab`.
+ELF SHA-256:
+`d058e63ba2b153a0e813f71b5764f07f73f0f5c1c4a87e3358542352f41c7983`.
+`evidence.json` SHA-256:
+`0774c0a55d5049b8de05a03e4acc12ea4009e946f7a2eaaeeaebdd9b51d0ad00`.
+Private reports and logs are under `build/tls-state-fixed-20261117/`. No board,
+serial port, hotspot or live Home Assistant service was accessed.
+
 ### Handshake-state lifetime proof
 
-The follow-up compiled SDK investigation confirms the proposed outer-state
+The preceding compiled SDK investigation confirmed the proposed outer-state
 capacity: **two 84-byte transforms, two 144-byte sessions and one 2,448-byte
 handshake record**, totaling **2,904 typed bytes**. The allocator count limits
-in this experiment are simulated; fixed state storage is **not implemented**.
-Against the existing 8,244-byte application headroom, that payload leaves
+in that experiment were simulated; fixed state storage was not implemented yet.
+Against the then-existing 8,244-byte application headroom, that payload left
 5,340 bytes before lease/scope metadata, other crypto and TCP/IP storage.
 
-The [maintained probe](../../../tools/target/README.md#tls-handshake-state-lifetime-probe)
-passes 100 cycles and 100 allocation-free in-progress retries through each of
+The probe at that checkpoint (since extended for the fixed stores above)
+passed 100 cycles and 100 allocation-free in-progress retries through each of
 the two linked renegotiation entries. Active and negotiating pointers stay
 distinct; active contents and ownership survive initialization. Native wrapup
 promotes the new records and releases the old ones. All six injected allocation
@@ -44,8 +106,8 @@ calls them for peer HelloRequest and record-counter limits respectively.
 The latter also calls the former within `ssl_tls.c`; a linker wrapper on the
 former alone cannot intercept that internal call. Global allocation-size
 matching is unsuitable because this same SDK unit also allocates variable-length
-ticket and copied-session data. The next adapter must select exact typed init
-requests within a borrowed-context scope and end selection after initialization;
+ticket and copied-session data. The implemented adapter above selects typed init
+requests within a borrowed-context scope and ends selection after initialization;
 wrapup clears negotiating pointers again, so missing-pointer tests alone are
 not a sufficient general classifier. Test equal-sized unrelated requests before,
 during and after that phase. Preserve the existing renegotiation, certificate
@@ -104,8 +166,9 @@ active transform/session remain alive; wrapup releases the old state and promote
 the new one. One transform/session slot each is therefore insufficient for that
 existing behavior. Two transforms, two sessions and one handshake record alone
 need 2,904 typed bytes before lease metadata and other crypto allocations.
-This is a source/type-based capacity estimate, not implemented storage or a
-measured handshake peak. TLS record sizes and renegotiation behavior are unchanged.
+That hostname-step result was a source/type-based capacity estimate, before the
+state implementation above, and not a measured handshake peak. TLS record sizes
+and renegotiation behavior are unchanged.
 The ESP-TLS saved-session build guard also does not exclude mbedTLS's internal
 ticket parsing/allocation. Certificates, keys, ticket state and TCP/IP pools remain
 open; the hostname change does not complete static-memory qualification.

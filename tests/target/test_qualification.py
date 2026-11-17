@@ -498,6 +498,8 @@ class QualificationTests(unittest.TestCase):
                  ' -Dmbedtls_zeroize_and_free=c3tout_wipe')
         commands = [dict(file='/sdk/mbedtls/library/ssl_tls.c', command='gcc' + flags)]
         names = ('c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe',
+                 'c3tout_start', 'c3tout_renegotiate',
+                 'mbedtls_ssl_start_renegotiation', 'mbedtls_ssl_renegotiate',
                  'c3tout_set_name', 'mbedtls_ssl_set_hostname',
                  'mbedtls_ssl_setup', 'mbedtls_ssl_free', 'mbedtls_platform_zeroize',
                  'mbedtls_zeroize_and_free', 'mbedtls_calloc', 'mbedtls_free')
@@ -506,10 +508,18 @@ class QualificationTests(unittest.TestCase):
         symbols['c3tout_native_setup'] = symbols['mbedtls_ssl_setup']
         symbols['__wrap_mbedtls_ssl_set_hostname'] = symbols['c3tout_set_name']
         symbols['c3tout_native_name'] = symbols['mbedtls_ssl_set_hostname']
+        for original, wrapper, native in (
+                ('mbedtls_ssl_start_renegotiation', 'c3tout_start', 'c3tout_native_start'),
+                ('mbedtls_ssl_renegotiate', 'c3tout_renegotiate', 'c3tout_native_renegotiate')):
+            symbols['__wrap_' + original] = symbols[wrapper]
+            symbols[native] = symbols[original]
         self.assertEqual(qualification.check_tls_output(commands, symbols, True)['output_slots'], 1)
         self.assertEqual(qualification.check_tls_output(commands, symbols, True)['input_slots'], 1)
         self.assertEqual(qualification.check_tls_output(commands, symbols, True)['hostname_slots'], 1)
         self.assertEqual(qualification.check_tls_output(commands, symbols, True)['hostname_bytes'], 254)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['transform_slots'], 2)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['session_slots'], 2)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['handshake_slots'], 1)
         self.assertEqual(qualification.check_tls_output([], {}, False), {'enabled': False})
         for damaged in ([], commands * 2,
                         commands + [dict(file='/sdk/crypto.c', command='gcc' + flags)],
@@ -522,11 +532,18 @@ class QualificationTests(unittest.TestCase):
             with self.subTest(missing=name), self.assertRaises(qualification.QualificationError):
                 qualification.check_tls_output(commands, {k: v for k, v in symbols.items() if k != name}, True)
         for name in ('c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe', 'c3tout_native_setup',
-                     'c3tout_set_name', 'c3tout_native_name'):
+                     'c3tout_set_name', 'c3tout_native_name', 'c3tout_start',
+                     'c3tout_native_start', 'c3tout_renegotiate', 'c3tout_native_renegotiate'):
             with self.subTest(name=name), self.assertRaises(qualification.QualificationError):
                 qualification.check_tls_output(commands, dict(symbols, **{name: 0x40380000}), True)
         for damaged in (dict(symbols, c3tout_native_setup=symbols['c3tout_setup']),
                         dict(symbols, c3tout_native_name=symbols['c3tout_set_name']),
+                        dict(symbols, c3tout_native_start=symbols['c3tout_start']),
+                        dict(symbols, c3tout_native_renegotiate=symbols['c3tout_renegotiate']),
+                        dict(symbols, __wrap_mbedtls_ssl_start_renegotiation=symbols['mbedtls_ssl_start_renegotiation']),
+                        dict(symbols, __wrap_mbedtls_ssl_renegotiate=symbols['mbedtls_ssl_renegotiate']),
+                        dict(symbols, mbedtls_ssl_session_reset=0x42003000),
+                        dict(symbols, mbedtls_ssl_session_reset_int=0x42003000),
                         dict(symbols, __wrap_mbedtls_ssl_set_hostname=symbols['mbedtls_ssl_set_hostname']),
                         dict(symbols, __wrap_mbedtls_ssl_setup=symbols['mbedtls_ssl_setup'])):
             with self.assertRaises(qualification.QualificationError):

@@ -38,13 +38,13 @@ At the user's request on 17 November, the [ESP HTTPS service](firmware/src/netwo
 and its host setup commands are removed. Full saved-profile setup/recovery uses
 USB; runtime rules/results use MQTT over verified TLS. The host Configuration Desk
 and Home Assistant web interfaces are unchanged. The new image is unflashed.
-MQTT now reserves its full-size TLS input/output buffers and retained broker
-hostname; see the
+MQTT now reserves its full-size TLS input/output buffers, retained broker
+hostname and typed outer handshake state; see the
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
-Continue with the remaining TLS handshake/crypto and TCP/IP allocations.
-The [compiled handshake-state proof](docs/reports/wifi-static-memory/README.md#handshake-state-lifetime-proof)
-now covers both renegotiation entries, retries, failure cleanup and required slot
-counts. Next implement the scoped typed stores; they are not installed in source yet.
+Continue with the remaining certificate/key, ticket and TCP/IP allocations.
+The [fixed handshake-state stores](docs/reports/wifi-static-memory/README.md#fixed-tls-handshake-state)
+retain active records while renegotiation prepares replacements. Scoped setup
+and both renegotiation entries preserve SDK ownership and deterministic exhaustion.
 The simulated Runtime Desk and Home Assistant walkthrough is complete. Continue
 independent TLS checks and defer steps that need operator input. The
 [MQTT connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)

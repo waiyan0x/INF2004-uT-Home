@@ -13,6 +13,7 @@ from unicorn import UC_HOOK_CODE
 from unicorn.riscv_const import UC_RISCV_REG_A0
 from .tls_fragment_probe import CONFIG, SSL
 from .tls_output_probe import OutputProbe, record_storage
+from .tls_state_probe import assert_storage, reserve_slots, state_storage
 
 
 def hostname_storage(path):
@@ -80,6 +81,7 @@ class NameProbe(OutputProbe):
 
 def verify(path):
     storage = hostname_storage(path)
+    states = state_storage(path)
     probe = NameProbe(path)
     address, capacity = storage['address'], storage['capacity']
     for slot in record_storage(path).values():
@@ -122,17 +124,22 @@ def verify(path):
     probe.run('mbedtls_ssl_free', other)
 
     # Failed TLS setup must retain the name until full SDK cleanup releases it.
-    for failure in (1, 2, 3):
+    for kind in states:
         probe.run('mbedtls_ssl_init', owner)
         assert probe.set_name(owner, b'broker.local') == 0
-        probe.fail_call = len(probe.allocations) + failure
+        reserved = reserve_slots(probe, states, kind)
+        before = len(probe.allocations)
         assert probe.run('c3tout_setup', owner, CONFIG) != 0
+        assert len(probe.allocations) == before
         assert probe.field(owner, 'hostname') == address
         assert bytes(probe.uc.mem_read(address, 13)) == b'broker.local\0'
         probe.run('mbedtls_ssl_free', owner)
-        assert not probe.live
+        assert_storage(probe, states, reserved)
+        for pointer, content in reserved.items():
+            assert bytes(probe.uc.mem_read(pointer, len(content))) == content
+            probe.run('c3tout_free', pointer)
+        assert_storage(probe, states, [])
         assert bytes(probe.uc.mem_read(address, capacity)) == bytes(capacity)
-        probe.fail_call = None
 
     for _ in range(100):
         probe.run('mbedtls_ssl_init', owner)
@@ -141,7 +148,7 @@ def verify(path):
         assert probe.field(owner, 'hostname') == address
         assert bytes(probe.uc.mem_read(address, 13)) == b'broker.local\0'
         probe.run('mbedtls_ssl_free', owner)
-        assert not probe.live
+        assert_storage(probe, states, [])
         assert bytes(probe.uc.mem_read(address, capacity)) == bytes(capacity)
 
     before = len(probe.allocations)

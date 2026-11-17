@@ -436,12 +436,13 @@ existing SDK-header spelling adaptation and no owned assembly. The
 covers SDK types, pointer lifetime, allocation scope and interrupt restoration.
 No new deviation or naming exception is introduced.
 
-`c3tout` owns fixed TLS input/output buffers and the retained connection hostname;
+`c3tout` owns fixed TLS buffers, the retained hostname and typed handshake state;
 `touttest` is its host SDK-call
 double. Both use C99 and matching module prefixes. The adapter accesses the
 pinned private TLS layout and retains the original setup/cleanup algorithm;
 SDK headers stay outside the owned-code audit. See the
-[manual review](firmware/hal/ports/esp32c3/network/README.md#tls-output-c-review).
+[manual reviews](firmware/hal/ports/esp32c3/network/README.md#tls-output-c-review)
+and [state review](firmware/hal/ports/esp32c3/network/README.md#state-storage-c-review).
 No new language, formatter or compatibility exception is added.
 
 `tlspeer` is the host-only real-TLS compatibility fixture. It uses C99, typed

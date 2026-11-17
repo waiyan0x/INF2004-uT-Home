@@ -96,8 +96,9 @@ allocation in Wi-Fi service builds; it does not remove packet/connection/TLS
 allocations. `c3tls` now bounds ESP-TLS contexts, error trackers and temporary
 hostname scratch for the single MQTT connection. Its
 source-scoped bindings retain the SDK lifecycle and reject exhaustion without
-heap fallback. Encryption buffers, certificates/keys and retained mbedTLS names
-are still separate open paths; see the [TLS record contract](../../hal/ports/esp32c3/network/README.md#fixed-esp-tls-records).
+heap fallback. `c3tout` now also owns record buffers, the retained mbedTLS name
+and typed outer handshake state. Certificates/keys, ticket contents and remaining
+TCP/IP storage are still open; see the [TLS storage contracts](../../hal/ports/esp32c3/network/README.md#fixed-tls-handshake-state).
 Fixed native queue/task pools and a passing linker budget do not qualify these
 allocations; bounded allocation remediation and runtime measurements remain open.
 No-network and isolated radio fixtures do not qualify the combined application.

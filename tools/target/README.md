@@ -373,37 +373,45 @@ the real SDK setup, buffer-pointer initialization and cleanup code. It doubles
 the heap, ROM byte-copy functions and PSA hash setup/abort; it does not perform
 a TLS handshake, network I/O or hardware timing. The MQTT context must receive
 its aligned input/output pair, a second must fail without heap fallback,
-release must erase and reuse both slots, and injected failures at each of the
-remaining setup allocations must leave no simulated heap objects. The report
+release must erase and reuse both slots, and any remaining setup heap failures
+must leave no simulated heap objects. Current setup state is fixed; the state
+probe below injects exhaustion for those records. The report
 records the ELF hash, DWARF/linked buffer capacities and original SDK execution
 counts. The ELF is not modified.
 
 ## TLS handshake-state lifetime probe
 
-`tls_state_probe.py` exercises the compiled SDK's state-object lifecycle before
-implementing fixed typed stores. Use the existing optional Unicorn/pyelftools
+`tls_state_probe.py` exercises compiled SDK lifecycle instructions using the
+actual fixed typed stores. Use the existing optional Unicorn/pyelftools
 environment, the qualified Wi-Fi ELF and its matching passing memory report:
 
 ```powershell
-python -B -m tools.target.tls_state_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --memory-report build/tls-name-fixed-20261117/memory.json --output build/tls-state/new-sdk-report.json
+python -B -m tools.target.tls_state_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --memory-report build/tls-state-fixed-20261117/memory-final.json --output build/tls-state/new-sdk-report.json
 ```
 
 Create the output directory first. Assertions must remain enabled; existing
 reports and mismatched ELF/memory identities reject. SDK types are checked from
-DWARF. Both `mbedtls_ssl_start_renegotiation` and `mbedtls_ssl_renegotiate` run
-100 cycles plus 100 in-progress retries each. Tests check separate old/new
-pointers, retained active bytes, promotion, release and final cleanup. All three
-allocation failures run through each entry. Independent one-transform and
-one-session count limits must fail while preserving the active state.
+DWARF and ELF symbols identify two typed transforms, two sessions, one handshake
+record and their leases. Both owned renegotiation wrappers run 100 cycles plus
+100 in-progress retries each through native SDK code. Tests check separate
+old/new pointers, retained active bytes, promotion, full-record erasure and
+cleanup with zero state-record heap requests. Eight native reinitialization
+cases retain existing records and replace only missing ones. Occupied-slot
+injection tests each state kind through setup and both renegotiation entries:
+nine failures must preserve active/reserved storage without heap fallback.
+Selection must end before hash setup or handshake progression; equal-sized
+requests outside initialization still reach the SDK allocator. Old heap-state
+images and either linked session-reset API reject.
 
-This uses a simulated allocator with proposed slot counts, not implemented fixed
-firmware storage. Heap, ROM byte operations and PSA hash calls are doubled;
+The linked stores and lease code are real; heap, ROM byte operations and PSA
+hash calls are doubled. Missing-record injection releases empty outer records;
 `mbedtls_ssl_handshake` returns WANT_READ through a double. Empty crypto state is
 advanced directly to native wrapup. No authentication, encrypted handshake,
 cipher handover, radio or runtime peak is tested. The current ELF has no linked
-session-reset API, and the probe does not claim reset coverage. The memory result
-is a typed-payload projection excluding metadata, certificates, keys, tickets
-and TCP/IP allocations. See the [current assessment](../../docs/reports/wifi-static-memory/README.md#handshake-state-lifetime-proof).
+session-reset API, and the probe does not claim reset coverage. Memory headroom
+comes from the matching linked-image report, including scope/lease metadata;
+runtime peaks and remaining certificates, keys, tickets and TCP/IP allocations
+are unqualified. See the [current assessment](../../docs/reports/wifi-static-memory/README.md#fixed-tls-handshake-state).
 
 ## TLS retained-hostname probe
 
@@ -421,7 +429,7 @@ It compares copied names and context flags with the unwrapped SDK setter,
 including maximum/short/empty names and NULL clearing. The unwrapped reference
 must allocate, while wrapped calls must not. It also checks overlength rejection
 without replacing the old name, second-context exhaustion, reuse, each of the
-three remaining setup-allocation failures, unrelated allocation forwarding and
+three occupied-state setup failures, unrelated allocation forwarding and
 100 complete setup/free cycles. The report records the ELF hash and SDK counts.
 
 Heap, ROM byte/string functions (including `strlen`) and PSA hash operations are

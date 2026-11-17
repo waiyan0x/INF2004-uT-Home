@@ -1,6 +1,6 @@
 /**
  * @file c3tout.c
- * @brief Retain MQTT TLS buffers and hostname through SDK retries/cleanup.
+ * @brief Retain MQTT TLS records through SDK retries and cleanup.
  */
 /* Buffer lengths and setup state belong to the pinned SDK's private ABI. */
 #define MBEDTLS_ALLOW_PRIVATE_ACCESS
@@ -18,8 +18,16 @@
 #error "Fixed TLS buffers require distinct sizes without buffer resizing."
 #endif
 
+#if !defined(MBEDTLS_SSL_PROTO_TLS1_2) || !defined(MBEDTLS_SSL_CLI_C) ||       \
+    !defined(MBEDTLS_SSL_RENEGOTIATION) ||                                     \
+    defined(MBEDTLS_SSL_PROTO_TLS1_3) || defined(MBEDTLS_SSL_SRV_C) ||         \
+    defined(MBEDTLS_SSL_PROTO_DTLS)
+#error "Fixed TLS state requires the reviewed TLS 1.2 client profile."
+#endif
+
 #define C3TOUT_SLOTS      1U
 #define C3TOUT_NAME_BYTES 254U
+#define C3TOUT_STATES     2U
 
 typedef union
 {
@@ -33,24 +41,61 @@ typedef union
     unsigned char bytes[MBEDTLS_SSL_IN_BUFFER_LEN];
 } c3tout_input_t;
 
-static c3tout_buffer_t       g_buffers[C3TOUT_SLOTS]       = {0};
-static bool                  gb_used[C3TOUT_SLOTS]         = {false};
-static c3tout_input_t        g_inputs[C3TOUT_SLOTS]        = {0};
-static bool                  gb_input_used[C3TOUT_SLOTS]   = {false};
-static mbedtls_ssl_context * gp_setup                      = NULL;
-static char                  g_hostname[C3TOUT_NAME_BYTES] = {0};
-static bool                  gb_name_used                  = false;
-static mbedtls_ssl_context * gp_name                       = NULL;
-static size_t                g_name_size                   = 0U;
+static c3tout_buffer_t              g_buffers[C3TOUT_SLOTS]          = {0};
+static bool                         gb_used[C3TOUT_SLOTS]            = {false};
+static c3tout_input_t               g_inputs[C3TOUT_SLOTS]           = {0};
+static bool                         gb_input_used[C3TOUT_SLOTS]      = {false};
+static mbedtls_ssl_context *        gp_setup                         = NULL;
+static char                         g_hostname[C3TOUT_NAME_BYTES]    = {0};
+static bool                         gb_name_used                     = false;
+static mbedtls_ssl_context *        gp_name                          = NULL;
+static size_t                       g_name_size                      = 0U;
+static mbedtls_ssl_transform        g_transforms[C3TOUT_STATES]      = {0};
+static bool                         gb_transform_used[C3TOUT_STATES] = {false};
+static mbedtls_ssl_session          g_sessions[C3TOUT_STATES]        = {0};
+static bool                         gb_session_used[C3TOUT_STATES]   = {false};
+static mbedtls_ssl_handshake_params g_handshakes[C3TOUT_SLOTS]       = {0};
+static bool                         gb_handshake_used[C3TOUT_SLOTS]  = {false};
+static mbedtls_ssl_context *        gp_state                         = NULL;
+static uint32_t                     g_state_pending                  = 0U;
+static void begin_state (mbedtls_ssl_context * p_ssl);
+static bool select_state (size_t count, size_t size, void ** pp_memory);
+static bool release_state (void * p_memory);
 static bool release (void * p_memory);
 
 /** @brief Scope allocation selection to this synchronous SDK setup call. */
 int c3tout_setup (mbedtls_ssl_context *      p_ssl,
                   const mbedtls_ssl_config * p_config)
 {
-    gp_setup         = p_ssl;
+    gp_setup = p_ssl;
+    begin_state(p_ssl);
     const int result = c3tout_native_setup(p_ssl, p_config);
     gp_setup         = NULL;
+    begin_state(NULL);
+    return result;
+}
+
+/** @brief HelloRequest entry always initializes negotiating records. */
+int c3tout_start (mbedtls_ssl_context * p_ssl)
+{
+    begin_state(p_ssl);
+    const int result = c3tout_native_start(p_ssl);
+    begin_state(NULL);
+    return result;
+}
+
+/** @brief New renegotiation initializes; in-progress retries do not. */
+int c3tout_renegotiate (mbedtls_ssl_context * p_ssl)
+{
+    if ((NULL != p_ssl) && (NULL != p_ssl->MBEDTLS_PRIVATE(conf)) &&
+        (MBEDTLS_SSL_HANDSHAKE_OVER == p_ssl->MBEDTLS_PRIVATE(state)) &&
+        (MBEDTLS_SSL_RENEGOTIATION_IN_PROGRESS !=
+         p_ssl->MBEDTLS_PRIVATE(renego_status)))
+    {
+        begin_state(p_ssl);
+    }
+    const int result = c3tout_native_renegotiate(p_ssl);
+    begin_state(NULL);
     return result;
 }
 
@@ -81,6 +126,11 @@ int c3tout_set_name (mbedtls_ssl_context * p_ssl, const char * p_hostname)
  */
 void * c3tout_alloc (size_t count, size_t size)
 {
+    void * p_state = NULL;
+    if (select_state(count, size, &p_state))
+    {
+        return p_state;
+    }
     if ((NULL != gp_name) && (1U == count) && (0U != g_name_size) &&
         (g_name_size == size) && (NULL == gp_name->MBEDTLS_PRIVATE(hostname)))
     {
@@ -128,7 +178,7 @@ void * c3tout_alloc (size_t count, size_t size)
     return mbedtls_calloc(count, size);
 }
 
-/** @brief SDK setup failure uses ordinary free on both selected buffers. */
+/** @brief SDK failure cleanup releases selected records without heap free. */
 void c3tout_free (void * p_memory)
 {
     if (!release(p_memory))
@@ -151,6 +201,10 @@ void c3tout_wipe (void * p_memory, size_t size)
  */
 static bool release (void * p_memory)
 {
+    if (release_state(p_memory))
+    {
+        return true;
+    }
     for (size_t index = 0U; index < C3TOUT_SLOTS; ++index)
     {
         if (p_memory == g_inputs[index].bytes)
@@ -172,6 +226,117 @@ static bool release (void * p_memory)
     {
         mbedtls_platform_zeroize(g_hostname, sizeof(g_hostname));
         gb_name_used = false;
+        return true;
+    }
+    return false;
+}
+
+/** @brief Snapshot missing outer records; existing ones are reused by the SDK.
+ */
+static void begin_state (mbedtls_ssl_context * p_ssl)
+{
+    gp_state        = p_ssl;
+    g_state_pending = 0U;
+    if (NULL != p_ssl)
+    {
+        if (NULL == p_ssl->MBEDTLS_PRIVATE(transform_negotiate))
+        {
+            g_state_pending |= 1U;
+        }
+        if (NULL == p_ssl->MBEDTLS_PRIVATE(session_negotiate))
+        {
+            g_state_pending |= 2U;
+        }
+        if (NULL == p_ssl->MBEDTLS_PRIVATE(handshake))
+        {
+            g_state_pending |= 4U;
+        }
+    }
+}
+
+/** @brief Follow the pinned SDK's uninterrupted transform/session/handshake
+ * initialization sequence. Consume an attempt even when its store is full;
+ * routing ends before checksum setup, callbacks or handshake progression.
+ */
+static bool select_state (size_t count, size_t size, void ** pp_memory)
+{
+    if ((NULL == gp_state) || (1U != count) ||
+        (NULL == gp_state->MBEDTLS_PRIVATE(in_buf)) ||
+        (NULL == gp_state->MBEDTLS_PRIVATE(out_buf)))
+    {
+        return false;
+    }
+    if ((0U != (g_state_pending & 1U)) && (sizeof(g_transforms[0]) == size) &&
+        (NULL == gp_state->MBEDTLS_PRIVATE(transform_negotiate)))
+    {
+        g_state_pending &= ~1U;
+        for (size_t index = 0U; index < C3TOUT_STATES; ++index)
+        {
+            if (!gb_transform_used[index])
+            {
+                memset(&g_transforms[index], 0, sizeof(g_transforms[index]));
+                gb_transform_used[index] = true;
+                *pp_memory               = &g_transforms[index];
+                break;
+            }
+        }
+        return true;
+    }
+    if ((2U == (g_state_pending & 3U)) && (sizeof(g_sessions[0]) == size) &&
+        (NULL == gp_state->MBEDTLS_PRIVATE(session_negotiate)))
+    {
+        g_state_pending &= ~2U;
+        for (size_t index = 0U; index < C3TOUT_STATES; ++index)
+        {
+            if (!gb_session_used[index])
+            {
+                memset(&g_sessions[index], 0, sizeof(g_sessions[index]));
+                gb_session_used[index] = true;
+                *pp_memory             = &g_sessions[index];
+                break;
+            }
+        }
+        return true;
+    }
+    if ((4U == g_state_pending) && (sizeof(g_handshakes[0]) == size) &&
+        (NULL == gp_state->MBEDTLS_PRIVATE(handshake)))
+    {
+        g_state_pending = 0U;
+        if (!gb_handshake_used[0])
+        {
+            memset(&g_handshakes[0], 0, sizeof(g_handshakes[0]));
+            gb_handshake_used[0] = true;
+            *pp_memory           = &g_handshakes[0];
+        }
+        return true;
+    }
+    return false;
+}
+
+/** @brief Release exact typed identities after the SDK has freed interiors. */
+static bool release_state (void * p_memory)
+{
+    for (size_t index = 0U; index < C3TOUT_STATES; ++index)
+    {
+        if (p_memory == &g_transforms[index])
+        {
+            mbedtls_platform_zeroize(&g_transforms[index],
+                                     sizeof(g_transforms[index]));
+            gb_transform_used[index] = false;
+            return true;
+        }
+        if (p_memory == &g_sessions[index])
+        {
+            mbedtls_platform_zeroize(&g_sessions[index],
+                                     sizeof(g_sessions[index]));
+            gb_session_used[index] = false;
+            return true;
+        }
+    }
+    if (p_memory == &g_handshakes[0])
+    {
+        mbedtls_platform_zeroize(&g_handshakes[0], sizeof(g_handshakes[0]));
+        gb_handshake_used[0] = false;
         return true;
     }
     return false;

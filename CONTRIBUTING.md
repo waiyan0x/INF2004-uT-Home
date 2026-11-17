@@ -178,10 +178,11 @@ and the host Configuration Desk/Home Assistant web interfaces remain available.
 This supersedes the earlier requirement to retain MQTT plus two HTTPS sessions.
 
 `c3tls` and `c3tout` now reserve one MQTT context/error record and full-size
-input/output buffers and the retained broker hostname.
+input/output buffers, the retained broker hostname and typed outer handshake
+state, including overlapping active/negotiating transform and session records.
 The [removal verification](firmware/src/network/README.md#esp-https-removal) and
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
-record the fresh build and measured headroom. TLS handshake/crypto and TCP/IP state
+record the fresh build and measured headroom. Remaining crypto and TCP/IP state
 still need bounded storage. Keep full record limits and certificate checks while
 designing that storage. The pinned dynamic-buffer option remains rejected because
 it loses partial headers across nonblocking retries. No cap increase or new

@@ -10,7 +10,7 @@ resource limits, build instructions, manual reviews and qualification evidence.
 | `c3boot` | Bounded native startup pool for selected static-network builds |
 | `c3lbox` | lwIP mailbox identities bound to the existing fixed queue payloads |
 | `c3tls` | Fixed ESP-TLS contexts, error trackers and temporary hostname storage |
-| `c3tout` | Fixed MQTT input/output buffers and retained hostname; scoped SDK calls |
+| `c3tout` | Fixed MQTT buffers, hostname and typed TLS state; scoped SDK calls |
 | `c3lrec` | Fixed typed lwIP connection and datagram-envelope records |
 | `c3nq`, `c3event` | Native queue/event synchronization and fixed resource bindings |
 | `c3ewait` | Stateless native notification, clock and context boundary for events |
@@ -184,8 +184,8 @@ scope. This changes storage, not certificate verification or SNI behavior.
 
 ### TLS output C review
 
-The original output adapter now also owns input and hostname storage; its existing
-public prefix is retained. This review covers all three fixed leases.
+The original output adapter now also owns input, hostname and typed state storage;
+its existing public prefix is retained.
 
 Reviewed `c3tout.c/.h` and `touttest.c/.h` against the BARR-C checklist: C99,
 paired modules, named prototypes, fixed-width counters, initialized state,
@@ -227,6 +227,58 @@ both erasure paths, unrelated requests and 1,000 connection/failure cycles.
 The compiled name probe compares the original setter with the fixed-storage
 wrapper, then exercises native setup failures and cleanup. ROM `strlen` is doubled;
 the SDK setter and its flag/copy/error paths execute their real instructions.
+
+## Fixed TLS handshake state
+
+`c3tout` also reserves two actual `mbedtls_ssl_transform` objects, two actual
+`mbedtls_ssl_session` objects and one `mbedtls_ssl_handshake_params` object.
+The active transform/session remain alive while renegotiation prepares their
+replacements. The SDK owns initialization, promotion, interior crypto cleanup
+and release order; exact-pointer release erases the full outer object before
+its lease becomes reusable. Exhaustion returns NULL without a state-record
+heap fallback. Certificates, keys and ticket contents still use SDK allocation.
+
+Setup and both renegotiation entries call the unchanged SDK through checked
+aliases. Both `mbedtls_ssl_start_renegotiation` and `mbedtls_ssl_renegotiate`
+must be wrapped: the latter's same-source call to the former bypasses a linker
+wrapper. `c3tout_renegotiate` arms selection only for a new, valid renegotiation;
+an in-progress retry does not. `c3tout_start` always scopes initialization,
+including reuse of existing outer records. A borrowed context and pending bits
+identify missing records in the
+pinned SDK's transform/session/handshake order, after both record buffers exist.
+Each attempted allocation consumes its bit, including exhaustion. Selection
+ends before checksum setup and handshake progression, so later equal-sized
+ticket or copied-session requests retain the SDK path even after promotion
+clears negotiating pointers. Existing outer records are reused by the SDK.
+
+This depends on the pinned SDK's uninterrupted initialization sequence, not
+general allocation-size classification. Calls belong to one serialized owner;
+callbacks must not reenter these wrappers. The build rejects server, DTLS and
+TLS 1.3 profiles, requires TLS 1.2 client renegotiation, and rejects linked
+session-reset APIs until their initialization paths receive separate review.
+Neither record limits nor certificate verification are changed.
+
+### State storage C review
+
+The 17 November review covers the added `c3tout` and `touttest` code against the
+full project BARR-C checklist. Ordinary C99, paired headers, public prefixes,
+named prototypes and SDK function signatures are retained. Typed arrays supply
+native alignment and lifetime without casts or byte-buffer type punning.
+`size_t` carries sizes/indices; the pending mask uses unsigned `uint32_t`
+operations. Searches are bounded by two records, and the handshake store has
+one entry. State is initialized before use and scopes clear at every return.
+Exact-pointer matching does not dereference foreign pointers. SDK interior
+cleanup precedes erasure and release of the outer record. No ISR, MMIO, lock,
+task, language/naming exception or dependency change is added.
+
+Host doubles retain the borrowed configuration for the context lifetime and
+reject disabled assertions. They cover all eight missing-record combinations,
+active/negotiating coexistence, setup and renegotiation exhaustion, retries,
+both release paths, zeroing/reuse and out-of-phase equal-sized allocations.
+Their opaque typed records do not simulate crypto cleanup. Compiled SDK probes
+separately exercise native lifecycle instructions against the real typed stores.
+Fresh checks, build identity and limits are in the
+[resource assessment](../../../../../docs/reports/wifi-static-memory/README.md#fixed-tls-handshake-state).
 
 ## Fixed lwIP records
 

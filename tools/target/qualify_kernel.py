@@ -752,7 +752,8 @@ def check_tls_output(commands, symbols, enabled):
             raise QualificationError('TLS output binding escaped its source: ' + name)
         observed += bool(expected)
     owned = (*bindings.values(), 'c3tout_setup', 'c3tout_native_setup',
-             'c3tout_set_name', 'c3tout_native_name')
+             'c3tout_set_name', 'c3tout_native_name', 'c3tout_start',
+             'c3tout_native_start', 'c3tout_renegotiate', 'c3tout_native_renegotiate')
     if not enabled:
         if any(name in symbols for name in owned):
             raise QualificationError('TLS output storage escaped selected Wi-Fi services')
@@ -770,13 +771,24 @@ def check_tls_output(commands, symbols, enabled):
             or symbols.get('mbedtls_ssl_set_hostname') != symbols['c3tout_native_name']
             or symbols['c3tout_set_name'] == symbols['c3tout_native_name']):
         raise QualificationError('TLS hostname must wrap, then call the unchanged SDK setter')
+    for original, wrapper, native in (
+            ('mbedtls_ssl_start_renegotiation', 'c3tout_start', 'c3tout_native_start'),
+            ('mbedtls_ssl_renegotiate', 'c3tout_renegotiate', 'c3tout_native_renegotiate')):
+        if (symbols.get('__wrap_' + original) != symbols[wrapper]
+                or symbols.get(original) != symbols[native]
+                or symbols[wrapper] == symbols[native]):
+            raise QualificationError('TLS renegotiation must wrap both unchanged SDK entries')
+    if any(name in symbols for name in ('mbedtls_ssl_session_reset',
+                                        'mbedtls_ssl_session_reset_int')):
+        raise QualificationError('TLS session reset has no reviewed fixed-state scope')
     for name in ('mbedtls_ssl_free', 'mbedtls_platform_zeroize', 'mbedtls_zeroize_and_free',
                  'mbedtls_calloc', 'mbedtls_free'):
         if name not in symbols:
             raise QualificationError('Selected SDK TLS lifecycle missing: ' + name)
     return dict(enabled=True, allocator_sources=['ssl_tls.c'], bindings=bindings,
                 input_slots=1, output_slots=1, hostname_slots=1, hostname_bytes=254,
-                qualification='Record buffers and connection hostname only; crypto heap paths remain open')
+                transform_slots=2, session_slots=2, handshake_slots=1,
+                qualification='Record buffers, hostname and outer TLS state only; crypto heap paths remain open')
 
 
 def verify_tls_output(work, enabled):
