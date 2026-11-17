@@ -28,6 +28,15 @@ int c3tout_native_start (mbedtls_ssl_context * p_ssl);
 int c3tout_renegotiate (mbedtls_ssl_context * p_ssl);
 int c3tout_native_renegotiate (mbedtls_ssl_context * p_ssl);
 
+/* One temporary typed chain head and one retained peer digest follow the native
+ * parser's allocation/free order. The SDK frees a matching old digest before
+ * replacement during renegotiation; mismatches and later failures retain their
+ * native semantics. Inner certificates/keys still use SDK allocation. Parsing
+ * is synchronous and must not reenter this wrapper through callbacks.
+ */
+int c3tout_certificate (mbedtls_ssl_context * p_ssl);
+int c3tout_native_certificate (mbedtls_ssl_context * p_ssl);
+
 /* Copy at most 253 hostname characters, matching MQTT admission. The borrowed
  * name must remain immutable through this call and must not alias SDK storage.
  * NULL retains the SDK's clear-name behavior. Invalid length preserves the old
@@ -39,7 +48,8 @@ int c3tout_native_name (mbedtls_ssl_context * p_ssl, const char * p_hostname);
 
 /* Bound only into ssl_tls.c. Its setup uses one input and one output buffer,
  * its scoped hostname setter uses one persistent name, and setup/renegotiation
- * initialize typed state records in the pinned SDK order. Fixed leases have
+ * initialize typed state records in the pinned SDK order. Certificate parsing
+ * selects its temporary chain head and retained digest. Fixed leases have
  * no heap fallback on exhaustion. Other requests keep
  * the SDK allocator; this is not whole-TLS static-memory qualification.
  */

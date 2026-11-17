@@ -437,6 +437,36 @@ doubled. The pinned SDK uses PSA errors -135 for invalid input and -141 for
 insufficient memory. This checks name storage and native setter semantics;
 it does not test certificate authentication, a handshake, radio or timing.
 
+## TLS certificate-record probe
+
+`tls_certificate_probe.py` runs native certificate framing, identity and ownership
+instructions with the actual linked stores. Use the existing optional
+Unicorn/pyelftools environment with a DWARF-enabled Wi-Fi ELF:
+
+```powershell
+python -B -m tools.target.tls_certificate_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --expect fixed --output build/tls-certificate/new-sdk-report.json
+```
+
+Create the output directory first; disabled assertions and existing reports
+reject. `--expect heap` calls the unwrapped native parser as an allocation-positive
+reference, including on the fixed image. It must issue 202 outer allocations
+across initial parsing and 100 renegotiations; the fixed wrapper must issue none.
+DWARF and symbols bind the 952-byte native chain head and 32-byte digest to their
+leases. Both stores must erase and be reusable after native cleanup.
+
+Seven error cases cover a recovered read retry, malformed framing, a changed
+certificate, DER error, verification error, replacement-hash error and key-import
+error. The probe distinguishes preserved old digests from the SDK's deliberate
+clear-after-match behavior. Two occupied-store failures check deterministic
+exhaustion without fallback. The unwrapped reference injects the corresponding
+heap allocation failures. Both paths must retain the same native outcomes.
+
+It uses one synthetic certificate. Record reading, DER parsing, trust validation,
+SHA-256 calculation, public-key import, alerts, heap, ROM helpers and hash/handshake
+progress are doubled. DER internals, multi-certificate chains, authentication,
+encrypted handshake, runtime peaks and hardware remain untested. See the
+[current record assessment](../../docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records).
+
 ## TLS input lifetime and capacity probe
 
 `tls_input_probe.py` runs the existing SDK's receive path from a qualified,

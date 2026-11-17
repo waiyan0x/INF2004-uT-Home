@@ -10,6 +10,85 @@ full-profile setup/recovery uses USB. The host Desk and Home Assistant web
 interfaces remain available. No Wi-Fi-driver exception automatically exempts
 TLS, TCP/IP or ESP-TLS contexts.
 
+### Fixed peer certificate records
+
+The latest 17 November change reserves one typed 952-byte temporary peer-chain
+head and one 32-byte retained peer-certificate digest in `c3tout`. A scoped wrapper
+preserves the native parser and its failure semantics. The old digest coexists
+with the head during renegotiation; after a successful identity comparison the
+SDK frees the old digest before creating its replacement. One digest slot is
+sufficient, while the head requires separate storage. Exact-pointer release
+erases both stores. Exhaustion fails without a fallback allocation. See the
+[contract and manual C review](../../../firmware/hal/ports/esp32c3/network/README.md#fixed-peer-certificate-records).
+
+All **92 affected tests**, the full **333-file pinned C gate**, manual BARR-C
+review, fresh warnings-as-errors ESP build, exact source snapshot and all memory
+reservations passed. The 25 adapter tests were rerun after replacing a literal
+test-loop bound with the named digest length; the full gate passed again.
+The production image did not change during that fixture correction.
+
+The [compiled certificate-record probe](../../../tools/target/README.md#tls-certificate-record-probe)
+passed initial parsing and **100 renegotiations**, **seven error cases** including
+a recovered read retry, and exhaustion of each store. The unwrapped native
+reference on the same ELF made **202 outer-record allocations**; the fixed
+wrapper made **zero** across the successful lifecycle. Both produced matching
+error outcomes and retained/cleared digest states. A changed certificate retains
+the old digest; errors after the identity match may leave it cleared, preserving
+the SDK contract. Released stores are zero and reusable. The previous allocating
+ELF is rejected as a fixed-storage image. Disabled assertions and report overwrite
+also reject. Existing state, buffer, hostname, receive/read and connect-retry
+probes passed on this exact new ELF.
+
+The probe executes native framing, identity decisions, promotion and cleanup,
+using one synthetic certificate. DER parsing, trust verification, digest/key
+operations, record reading, alerts, heap and ROM/hash helpers are doubled.
+It does not establish authentication, multi-certificate chain behavior, encrypted
+handshakes, runtime heap/stack peaks, radio or hardware acceptance. Inner chain
+nodes, names, sequences, CA/key material, tickets and TCP/IP remain open. Full
+peer-certificate retention, restartable ECP, another default digest length and
+linked saved-session copy/get/set/load paths are rejected until separately reviewed.
+
+| Fixed-memory group | Linked bytes | Unchanged cap | Headroom |
+|---|---:|---:|---:|
+| Application | 143,123 | 147,456 | 4,333 |
+| Task pool | 18,499 | 18,560 | 61 |
+| SDK/kernel | 54,250 | 55,296 | 1,046 |
+| RAM code | 56,386 | 57,152 | 766 |
+| Total DRAM | 272,258 | 278,528 | 6,270 |
+| RTC, separate from DRAM | 60 | 128 | 68 |
+
+`c3tout` uses **25,332/25,344 bytes**. The new stores add 984 payload bytes plus
+10 bytes of scope/lease metadata. The module reservation uses existing application
+space; aggregate caps, dependency revisions, TLS record limits and certificate
+checks are unchanged. The image remains **unflashed** at
+`C:/Users/kkak4/esp/uthome-tls-certificate-fixed-20261117/`.
+Application SHA-256:
+`01b0bb333904a1df2baa33dda5922e1dfb455972ef7a2c6607432ed13c38e85d`.
+ELF SHA-256:
+`82fb66c0aabc6637301d0201fad73cb6e803c9dfd167b641d6c47cb86881a060`.
+`evidence.json` SHA-256:
+`501100eb7c3daa992cc72fcbfae5b1c9ddc6fbc1a17976192a10925829685331`.
+Private build/test/probe evidence is under `build/tls-certificate-fixed-20261117/`.
+No board, serial port, hotspot or live Home Assistant service was accessed.
+
+**Ticket capacity needs a separate decision.** The selected SDK enables internal
+TLS 1.2 tickets even though ESP-TLS saved-session support is disabled. The native
+ticket parser allocates in `ssl_tls12_client.c`, outside the current `ssl_tls.c`
+allocation boundary. A private software probe on the unchanged preceding ELF
+(`d058e63ba2b153a0e813f71b5764f07f73f0f5c1c4a87e3358542352f41c7983`)
+confirmed accepted tickets of 32, 5,328 and **16,374 bytes**, plus zero-length,
+malformed-message, replacement and allocation-failure behavior. A 16,374-byte
+ticket fits one full plaintext record and already exceeds even that image's
+5,327-byte headroom by 11,047 bytes, before other crypto/TCP/IP storage. This is
+a demonstrated accepted size, not a claimed maximum or runtime peak.
+
+The ticket proof injects plaintext and doubles record reading, alerts, handshake,
+hash/ROM helpers and heap. Session-copy/get/set and application saved-session
+APIs are absent from that ELF. Silently choosing a smaller ticket slot would
+reduce current accepted behavior. Changing ticket support/admission remains
+deferred; this step leaves it unchanged. Whole-system resource qualification
+and the physical MQTT timeout investigation are still open.
+
 ### Fixed TLS handshake state
 
 The 17 November implementation now gives `c3tout` two typed transforms, two

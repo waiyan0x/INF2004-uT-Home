@@ -14,8 +14,14 @@ typedef struct
 
 typedef struct
 {
-    uint32_t words[36];
+    uint8_t * p_digest;
+    uint8_t   bytes[144U - sizeof(uint8_t *)];
 } touttest_session_t;
+
+typedef struct
+{
+    uint32_t words[238];
+} touttest_certificate_t;
 
 typedef struct
 {
@@ -25,6 +31,7 @@ typedef struct
 typedef struct
 {
     uint32_t failure;
+    uint32_t certificate_case;
 } touttest_config_t;
 
 typedef struct
@@ -48,6 +55,8 @@ int touttest_setup (touttest_context_t *      p_ssl,
 int touttest_name (touttest_context_t * p_ssl, const char * p_hostname);
 int touttest_start (touttest_context_t * p_ssl);
 int touttest_renegotiate (touttest_context_t * p_ssl);
+int touttest_certificate (touttest_context_t * p_ssl);
+touttest_certificate_t * touttest_head (void);
 void touttest_promote (touttest_context_t * p_ssl);
 void * touttest_alloc (size_t count, size_t size);
 void touttest_free (void * p_memory);

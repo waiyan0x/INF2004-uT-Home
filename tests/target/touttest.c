@@ -13,8 +13,10 @@
 #error "Host checks require assertions."
 #endif
 
-static uint32_t g_counts[8] = {0};
+static uint32_t                 g_counts[8] = {0};
+static touttest_certificate_t * gp_head     = NULL;
 static int state_init (touttest_context_t * p_ssl);
+static void clear_digest (touttest_session_t * p_session);
 static void other (size_t count, size_t size);
 static void other_states (void);
 
@@ -146,6 +148,91 @@ int touttest_renegotiate (touttest_context_t * p_ssl)
     return touttest_start(p_ssl);
 }
 
+/** @brief Model parser ownership/failure order, without certificate crypto. */
+int touttest_certificate (touttest_context_t * p_ssl)
+{
+    const uint32_t scenario    = p_ssl->p_config->certificate_case;
+    const size_t   digest_size = MBEDTLS_SSL_PEER_CERT_DIGEST_DFL_LEN;
+    if (1U == scenario)
+    {
+        return -0x6900;
+    }
+    clear_digest(p_ssl->p_session_new);
+    if (7U == scenario)
+    {
+        other(1U, digest_size);
+        other(2U, sizeof(touttest_certificate_t));
+        other(1U, sizeof(touttest_certificate_t) - 1U);
+    }
+    gp_head = c3tout_alloc(1U, sizeof(touttest_certificate_t));
+    if (NULL == gp_head)
+    {
+        return -141;
+    }
+    for (size_t index = 0U; index < sizeof(gp_head->words) / sizeof(uint32_t);
+         ++index)
+    {
+        assert(0U == gp_head->words[index]);
+    }
+    memset(gp_head, 0xA5, sizeof(*gp_head));
+    if (6U == scenario)
+    {
+        /* A test-only retained lease injects head exhaustion on the next call.
+         */
+        return -200;
+    }
+    if (7U == scenario)
+    {
+        other(1U, digest_size);
+        other(1U, sizeof(touttest_certificate_t));
+    }
+    if (2U == scenario)
+    {
+        c3tout_free(gp_head);
+        return -0x7A00;
+    }
+    if ((NULL != p_ssl->p_session) && (1 == p_ssl->renegotiation))
+    {
+        for (size_t index = 0U; index < digest_size; ++index)
+        {
+            assert(0xD3U == p_ssl->p_session->p_digest[index]);
+        }
+        clear_digest(p_ssl->p_session);
+    }
+    c3tout_free(gp_head);
+    if (3U == scenario)
+    {
+        return -0x2700;
+    }
+    if (4U == scenario)
+    {
+        return -0x7100;
+    }
+    if (7U == scenario)
+    {
+        other(1U, sizeof(touttest_certificate_t));
+        other(2U, digest_size);
+    }
+    p_ssl->p_session_new->p_digest = c3tout_alloc(1U, digest_size);
+    if (NULL == p_ssl->p_session_new->p_digest)
+    {
+        return -141;
+    }
+    memset(p_ssl->p_session_new->p_digest, 0xD3, digest_size);
+    if (7U == scenario)
+    {
+        other(1U, digest_size);
+        other(1U, sizeof(touttest_certificate_t));
+    }
+    return (5U == scenario) ? -0x7180 : 0;
+}
+
+/** @brief Observe the last initial head lease, including after its release. */
+touttest_certificate_t * touttest_head (void)
+{
+    return gp_head;
+}
+
 /** @brief Model outer-record promotion; native SDK probes cover inner cleanup.
  */
 void touttest_promote (touttest_context_t * p_ssl)
@@ -257,6 +344,13 @@ static int state_init (touttest_context_t * p_ssl)
         other_states();
     }
     return 0;
+}
+
+/** @brief Model only the SDK's outer session digest cleanup. */
+static void clear_digest (touttest_session_t * p_session)
+{
+    c3tout_free(p_session->p_digest);
+    p_session->p_digest = NULL;
 }
 
 /** @brief An unrelated allocation must reach the counted SDK heap exactly once.

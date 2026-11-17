@@ -753,7 +753,8 @@ def check_tls_output(commands, symbols, enabled):
         observed += bool(expected)
     owned = (*bindings.values(), 'c3tout_setup', 'c3tout_native_setup',
              'c3tout_set_name', 'c3tout_native_name', 'c3tout_start',
-             'c3tout_native_start', 'c3tout_renegotiate', 'c3tout_native_renegotiate')
+             'c3tout_native_start', 'c3tout_renegotiate', 'c3tout_native_renegotiate',
+             'c3tout_certificate', 'c3tout_native_certificate')
     if not enabled:
         if any(name in symbols for name in owned):
             raise QualificationError('TLS output storage escaped selected Wi-Fi services')
@@ -781,6 +782,14 @@ def check_tls_output(commands, symbols, enabled):
     if any(name in symbols for name in ('mbedtls_ssl_session_reset',
                                         'mbedtls_ssl_session_reset_int')):
         raise QualificationError('TLS session reset has no reviewed fixed-state scope')
+    if (symbols.get('__wrap_mbedtls_ssl_parse_certificate') != symbols['c3tout_certificate']
+            or symbols.get('mbedtls_ssl_parse_certificate') != symbols['c3tout_native_certificate']
+            or symbols['c3tout_certificate'] == symbols['c3tout_native_certificate']):
+        raise QualificationError('TLS certificate parsing must wrap the unchanged SDK parser')
+    if any(name in symbols for name in ('mbedtls_ssl_session_copy', 'mbedtls_ssl_get_session',
+                                        'mbedtls_ssl_set_session', 'mbedtls_ssl_session_load',
+                                        'mbedtls_ssl_context_load')):
+        raise QualificationError('TLS saved sessions have no reviewed certificate storage lifecycle')
     for name in ('mbedtls_ssl_free', 'mbedtls_platform_zeroize', 'mbedtls_zeroize_and_free',
                  'mbedtls_calloc', 'mbedtls_free'):
         if name not in symbols:
@@ -788,7 +797,8 @@ def check_tls_output(commands, symbols, enabled):
     return dict(enabled=True, allocator_sources=['ssl_tls.c'], bindings=bindings,
                 input_slots=1, output_slots=1, hostname_slots=1, hostname_bytes=254,
                 transform_slots=2, session_slots=2, handshake_slots=1,
-                qualification='Record buffers, hostname and outer TLS state only; crypto heap paths remain open')
+                certificate_slots=1, peer_digest_slots=1, peer_digest_bytes=32,
+                qualification='Buffers, hostname, outer TLS state, peer-chain head and digest only; crypto heap paths remain open')
 
 
 def verify_tls_output(work, enabled):

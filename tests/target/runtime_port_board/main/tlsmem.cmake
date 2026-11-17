@@ -57,5 +57,10 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
         "-Wl,--undefined=mbedtls_ssl_renegotiate"
         "-Wl,--wrap=mbedtls_ssl_renegotiate"
         "-Wl,--defsym=__wrap_mbedtls_ssl_renegotiate=c3tout_renegotiate"
-        "-Wl,--defsym=c3tout_native_renegotiate=__real_mbedtls_ssl_renegotiate")
+        "-Wl,--defsym=c3tout_native_renegotiate=__real_mbedtls_ssl_renegotiate"
+        "-Wl,--undefined=c3tout_certificate"
+        "-Wl,--undefined=mbedtls_ssl_parse_certificate"
+        "-Wl,--wrap=mbedtls_ssl_parse_certificate"
+        "-Wl,--defsym=__wrap_mbedtls_ssl_parse_certificate=c3tout_certificate"
+        "-Wl,--defsym=c3tout_native_certificate=__real_mbedtls_ssl_parse_certificate")
 endif()

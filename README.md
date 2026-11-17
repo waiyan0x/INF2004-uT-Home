@@ -39,9 +39,14 @@ and its host setup commands are removed. Full saved-profile setup/recovery uses
 USB; runtime rules/results use MQTT over verified TLS. The host Configuration Desk
 and Home Assistant web interfaces are unchanged. The new image is unflashed.
 MQTT now reserves its full-size TLS input/output buffers, retained broker
-hostname and typed outer handshake state; see the
+hostname, typed outer handshake state, temporary certificate head and retained
+peer fingerprint; see the
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
-Continue with the remaining certificate/key, ticket and TCP/IP allocations.
+Continue with the remaining inner certificate/key, ticket and TCP/IP allocations.
+The [certificate record work](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records)
+preserves the native validation and renegotiation lifecycle. The ticket capacity
+check found an accepted ticket larger than the available application headroom;
+any change to ticket support/admission remains deferred for a policy decision.
 The [fixed handshake-state stores](docs/reports/wifi-static-memory/README.md#fixed-tls-handshake-state)
 retain active records while renegotiation prepares replacements. Scoped setup
 and both renegotiation entries preserve SDK ownership and deterministic exhaustion.

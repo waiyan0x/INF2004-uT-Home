@@ -21,7 +21,11 @@
 #if !defined(MBEDTLS_SSL_PROTO_TLS1_2) || !defined(MBEDTLS_SSL_CLI_C) ||       \
     !defined(MBEDTLS_SSL_RENEGOTIATION) ||                                     \
     defined(MBEDTLS_SSL_PROTO_TLS1_3) || defined(MBEDTLS_SSL_SRV_C) ||         \
-    defined(MBEDTLS_SSL_PROTO_DTLS)
+    defined(MBEDTLS_SSL_PROTO_DTLS) ||                                         \
+    defined(MBEDTLS_SSL_KEEP_PEER_CERTIFICATE) ||                              \
+    defined(MBEDTLS_ECP_RESTARTABLE) ||                                        \
+    defined(MBEDTLS_SSL_ECP_RESTARTABLE_ENABLED) ||                            \
+    (32 != MBEDTLS_SSL_PEER_CERT_DIGEST_DFL_LEN)
 #error "Fixed TLS state requires the reviewed TLS 1.2 client profile."
 #endif
 
@@ -58,7 +62,14 @@ static mbedtls_ssl_handshake_params g_handshakes[C3TOUT_SLOTS]       = {0};
 static bool                         gb_handshake_used[C3TOUT_SLOTS]  = {false};
 static mbedtls_ssl_context *        gp_state                         = NULL;
 static uint32_t                     g_state_pending                  = 0U;
+static mbedtls_x509_crt             g_certificate                    = {0};
+static bool                         gb_certificate_used              = false;
+static uint8_t g_peer_digest[MBEDTLS_SSL_PEER_CERT_DIGEST_DFL_LEN]   = {0};
+static bool    gb_digest_used                                        = false;
+static mbedtls_ssl_context * gp_certificate                          = NULL;
+static uint32_t              g_cert_phase                            = 0U;
 static void begin_state (mbedtls_ssl_context * p_ssl);
+static bool select_certificate (size_t count, size_t size, void ** pp_memory);
 static bool select_state (size_t count, size_t size, void ** pp_memory);
 static bool release_state (void * p_memory);
 static bool release (void * p_memory);
@@ -99,6 +110,18 @@ int c3tout_renegotiate (mbedtls_ssl_context * p_ssl)
     return result;
 }
 
+/** @brief Scope native parsing without changing verification or failure state.
+ */
+int c3tout_certificate (mbedtls_ssl_context * p_ssl)
+{
+    gp_certificate   = p_ssl;
+    g_cert_phase     = 1U;
+    const int result = c3tout_native_certificate(p_ssl);
+    gp_certificate   = NULL;
+    g_cert_phase     = 0U;
+    return result;
+}
+
 /** @brief Scope the SDK setter while preserving its copy, flags and cleanup. */
 int c3tout_set_name (mbedtls_ssl_context * p_ssl, const char * p_hostname)
 {
@@ -127,7 +150,8 @@ int c3tout_set_name (mbedtls_ssl_context * p_ssl, const char * p_hostname)
 void * c3tout_alloc (size_t count, size_t size)
 {
     void * p_state = NULL;
-    if (select_state(count, size, &p_state))
+    if ((select_state(count, size, &p_state)) ||
+        (select_certificate(count, size, &p_state)))
     {
         return p_state;
     }
@@ -201,6 +225,22 @@ void c3tout_wipe (void * p_memory, size_t size)
  */
 static bool release (void * p_memory)
 {
+    if (p_memory == &g_certificate)
+    {
+        mbedtls_platform_zeroize(&g_certificate, sizeof(g_certificate));
+        gb_certificate_used = false;
+        if ((NULL != gp_certificate) && (2U == g_cert_phase))
+        {
+            g_cert_phase = 3U;
+        }
+        return true;
+    }
+    if (p_memory == g_peer_digest)
+    {
+        mbedtls_platform_zeroize(g_peer_digest, sizeof(g_peer_digest));
+        gb_digest_used = false;
+        return true;
+    }
     if (release_state(p_memory))
     {
         return true;
@@ -226,6 +266,45 @@ static bool release (void * p_memory)
     {
         mbedtls_platform_zeroize(g_hostname, sizeof(g_hostname));
         gb_name_used = false;
+        return true;
+    }
+    return false;
+}
+
+/** @brief Select the peer-chain head, then its digest only after head release.
+ * The pinned parser frees the prior matching digest before requesting a new
+ * one. Consume each request even on exhaustion; later requests stay SDK-owned.
+ */
+static bool select_certificate (size_t count, size_t size, void ** pp_memory)
+{
+    if ((NULL == gp_certificate) || (1U != count))
+    {
+        return false;
+    }
+    if ((1U == g_cert_phase) && (sizeof(g_certificate) == size))
+    {
+        g_cert_phase = 0U;
+        if (!gb_certificate_used)
+        {
+            memset(&g_certificate, 0, sizeof(g_certificate));
+            gb_certificate_used = true;
+            g_cert_phase        = 2U;
+            *pp_memory          = &g_certificate;
+        }
+        return true;
+    }
+    if ((3U == g_cert_phase) && (sizeof(g_peer_digest) == size) &&
+        (NULL != gp_certificate->MBEDTLS_PRIVATE(session_negotiate)) &&
+        (NULL == gp_certificate->MBEDTLS_PRIVATE(session_negotiate)
+                     ->MBEDTLS_PRIVATE(peer_cert_digest)))
+    {
+        g_cert_phase = 0U;
+        if (!gb_digest_used)
+        {
+            memset(g_peer_digest, 0, sizeof(g_peer_digest));
+            gb_digest_used = true;
+            *pp_memory     = g_peer_digest;
+        }
         return true;
     }
     return false;

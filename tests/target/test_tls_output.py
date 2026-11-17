@@ -11,6 +11,8 @@ ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_BYTES = 4429
 INPUT_BYTES = 16717
 NAME_BYTES = 254
+CERTIFICATE_BYTES = 952
+DIGEST_BYTES = 32
 STATE_SIZES = {'transform_new': 84, 'session_new': 144, 'handshake': 2448,
                'transform': 84, 'session': 144}
 
@@ -25,7 +27,11 @@ class Context(c.Structure):
 
 
 class Config(c.Structure):
-    _fields_ = [('failure', c.c_uint32)]
+    _fields_ = [('failure', c.c_uint32), ('certificate_case', c.c_uint32)]
+
+
+class Session(c.Structure):
+    _fields_ = [('digest', c.c_void_p), ('bytes', c.c_uint8 * (144 - c.sizeof(c.c_void_p)))]
 
 
 class TlsOutputTests(unittest.TestCase):
@@ -44,9 +50,10 @@ class TlsOutputTests(unittest.TestCase):
         (cls.directory / 'mbedtls/ssl.h').write_text(
             '#include "touttest.h"\n#define MBEDTLS_PRIVATE(field) field\n'
             '#define MBEDTLS_ERR_SSL_BAD_INPUT_DATA (-135)\n'
+            '#define MBEDTLS_SSL_PEER_CERT_DIGEST_DFL_LEN 32\n'
             '#define MBEDTLS_SSL_HANDSHAKE_OVER 16\n'
             '#define MBEDTLS_SSL_RENEGOTIATION_IN_PROGRESS 1\n')
-        for header in ('mbedtls/platform.h', 'mbedtls/platform_util.h'):
+        for header in ('mbedtls/platform.h', 'mbedtls/platform_util.h', 'mbedtls/x509_crt.h'):
             (cls.directory / header).write_text('#include "touttest.h"\n')
         (cls.directory / 'ssl_misc.h').write_text(
             '#define MBEDTLS_SSL_IN_BUFFER_LEN 16717\n'
@@ -62,6 +69,8 @@ class TlsOutputTests(unittest.TestCase):
                  '-Dmbedtls_ssl_transform=touttest_transform_t',
                  '-Dmbedtls_ssl_session=touttest_session_t',
                  '-Dmbedtls_ssl_handshake_params=touttest_handshake_t',
+                 '-Dmbedtls_x509_crt=touttest_certificate_t',
+                 '-Dpeer_cert_digest=p_digest',
                  '-Din_buf=p_in_buf', '-Dout_buf=p_out_buf', '-Dhostname=p_hostname',
                  '-Dconf=p_config', '-Dtransform_negotiate=p_transform_new',
                  '-Dsession_negotiate=p_session_new', '-Dhandshake=p_handshake',
@@ -70,6 +79,7 @@ class TlsOutputTests(unittest.TestCase):
                  '-Dc3tout_native_name=touttest_name',
                  '-Dc3tout_native_start=touttest_start',
                  '-Dc3tout_native_renegotiate=touttest_renegotiate',
+                 '-Dc3tout_native_certificate=touttest_certificate',
                  '-Dmbedtls_calloc=touttest_alloc',
                  '-Dmbedtls_free=touttest_free',
                  '-Dmbedtls_platform_zeroize=touttest_zeroize',
@@ -104,6 +114,8 @@ class TlsOutputTests(unittest.TestCase):
                 ('c3tout_set_name', [c.POINTER(Context), c.c_char_p], c.c_int),
                 ('c3tout_start', [c.POINTER(Context)], c.c_int),
                 ('c3tout_renegotiate', [c.POINTER(Context)], c.c_int),
+                ('c3tout_certificate', [c.POINTER(Context)], c.c_int),
+                ('touttest_head', [], c.c_void_p),
                 ('touttest_promote', [c.POINTER(Context)], None),
                 ('c3tout_alloc', [c.c_size_t, c.c_size_t], c.c_void_p),
                 ('c3tout_free', [c.c_void_p], None),
@@ -115,8 +127,11 @@ class TlsOutputTests(unittest.TestCase):
         self.contexts = []
         self.configs = []
         self.reserved = []
+        self.certificate_contexts = []
 
     def tearDown(self):
+        for context in self.certificate_contexts:
+            self.close_certificate(context)
         for context in self.contexts:
             self.close(context)
         for pointer in self.reserved:
@@ -143,6 +158,22 @@ class TlsOutputTests(unittest.TestCase):
         for pointer in self.reserved:
             self.lib.c3tout_free(pointer)
         self.reserved.clear()
+
+    def certificate(self, context, scenario=0):
+        if context not in self.certificate_contexts:
+            self.certificate_contexts.append(context)
+        Config.from_address(context.config).certificate_case = scenario
+        return self.lib.c3tout_certificate(c.byref(context))
+
+    def close_certificate(self, context):
+        for field in ('session', 'session_new'):
+            address = getattr(context, field)
+            if address:
+                session = Session.from_address(address)
+                if session.digest:
+                    self.lib.c3tout_free(session.digest)
+                    session.digest = None
+        self.close(context)
 
     def test_hostname_copy_boundaries_replacement_and_clear(self):
         context = Context()
@@ -474,6 +505,117 @@ class TlsOutputTests(unittest.TestCase):
         self.assertEqual(self.lib.c3tout_renegotiate(c.byref(context)), -0x6900)
         self.assertEqual(self.lib.touttest_count(0), before + 12)
 
+    def test_certificate_head_and_digest_reuse_through_renegotiation(self):
+        result, context = self.open()
+        self.assertEqual(result, 0)
+        self.assertEqual(self.certificate(context), 0)
+        head = self.lib.touttest_head()
+        digest = Session.from_address(context.session_new).digest
+        self.assertTrue(head and digest)
+        self.assertNotEqual(head, digest)
+        for _ in range(100):
+            self.lib.touttest_promote(c.byref(context))
+            previous = context.session
+            self.assertEqual(self.lib.c3tout_start(c.byref(context)), -0x6900)
+            self.assertEqual(self.certificate(context), 0)
+            self.assertFalse(Session.from_address(previous).digest)
+            self.assertEqual(Session.from_address(context.session_new).digest, digest)
+            self.assertEqual(self.lib.touttest_head(), head)
+            self.assertEqual(c.string_at(digest, DIGEST_BYTES), b'\xd3' * DIGEST_BYTES)
+            self.assertEqual(c.string_at(head, CERTIFICATE_BYTES), bytes(CERTIFICATE_BYTES))
+        self.assertEqual(self.lib.touttest_count(0), 0)
+        self.close_certificate(context)
+        self.assertEqual(c.string_at(digest, DIGEST_BYTES), bytes(DIGEST_BYTES))
+
+    def test_certificate_failures_preserve_native_digest_ownership_and_clear_scope(self):
+        for scenario, expected in ((1, -0x6900), (2, -0x7A00), (3, -0x2700),
+                                   (4, -0x7100), (5, -0x7180)):
+            with self.subTest(scenario=scenario):
+                result, context = self.open()
+                self.assertEqual(result, 0)
+                self.assertEqual(self.certificate(context), 0)
+                digest = Session.from_address(context.session_new).digest
+                self.lib.touttest_promote(c.byref(context))
+                self.assertEqual(self.lib.c3tout_start(c.byref(context)), -0x6900)
+                before = self.lib.touttest_count(0)
+                self.assertEqual(self.certificate(context, scenario), expected)
+                old = Session.from_address(context.session).digest
+                new = Session.from_address(context.session_new).digest
+                self.assertEqual(old, digest if scenario in (1, 2) else None)
+                self.assertEqual(new, digest if scenario == 5 else None)
+                self.assertEqual(self.lib.touttest_count(0), before)
+                self.assertEqual(c.string_at(self.lib.touttest_head(), CERTIFICATE_BYTES),
+                                 bytes(CERTIFICATE_BYTES))
+                if old or new:
+                    self.assertEqual(c.string_at(digest, DIGEST_BYTES), b'\xd3' * DIGEST_BYTES)
+                else:
+                    self.assertEqual(c.string_at(digest, DIGEST_BYTES), bytes(DIGEST_BYTES))
+                for size in (CERTIFICATE_BYTES, DIGEST_BYTES):
+                    pointer = self.lib.c3tout_alloc(1, size)
+                    self.assertTrue(pointer)
+                    self.lib.c3tout_free(pointer)
+                self.assertEqual(self.lib.touttest_count(0), before + 2)
+                self.close_certificate(context)
+
+    def test_certificate_head_exhaustion_preserves_lease_and_both_releases_erase(self):
+        for wipe in (False, True):
+            result, context = self.open()
+            self.assertEqual(result, 0)
+            # The double intentionally retains one acquired head for occupancy injection.
+            self.assertEqual(self.certificate(context, 6), -200)
+            head = self.lib.touttest_head()
+            self.reserved.append(head)
+            before = self.lib.touttest_count(0)
+            self.assertEqual(self.certificate(context), -141)
+            self.assertFalse(Session.from_address(context.session_new).digest)
+            self.assertEqual(self.lib.touttest_count(0), before)
+            self.assertEqual(c.string_at(head, CERTIFICATE_BYTES), b'\xa5' * CERTIFICATE_BYTES)
+            if wipe:
+                self.lib.c3tout_wipe(head, 1)
+            else:
+                self.lib.c3tout_free(head)
+            self.reserved.remove(head)
+            self.assertEqual(c.string_at(head, CERTIFICATE_BYTES), bytes(CERTIFICATE_BYTES))
+            self.assertEqual(self.certificate(context), 0)
+            self.assertEqual(self.lib.touttest_head(), head)
+            self.close_certificate(context)
+
+    def test_certificate_digest_exhaustion_has_no_fallback_and_both_releases_erase(self):
+        for wipe in (False, True):
+            result, context = self.open()
+            self.assertEqual(result, 0)
+            self.assertEqual(self.certificate(context), 0)
+            session = Session.from_address(context.session_new)
+            digest = session.digest
+            self.reserved.append(digest)
+            session.digest = None  # retain the lease outside the parser as an occupancy control
+            before = self.lib.touttest_count(0)
+            self.assertEqual(self.certificate(context), -141)
+            self.assertFalse(session.digest)
+            self.assertEqual(self.lib.touttest_count(0), before)
+            self.assertEqual(c.string_at(digest, DIGEST_BYTES), b'\xd3' * DIGEST_BYTES)
+            if wipe:
+                self.lib.c3tout_wipe(digest, 1)
+            else:
+                self.lib.c3tout_free(digest)
+            self.reserved.remove(digest)
+            self.assertEqual(c.string_at(digest, DIGEST_BYTES), bytes(DIGEST_BYTES))
+            self.assertEqual(self.certificate(context), 0)
+            self.assertEqual(session.digest, digest)
+            self.close_certificate(context)
+
+    def test_unrelated_certificate_shapes_and_phase_requests_keep_sdk_path(self):
+        result, context = self.open()
+        self.assertEqual(result, 0)
+        self.assertEqual(self.certificate(context, 7), 0)
+        self.assertEqual(self.lib.touttest_count(0), 9)
+        for size in (CERTIFICATE_BYTES, DIGEST_BYTES):
+            pointer = self.lib.c3tout_alloc(1, size)
+            self.assertTrue(pointer)
+            self.lib.c3tout_free(pointer)
+        self.assertEqual(self.lib.touttest_count(0), 11)
+        self.close_certificate(context)
+
     def test_variable_buffers_are_rejected_before_build(self):
         result = subprocess.run([*self.command, '-DMBEDTLS_SSL_VARIABLE_BUFFER_LENGTH',
                                  '-o', str(self.directory / 'rejected.o')], capture_output=True, text=True)
@@ -482,7 +624,8 @@ class TlsOutputTests(unittest.TestCase):
 
     def test_unsupported_tls_state_profiles_are_rejected_before_build(self):
         for profile in ('MBEDTLS_SSL_PROTO_TLS1_3', 'MBEDTLS_SSL_SRV_C',
-                        'MBEDTLS_SSL_PROTO_DTLS'):
+                        'MBEDTLS_SSL_PROTO_DTLS', 'MBEDTLS_SSL_KEEP_PEER_CERTIFICATE',
+                        'MBEDTLS_ECP_RESTARTABLE', 'MBEDTLS_SSL_ECP_RESTARTABLE_ENABLED'):
             with self.subTest(profile=profile):
                 result = subprocess.run([*self.command, '-D' + profile,
                                          '-o', str(self.directory / 'rejected.o')],

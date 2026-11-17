@@ -10,7 +10,7 @@ resource limits, build instructions, manual reviews and qualification evidence.
 | `c3boot` | Bounded native startup pool for selected static-network builds |
 | `c3lbox` | lwIP mailbox identities bound to the existing fixed queue payloads |
 | `c3tls` | Fixed ESP-TLS contexts, error trackers and temporary hostname storage |
-| `c3tout` | Fixed MQTT buffers, hostname and typed TLS state; scoped SDK calls |
+| `c3tout` | Fixed MQTT buffers, hostname, outer TLS state and certificate records |
 | `c3lrec` | Fixed typed lwIP connection and datagram-envelope records |
 | `c3nq`, `c3event` | Native queue/event synchronization and fixed resource bindings |
 | `c3ewait` | Stateless native notification, clock and context boundary for events |
@@ -279,6 +279,55 @@ Their opaque typed records do not simulate crypto cleanup. Compiled SDK probes
 separately exercise native lifecycle instructions against the real typed stores.
 Fresh checks, build identity and limits are in the
 [resource assessment](../../../../../docs/reports/wifi-static-memory/README.md#fixed-tls-handshake-state).
+
+## Fixed peer certificate records
+
+The selected parser uses one actual `mbedtls_x509_crt` chain head (952 bytes)
+temporarily and retains one 32-byte peer-certificate digest. Both now belong to
+`c3tout`. The head and old digest can coexist while parsing a renegotiation
+message, so they have separate stores. The unchanged SDK checks that the peer's
+certificate matches its old digest, frees that digest after a match, then later
+creates the replacement. One digest slot therefore suffices for the selected
+client lifecycle. A mismatch preserves the old digest; a later parse or verify
+failure may leave it cleared, exactly as the SDK does.
+
+`c3tout_certificate` wraps the unchanged `mbedtls_ssl_parse_certificate` call.
+Its borrowed context and phases select the exact typed head request first;
+only release of that head permits selection of the next digest request. Each
+request consumes its phase even on exhaustion, and all returns clear the scope.
+Unrelated request shapes and requests during head use or after digest selection
+retain the SDK allocator. Selected exhaustion returns NULL without fallback.
+Exact-pointer cleanup erases the complete store before publishing its free lease.
+The pinned parser's direct allocation/free sequence and serialized, nonrecursive
+callback contract remain required; this is not general size-based allocation.
+
+The SDK still performs certificate validation and identity comparison. This
+change does not alter trust roots, server-name checks, TLS record limits or
+ticket behavior. The DER input remains borrowed from the existing receive buffer.
+Additional chain nodes, parsed names, sequences and keys still allocate through
+their original SDK units. The build rejects full peer-certificate retention,
+restartable ECP and a different default digest length. It also rejects linked
+session copy/get/set/load or context-load APIs: those require separate lifetimes.
+
+### Certificate storage C review
+
+Reviewed the added `c3tout` and `touttest` code against the project's full BARR-C
+checklist on 17 November. The code remains C99 with matching public headers and
+SDK-compatible declarations. The head has its native type, alignment and lifetime;
+the digest is a byte array. No casts, type punning, new task, lock, ISR, MMIO or
+exception is introduced. The unsigned phase has four documented states and
+no unbounded operations. SDK interior cleanup precedes complete outer erasure;
+foreign pointers are compared without dereference. All wrapper returns clear
+the borrowed scope. Host doubles keep configuration pointers alive, reject
+disabled assertions, use named loop bounds and keep their opaque record sizes
+separate from the real target ABI proof.
+
+Host checks cover repeated reuse, old/new ownership, retry and failure paths,
+both stores' exhaustion, both free paths and unrelated allocations across phases.
+The compiled probe separately executes native message framing, identity decisions,
+promotion and cleanup. DER parsing, trust verification, digest/key operations,
+record reading and alerts are doubled; it is not authentication or hardware proof.
+See the [fresh evidence and remaining work](../../../../../docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records).
 
 ## Fixed lwIP records
 
