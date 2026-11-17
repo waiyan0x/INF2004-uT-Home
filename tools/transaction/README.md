@@ -753,6 +753,48 @@ Private evidence is under `build/transport-fix-20261117/`, including
 records. Remaining TLS allocations, runtime peaks and combined HA acceptance
 are still open; the old HA VM instability remains separate.
 
+#### Diagnostic idle-transition trace
+
+A further approved backed-up trial on 17 November used the same checked
+`11dac9bed9c9f15224c87ce2f2836459c5d4fe51` diagnostic image identified above.
+The unchanged bench completed **398/398** normal-profile status queries across
+the same USB/no-USB/90-second-pause sequence. MQTT failure, replacement and
+discard counters stayed zero. Five fresh pre-Apply queries also passed.
+
+The single approved idle Apply completed in 64 ms, saving profile 944 /
+CRC 2760408070 and advancing generation 1 to 2. All **14** subsequent status
+queries timed out during the bounded recovery window. USB remained responsive,
+uptime increased continuously, and no unexpected reboot occurred. No idle
+quiet/keepalive phase, rule load or peripheral transaction was performed because
+idle readiness never arrived.
+
+This trace narrows that failure to connection setup before TLS payloads:
+
+- Three new ESP TCP connections each emitted 13 SYN packets. The first had
+  five host SYN-ACKs but no completing ESP ACK in the capture; the other two
+  had no captured host SYN-ACK. All 39 complete SYN headers had valid IPv4/TCP
+  checksums. None of these three connections carried payload bytes.
+- MQTT failures rose to three. Wi-Fi still reported an address initially,
+  then reported reason 200 (`WIFI_REASON_BEACON_TIMEOUT`) about 72 seconds
+  after Apply and reason 201 (`WIFI_REASON_NO_AP_FOUND`) on subsequent attempts.
+  These names were checked against the pinned SDK. Windows also recorded the
+  ESP neighbour as unreachable before restoration.
+- The operator reported no change to the hotspot phone. This single run does
+  not locate the fault in the ESP, hotspot or link, or prove Apply caused it;
+  earlier normal-profile stalls remain separate evidence. Windows IP captures
+  cannot establish over-the-air delivery. No TLS certificate/record defect or
+  firmware fix is established by this observation.
+
+The full original 4 MiB flash was restored and independently verified against
+the preserved original hash above; active/saved profile 943 and its original
+CRC returned. All three workers reported zero errors/timeouts. The five final
+MQTT queries still timed out, despite a reachable neighbour and a later
+established TCP connection; that control's cause was not isolated. The two
+captures and broker exited successfully, port 8883 closed, and the entry laptop
+network was restored with the temporary profile removed. HA services were
+unchanged. Private evidence and derived checks are under
+`build/mqtt-idle-trace-20261117/trial-results.json`. No owned C changed.
+
 ## One-shot codec and diagnostic client
 
 The low-level client remains useful for packet inspection and isolated tests:
