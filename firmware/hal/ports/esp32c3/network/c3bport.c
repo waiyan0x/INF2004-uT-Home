@@ -19,6 +19,12 @@ void c3bport_leave (uint32_t saved)
     enaint(saved);
 }
 
+/** @brief Return the native ID, including tasks not created by the SDK shim. */
+int c3bport_task (void)
+{
+    return tk_get_tid();
+}
+
 /** @brief Native RELTIM and the owned millisecond parameter are both uint32. */
 int c3bport_delay (uint32_t milliseconds)
 {

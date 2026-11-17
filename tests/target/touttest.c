@@ -15,10 +15,79 @@
 
 static uint32_t                 g_counts[8] = {0};
 static touttest_certificate_t * gp_head     = NULL;
+static int                      gh_task     = 1;
+static uint32_t                 g_mask      = 0U;
 static int state_init (touttest_context_t * p_ssl);
 static void clear_digest (touttest_session_t * p_session);
 static void other (size_t count, size_t size);
 static void other_states (void);
+
+/** @brief Simulate a native controller ID independent of the SDK shim. */
+int touttest_task (void)
+{
+    return gh_task;
+}
+
+/** @brief Count nested exclusion so early returns cannot hide a lost mask. */
+uint32_t touttest_enter (void)
+{
+    const uint32_t saved = g_mask;
+    ++g_mask;
+    return saved;
+}
+
+/** @brief Verify exact restoration before the next simulated task runs. */
+void touttest_leave (uint32_t saved)
+{
+    assert((saved + 1U) == g_mask);
+    g_mask = saved;
+}
+
+/** @brief Model one PSA input copy; native probes verify state and abort. */
+int32_t touttest_input (touttest_derivation_t * p_operation,
+                        uint16_t                step,
+                        const uint8_t *         p_data,
+                        size_t                  size)
+{
+    (void)step; /* The adapter selects the kind; this double models copying. */
+    assert(0U == g_mask);
+    if (1U == p_operation->failure)
+    {
+        return -137;
+    }
+    if (0U == size)
+    {
+        return 0;
+    }
+    if (2U == p_operation->failure)
+    {
+        void * p_other = c3tout_prf_alloc(2U, size);
+        c3tout_free(p_other);
+    }
+    if (4U == p_operation->failure)
+    {
+        gh_task                = 2;
+        const uint32_t before  = g_counts[0];
+        void *         p_other = c3tout_prf_alloc(1U, size);
+        assert((before + 1U) == g_counts[0]);
+        assert(0U == g_mask);
+        c3tout_free(p_other);
+        gh_task = 1;
+    }
+    p_operation->p_input = c3tout_prf_alloc(1U, size);
+    if (NULL == p_operation->p_input)
+    {
+        return -141;
+    }
+    memcpy(p_operation->p_input, p_data, size);
+    if (3U == p_operation->failure)
+    {
+        c3tout_wipe(p_operation->p_input, size);
+        p_operation->p_input = NULL;
+        return -137;
+    }
+    return 0;
+}
 
 /** @brief Model setup/cleanup call order, without claiming a TLS handshake. */
 int touttest_setup (touttest_context_t *      p_ssl,

@@ -30,6 +30,10 @@ class Config(c.Structure):
     _fields_ = [('failure', c.c_uint32), ('certificate_case', c.c_uint32)]
 
 
+class Derivation(c.Structure):
+    _fields_ = [('alg', c.c_uint32), ('failure', c.c_uint32), ('input', c.c_void_p)]
+
+
 class Session(c.Structure):
     _fields_ = [('digest', c.c_void_p), ('bytes', c.c_uint8 * (144 - c.sizeof(c.c_void_p)))]
 
@@ -45,6 +49,15 @@ class TlsOutputTests(unittest.TestCase):
         cls.addClassCleanup(cls.temp.cleanup)
         cls.directory = Path(cls.temp.name)
         (cls.directory / 'mbedtls').mkdir()
+        (cls.directory / 'psa').mkdir()
+        (cls.directory / 'psa/crypto.h').write_text(
+            '#include "touttest.h"\n'
+            '#define psa_status_t int32_t\n'
+            '#define psa_key_derivation_operation_t touttest_derivation_t\n'
+            '#define psa_key_derivation_step_t uint16_t\n'
+            '#define PSA_ALG_IS_TLS12_PRF(alg) ((alg) == 1U)\n'
+            '#define PSA_KEY_DERIVATION_INPUT_SEED 2U\n'
+            '#define PSA_KEY_DERIVATION_INPUT_LABEL 3U\n')
         # Foreign header spellings map to maintained, conventionally named test
         # types. The target build uses the full, unmodified SDK declarations.
         (cls.directory / 'mbedtls/ssl.h').write_text(
@@ -64,6 +77,11 @@ class TlsOutputTests(unittest.TestCase):
         port = ROOT / 'firmware/hal/ports/esp32c3/network'
         flags = ['-std=c99', '-Wall', '-Wextra', '-Werror', '-pedantic',
                  '-DUTHOME_NETWORK_WIFI=1', '-DUTHOME_STATIC_NET_QUEUES=1',
+                 '-DMBEDTLS_PSA_ASSUME_EXCLUSIVE_BUFFERS',
+                 '-Dpsa_key_derivation_input_bytes=touttest_input',
+                 '-Dc3bport_task=touttest_task', '-Dc3bport_enter=touttest_enter',
+                 '-Dc3bport_leave=touttest_leave',
+                 '-I' + str(ROOT / 'firmware/src/runtime'),
                  '-Dmbedtls_ssl_context=touttest_context_t',
                  '-Dmbedtls_ssl_config=touttest_config_t',
                  '-Dmbedtls_ssl_transform=touttest_transform_t',
@@ -118,6 +136,9 @@ class TlsOutputTests(unittest.TestCase):
                 ('touttest_head', [], c.c_void_p),
                 ('touttest_promote', [c.POINTER(Context)], None),
                 ('c3tout_alloc', [c.c_size_t, c.c_size_t], c.c_void_p),
+                ('c3tout_prf_alloc', [c.c_size_t, c.c_size_t], c.c_void_p),
+                ('c3tout_prf_input', [c.POINTER(Derivation), c.c_uint16,
+                                      c.c_char_p, c.c_size_t], c.c_int32),
                 ('c3tout_free', [c.c_void_p], None),
                 ('c3tout_wipe', [c.c_void_p, c.c_size_t], None),
                 ('touttest_count', [c.c_uint32], c.c_uint32),
@@ -621,6 +642,61 @@ class TlsOutputTests(unittest.TestCase):
                                  '-o', str(self.directory / 'rejected.o')], capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('without buffer resizing', result.stderr)
+
+    def test_prf_copies_coexist_erase_and_reuse(self):
+        for _ in range(100):
+            seed, label = Derivation(1), Derivation(1)
+            for operation, step, size in ((seed, 2, 64), (label, 3, 22)):
+                self.assertEqual(self.lib.c3tout_prf_input(c.byref(operation), step, b'x' * size, size), 0)
+                self.assertEqual(c.string_at(operation.input, size), b'x' * size)
+            self.assertNotEqual(seed.input, label.input)
+            self.lib.c3tout_wipe(seed.input, 1)
+            self.lib.c3tout_free(label.input)
+            self.assertEqual(c.string_at(seed.input, 64), bytes(64))
+            self.assertEqual(c.string_at(label.input, 22), bytes(22))
+        self.assertEqual(self.lib.touttest_count(0), 0)
+
+    def test_prf_exhaustion_boundaries_and_failure_scope(self):
+        for step, capacity in ((2, 64), (3, 22)):
+            first, second = Derivation(1), Derivation(1)
+            self.assertEqual(self.lib.c3tout_prf_input(c.byref(first), step, b'a' * capacity, capacity), 0)
+            self.assertEqual(self.lib.c3tout_prf_input(c.byref(second), step, b'b', 1), -141)
+            self.assertFalse(second.input)
+            self.assertEqual(c.string_at(first.input, capacity), b'a' * capacity)
+            self.lib.c3tout_free(first.input)
+            self.assertEqual(self.lib.c3tout_prf_input(c.byref(second), step, b'b' * (capacity + 1), capacity + 1), -141)
+            for failure in (1, 3):
+                operation = Derivation(1, failure)
+                self.assertEqual(self.lib.c3tout_prf_input(c.byref(operation), step, b'z', 1), -137)
+                self.assertFalse(operation.input)
+            self.assertEqual(self.lib.c3tout_prf_input(c.byref(second), step, b'b', 1), 0)
+            self.assertEqual(c.string_at(second.input, capacity), b'b' + bytes(capacity - 1))
+            self.lib.c3tout_free(second.input)
+        self.assertEqual(self.lib.touttest_count(0), 0)
+
+    def test_prf_unselected_requests_and_empty_inputs(self):
+        operation = Derivation(1)
+        self.assertEqual(self.lib.c3tout_prf_input(c.byref(operation), 2, None, 0), 0)
+        self.assertFalse(operation.input)
+        for alg, step, failure, forwarded in ((0, 2, 0, 1), (1, 4, 0, 1),
+                                              (1, 2, 2, 1), (1, 2, 4, 1), (1, 3, 4, 1)):
+            operation = Derivation(alg, failure)
+            before = self.lib.touttest_count(0)
+            self.assertEqual(self.lib.c3tout_prf_input(c.byref(operation), step, b'z', 1), 0)
+            self.assertEqual(self.lib.touttest_count(0) - before, forwarded)
+            self.lib.c3tout_free(operation.input)
+        for size in (22, 64):
+            before = self.lib.touttest_count(0)
+            pointer = self.lib.c3tout_prf_alloc(1, size)
+            self.assertTrue(pointer)
+            self.assertEqual(self.lib.touttest_count(0), before + 1)
+            self.lib.c3tout_wipe(pointer, size)
+
+    def test_psa_copy_mode_is_rejected_before_build(self):
+        command = [arg for arg in self.command if arg != '-DMBEDTLS_PSA_ASSUME_EXCLUSIVE_BUFFERS']
+        result = subprocess.run([*command, '-o', str(self.directory / 'rejected.o')], capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('PSA direct-input path', result.stderr)
 
     def test_unsupported_tls_state_profiles_are_rejected_before_build(self):
         for profile in ('MBEDTLS_SSL_PROTO_TLS1_3', 'MBEDTLS_SSL_SRV_C',

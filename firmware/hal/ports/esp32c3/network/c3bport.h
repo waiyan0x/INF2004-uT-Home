@@ -10,6 +10,7 @@
 
 uint32_t c3bport_enter (void);
 void c3bport_leave (uint32_t saved);
+int c3bport_task (void);
 int c3bport_delay (uint32_t milliseconds);
 void c3bport_exit (void);
 int c3bport_capture (memaudit_t * p_audit);

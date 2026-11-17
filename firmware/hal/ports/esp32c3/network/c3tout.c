@@ -9,6 +9,7 @@
 #include "ssl_misc.h"
 #include "mbedtls/platform.h"
 #include "mbedtls/platform_util.h"
+#include "c3bport.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -29,9 +30,15 @@
 #error "Fixed TLS state requires the reviewed TLS 1.2 client profile."
 #endif
 
-#define C3TOUT_SLOTS      1U
-#define C3TOUT_NAME_BYTES 254U
-#define C3TOUT_STATES     2U
+#define C3TOUT_SLOTS       1U
+#define C3TOUT_NAME_BYTES  254U
+#define C3TOUT_STATES      2U
+#define C3TOUT_SEED_BYTES  64U
+#define C3TOUT_LABEL_BYTES 22U
+
+#if !defined(MBEDTLS_PSA_ASSUME_EXCLUSIVE_BUFFERS)
+#error "Fixed derivation inputs require the reviewed PSA direct-input path."
+#endif
 
 typedef union
 {
@@ -66,13 +73,84 @@ static mbedtls_x509_crt             g_certificate                    = {0};
 static bool                         gb_certificate_used              = false;
 static uint8_t g_peer_digest[MBEDTLS_SSL_PEER_CERT_DIGEST_DFL_LEN]   = {0};
 static bool    gb_digest_used                                        = false;
-static mbedtls_ssl_context * gp_certificate                          = NULL;
-static uint32_t              g_cert_phase                            = 0U;
+static mbedtls_ssl_context *     gp_certificate                      = NULL;
+static uint32_t                  g_cert_phase                        = 0U;
+static uint8_t                   g_prf_seed[C3TOUT_SEED_BYTES]       = {0};
+static uint8_t                   g_prf_label[C3TOUT_LABEL_BYTES]     = {0};
+static bool                      gb_seed_used                        = false;
+static bool                      gb_label_used                       = false;
+static psa_key_derivation_step_t g_prf_step                          = 0U;
+static size_t                    g_prf_size                          = 0U;
+static int                       gh_prf_owner                        = 0;
 static void begin_state (mbedtls_ssl_context * p_ssl);
 static bool select_certificate (size_t count, size_t size, void ** pp_memory);
 static bool select_state (size_t count, size_t size, void ** pp_memory);
 static bool release_state (void * p_memory);
 static bool release (void * p_memory);
+
+/** @brief Scope only the TLS 1.2 PRF seed/label copies from ssl_tls.c. */
+psa_status_t c3tout_prf_input (psa_key_derivation_operation_t * p_operation,
+                               psa_key_derivation_step_t        step,
+                               const uint8_t *                  p_data,
+                               size_t                           size)
+{
+    const int h_task = c3bport_task();
+    uint32_t  saved  = c3bport_enter();
+    if ((PSA_ALG_IS_TLS12_PRF(p_operation->MBEDTLS_PRIVATE(alg))) &&
+        ((PSA_KEY_DERIVATION_INPUT_SEED == step) ||
+         (PSA_KEY_DERIVATION_INPUT_LABEL == step)))
+    {
+        g_prf_step   = step;
+        g_prf_size   = size;
+        gh_prf_owner = h_task;
+    }
+    c3bport_leave(saved);
+    const psa_status_t result =
+        psa_key_derivation_input_bytes(p_operation, step, p_data, size);
+    saved        = c3bport_enter();
+    gh_prf_owner = 0;
+    g_prf_step   = 0U;
+    g_prf_size   = 0U;
+    c3bport_leave(saved);
+    return result;
+}
+
+/** @brief PSA owns input validation/copying; fixed requests never fall back. */
+void * c3tout_prf_alloc (size_t count, size_t size)
+{
+    void *         p_result   = NULL;
+    bool           b_selected = false;
+    const int      h_task     = c3bport_task();
+    const uint32_t saved      = c3bport_enter();
+    if ((0 < gh_prf_owner) && (h_task == gh_prf_owner) && (0U != g_prf_step) &&
+        (1U == count) && (0U != size) && (g_prf_size == size))
+    {
+        b_selected                           = true;
+        const psa_key_derivation_step_t step = g_prf_step;
+        g_prf_step                           = 0U;
+        if (PSA_KEY_DERIVATION_INPUT_SEED == step)
+        {
+            if ((!gb_seed_used) && (sizeof(g_prf_seed) >= size))
+            {
+                memset(g_prf_seed, 0, sizeof(g_prf_seed));
+                gb_seed_used = true;
+                p_result     = g_prf_seed;
+            }
+        }
+        else if ((!gb_label_used) && (sizeof(g_prf_label) >= size))
+        {
+            memset(g_prf_label, 0, sizeof(g_prf_label));
+            gb_label_used = true;
+            p_result      = g_prf_label;
+        }
+        else
+        {
+            /* An occupied or oversized label retains the NULL result. */
+        }
+    }
+    c3bport_leave(saved);
+    return b_selected ? p_result : mbedtls_calloc(count, size);
+}
 
 /** @brief Scope allocation selection to this synchronous SDK setup call. */
 int c3tout_setup (mbedtls_ssl_context *      p_ssl,
@@ -225,6 +303,18 @@ void c3tout_wipe (void * p_memory, size_t size)
  */
 static bool release (void * p_memory)
 {
+    if (p_memory == g_prf_seed)
+    {
+        mbedtls_platform_zeroize(g_prf_seed, sizeof(g_prf_seed));
+        gb_seed_used = false;
+        return true;
+    }
+    if (p_memory == g_prf_label)
+    {
+        mbedtls_platform_zeroize(g_prf_label, sizeof(g_prf_label));
+        gb_label_used = false;
+        return true;
+    }
     if (p_memory == &g_certificate)
     {
         mbedtls_platform_zeroize(&g_certificate, sizeof(g_certificate));

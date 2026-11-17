@@ -467,6 +467,31 @@ progress are doubled. DER internals, multi-certificate chains, authentication,
 encrypted handshake, runtime peaks and hardware remain untested. See the
 [current record assessment](../../docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records).
 
+## TLS derivation input probe
+
+`tls_prf_probe.py` executes the compiled PSA derivation setup, byte-input and
+abort paths. Use the existing optional Unicorn/pyelftools dependencies and a new
+report path; disabled assertions and report overwrite are rejected:
+
+```powershell
+python -B -m tools.target.tls_prf_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --expect fixed --output build/tls-prf/new-sdk-report.json
+```
+
+`--expect heap` exercises the unwrapped PSA input API, also usable on the previous
+ELF. Two hundred SHA-256/SHA-384 input lifecycles compare seed, secret and label
+copy ownership and cleanup. The fixed path eliminates 400 seed/label heap
+requests; 200 secret copies deliberately remain on the heap. Twenty-five input
+length combinations, invalid ordering/steps, secret-allocation failure, both
+fixed-store exhaustion cases and recovery are checked. Foreign-task cases model
+the owner paused after scope publication; the competing allocation must use the
+SDK heap and leave the owner's fixed slot available.
+
+Layouts come from ELF/DWARF. The probe doubles heap, ROM byte operations, hash
+support setup/abort and native task/interrupt helpers. It does not produce PRF
+output, run a handshake, authenticate a broker or measure hardware concurrency,
+stack use or runtime peaks. See the
+[storage contract](../../firmware/hal/ports/esp32c3/network/README.md#fixed-tls-derivation-inputs).
+
 ## TLS input lifetime and capacity probe
 
 `tls_input_probe.py` runs the existing SDK's receive path from a qualified,

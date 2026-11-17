@@ -743,23 +743,29 @@ def check_tls_output(commands, symbols, enabled):
     bindings = {'mbedtls_calloc': 'c3tout_alloc',
                 'mbedtls_free': 'c3tout_free',
                 'mbedtls_zeroize_and_free': 'c3tout_wipe'}
-    observed = 0
+    source_bindings = {
+        'ssl_tls.c': {**bindings, 'psa_key_derivation_input_bytes': 'c3tout_prf_input'},
+        'psa_crypto.c': {**bindings, 'mbedtls_calloc': 'c3tout_prf_alloc'},
+    }
+    observed = []
     for entry in commands:
         name = Path(entry['file']).name
-        found = re.findall(r'(?:^|\s)-D\s*"?(mbedtls_calloc|mbedtls_free|mbedtls_zeroize_and_free)=([^\s"]+)"?', entry['command'])
-        expected = bindings if enabled and name == 'ssl_tls.c' else {}
+        found = re.findall(r'(?:^|\s)-D\s*"?(mbedtls_calloc|mbedtls_free|mbedtls_zeroize_and_free|psa_key_derivation_input_bytes)=([^\s"]+)"?', entry['command'])
+        expected = source_bindings.get(name, {}) if enabled else {}
         if dict(found) != expected or len(found) != len(expected):
             raise QualificationError('TLS output binding escaped its source: ' + name)
-        observed += bool(expected)
+        if expected:
+            observed.append(name)
     owned = (*bindings.values(), 'c3tout_setup', 'c3tout_native_setup',
              'c3tout_set_name', 'c3tout_native_name', 'c3tout_start',
              'c3tout_native_start', 'c3tout_renegotiate', 'c3tout_native_renegotiate',
-             'c3tout_certificate', 'c3tout_native_certificate')
+             'c3tout_certificate', 'c3tout_native_certificate',
+             'c3tout_prf_input', 'c3tout_prf_alloc')
     if not enabled:
         if any(name in symbols for name in owned):
             raise QualificationError('TLS output storage escaped selected Wi-Fi services')
         return dict(enabled=False)
-    if observed != 1:
+    if sorted(observed) != sorted(source_bindings):
         raise QualificationError('Missing or duplicate TLS output compiler input')
     for name in owned:
         if not 0x42000000 <= symbols.get(name, 0) < 0x43000000:
@@ -790,15 +796,21 @@ def check_tls_output(commands, symbols, enabled):
                                         'mbedtls_ssl_set_session', 'mbedtls_ssl_session_load',
                                         'mbedtls_ssl_context_load')):
         raise QualificationError('TLS saved sessions have no reviewed certificate storage lifecycle')
+    if any(name in symbols for name in ('mbedtls_ssl_tls_prf',
+                                        'mbedtls_ssl_export_keying_material',
+                                        'mbedtls_ssl_tls12_export_keying_material')):
+        raise QualificationError('Arbitrary TLS PRF/exporter inputs have no reviewed fixed capacity')
     for name in ('mbedtls_ssl_free', 'mbedtls_platform_zeroize', 'mbedtls_zeroize_and_free',
-                 'mbedtls_calloc', 'mbedtls_free'):
+                 'mbedtls_calloc', 'mbedtls_free', 'psa_key_derivation_input_bytes',
+                 'psa_key_derivation_abort'):
         if name not in symbols:
             raise QualificationError('Selected SDK TLS lifecycle missing: ' + name)
-    return dict(enabled=True, allocator_sources=['ssl_tls.c'], bindings=bindings,
+    return dict(enabled=True, allocator_sources=list(source_bindings), bindings=source_bindings,
                 input_slots=1, output_slots=1, hostname_slots=1, hostname_bytes=254,
                 transform_slots=2, session_slots=2, handshake_slots=1,
                 certificate_slots=1, peer_digest_slots=1, peer_digest_bytes=32,
-                qualification='Buffers, hostname, outer TLS state, peer-chain head and digest only; crypto heap paths remain open')
+                prf_seed_bytes=64, prf_label_bytes=22,
+                qualification='Buffers, hostname, outer TLS state, peer records and PRF seed/label only; crypto heap paths remain open')
 
 
 def verify_tls_output(work, enabled):

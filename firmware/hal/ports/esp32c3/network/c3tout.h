@@ -5,7 +5,9 @@
 #ifndef UTHOME_C3TOUT_H
 #define UTHOME_C3TOUT_H
 #include <stddef.h>
+#include <stdint.h>
 #include "mbedtls/ssl.h"
+#include "psa/crypto.h"
 
 /* One application owner, task context and cache enabled. Each initialized TLS
  * context owns its input/output buffers until SDK cleanup, including
@@ -46,12 +48,26 @@ int c3tout_native_certificate (mbedtls_ssl_context * p_ssl);
 int c3tout_set_name (mbedtls_ssl_context * p_ssl, const char * p_hostname);
 int c3tout_native_name (mbedtls_ssl_context * p_ssl, const char * p_hostname);
 
-/* Bound only into ssl_tls.c. Its setup uses one input and one output buffer,
+/* Source-bound ssl_tls.c PRF inputs use a 64-byte seed and 22-byte label.
+ * PSA validates/copies inputs and owns abort/cleanup. Input and operation must
+ * satisfy the native PSA API; this synchronous single-owner wrapper cannot be
+ * reentered. The selected TLS handshake has no arbitrary exporter/PRF callers.
+ * Secret copies, key slots and other crypto allocations remain SDK-owned.
+ */
+psa_status_t c3tout_prf_input (psa_key_derivation_operation_t * p_operation,
+                               psa_key_derivation_step_t        step,
+                               const uint8_t *                  p_data,
+                               size_t                           size);
+void * c3tout_prf_alloc (size_t count, size_t size);
+
+/* Allocation is bound into ssl_tls.c. Setup uses input and output buffers,
  * its scoped hostname setter uses one persistent name, and setup/renegotiation
  * initialize typed state records in the pinned SDK order. Certificate parsing
  * selects its temporary chain head and retained digest. Fixed leases have
  * no heap fallback on exhaustion. Other requests keep
  * the SDK allocator; this is not whole-TLS static-memory qualification.
+ * psa_crypto.c uses the separate scoped PRF allocator and these exact-pointer
+ * free/wipe functions, including aborts occurring outside the input call.
  */
 void * c3tout_alloc (size_t count, size_t size);
 void c3tout_free (void * p_memory);

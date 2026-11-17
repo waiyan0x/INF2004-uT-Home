@@ -36,6 +36,18 @@ typedef struct
 
 typedef struct
 {
+    uint32_t  alg;
+    uint32_t  failure;
+    uint8_t * p_input;
+} touttest_derivation_t;
+
+int32_t touttest_input (touttest_derivation_t * p_operation,
+                        uint16_t                step,
+                        const uint8_t *         p_data,
+                        size_t                  size);
+
+typedef struct
+{
     unsigned char *           p_in_buf;
     unsigned char *           p_out_buf;
     char *                    p_hostname;
@@ -63,6 +75,9 @@ void touttest_free (void * p_memory);
 void touttest_zeroize (void * p_memory, size_t size);
 void touttest_wipe (void * p_memory, size_t size);
 uint32_t touttest_count (uint32_t kind);
+int touttest_task (void);
+uint32_t touttest_enter (void);
+void touttest_leave (uint32_t saved);
 #endif
 
 /* End of file. */

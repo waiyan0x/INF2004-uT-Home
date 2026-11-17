@@ -42,6 +42,9 @@ MQTT now reserves its full-size TLS input/output buffers, retained broker
 hostname, typed outer handshake state, temporary certificate head and retained
 peer fingerprint; see the
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
+TLS derivation now also reserves its 64-byte seed and 22-byte label copies,
+with native-task isolation from Wi-Fi's PSA allocations. Secret/key copies
+remain heap-backed; this does not complete TLS memory qualification.
 Continue with the remaining inner certificate/key, ticket and TCP/IP allocations.
 The [certificate record work](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records)
 preserves the native validation and renegotiation lifecycle. The ticket capacity

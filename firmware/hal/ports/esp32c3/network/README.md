@@ -10,7 +10,7 @@ resource limits, build instructions, manual reviews and qualification evidence.
 | `c3boot` | Bounded native startup pool for selected static-network builds |
 | `c3lbox` | lwIP mailbox identities bound to the existing fixed queue payloads |
 | `c3tls` | Fixed ESP-TLS contexts, error trackers and temporary hostname storage |
-| `c3tout` | Fixed MQTT buffers, hostname, outer TLS state and certificate records |
+| `c3tout` | Fixed MQTT buffers, hostname, outer TLS/certificate records and PRF seed/label |
 | `c3lrec` | Fixed typed lwIP connection and datagram-envelope records |
 | `c3nq`, `c3event` | Native queue/event synchronization and fixed resource bindings |
 | `c3ewait` | Stateless native notification, clock and context boundary for events |
@@ -148,8 +148,8 @@ certificate checks remain unchanged; HTTPS capacity has been removed.
 
 The setup wrapper calls the original SDK function through a checked linker
 alias. A borrowed setup-context pointer lives only for that synchronous call.
-Only `ssl_tls.c` binds `mbedtls_calloc`, `mbedtls_free` and
-`mbedtls_zeroize_and_free` to this adapter. A record request selects fixed storage only
+`ssl_tls.c` binds its allocator/free/wipe calls to the record adapter; the
+separate PSA input boundary is described below. A record request selects storage only
 during setup: input is selected before either buffer exists, and output after
 input exists but before output is assigned. Setup requires an initialized,
 unused context, as the SDK does. A same-sized later allocation retains the SDK path. Other
@@ -328,6 +328,58 @@ The compiled probe separately executes native message framing, identity decision
 promotion and cleanup. DER parsing, trust verification, digest/key operations,
 record reading and alerts are doubled; it is not authentication or hardware proof.
 See the [fresh evidence and remaining work](../../../../../docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records).
+
+## Fixed TLS derivation inputs
+
+The TLS 1.2 pseudorandom function (PRF) copies a seed and label into PSA-owned
+storage. `ssl_tls.c` alone routes its byte-input calls through `c3tout_prf_input`.
+One 64-byte seed and one 22-byte label cover the selected handshake's random
+pair (64 bytes), extended-master-secret hash (32/48 bytes), finished hash and
+fixed labels. The longest label is `extended master secret` (22 bytes).
+They coexist until the native PSA abort releases them, including error aborts.
+The adapter retains input validation, copying, state transitions and cleanup;
+it does not implement the PRF or change certificate verification.
+
+Only `psa_crypto.c` binds its allocator to `c3tout_prf_alloc` and its free/wipe
+calls to the existing exact-pointer release. Its matching `calloc(1, size)`
+attempt consumes the scope even on exhaustion. An occupied/oversized selected
+store returns NULL without heap fallback. Other allocations, including secret
+copies and key material, retain the SDK allocator. Zero-length inputs allocate
+nothing. Cleanup erases each entire fixed store before reuse.
+
+Wi-Fi also uses PSA, so allocation selection requires the native task ID of the
+serialized TLS owner. `c3bport_task` uses the kernel ID; the FreeRTOS shim handle
+can be NULL for the application controller. Existing interrupt exclusion protects
+scope publication, matching and consumption. The native PSA call and unrelated
+heap allocations run outside exclusion. A competing task cannot consume or clear
+the TLS scope. Fixed pointers remain private to that owner; this does not make
+arbitrary simultaneous TLS owners supported.
+
+The selected SDK assumes exclusive input buffers. A compile guard rejects its
+copy-input mode, which would add another allocation before the intended copy.
+Qualification rejects linked public PRF/exporter APIs with arbitrary seed/label
+lengths. The current application uses none; this is not a new restriction on
+its TLS handshake. TLS 1.2, record capacities and cipher admission are unchanged.
+
+### Derivation storage C review
+
+Reviewed `c3tout`, `c3bport` and `touttest` against the complete BARR-C checklist:
+C99, paired headers, SDK-compatible PSA types, native ID returned as `int`,
+initialized private state, unsigned sizes, bounded 64/22-byte clearing and no
+new casts. The existing single-core exclusion restores the exact saved mask;
+no SDK call, heap call or wait occurs while held. Only task identity is queried
+before exclusion. The scope is cleared on all native returns. Fixed leases
+outlive the wrapper and end at native cleanup; only the owner can receive them.
+No new task, lock, ISR/MMIO access, deviation, dependency change or aggregate cap
+increase. The module reservation uses existing application headroom.
+
+Host tests check coexisting copies, exhaustion, bounds, zero-length inputs,
+whole-store erasure, repeated reuse, failures and identical allocations from a
+different task, with assertions and compiler warnings enabled. The compiled
+[PSA input probe](../../../../../tools/target/README.md#tls-derivation-input-probe)
+checks actual input/abort instructions. Hash support, native task identity,
+interrupt exclusion and heap are doubled; PRF output, authentication, hardware
+preemption and whole-connection peak memory are not qualified by these checks.
 
 ## Fixed lwIP records
 

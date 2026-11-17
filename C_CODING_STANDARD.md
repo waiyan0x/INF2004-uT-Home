@@ -446,6 +446,12 @@ and the [state](firmware/hal/ports/esp32c3/network/README.md#state-storage-c-rev
 and [certificate reviews](firmware/hal/ports/esp32c3/network/README.md#certificate-storage-c-review).
 No new language, formatter or compatibility exception is added.
 
+The derivation extension uses the same `c3tout` prefix for PRF (pseudorandom
+function) input storage. `c3bport_task` returns the native task ID so Wi-Fi's PSA
+calls cannot consume the application's scope. It uses existing interrupt
+exclusion, with no new kernel object or exception. See the
+[derivation C review](firmware/hal/ports/esp32c3/network/README.md#derivation-storage-c-review).
+
 `tlspeer` is the host-only real-TLS compatibility fixture. It uses C99, typed
 SDK callbacks and matching public prefixes. TLS means Transport Layer Security;
 PSA identifies the SDK's Platform Security Architecture crypto API. Its empty

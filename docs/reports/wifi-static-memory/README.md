@@ -10,9 +10,68 @@ full-profile setup/recovery uses USB. The host Desk and Home Assistant web
 interfaces remain available. No Wi-Fi-driver exception automatically exempts
 TLS, TCP/IP or ESP-TLS contexts.
 
+### Fixed TLS derivation inputs
+
+The latest 17 November change reserves the TLS 1.2 PRF's 64-byte seed and
+22-byte label copies. Native PSA still validates, copies and releases the inputs.
+Selection is limited to the serialized TLS task, using its native kernel ID and
+existing interrupt exclusion. Wi-Fi's concurrent PSA allocations keep the SDK
+path. The secret copy and key storage remain heap-backed. See the
+[contract and manual C review](../../../firmware/hal/ports/esp32c3/network/README.md#fixed-tls-derivation-inputs).
+
+All **93 affected tests**, the full **333-file pinned C gate**, manual BARR-C
+review, fresh warnings-as-errors target build, exact source snapshot and fixed
+memory budgets passed. The final source-binding check also rejects duplicate
+copies of one required SDK unit; its qualification suite was rerun, and that
+check passed against the compiled commands and symbols of this same image.
+No production input changed after the build.
+
+The [compiled PSA input probe](../../../tools/target/README.md#tls-derivation-input-probe)
+passed **200 SHA-256/SHA-384 input lifecycles**, **25 length combinations**, five
+error cases, both store-exhaustion/recovery cases and two foreign-task allocation
+cases. Input bytes survive overwriting the caller's buffer; cleanup erases all
+fixed bytes and releases leases. The fixed path made **zero seed/label heap
+requests**, compared with **400** in the unwrapped reference. Both retain 200
+secret allocations and matching native error outcomes. The previous ELF is
+rejected as fixed storage; disabled assertions and report overwrite reject too.
+Existing buffer, input, hostname, state, certificate and connect-retry probes
+passed on the final ELF.
+
+The probes double heap, ROM byte operations, hash setup/abort and native
+task/interrupt helpers. They test input ownership and cleanup, not PRF output,
+authentication, encrypted handshakes, physical preemption or runtime peaks.
+The selected exclusive-buffer PSA path and absence of arbitrary PRF/exporter
+callers are checked. Cipher admission, record capacities, certificate verification,
+dependency revisions and aggregate budgets are unchanged. Inner certificate/key,
+secret, ticket and TCP/IP allocations still prevent whole-system qualification.
+The ticket policy decision below remains deferred.
+
+| Fixed-memory group | Linked bytes | Unchanged cap | Headroom |
+|---|---:|---:|---:|
+| Application | 143,221 | 147,456 | 4,235 |
+| Task pool | 18,499 | 18,560 | 61 |
+| SDK/kernel | 54,256 | 55,296 | 1,040 |
+| RAM code | 56,386 | 57,152 | 766 |
+| Total DRAM | 272,362 | 278,528 | 6,166 |
+| RTC, separate from DRAM | 60 | 128 | 68 |
+
+`c3tout` uses **25,430/25,440 bytes**. This step adds 86 payload bytes and
+12 scope/lease bytes within the existing application cap. The image is
+**unflashed** at `C:/Users/kkak4/esp/uthome-tls-prf-owner-fixed-20261117/`.
+Application SHA-256:
+`82b85736fcb116f3fe887133a151f09377198064a7dcdaf50ab45353204d7fef`.
+ELF SHA-256:
+`27fe0a5287e28cc6a01a08e58c737f23104a6ae1df3702f858ee8dc2791f1327`.
+`evidence.json` SHA-256:
+`f9e816f7d030d3a52eb603f53d76f26aaa08676f5b52b7eed3065a04422eff40`.
+Final memory evidence is `build/tls-prf-fixed-20261117/memory-final.json`, beside
+the private tests, probe reports and verification. No board, serial port,
+hotspot or live Home Assistant service was accessed. Physical MQTT timeout
+causation and the separate old HA VM instability remain unresolved.
+
 ### Fixed peer certificate records
 
-The latest 17 November change reserves one typed 952-byte temporary peer-chain
+The 17 November peer-certificate change reserves one typed 952-byte temporary peer-chain
 head and one 32-byte retained peer-certificate digest in `c3tout`. A scoped wrapper
 preserves the native parser and its failure semantics. The old digest coexists
 with the head during renegotiation; after a successful identity comparison the
@@ -448,7 +507,8 @@ two HTTPS connections; current one-session storage is reported above. Total link
 driver-workspace build, including one additional SDK/linker byte. It moves
 storage into the fixed budget; it does not reduce TLS's total memory need.
 
-Only `ssl_tls.c` binds its allocator/release calls to the adapter. A wrapper
+The original record boundary binds `ssl_tls.c` allocator/release calls. The
+later PRF input boundary also binds PSA cleanup, as described above. A wrapper
 identifies the output-buffer request during the original synchronous SDK setup;
 other allocations retain the SDK heap path. Exhausting the three output slots
 fails setup without an output-buffer heap fallback. SDK cleanup erases the full

@@ -181,6 +181,8 @@ This supersedes the earlier requirement to retain MQTT plus two HTTPS sessions.
 input/output buffers, the retained broker hostname and typed outer handshake
 state, including overlapping active/negotiating transform and session records,
 plus the temporary peer-certificate head and retained peer digest.
+The TLS derivation seed/label copies now also use fixed stores isolated to the
+application's native task; PSA secret copies and key storage remain open.
 The [removal verification](firmware/src/network/README.md#esp-https-removal) and
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
 record the fresh build and measured headroom. Inner certificate/key, ticket and TCP/IP state
