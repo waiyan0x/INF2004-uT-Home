@@ -150,11 +150,12 @@ complement; `123456789` gives 0xCBF43926. CRC is not authentication.
 | CAPABILITIES | 7 | Zero / empty; [capability format](../../../tools/configurator/README.md#read-only-capabilities) |
 | DISCOVER | 8 | Expected active revision / 24-byte reviewed request; [format](../discovery/README.md) |
 | WORKCOST | 9 | Zero / empty; [workload format](../services/TELEMETRY.md) |
-| NETWORK | 10 | Zero / empty; Wi-Fi station observation below |
+| NETWORK | 10 | Zero / empty; Wi-Fi and MQTT observation below |
 
 NETWORK is read-only and bypasses controller mutation IDs/cache. Its response
-has the ordinary version-1 header, command `0x8a`, revision zero and a 24-byte
-payload: version 1 at byte 0; flags at 1; stage at 2; retry state at 3; signed
+uses the ordinary version-1 header, command `0x8a` and revision zero. Payload
+version 2 has 40 bytes. The station fields occupy the first 24 bytes, with
+version 2 at byte 0; flags at 1; stage at 2; retry state at 3; signed
 32-bit SDK error at 4..7; unsigned 16-bit disconnect reason at 8..9; zero
 reserved bytes at 10..11; network-order IPv4 octets at 12..15; and unsigned
 64-bit absolute monotonic deadline in milliseconds at 16..23. Multibyte integer
@@ -167,6 +168,18 @@ RAM storage, mode, configuration, start, ready, connect and disconnect.
 Stage 15 is transmit-power configuration; stages 0..14 retain their identifiers.
 The last disconnect reason is historical; a successful connect call does not
 mean association or DHCP succeeded. Old/non-Wi-Fi images may give no reply.
+
+Version 2 appends four little-endian uint32 values at offsets 24, 28, 32 and 36.
+They report MQTT state, failed sessions, superseded pending publications and
+discarded publications. State values 0..8 are off, TLS, CONNECT, CONNACK wait,
+availability publication, ready, unavailable, SUBSCRIBE and SUBACK wait.
+Ready means the subscription handshake completed. Disabled or uninitialized
+MQTT reports unavailable. Counters saturate at UINT32_MAX and follow the
+[broker snapshot contract](../network/netbroker.h).
+The application owner copies the existing station and broker snapshots into
+the caller's buffer. Version 1's 24-byte payload remains supported by the host
+and reports its absent MQTT fields as `null`. Update the host client together
+with firmware that emits version 2.
 
 Controller/probe replies total 48 bytes: header plus six uint32 fields **status,
 active revision, saved revision, active CRC, saved CRC, flags**. PROBE substitutes

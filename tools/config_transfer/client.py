@@ -37,6 +37,8 @@ def _valid_payload_size(command: Command, size: int) -> bool:
         return 80 <= size <= 208 and size % 16 == 0
     if command == Command.WORKCOST:
         return size in (96, 384)
+    if command == Command.NETWORK:
+        return size in (24, 40)
     return size == 24
 
 

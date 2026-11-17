@@ -102,7 +102,7 @@ usage and cannot isolate interrupts. Version 1 remains supported and reports
 the scheduler observation absent. See [wire details](../../firmware/src/services/TELEMETRY.md)
 and the host measurement validator in `measurements.py`.
 
-## Read-only Wi-Fi status
+## Read-only Wi-Fi and MQTT status
 
 `python -B -m tools.config_transfer network --port /dev/cu.usbmodem101`
 reads command 10 on a newly built Wi-Fi application. Confirm the current port;
@@ -110,6 +110,12 @@ use its COM name on Windows. The command reports the last SDK stage/error,
 station and retry flags, last disconnect reason, current IPv4 address and the
 absolute board-monotonic retry deadline. A missing IP is `null`. The stage is
 the last SDK operation, not proof of connectivity; use `has_ip` and retry state.
+Version 2 adds `mqtt_state`, `mqtt_failures`, `mqtt_replaced` and
+`mqtt_discarded` from the existing broker snapshot. These show connection
+progress and cumulative failed sessions, superseded pending publications and
+discarded publications. `ready` follows SUBACK. `unavailable` identifies a
+disabled or uninitialized broker. Version 1 replies still decode, with the four
+MQTT fields set to `null`. Use this updated host client with version-2 firmware.
 Reading status does not connect, reset, apply, save, consume mutation IDs or
 expose SSID/passwords. Old and non-Wi-Fi images may time out; no fallback
 configuration request or automatic retry is sent.

@@ -144,17 +144,24 @@ int c3net_step (const cfgctrl_t * p_control, uint64_t now_ms)
 }
 
 #if UTHOME_NETWORK_WIFI
-/** @brief Encode a coherent station snapshot into the USB owner's buffer. */
+/** @brief Copy station and broker observations into the USB owner's buffer. */
 int c3net_observe (uint8_t * p_data, size_t capacity, size_t * p_size)
 {
-    c3wsta_status_t status = {0};
-    if ((NULL == p_data) || (NULL == p_size) || (24U > capacity) ||
+    c3wsta_status_t  status = {0};
+    netbroker_view_t broker = {.state = NETBROKER_UNAVAILABLE};
+    if ((NULL == p_data) || (NULL == p_size) || (40U > capacity) ||
         (0 != c3wsta_status(&status)))
     {
         return -1;
     }
-    memset(p_data, 0, 24U);
-    p_data[0] = 1U;
+#if UTHOME_SETUP_MQTT
+    if (0 != c3mqtt_status(&broker))
+    {
+        return -1;
+    }
+#endif
+    memset(p_data, 0, 40U);
+    p_data[0] = 2U;
     p_data[1] = status.flags;
     p_data[2] = status.stage;
     p_data[3] = status.retry_state;
@@ -165,7 +172,11 @@ int c3net_observe (uint8_t * p_data, size_t capacity, size_t * p_size)
     memcpy(&p_data[12], status.address, sizeof(status.address));
     cfgbytes_put(&p_data[16], (uint32_t)(status.deadline_ms & UINT32_MAX));
     cfgbytes_put(&p_data[20], (uint32_t)(status.deadline_ms >> 32U));
-    *p_size = 24U;
+    cfgbytes_put(&p_data[24], broker.state);
+    cfgbytes_put(&p_data[28], broker.failures);
+    cfgbytes_put(&p_data[32], broker.replaced);
+    cfgbytes_put(&p_data[36], broker.discarded);
+    *p_size = 40U;
     return 0;
 }
 #endif

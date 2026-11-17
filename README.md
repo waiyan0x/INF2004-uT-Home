@@ -61,8 +61,12 @@ TLS checks and request operator input when needed; that work is no longer deferr
 [MQTT connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
 now passes software checks and a fresh target build. The approved cumulative
 candidate answered initial and post-broker-restart status queries, then timed
-out on the normal profile before any idle Apply. Resource
-compliance remains a final gate.
+out on the normal profile before any idle Apply. The updated
+[read-only USB observation](tools/config_transfer/README.md#read-only-wi-fi-and-mqtt-status)
+now exposes the existing MQTT state and failure/publication counters. Its host
+checks, fresh target build and fixed-memory gate pass; it is not yet installed.
+Next, correlate these observations with TCP traffic during a backed-up normal-profile
+trial. The timeout cause and runtime resource compliance remain unresolved.
 
 The [Home Assistant display adapter](tools/transaction/README.md#home-assistant-display)
 is implemented on the host. Add `--home-assistant` to the existing controller

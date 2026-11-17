@@ -1,4 +1,4 @@
-"""Execute the actual owner serializer across the USB Wi-Fi wire boundary."""
+"""Execute the actual owner serializer across the USB Wi-Fi/MQTT boundary."""
 from pathlib import Path
 import shutil
 import struct
@@ -14,16 +14,30 @@ from tools.config_transfer.protocol import HEADER
 ROOT = Path(__file__).resolve().parents[2]
 
 HARNESS = r'''/**
- * @file statuscheck.c
- * @brief Check copied station status without an SDK or radio operation.
+ * @file statuscheck_main.c
+ * @brief Check copied station and broker status without SDK I/O.
  */
-#include "statuscheck.h"
+#include "statuscheck_main.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
+#ifdef NDEBUG
+#error "Status checks require assertions."
+#endif
+
+const char    g_setup_ssid[]             = "ap";
+const char    g_setup_password[]         = "password";
+const char    g_setup_mqtt_address[]     = "127.0.0.1";
+const char    g_setup_mqtt_server_name[] = "broker.test";
+const char    g_setup_mqtt_user[]        = "user";
+const char    g_setup_mqtt_password[]    = "password";
+const uint8_t g_setup_mqtt_ca[]          = "fixture";
+
 static int          g_status_result = 0;
 static unsigned int g_calls         = 0U;
+static int          g_broker_result = 0;
+static unsigned int g_broker_calls  = 0U;
 
 /** @brief Double the reviewed status API with asymmetric byte-order values. */
 int c3wsta_status (c3wsta_status_t * p_status)
@@ -43,28 +57,55 @@ int c3wsta_status (c3wsta_status_t * p_status)
     return g_status_result;
 }
 
+/** @brief Supply the existing broker view through its copied-status API. */
+int c3mqtt_status (netbroker_view_t * p_view)
+{
+    ++g_broker_calls;
+    *p_view = (netbroker_view_t){.state     = NETBROKER_READY,
+                                 .failures  = UINT32_C(0x12345678),
+                                 .replaced  = UINT32_MAX,
+                                 .discarded = UINT32_C(0x90ABCDEF)};
+    return g_broker_result;
+}
+
 /** @brief Protect caller buffers before exercising the real serializer. */
 int main (void)
 {
-    uint8_t storage[26] = {0};
+    uint8_t storage[42] = {0};
     size_t  size        = 77U;
     memset(storage, 0xA5, sizeof(storage));
-    assert(-1 == c3net_observe(NULL, 24U, &size));
-    assert(-1 == c3net_observe(&storage[1], 24U, NULL));
-    assert(-1 == c3net_observe(&storage[1], 23U, &size));
+    assert(-1 == c3net_observe(NULL, 40U, &size));
+    assert(-1 == c3net_observe(&storage[1], 40U, NULL));
+    assert(-1 == c3net_observe(&storage[1], 39U, &size));
     assert((0U == g_calls) && (77U == size));
     g_status_result = -1;
-    assert(-1 == c3net_observe(&storage[1], 24U, &size));
+    assert(-1 == c3net_observe(&storage[1], 40U, &size));
     for (size_t index = 0U; index < sizeof(storage); ++index)
     {
         assert(0xA5U == storage[index]);
     }
     assert((1U == g_calls) && (77U == size));
+    assert(0U == g_broker_calls);
     g_status_result = 0;
-    assert(0 == c3net_observe(&storage[1], 24U, &size));
-    assert((24U == size) && (2U == g_calls));
-    assert((0xA5U == storage[0]) && (0xA5U == storage[25]));
-    for (size_t index = 1U; index < 25U; ++index)
+#if UTHOME_SETUP_MQTT
+    g_broker_result = -1;
+    assert(-1 == c3net_observe(&storage[1], 40U, &size));
+    for (size_t index = 0U; index < sizeof(storage); ++index)
+    {
+        assert(0xA5U == storage[index]);
+    }
+    assert((2U == g_calls) && (1U == g_broker_calls) && (77U == size));
+    g_broker_result = 0;
+#endif
+    assert(0 == c3net_observe(&storage[1], 40U, &size));
+    assert(40U == size);
+#if UTHOME_SETUP_MQTT
+    assert((3U == g_calls) && (2U == g_broker_calls));
+#else
+    assert((2U == g_calls) && (0U == g_broker_calls));
+#endif
+    assert((0xA5U == storage[0]) && (0xA5U == storage[41]));
+    for (size_t index = 1U; index < 41U; ++index)
     {
         printf("%02x", (unsigned int)storage[index]);
     }
@@ -86,11 +127,11 @@ def write_header(folder: Path, name: str, body: str) -> None:
         + body + '\n#endif\n\n/* End of file. */\n\n')
 
 
-def build_status_check(folder: Path, source: Path) -> Path:
+def build_status_check(folder: Path, source: Path, *, mqtt: bool) -> Path:
     """Link only the actual observer; absent SDK operations stay unresolved.
 
-    The harness implements the exact reviewed c3wsta_status API as its sole
-    behavior double. It supplies copied fields; it never emulates the radio.
+    The harness supplies copied station and broker fields through their status
+    APIs. SDK connection, read and write entry points remain unresolved.
     """
     write_header(folder, 'esp_random.h',
                  '#include <stddef.h>\n'
@@ -101,13 +142,20 @@ def build_status_check(folder: Path, source: Path) -> Path:
                  'int esp_read_mac (uint8_t * p_address, int type);\n')
     write_header(folder, 'netsetup.h',
                  '#include <stdint.h>\n'
-                 '#define UTHOME_SETUP_MQTT     0\n'
-                 '#define UTHOME_SETUP_TX_POWER 0U\n'
-                 'static const char    g_setup_ssid[]        = "ap";\n'
-                 'static const char    g_setup_password[]    = "password";\n')
-    write_header(folder, 'statuscheck.h',
-                 '#include "c3net.h"\n#include "c3wsta.h"\n')
-    harness = folder / 'statuscheck.c'
+                 f'#define UTHOME_SETUP_MQTT      {int(mqtt)}\n'
+                 '#define UTHOME_SETUP_TX_POWER  0U\n'
+                 '#define UTHOME_SETUP_MQTT_PORT 8883U\n'
+                 'extern const char    g_setup_ssid[];\n'
+                 'extern const char    g_setup_password[];\n'
+                 'extern const char    g_setup_mqtt_address[];\n'
+                 'extern const char    g_setup_mqtt_server_name[];\n'
+                 'extern const char    g_setup_mqtt_user[];\n'
+                 'extern const char    g_setup_mqtt_password[];\n'
+                 'extern const uint8_t g_setup_mqtt_ca[8];\n')
+    write_header(folder, 'statuscheck_main.h',
+                 '#include "c3net.h"\n#include "c3wsta.h"\n#include "c3mqtt.h"\n'
+                 '#include "netsetup.h"\n')
+    harness = folder / 'statuscheck_main.c'
     harness.write_text(HARNESS)
     includes = [folder, ROOT / 'firmware/app', ROOT / 'firmware/include',
                 ROOT / 'firmware/src/config', ROOT / 'firmware/src/network',
@@ -133,13 +181,17 @@ def build_status_check(folder: Path, source: Path) -> Path:
 
 class WifiStatusEncodingTests(unittest.TestCase):
     def test_actual_c_owner_encoding_bounds_and_host_decode(self):
-        with tempfile.TemporaryDirectory(prefix='uthome-status-encoding-') as name:
-            binary = build_status_check(Path(name), ROOT / 'firmware/app/c3net.c')
-            run = subprocess.run([str(binary)], capture_output=True, text=True,
-                                 check=True, timeout=5)
-        data = bytes.fromhex(run.stdout)
-        expected = struct.pack('<4BiHH4sQ', 1, 63, 14, 2, -19088743,
+        for mqtt in (False, True):
+            with self.subTest(mqtt=mqtt), tempfile.TemporaryDirectory(prefix='uthome-status-encoding-') as name:
+                binary = build_status_check(Path(name), ROOT / 'firmware/app/c3net.c', mqtt=mqtt)
+                run = subprocess.run([str(binary)], capture_output=True, text=True,
+                                     check=True, timeout=5)
+                self.check_encoding(bytes.fromhex(run.stdout), mqtt)
+
+    def check_encoding(self, data, mqtt):
+        expected = struct.pack('<4BiHH4sQ', 2, 63, 14, 2, -19088743,
                                0x1234, 0, bytes([192, 0, 2, 19]), 0x12345678abcdef01)
+        expected += struct.pack('<4I', 5, 0x12345678, 0xffffffff, 0x90abcdef) if mqtt else struct.pack('<4I', 6, 0, 0, 0)
         self.assertEqual(data, expected)
         prefix = HEADER.pack(b'UTH1', 1, 0x8a, 0, 91, 0, len(data), 0)[:20]
         frame = prefix + struct.pack('<I', zlib.crc32(data, zlib.crc32(prefix))) + data
@@ -148,6 +200,10 @@ class WifiStatusEncodingTests(unittest.TestCase):
                          ('disconnect', 'online', '192.0.2.19'))
         self.assertEqual((status.sdk_error, status.disconnect_reason, status.deadline_ms),
                          (-19088743, 0x1234, 0x12345678abcdef01))
+        self.assertEqual((status.mqtt_state, status.mqtt_failures,
+                          status.mqtt_replaced, status.mqtt_discarded),
+                         ('ready', 0x12345678, 0xffffffff, 0x90abcdef) if mqtt else
+                         ('unavailable', 0, 0, 0))
 
 
 if __name__ == '__main__':

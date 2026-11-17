@@ -14,7 +14,9 @@ int c3net_start (const cfgctrl_t * p_control);
 /* Same boot identity used by diagnostics and the MQTT transaction owner. */
 uint64_t c3net_boot (void);
 int c3net_step (const cfgctrl_t * p_control, uint64_t now_ms);
-/* Wi-Fi-only, owner-serialized 24-byte status; no credentials or I/O. */
+/* Owner-serialized Wi-Fi/MQTT observation, version 2 with 40 payload bytes.
+ * Uses copied state. A disabled/uninitialized broker reports UNAVAILABLE.
+ */
 int c3net_observe (uint8_t * p_data, size_t capacity, size_t * p_size);
 #endif
 

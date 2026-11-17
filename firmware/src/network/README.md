@@ -115,6 +115,11 @@ Use `python -m tools.config_transfer --port CONFIRMED_PORT network` to read the
 current station/broker diagnostics without starting a new connection or changing
 configuration. Confirm the CLI's `--help` and current port before use. A previously
 recorded COM port, hotspot or image is not proof of current equipment state.
+The version-2 observation includes the existing MQTT state and three counters,
+allowing USB observations to be correlated with MQTT replies and TCP captures.
+Version-1 firmware supplies the station fields and leaves MQTT fields absent.
+See the [wire contract](../config/README.md#wire-version-1) and
+[host command](../../../tools/config_transfer/README.md#read-only-wi-fi-and-mqtt-status).
 The optional `tx_power_quarter_dbm` accepts 8-84 quarter-dBm units and applies
 before each connection attempt. The build also derives the radio's startup
 limit from it: divide by four, round down, then clamp to the pinned SDK's

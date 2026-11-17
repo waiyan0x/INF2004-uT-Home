@@ -31,3 +31,29 @@ server and upload arbitration were removed on 17 November 2026 at the user's
 request. USB parsing still pauses while an asynchronous runtime transaction
 retains peripheral pins. The same application owner serializes USB and MQTT;
 no second configuration controller, task or lock is introduced.
+
+## Network observation and C review
+
+`c3net_observe` serializes the existing station and MQTT snapshots for USB
+command 10. Payload version 2 contains 40 explicitly encoded bytes, including
+the MQTT state and failure/replacement/discard counters. The application owner
+serializes observation and broker steps. The host also accepts the earlier
+24-byte version 1. See the [wire contract](../src/config/README.md#wire-version-1).
+
+The BARR-C review covers C99 declarations, matching public header, initialized
+typed locals, bounded writes, fixed-width unsigned encoding and the existing
+signed-error conversion. Pointer/capacity checks precede snapshot calls and
+buffer writes. Failed status reads preserve the output buffer and size.
+The MQTT-disabled build emits the initialized unavailable view. The additional
+view uses 16 bytes of automatic storage and copies existing counters. SDK calls
+remain in the transport owner. The generated C test fixture checks output
+sentinels, failed reads and enabled/disabled builds through the real serializer,
+with connection/read/write entry points unresolved at link time. Assertions
+cannot be disabled. The pump retains its 48-byte maximum write chunks for the
+64-byte response, avoiding a full USB packet requiring a terminating ZLP.
+
+Verification on 17 November 2026: 73 affected host tests and the full pinned
+BARR-C gate (334 files) passed. The fresh ESP32-C3 build and snapshot check
+passed. Fixed application memory remains 143185/147456 bytes and total DRAM
+272322/278528 bytes; no fixed-memory category grew. This build is not yet
+installed or accepted on hardware, and runtime heap/stack peaks remain open.

@@ -20,6 +20,10 @@ def payload(*, flags=15, stage=12, retry=2, error=0, reason=0,
                        ipv4, deadline)
 
 
+def mqtt_payload(state=5, failures=0, replaced=0, discarded=0):
+    return bytes([2]) + payload()[1:] + struct.pack('<4I', state, failures, replaced, discarded)
+
+
 def frame(data=None, *, magic=b'UTH1', version=1, command=0x8a,
           reserved=0, request_id=27, revision=0, size=24):
     data = payload() if data is None else data
@@ -36,6 +40,10 @@ class NetworkUsbClientTests(unittest.TestCase):
         self.assertEqual(reply.ipv4, '192.168.4.23')
         self.assertTrue(reply.attempted and reply.started and reply.station_ready and reply.has_ip)
         self.assertFalse(reply.cancelling or reply.fault)
+        self.assertIsNone(reply.mqtt_state)
+        self.assertIsNone(reply.mqtt_failures)
+        self.assertIsNone(reply.mqtt_replaced)
+        self.assertIsNone(reply.mqtt_discarded)
         failed = decode_network(frame(payload(flags=33, stage=7, retry=0,
             error=-2147483648, reason=0xffff, ipv4=bytes(4), deadline=0xffffffffffffffff)),
             request_id=27)
@@ -44,6 +52,29 @@ class NetworkUsbClientTests(unittest.TestCase):
         self.assertEqual(failed.deadline_ms, 0xffffffffffffffff)
         self.assertTrue(failed.fault)
         self.assertIsNone(failed.ipv4)
+
+    def test_mqtt_states_and_saturating_counter_values(self):
+        states = ('off', 'tls', 'connect', 'connack', 'availability', 'ready',
+                  'unavailable', 'subscribe', 'suback')
+        for index, state in enumerate(states):
+            reply = decode_network(frame(mqtt_payload(index, 0x12345678, 0xffffffff, 0x90abcdef),
+                                         size=40), request_id=27)
+            self.assertEqual((reply.mqtt_state, reply.mqtt_failures,
+                              reply.mqtt_replaced, reply.mqtt_discarded),
+                             (state, 0x12345678, 0xffffffff, 0x90abcdef))
+            self.assertEqual(reply.ipv4, '192.168.4.23')
+
+    def test_mqtt_payload_version_length_and_state_must_match(self):
+        for data, size in ((payload() + bytes(16), 40),
+                           (mqtt_payload(9), 40), (mqtt_payload(0xffffffff), 40),
+                           (mqtt_payload()[:-1], 39), (mqtt_payload() + b'x', 41),
+                           (mqtt_payload(), 24)):
+            with self.subTest(size=size, data=data), self.assertRaises(ValueError):
+                decode_network(frame(data, size=size), request_id=27)
+        damaged = bytearray(frame(mqtt_payload(), size=40))
+        damaged[-1] ^= 1
+        with self.assertRaisesRegex(ValueError, 'checksum'):
+            decode_network(bytes(damaged), request_id=27)
 
     def test_absent_ip_is_unavailable_and_transitional_flags_are_preserved(self):
         for flags in range(64):
@@ -110,6 +141,14 @@ class NetworkUsbClientTests(unittest.TestCase):
         with patch('tools.config_transfer.client.secrets.randbelow', return_value=26):
             reply = Client(stream, clock=stream.clock).network()
         self.assertEqual(reply.ipv4, '192.168.4.23')
+        self.assertEqual(stream.written, encode_request(Command.NETWORK, 27))
+
+    def test_fragmented_version_two_reply_reaches_public_client(self):
+        stream = Stream(b'boot\n' + frame(mqtt_payload(1, 3, 4, 5), size=40), read_size=3)
+        with patch('tools.config_transfer.client.secrets.randbelow', return_value=26):
+            reply = Client(stream, clock=stream.clock).network()
+        self.assertEqual((reply.mqtt_state, reply.mqtt_failures,
+                          reply.mqtt_replaced, reply.mqtt_discarded), ('tls', 3, 4, 5))
         self.assertEqual(stream.written, encode_request(Command.NETWORK, 27))
 
     def test_old_or_non_wifi_image_silence_times_out_without_resending(self):
