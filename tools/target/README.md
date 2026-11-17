@@ -372,10 +372,11 @@ first; reports are never overwritten. The tool uses ELF/DWARF offsets and runs
 the real SDK setup, buffer-pointer initialization and cleanup code. It doubles
 the heap, ROM byte-copy functions and PSA hash setup/abort; it does not perform
 a TLS handshake, network I/O or hardware timing. The MQTT context must receive
-its aligned output buffer, a second must fail without heap fallback,
-release must erase and reuse the slot, and injected failures at each of the four
+its aligned input/output pair, a second must fail without heap fallback,
+release must erase and reuse both slots, and injected failures at each of the
 remaining setup allocations must leave no simulated heap objects. The report
-records the ELF hash and original SDK execution counts. The ELF is not modified.
+records the ELF hash, DWARF/linked buffer capacities and original SDK execution
+counts. The ELF is not modified.
 
 ## TLS input lifetime and capacity probe
 
@@ -384,7 +385,7 @@ non-dynamic-buffer ELF. Use the same optional probe dependencies above. Pass a
 successful memory-budget report for that exact ELF; mismatched hashes reject.
 
 ```powershell
-python -B -m tools.target.tls_input_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --memory-report build/tls-output/memory-final.json --output build/tls-input/new-sdk-report.json
+python -B -m tools.target.tls_input_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --memory-report build/tls-input-fixed-20261117/memory.json --output build/tls-input/new-sdk-report.json
 ```
 
 Create the output folder first. Assertions must be enabled and reports are never
@@ -397,13 +398,13 @@ The tool reuses the output probe's ELF loader, SDK setup and cleanup execution.
 Heap, transport, ROM byte copies and PSA hash operations are doubled. The read
 cases inject already-decrypted data; they do not test authentication, decryption,
 a handshake or radio hardware. No firmware or SDK source is changed. A passing
-result proves these input-lifetime checks, **not fixed receive allocation**.
+result checks fixed receive allocation and lifetime in the compiled image;
+remaining TLS allocations and physical acceptance are separate.
 
-The report derives the input size from the SDK's actual allocation requests,
-then projects one independent eight-byte-aligned input buffer against the
-supplied application/total budgets. Projections exclude pool metadata, extra
-link padding and remaining crypto/TCP/IP storage. Linker unassigned bytes are
-not runtime free heap. See the
+The report verifies that the SDK uses the adapter's actual ELF/DWARF input array
+and issues no input-buffer heap request. It reports linked capacity and remaining
+application/total headroom from the matching memory report. This is no longer a
+projection; runtime free heap and remaining crypto/TCP/IP needs are unmeasured. See the
 [capacity decision](../../docs/reports/wifi-static-memory/README.md#tls-input-lifetime-and-capacity-decision)
 before attempting buffer reuse or changing record limits.
 

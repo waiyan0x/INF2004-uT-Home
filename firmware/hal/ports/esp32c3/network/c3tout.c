@@ -1,6 +1,6 @@
 /**
  * @file c3tout.c
- * @brief Retain the MQTT TLS output buffer through SDK retries/cleanup.
+ * @brief Retain MQTT TLS record buffers through SDK retries/cleanup.
  */
 /* Buffer lengths and setup state belong to the pinned SDK's private ABI. */
 #define MBEDTLS_ALLOW_PRIVATE_ACCESS
@@ -15,7 +15,7 @@
 
 #if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH) ||                             \
     (MBEDTLS_SSL_IN_BUFFER_LEN <= MBEDTLS_SSL_OUT_BUFFER_LEN)
-#error "Fixed TLS output requires distinct sizes without buffer resizing."
+#error "Fixed TLS buffers require distinct sizes without buffer resizing."
 #endif
 
 #define C3TOUT_SLOTS 1U
@@ -26,9 +26,17 @@ typedef union
     unsigned char bytes[MBEDTLS_SSL_OUT_BUFFER_LEN];
 } c3tout_buffer_t;
 
-static c3tout_buffer_t       g_buffers[C3TOUT_SLOTS] = {0};
-static bool                  gb_used[C3TOUT_SLOTS]   = {false};
-static mbedtls_ssl_context * gp_setup                = NULL;
+typedef union
+{
+    uint64_t      alignment;
+    unsigned char bytes[MBEDTLS_SSL_IN_BUFFER_LEN];
+} c3tout_input_t;
+
+static c3tout_buffer_t       g_buffers[C3TOUT_SLOTS]     = {0};
+static bool                  gb_used[C3TOUT_SLOTS]       = {false};
+static c3tout_input_t        g_inputs[C3TOUT_SLOTS]      = {0};
+static bool                  gb_input_used[C3TOUT_SLOTS] = {false};
+static mbedtls_ssl_context * gp_setup                    = NULL;
 static bool release (void * p_memory);
 
 /** @brief Scope allocation selection to this synchronous SDK setup call. */
@@ -41,10 +49,26 @@ int c3tout_setup (mbedtls_ssl_context *      p_ssl,
     return result;
 }
 
-/** @brief Intercept only the output request, never a same-sized later object.
+/** @brief Select setup record buffers, never a same-sized later object.
  */
 void * c3tout_alloc (size_t count, size_t size)
 {
+    if ((NULL != gp_setup) && (1U == count) &&
+        (MBEDTLS_SSL_IN_BUFFER_LEN == size) &&
+        (NULL == gp_setup->MBEDTLS_PRIVATE(in_buf)) &&
+        (NULL == gp_setup->MBEDTLS_PRIVATE(out_buf)))
+    {
+        for (size_t index = 0U; index < C3TOUT_SLOTS; ++index)
+        {
+            if (!gb_input_used[index])
+            {
+                memset(g_inputs[index].bytes, 0, sizeof(g_inputs[index].bytes));
+                gb_input_used[index] = true;
+                return g_inputs[index].bytes;
+            }
+        }
+        return NULL;
+    }
     if ((NULL != gp_setup) && (1U == count) &&
         (MBEDTLS_SSL_OUT_BUFFER_LEN == size) &&
         (NULL != gp_setup->MBEDTLS_PRIVATE(in_buf)) &&
@@ -90,6 +114,13 @@ static bool release (void * p_memory)
 {
     for (size_t index = 0U; index < C3TOUT_SLOTS; ++index)
     {
+        if (p_memory == g_inputs[index].bytes)
+        {
+            mbedtls_platform_zeroize(g_inputs[index].bytes,
+                                     sizeof(g_inputs[index].bytes));
+            gb_input_used[index] = false;
+            return true;
+        }
         if (p_memory == g_buffers[index].bytes)
         {
             mbedtls_platform_zeroize(g_buffers[index].bytes,

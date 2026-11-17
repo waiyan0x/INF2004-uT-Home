@@ -177,10 +177,11 @@ and recovery use USB. Runtime rules and results still use MQTT over verified TLS
 and the host Configuration Desk/Home Assistant web interfaces remain available.
 This supersedes the earlier requirement to retain MQTT plus two HTTPS sessions.
 
-`c3tls` and `c3tout` now reserve one MQTT context/error record and output buffer.
+`c3tls` and `c3tout` now reserve one MQTT context/error record and full-size
+input/output buffers.
 The [removal verification](firmware/src/network/README.md#esp-https-removal) and
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
-record the fresh build and measured headroom. TLS input, crypto and TCP/IP state
+record the fresh build and measured headroom. TLS crypto/hostname and TCP/IP state
 still need bounded storage. Keep full record limits and certificate checks while
 designing that storage. The pinned dynamic-buffer option remains rejected because
 it loses partial headers across nonblocking retries. No cap increase or new

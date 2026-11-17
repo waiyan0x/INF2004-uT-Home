@@ -504,6 +504,7 @@ class QualificationTests(unittest.TestCase):
         symbols['__wrap_mbedtls_ssl_setup'] = symbols['c3tout_setup']
         symbols['c3tout_native_setup'] = symbols['mbedtls_ssl_setup']
         self.assertEqual(qualification.check_tls_output(commands, symbols, True)['output_slots'], 1)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['input_slots'], 1)
         self.assertEqual(qualification.check_tls_output([], {}, False), {'enabled': False})
         for damaged in ([], commands * 2,
                         commands + [dict(file='/sdk/crypto.c', command='gcc' + flags)],

@@ -10,7 +10,58 @@ full-profile setup/recovery uses USB. The host Desk and Home Assistant web
 interfaces remain available. No Wi-Fi-driver exception automatically exempts
 TLS, TCP/IP or ESP-TLS contexts.
 
-### MQTT-only build after HTTPS removal
+### Fixed MQTT receive buffer
+
+The 17 November follow-up extends the existing `c3tout` adapter with one full
+16,717-byte input buffer in an eight-byte-aligned 16,720-byte slot. Both MQTT
+record buffers remain owned through SDK retries and are fully erased on failure
+or normal cleanup. Exhaustion fails setup without a record-buffer heap fallback.
+The SDK, TLS limits, certificate checks and application owner are unchanged.
+See the [contract and manual C review](../../../firmware/hal/ports/esp32c3/network/README.md#tls-output-c-review).
+
+All **105 affected tests** passed with warnings-as-errors C fixtures. The full
+**333-file pinned C gate**, manual BARR-C review, fresh target build, source
+snapshot and every memory reservation passed. Compiled RV32 probes passed all
+12 receive/read cases and 12 connect-retry cases. Actual SDK setup/cleanup also
+passed one-pair exhaustion, erasure/reuse and failure at each of the three
+remaining setup allocations (seven setup and six cleanup calls). ELF/DWARF
+checks identify both buffers and their exact capacities; no input or output
+buffer request reaches the doubled heap. The verifier rejects the preceding
+heap-input image as a negative control.
+
+These probes double heap, transport, ROM byte copies and hash setup/abort.
+Read cases inject already-decrypted bytes. They do not qualify encryption,
+radio behavior, stack/heap peaks or physical recovery. The image is **unflashed**.
+
+| Fixed-memory group | Linked bytes | Unchanged cap | Headroom |
+|---|---:|---:|---:|
+| Application | 138,949 | 147,456 | 8,507 |
+| Task pool | 18,499 | 18,560 | 61 |
+| SDK/kernel | 54,240 | 55,296 | 1,056 |
+| RAM code | 56,386 | 57,152 | 766 |
+| Total DRAM | 268,074 | 278,528 | 10,454 |
+| RTC, separate from DRAM | 60 | 128 | 68 |
+
+`c3tout` uses 21,158/21,168 bytes. Its increased module reservation accounts for
+the input slot and lease within the existing application cap. Against the
+MQTT-only baseline below, application storage grows by 16,721 bytes and
+SDK/linker alignment by seven; task storage and RAM code are unchanged.
+The three remaining setup requests are a transform (84 bytes), session (144)
+and handshake parameters (2,448), confirmed against this ELF's SDK types.
+They do not include subsequent certificates, keys, retained hostname or TCP/IP
+allocations. Those lifetimes/capacities are the next resource work; fixed record
+buffers alone do not complete TLS or whole-system static-memory qualification.
+
+The fresh build is `C:/Users/kkak4/esp/uthome-tls-input-fixed-20261117/`.
+Application SHA-256:
+`30c6497b7a0ccc5d06d9051e59cf6f75e7c057e6d2963cdcad407b4f7609d329`.
+`evidence.json` SHA-256:
+`8ba85bfc4072b2ae1fbb311622697c0c1d68121de04e985de758fd7130104f04`.
+Private logs, memory report and input/output/connect reports are under
+`build/tls-input-fixed-20261117/`; they retain their exact ELF/report hashes.
+No board, serial port or live network was accessed in this step.
+
+### MQTT-only baseline after HTTPS removal
 
 The [removal check](../../../firmware/src/network/README.md#esp-https-removal)
 passed 509 target-facing tests, the full 333-file pinned C gate/manual review,
@@ -41,11 +92,11 @@ five bytes; task-pool and RAM-code usage are unchanged. Queue, socket/netconn an
 datagram capacities still serve shared SDK traffic and are not inferred from the
 TLS session count. No dependency revision or aggregate cap changes.
 
-The current compiled input probe passes 12 retention/read cases for one client.
-It still observes a 16,717-byte heap input buffer. An aligned fixed slot would
+That compiled input probe passed 12 retention/read cases for one client.
+It observed a 16,717-byte heap input buffer. An aligned fixed slot would
 need **16,720 bytes**, leaving **8,508 application bytes** before bookkeeping and
 the remaining crypto/TCP/IP work; projected total DRAM is 268,066/278,528.
-This is a capacity projection, not implemented fixed input storage or measured
+This was a capacity projection, not implemented fixed input storage or measured
 free heap. The output probe passes exhaustion, erasure/reuse and failure cleanup;
 the connect probe retains the corrected retry behavior. TLS input, certificates,
 keys, retained names and packet/control-block storage still need bounded design.
@@ -54,9 +105,9 @@ All 12 refreshed encrypted MQTT compatibility cases matched expectations.
 The 16,384/4,096 content limits remain in firmware. A 2,048-byte input still rejects
 the longer valid broker chain; removing HTTPS does not justify weaker certificate
 checks or arbitrary record limits. Partial-header retention remains mandatory,
-and the rejected dynamic-buffer option stays disabled. Continue with a full-size
-single-client input reservation and its cleanup/failure proof before addressing
-the remaining crypto/TCP/IP allocations. Hardware timing, stack/heap peaks,
+and the rejected dynamic-buffer option stays disabled. The next step from that
+baseline was the full-size single-client reservation now verified above.
+Remaining crypto/TCP/IP allocations, hardware timing, stack/heap peaks,
 reconnect and combined ESP/HA acceptance are still open.
 
 ### Earlier dual-service baseline
@@ -282,9 +333,9 @@ and TLS state still allocate from the heap.
 The following paths were checked in the pinned SDK source and selected compiler
 commands. The ELF still links `esp_tls_init`, `mbedtls_ssl_setup`,
 `esp_mbedtls_mem_calloc`, `netconn_alloc` and `memp_malloc`. Scoped substitutions
-cover two ESP-TLS units, three lwIP API units and `ssl_tls.c`; the TLS output
+cover two ESP-TLS units, three lwIP API units and `ssl_tls.c`; the TLS record
 adapter forwards all other requests to the SDK. ESP-TLS records/names, TLS
-output buffers, lwIP connection/datagram records and mailbox backing use owned
+input/output buffers, lwIP connection/datagram records and mailbox backing use owned
 stores. Linking an allocator alone
 would not prove reachability;
 the owned entry paths below establish application use.
@@ -295,9 +346,9 @@ the owned entry paths below establish application use.
 | Native task stacks/notifications | `c3task` and the owned compatibility patch reserve/seal startup slots | Software and target-link checks pass; runtime stack/creation counters need the board |
 | Native queues/semaphores/mutexes/event groups | `c3nq`/`c3event` pre-create native objects; SDK create/delete APIs lease/release fixed records | Bounded exhaustion/reuse; does not cover surrounding SDK heap storage |
 | ESP-TLS contexts, error records and temporary names | `c3mqtt` calls the SDK lifecycle; two SDK units bind allocation to `c3tls`, and error trackers use linked fixed replacements | Context/name allocation is bounded for the selected single-client path; live handshake/reconnect acceptance remains |
-| MQTT encryption state | After fixed context admission, SDK setup enters mbedTLS for certificates, keys, persistent TLS hostnames and input buffers | Still heap-backed on first connection/reconnect; outside the contemplated Wi-Fi-driver exception |
+| MQTT encryption state | After fixed context admission, SDK setup enters mbedTLS for handshake state, certificates, keys and persistent TLS hostnames | Still heap-backed on first connection/reconnect; outside the contemplated Wi-Fi-driver exception |
 | TLS output buffers | `ssl_tls.c` setup leases the complete `c3tout` buffer; SDK failure/normal cleanup release it | Fixed 4,429-byte buffers for 4,096-byte content; software and compiled SDK setup/cleanup proof pass, live acceptance pending |
-| TLS input buffers | `ssl_tls.c` forwards input allocation to the SDK internal heap | 16,717-byte buffer for 16,384-byte content per connection; dynamic-buffer option remains off |
+| TLS input buffer | `ssl_tls.c` setup leases the full `c3tout` input slot; SDK failure/normal cleanup release it | Fixed 16,717-byte buffer for 16,384-byte content; dynamic-buffer option remains off; live acceptance pending |
 | lwIP connection/datagram records | Three API units bind NETCONN/NETBUF allocation/free to typed `c3lrec` stores | Six connections/two envelopes; software and target proof pass, live acceptance pending |
 | TCP/IP packet and control-block pools | `lwipopts.h` still sets `MEM_LIBC_MALLOC=1`, `MEMP_MEM_MALLOC=1`; other units keep SDK allocators | Application network activity still reaches general heap-backed pools |
 | lwIP mailbox backing | Wi-Fi builds link `c3lbox`; messages use existing `c3nq` payloads | Bounded software/target-link proof passes; shared capacity needs live acceptance |
@@ -317,19 +368,19 @@ Local probe source, compiler arguments and results are in `build/compact-json/`.
 | `MBEDTLS_SSL_IN_BUFFER_LEN` | 16,717 |
 | `MBEDTLS_SSL_OUT_BUFFER_LEN` | 4,429 |
 
-Contexts are already counted in `c3tls`, and output buffers in `c3tout`; do not
-reserve them twice. Each remaining input buffer needs **16,717 bytes**, before
+Contexts were already counted in `c3tls`, and output buffers in `c3tout`; do not
+reserve them twice. Each then-remaining input buffer needed **16,717 bytes**, before
 certificates, keys, transforms and handshake allocations. One exceeded the
 former 7,201-byte application headroom; three needed 50,151 bytes. The current
-single-client projection above now fits one full input slot before bookkeeping.
+single-client implementation above now includes one full input slot and bookkeeping.
 The earlier compiled setup probe requested 84-, 152-, 2,448- and 16,717-byte SDK allocations per setup;
 it does not run the handshake or establish a whole-connection peak. These are
 capacity observations with the current buffer lifetimes, not measured peaks.
 
-The next design must account for buffer and handshake lifetimes as well as
+The remaining design must account for handshake lifetimes as well as
 bounded allocation. The SDK's dynamic-record-buffer mode is unsuitable as-is
-for the nonblocking application, as the probe below demonstrates. The output
-adapter does not change input storage or the connection policy.
+for the nonblocking application, as the probe below demonstrates. Fixed input
+storage preserves the SDK's record and connection lifetimes.
 
 The pinned mbedTLS `ssl.h` contract for `mbedtls_ssl_conf_max_frag_len` also
 rules out treating a smaller receive buffer as a transparent fix. The MQTT
@@ -381,9 +432,9 @@ checks the ELF hash against `build/tls-output/memory-final.json`.
 
 **Earlier decision:** a direct three-buffer replacement did not fit that image.
 The old projection is retained as evidence, not a current three-session design.
-The HTTPS removal now permits one full-size input reservation within the existing
-application cap, as shown above. Fixed input storage, bookkeeping, crypto/TCP/IP
-costs and live acceptance remain outstanding.
+The HTTPS removal permitted the full-size input reservation now implemented
+within the existing application cap, as shown above. Remaining crypto/TCP/IP
+costs and live acceptance are outstanding.
 
 ### TLS record compatibility decision
 

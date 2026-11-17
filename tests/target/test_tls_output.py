@@ -1,4 +1,4 @@
-"""Actual fixed-output adapter with SDK call/allocator doubles, not TLS crypto."""
+"""Actual fixed-record adapter with SDK call/allocator doubles, not TLS crypto."""
 import ctypes as c
 from pathlib import Path
 import shutil
@@ -105,74 +105,109 @@ class TlsOutputTests(unittest.TestCase):
                 self.lib.c3tout_wipe(pointer, size)
                 setattr(context, name, None)
 
-    def test_one_session_exhaust_without_output_heap_fallback(self):
-        contexts = [self.open()[1] for _ in range(1)]
-        outputs = [context.output for context in contexts]
-        self.assertTrue(all(outputs))
-        self.assertEqual(len(set(outputs)), 1)
-        self.assertEqual(self.lib.touttest_count(0), 1)  # inputs only
-        for index, pointer in enumerate(outputs):
+    def test_one_session_exhaust_without_record_heap_fallback(self):
+        result, context = self.open()
+        self.assertEqual(result, 0)
+        pointers = (context.input, context.output)
+        self.assertTrue(all(pointers))
+        self.assertEqual(len(set(pointers)), 2)
+        self.assertEqual(self.lib.touttest_count(0), 0)
+        for pointer, size in zip(pointers, (INPUT_BYTES, OUTPUT_BYTES)):
             self.assertEqual(pointer % c.alignment(c.c_uint64), 0)
-            self.assertEqual(c.string_at(pointer, OUTPUT_BYTES), bytes(OUTPUT_BYTES))
-            c.memset(pointer, index + 1, OUTPUT_BYTES)
+            self.assertEqual(c.string_at(pointer, size), bytes(size))
+            c.memset(pointer, 0xA5, size)
         result, rejected = self.open()
         self.assertNotEqual(result, 0)
         self.assertFalse(rejected.input or rejected.output)
-        self.assertEqual(self.lib.touttest_count(0), 2)  # rejected input freed
-        self.close(contexts[0])
-        self.assertEqual(c.string_at(outputs[0], OUTPUT_BYTES), bytes(OUTPUT_BYTES))
+        self.assertEqual(self.lib.touttest_count(0), 0)
+        for pointer, size in zip(pointers, (INPUT_BYTES, OUTPUT_BYTES)):
+            self.assertEqual(c.string_at(pointer, size), b'\xa5' * size)
+        self.close(context)
+        for pointer, size in zip(pointers, (INPUT_BYTES, OUTPUT_BYTES)):
+            self.assertEqual(c.string_at(pointer, size), bytes(size))
         result, replacement = self.open()
         self.assertEqual(result, 0)
-        self.assertEqual(replacement.output, outputs[0])
-        self.assertEqual(c.string_at(replacement.output, OUTPUT_BYTES), bytes(OUTPUT_BYTES))
+        self.assertEqual((replacement.input, replacement.output), pointers)
 
     def test_setup_failures_release_slots_and_clear_selection_scope(self):
-        for failure in (1, 2):
+        for failure in (1, 2, 4):
             for _ in range(20):
                 result, context = self.open(failure)
                 self.assertNotEqual(result, 0)
                 self.assertFalse(context.input or context.output)
         before = self.lib.touttest_count(0)
-        pointer = self.lib.c3tout_alloc(1, OUTPUT_BYTES)
-        self.assertTrue(pointer)
-        self.assertEqual(self.lib.touttest_count(0), before + 1)
-        self.lib.c3tout_free(pointer)
-        self.assertTrue(all(self.open()[0] == 0 for _ in range(1)))
+        for size in (INPUT_BYTES, OUTPUT_BYTES):
+            pointer = self.lib.c3tout_alloc(1, size)
+            self.assertTrue(pointer)
+            self.lib.c3tout_free(pointer)
+        self.assertEqual(self.lib.touttest_count(0), before + 2)
+        self.assertEqual(self.open()[0], 0)
 
-    def test_same_size_later_in_setup_uses_sdk_not_another_output_slot(self):
-        contexts = [self.open(3)[1] for _ in range(1)]
-        self.assertTrue(all(context.output for context in contexts))
-        self.assertEqual(self.lib.touttest_count(0), 2)  # inputs and later objects
-        self.assertEqual(self.lib.touttest_count(3), 1)
+    def test_same_size_later_in_setup_uses_sdk_not_record_slots(self):
+        result, context = self.open(3)
+        self.assertEqual(result, 0)
+        self.assertTrue(context.input and context.output)
+        self.assertEqual(self.lib.touttest_count(0), 2)  # later objects only
+        self.assertEqual(self.lib.touttest_count(3), 2)
         self.assertNotEqual(self.open()[0], 0)
 
     def test_both_cleanup_paths_erase_entire_buffer_without_sdk_free(self):
         for wipe in (False, True):
             result, context = self.open()
             self.assertEqual(result, 0)
-            pointer = context.output
-            c.memset(pointer, 0xA5, OUTPUT_BYTES)
-            before = self.lib.touttest_count(1)
-            if wipe:
-                self.lib.c3tout_wipe(pointer, 1)  # owned capacity governs erasure
-            else:
-                self.lib.c3tout_free(pointer)
-            context.output = None
-            self.assertEqual(self.lib.touttest_count(1), before)
-            self.assertEqual(c.string_at(pointer, OUTPUT_BYTES), bytes(OUTPUT_BYTES))
-            self.close(context)
+            for name, size in (('input', INPUT_BYTES), ('output', OUTPUT_BYTES)):
+                pointer = getattr(context, name)
+                c.memset(pointer, 0xA5, size)
+                before = self.lib.touttest_count(1)
+                if wipe:
+                    self.lib.c3tout_wipe(pointer, 1)  # owned capacity governs erasure
+                else:
+                    self.lib.c3tout_free(pointer)
+                setattr(context, name, None)
+                self.assertEqual(self.lib.touttest_count(1), before)
+                self.assertEqual(c.string_at(pointer, size), bytes(size))
+
+    def test_output_exhaustion_returns_new_input_lease(self):
+        result, owner = self.open()
+        self.assertEqual(result, 0)
+        pointer = owner.input
+        self.lib.c3tout_free(pointer)
+        owner.input = None
+        c.memset(owner.output, 0x5A, OUTPUT_BYTES)
+        result, rejected = self.open()
+        self.assertNotEqual(result, 0)
+        self.assertFalse(rejected.input or rejected.output)
+        self.assertEqual(self.lib.touttest_count(0), 0)
+        self.assertEqual(c.string_at(owner.output, OUTPUT_BYTES), b'\x5a' * OUTPUT_BYTES)
+        self.close(owner)
+        result, replacement = self.open()
+        self.assertEqual(result, 0)
+        self.assertEqual(replacement.input, pointer)
+
+    def test_unrelated_allocation_shapes_keep_sdk_path(self):
+        result, context = self.open(5)
+        self.assertEqual(result, 0)
+        self.assertTrue(context.input and context.output)
+        self.assertEqual(self.lib.touttest_count(0), 3)
+        for count, size in ((2, INPUT_BYTES), (2, OUTPUT_BYTES), (1, 17)):
+            pointer = self.lib.c3tout_alloc(count, size)
+            self.assertTrue(pointer)
+            self.lib.c3tout_wipe(pointer, count * size)
+        self.assertEqual(self.lib.touttest_count(0), 6)
+        self.assertEqual(self.lib.touttest_count(3), 3)
 
     def test_reconnect_cycles_reuse_all_storage(self):
         expected = None
         for _ in range(1000):
-            contexts = [self.open()[1] for _ in range(1)]
-            outputs = [context.output for context in contexts]
-            self.assertTrue(all(outputs))
+            result, context = self.open()
+            self.assertEqual(result, 0)
+            pointers = (context.input, context.output)
+            self.assertTrue(all(pointers))
             if expected is None:
-                expected = outputs
-            self.assertEqual(outputs, expected)
-            for context in reversed(contexts):
-                self.close(context)
+                expected = pointers
+            self.assertEqual(pointers, expected)
+            self.close(context)
+        self.assertEqual(self.lib.touttest_count(0), 0)
 
     def test_variable_buffers_are_rejected_before_build(self):
         result = subprocess.run([*self.command, '-DMBEDTLS_SSL_VARIABLE_BUFFER_LENGTH',

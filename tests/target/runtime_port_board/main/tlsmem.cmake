@@ -30,7 +30,7 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
             "-Wl,--wrap=${original}"
             "-Wl,--defsym=__wrap_${original}=${owned}")
     endforeach()
-    # Setup alone selects fixed output storage. Other mbedTLS allocations keep
+    # Setup alone selects fixed record storage. Other mbedTLS allocations keep
     # their SDK path; both failure-free and zeroizing cleanup must be bound.
     idf_component_get_property(UTHOME_MBED_DIR mbedtls COMPONENT_DIR)
     set_property(SOURCE "${UTHOME_MBED_DIR}/mbedtls/library/ssl_tls.c"

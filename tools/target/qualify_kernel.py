@@ -770,7 +770,8 @@ def check_tls_output(commands, symbols, enabled):
         if name not in symbols:
             raise QualificationError('Selected SDK TLS lifecycle missing: ' + name)
     return dict(enabled=True, allocator_sources=['ssl_tls.c'], bindings=bindings,
-                output_slots=1, qualification='Output buffers only; receive and crypto heap paths remain open')
+                input_slots=1, output_slots=1,
+                qualification='Record buffers only; crypto and retained hostname heap paths remain open')
 
 
 def verify_tls_output(work, enabled):

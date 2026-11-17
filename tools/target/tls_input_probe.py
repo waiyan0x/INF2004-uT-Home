@@ -13,7 +13,7 @@ import struct
 
 from elftools.elf.elffile import ELFFile
 from .tls_fragment_probe import CONFIG, RECV, SSL, STACK, STACK_SIZE, WANT_READ
-from .tls_output_probe import OutputProbe
+from .tls_output_probe import OutputProbe, record_storage
 
 
 def handshake_over(path):
@@ -43,27 +43,17 @@ class InputProbe(OutputProbe):
                                       self.field(context, 'in_left')))
 
 
-def capacity(memory, elf_hash, sizes):
+def capacity(memory, elf_hash, storage):
     assert memory['passed'], 'Use a passing fixed-memory report'
     assert memory['artifacts']['build/uthome_runtime_port.elf']['sha256'] == elf_hash, (
         'Memory report must describe this exact ELF')
-    assert len(sizes) == 1, sizes
-    stride = (sizes[0] + 7) & ~7
     groups, budgets = memory['groups'], memory['budgets']
     headroom = budgets['application_fixed_limit'] - groups['application_fixed']
-    projections = []
-    for count in (1,):
-        added = stride * count
-        projections.append({
-            'buffers': count, 'buffer_bytes_without_bookkeeping': added,
-            'application_cap_shortfall': max(0, added - headroom),
-            'projected_total_dram': groups['total_dram'] + added,
-            'total_cap_shortfall': max(0, groups['total_dram'] + added - budgets['total_dram_limit']),
-            'projected_linker_unassigned_bytes': memory['linker_unassigned_bytes'] - added})
-    return {'projection_only': True, 'observed_input_allocation_bytes': sizes[0],
-            'assumed_slot_alignment': 8, 'aligned_slot_bytes': stride,
-            'application_headroom': headroom, 'projections': projections,
-            'excludes': 'Pool metadata, extra link padding, remaining crypto/TCP/IP storage; not runtime free heap'}
+    return {'projection_only': False, 'input_storage': storage,
+            'application_headroom': headroom,
+            'total_dram': groups['total_dram'],
+            'total_dram_headroom': budgets['total_dram_limit'] - groups['total_dram'],
+            'limits': 'Linker capacity only; remaining crypto/TCP/IP storage and runtime peaks are unqualified'}
 
 
 def verify(path, memory):
@@ -72,6 +62,7 @@ def verify(path, memory):
     assert memory['passed']
     assert memory['artifacts']['build/uthome_runtime_port.elf']['sha256'] == digest
     probe = InputProbe(path)
+    storage = record_storage(path)['input']
     assert 'esp_mbedtls_add_rx_buffer' not in probe.symbols, 'Dynamic-buffer image is unsupported'
     state = handshake_over(path)
     contexts = [SSL]
@@ -82,10 +73,12 @@ def verify(path, memory):
         assert probe.run('c3tout_setup', context, CONFIG) == 0
         probe.set_field(context, 'f_recv', RECV)
         pointer = probe.field(context, 'in_buf')
+        assert pointer == storage['address'] and pointer not in probe.live
+        assert bytes(probe.uc.mem_read(pointer, storage['capacity'])) == bytes(storage['capacity'])
         inputs.append(pointer)
-        sizes.append(probe.live[pointer])
+        sizes.append(storage['capacity'])
     assert len(set(inputs)) == 1
-    memory_result = capacity(memory, digest, sizes)
+    memory_result = capacity(memory, digest, storage)
 
     # The single MQTT connection must retain each partial header across calls.
     headers = [bytes.fromhex('1703030011')]
@@ -148,8 +141,11 @@ def verify(path, memory):
     for context in contexts:
         probe.run('mbedtls_ssl_free', context)
     assert not probe.live, probe.live
+    assert sizes[0] not in probe.allocations, probe.allocations
+    assert bytes(probe.uc.mem_read(inputs[0], sizes[0])) == bytes(sizes[0])
     return {'passed': True, 'scope': 'RV32 input lifetime/capacity probe; no handshake, decryption or hardware',
-            'elf_sha256': digest, 'fixed_input_storage_implemented': False,
+            'elf_sha256': digest, 'fixed_input_storage_implemented': True,
+            'input_heap_requests': probe.allocations.count(sizes[0]),
             'doubles': ['SDK heap', 'transport', 'ROM byte copies', 'PSA hash setup/abort'],
             'injected_state': 'Post-decryption plaintext for the application-read cases',
             'sessions': 1, 'header_split_cases': 4, 'body_split_cases': 3,
