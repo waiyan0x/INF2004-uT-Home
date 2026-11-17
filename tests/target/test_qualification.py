@@ -498,13 +498,18 @@ class QualificationTests(unittest.TestCase):
                  ' -Dmbedtls_zeroize_and_free=c3tout_wipe')
         commands = [dict(file='/sdk/mbedtls/library/ssl_tls.c', command='gcc' + flags)]
         names = ('c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe',
+                 'c3tout_set_name', 'mbedtls_ssl_set_hostname',
                  'mbedtls_ssl_setup', 'mbedtls_ssl_free', 'mbedtls_platform_zeroize',
                  'mbedtls_zeroize_and_free', 'mbedtls_calloc', 'mbedtls_free')
         symbols = {name: 0x42001000 + index * 32 for index, name in enumerate(names)}
         symbols['__wrap_mbedtls_ssl_setup'] = symbols['c3tout_setup']
         symbols['c3tout_native_setup'] = symbols['mbedtls_ssl_setup']
+        symbols['__wrap_mbedtls_ssl_set_hostname'] = symbols['c3tout_set_name']
+        symbols['c3tout_native_name'] = symbols['mbedtls_ssl_set_hostname']
         self.assertEqual(qualification.check_tls_output(commands, symbols, True)['output_slots'], 1)
         self.assertEqual(qualification.check_tls_output(commands, symbols, True)['input_slots'], 1)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['hostname_slots'], 1)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['hostname_bytes'], 254)
         self.assertEqual(qualification.check_tls_output([], {}, False), {'enabled': False})
         for damaged in ([], commands * 2,
                         commands + [dict(file='/sdk/crypto.c', command='gcc' + flags)],
@@ -516,10 +521,13 @@ class QualificationTests(unittest.TestCase):
         for name in symbols:
             with self.subTest(missing=name), self.assertRaises(qualification.QualificationError):
                 qualification.check_tls_output(commands, {k: v for k, v in symbols.items() if k != name}, True)
-        for name in ('c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe', 'c3tout_native_setup'):
+        for name in ('c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe', 'c3tout_native_setup',
+                     'c3tout_set_name', 'c3tout_native_name'):
             with self.subTest(name=name), self.assertRaises(qualification.QualificationError):
                 qualification.check_tls_output(commands, dict(symbols, **{name: 0x40380000}), True)
         for damaged in (dict(symbols, c3tout_native_setup=symbols['c3tout_setup']),
+                        dict(symbols, c3tout_native_name=symbols['c3tout_set_name']),
+                        dict(symbols, __wrap_mbedtls_ssl_set_hostname=symbols['mbedtls_ssl_set_hostname']),
                         dict(symbols, __wrap_mbedtls_ssl_setup=symbols['mbedtls_ssl_setup'])):
             with self.assertRaises(qualification.QualificationError):
                 qualification.check_tls_output(commands, damaged, True)

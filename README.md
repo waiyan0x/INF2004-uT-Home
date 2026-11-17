@@ -38,9 +38,10 @@ At the user's request on 17 November, the [ESP HTTPS service](firmware/src/netwo
 and its host setup commands are removed. Full saved-profile setup/recovery uses
 USB; runtime rules/results use MQTT over verified TLS. The host Configuration Desk
 and Home Assistant web interfaces are unchanged. The new image is unflashed.
-MQTT now reserves its full-size TLS input and output buffers; see the
+MQTT now reserves its full-size TLS input/output buffers and retained broker
+hostname; see the
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
-Continue with the remaining TLS crypto/hostname and TCP/IP allocations.
+Continue with the remaining TLS handshake/crypto and TCP/IP allocations.
 The simulated Runtime Desk and Home Assistant walkthrough is complete. Continue
 independent TLS checks and defer steps that need operator input. The
 [MQTT connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)

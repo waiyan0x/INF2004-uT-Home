@@ -10,10 +10,12 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_BYTES = 4429
 INPUT_BYTES = 16717
+NAME_BYTES = 254
 
 
 class Context(c.Structure):
-    _fields_ = [('input', c.c_void_p), ('output', c.c_void_p)]
+    _fields_ = [('input', c.c_void_p), ('output', c.c_void_p),
+                ('hostname', c.c_void_p), ('flags', c.c_uint32)]
 
 
 class Config(c.Structure):
@@ -34,7 +36,8 @@ class TlsOutputTests(unittest.TestCase):
         # Foreign header spellings map to maintained, conventionally named test
         # types. The target build uses the full, unmodified SDK declarations.
         (cls.directory / 'mbedtls/ssl.h').write_text(
-            '#include "touttest.h"\n#define MBEDTLS_PRIVATE(field) field\n')
+            '#include "touttest.h"\n#define MBEDTLS_PRIVATE(field) field\n'
+            '#define MBEDTLS_ERR_SSL_BAD_INPUT_DATA (-135)\n')
         for header in ('mbedtls/platform.h', 'mbedtls/platform_util.h'):
             (cls.directory / header).write_text('#include "touttest.h"\n')
         (cls.directory / 'ssl_misc.h').write_text(
@@ -45,8 +48,9 @@ class TlsOutputTests(unittest.TestCase):
                  '-DUTHOME_NETWORK_WIFI=1', '-DUTHOME_STATIC_NET_QUEUES=1',
                  '-Dmbedtls_ssl_context=touttest_context_t',
                  '-Dmbedtls_ssl_config=touttest_config_t',
-                 '-Din_buf=p_in_buf', '-Dout_buf=p_out_buf',
+                 '-Din_buf=p_in_buf', '-Dout_buf=p_out_buf', '-Dhostname=p_hostname',
                  '-Dc3tout_native_setup=touttest_setup',
+                 '-Dc3tout_native_name=touttest_name',
                  '-Dmbedtls_calloc=touttest_alloc',
                  '-Dmbedtls_free=touttest_free',
                  '-Dmbedtls_platform_zeroize=touttest_zeroize',
@@ -78,6 +82,7 @@ class TlsOutputTests(unittest.TestCase):
             self.addCleanup(_ctypes.FreeLibrary, self.lib._handle)
         for name, args, result in (
                 ('c3tout_setup', [c.POINTER(Context), c.POINTER(Config)], c.c_int),
+                ('c3tout_set_name', [c.POINTER(Context), c.c_char_p], c.c_int),
                 ('c3tout_alloc', [c.c_size_t, c.c_size_t], c.c_void_p),
                 ('c3tout_free', [c.c_void_p], None),
                 ('c3tout_wipe', [c.c_void_p, c.c_size_t], None),
@@ -99,11 +104,90 @@ class TlsOutputTests(unittest.TestCase):
         return result, context
 
     def close(self, context):
-        for name, size in (('input', INPUT_BYTES), ('output', OUTPUT_BYTES)):
+        for name, size in (('input', INPUT_BYTES), ('output', OUTPUT_BYTES),
+                           ('hostname', NAME_BYTES)):
             pointer = getattr(context, name)
             if pointer:
                 self.lib.c3tout_wipe(pointer, size)
                 setattr(context, name, None)
+
+    def test_hostname_copy_boundaries_replacement_and_clear(self):
+        context = Context()
+        self.contexts.append(context)
+        pointer = None
+        for name in (b'a' * 253, b'broker.local', b'', b'x'):
+            source = c.create_string_buffer(name)
+            self.assertEqual(self.lib.c3tout_set_name(c.byref(context), source), 0)
+            pointer = pointer or context.hostname
+            self.assertEqual(context.hostname, pointer)
+            self.assertEqual(c.string_at(pointer, NAME_BYTES), name + bytes(NAME_BYTES - len(name)))
+            c.memset(source, ord('z'), len(name))
+            self.assertEqual(c.string_at(pointer), name)
+            self.assertEqual(context.flags, 1)
+        before = self.lib.touttest_count(4)
+        for name in (b'y' * 254, b'y' * 255, b'y' * 4096):
+            self.assertEqual(self.lib.c3tout_set_name(c.byref(context), name), -135)
+            self.assertEqual(context.hostname, pointer)
+            self.assertEqual(c.string_at(pointer), b'x')
+        self.assertEqual(self.lib.touttest_count(4), before)
+        self.assertEqual(self.lib.c3tout_set_name(c.byref(context), None), 0)
+        self.assertFalse(context.hostname)
+        self.assertEqual(context.flags, 1)
+        self.assertEqual(c.string_at(pointer, NAME_BYTES), bytes(NAME_BYTES))
+        self.assertEqual(self.lib.touttest_count(0), 0)
+
+    def test_hostname_exhaustion_preserves_owner_and_clears_scope(self):
+        owner, rejected = Context(), Context()
+        self.contexts.extend((owner, rejected))
+        self.assertEqual(self.lib.c3tout_set_name(c.byref(owner), b'first'), 0)
+        self.assertEqual(self.lib.c3tout_set_name(c.byref(rejected), b'second'), -141)
+        self.assertFalse(rejected.hostname)
+        self.assertEqual(rejected.flags, 0)
+        self.assertEqual(c.string_at(owner.hostname), b'first')
+        self.assertEqual(self.lib.touttest_count(0), 0)
+        pointer = self.lib.c3tout_alloc(1, 7)  # same size outside the setter
+        self.assertTrue(pointer)
+        self.assertNotEqual(pointer, owner.hostname)
+        self.assertEqual(self.lib.touttest_count(0), 1)
+        self.lib.c3tout_free(pointer)
+        pointer = owner.hostname
+        self.close(owner)
+        self.assertEqual(self.lib.c3tout_set_name(c.byref(rejected), b'second'), 0)
+        self.assertEqual(rejected.hostname, pointer)
+
+    def test_hostname_both_cleanup_paths_erase_all_storage(self):
+        for wipe in (False, True):
+            context = Context()
+            self.contexts.append(context)
+            self.assertEqual(self.lib.c3tout_set_name(c.byref(context), b'broker'), 0)
+            pointer = context.hostname
+            c.memset(pointer, 0xA5, NAME_BYTES)
+            before = self.lib.touttest_count(1)
+            if wipe:
+                self.lib.c3tout_wipe(pointer, 1)
+            else:
+                self.lib.c3tout_free(pointer)
+            context.hostname = None
+            self.assertEqual(self.lib.touttest_count(1), before)
+            self.assertEqual(c.string_at(pointer, NAME_BYTES), bytes(NAME_BYTES))
+
+    def test_hostname_and_records_coexist_through_reconnects_and_failure(self):
+        pointer = None
+        for index in range(1000):
+            context = Context()
+            self.contexts.append(context)
+            self.assertEqual(self.lib.c3tout_set_name(c.byref(context), b'broker.local'), 0)
+            pointer = pointer or context.hostname
+            self.assertEqual(context.hostname, pointer)
+            fail = index % 2 == 0
+            result = self.lib.c3tout_setup(c.byref(context), c.byref(Config(2 if fail else 0)))
+            self.assertEqual(result != 0, fail)
+            self.assertEqual(c.string_at(context.hostname), b'broker.local')
+            if not fail:
+                self.assertEqual(len({context.hostname, context.input, context.output}), 3)
+            self.close(context)
+            self.assertEqual(c.string_at(pointer, NAME_BYTES), bytes(NAME_BYTES))
+        self.assertEqual(self.lib.touttest_count(0), 0)
 
     def test_one_session_exhaust_without_record_heap_fallback(self):
         result, context = self.open()

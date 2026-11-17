@@ -11,6 +11,8 @@ typedef struct
 {
     unsigned char * p_in_buf;
     unsigned char * p_out_buf;
+    char *          p_hostname;
+    uint32_t        flags;
 } touttest_context_t;
 
 typedef struct
@@ -20,6 +22,7 @@ typedef struct
 
 int touttest_setup (touttest_context_t *      p_ssl,
                     const touttest_config_t * p_config);
+int touttest_name (touttest_context_t * p_ssl, const char * p_hostname);
 void * touttest_alloc (size_t count, size_t size);
 void touttest_free (void * p_memory);
 void touttest_zeroize (void * p_memory, size_t size);

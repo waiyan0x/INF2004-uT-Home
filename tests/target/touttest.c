@@ -5,8 +5,9 @@
 #include "touttest.h"
 #include "c3tout.h"
 #include <stdlib.h>
+#include <string.h>
 
-static uint32_t g_counts[4] = {0};
+static uint32_t g_counts[5] = {0};
 
 /** @brief Model setup/cleanup call order, without claiming a TLS handshake. */
 int touttest_setup (touttest_context_t *      p_ssl,
@@ -58,6 +59,34 @@ int touttest_setup (touttest_context_t *      p_ssl,
     return 0;
 }
 
+/** @brief Model the SDK name setter; compiled SDK probes check its real code.
+ */
+int touttest_name (touttest_context_t * p_ssl, const char * p_hostname)
+{
+    ++g_counts[4];
+    const size_t length = (NULL == p_hostname) ? 0U : strlen(p_hostname);
+    if (255U < length)
+    {
+        return -135;
+    }
+    if (NULL != p_ssl->p_hostname)
+    {
+        c3tout_wipe(p_ssl->p_hostname, strlen(p_ssl->p_hostname));
+    }
+    p_ssl->p_hostname = NULL;
+    if (NULL != p_hostname)
+    {
+        p_ssl->p_hostname = c3tout_alloc(1U, length + 1U);
+        if (NULL == p_ssl->p_hostname)
+        {
+            return -141;
+        }
+        memcpy(p_ssl->p_hostname, p_hostname, length + 1U);
+    }
+    p_ssl->flags |= 1U;
+    return 0;
+}
+
 /** @brief Count forwarding; this host-only SDK double owns ordinary heap. */
 void * touttest_alloc (size_t count, size_t size)
 {
@@ -97,7 +126,7 @@ void touttest_wipe (void * p_memory, size_t size)
 /** @brief Expose deterministic forwarding/erasure counters to the host test. */
 uint32_t touttest_count (uint32_t kind)
 {
-    return (kind < 4U) ? g_counts[kind] : UINT32_MAX;
+    return (kind < 5U) ? g_counts[kind] : UINT32_MAX;
 }
 
 /* End of file. */

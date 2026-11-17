@@ -751,7 +751,8 @@ def check_tls_output(commands, symbols, enabled):
         if dict(found) != expected or len(found) != len(expected):
             raise QualificationError('TLS output binding escaped its source: ' + name)
         observed += bool(expected)
-    owned = (*bindings.values(), 'c3tout_setup', 'c3tout_native_setup')
+    owned = (*bindings.values(), 'c3tout_setup', 'c3tout_native_setup',
+             'c3tout_set_name', 'c3tout_native_name')
     if not enabled:
         if any(name in symbols for name in owned):
             raise QualificationError('TLS output storage escaped selected Wi-Fi services')
@@ -765,13 +766,17 @@ def check_tls_output(commands, symbols, enabled):
             or symbols.get('mbedtls_ssl_setup') != symbols['c3tout_native_setup']
             or symbols['c3tout_setup'] == symbols['c3tout_native_setup']):
         raise QualificationError('TLS setup must wrap, then call the unchanged SDK function')
+    if (symbols.get('__wrap_mbedtls_ssl_set_hostname') != symbols['c3tout_set_name']
+            or symbols.get('mbedtls_ssl_set_hostname') != symbols['c3tout_native_name']
+            or symbols['c3tout_set_name'] == symbols['c3tout_native_name']):
+        raise QualificationError('TLS hostname must wrap, then call the unchanged SDK setter')
     for name in ('mbedtls_ssl_free', 'mbedtls_platform_zeroize', 'mbedtls_zeroize_and_free',
                  'mbedtls_calloc', 'mbedtls_free'):
         if name not in symbols:
             raise QualificationError('Selected SDK TLS lifecycle missing: ' + name)
     return dict(enabled=True, allocator_sources=['ssl_tls.c'], bindings=bindings,
-                input_slots=1, output_slots=1,
-                qualification='Record buffers only; crypto and retained hostname heap paths remain open')
+                input_slots=1, output_slots=1, hostname_slots=1, hostname_bytes=254,
+                qualification='Record buffers and connection hostname only; crypto heap paths remain open')
 
 
 def verify_tls_output(work, enabled):

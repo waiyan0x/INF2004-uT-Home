@@ -378,6 +378,30 @@ remaining setup allocations must leave no simulated heap objects. The report
 records the ELF hash, DWARF/linked buffer capacities and original SDK execution
 counts. The ELF is not modified.
 
+## TLS retained-hostname probe
+
+`tls_name_probe.py` checks the compiled fixed-name wrapper and the actual SDK
+setter, setup and cleanup. Use the same optional Unicorn/pyelftools environment
+and a current Wi-Fi/static-queue ELF:
+
+```powershell
+python -B -m tools.target.tls_name_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --output build/tls-name/new-sdk-report.json
+```
+
+Create the output directory first; reports are not overwritten and assertions
+must remain enabled. The probe binds the 254-byte slot to its ELF/DWARF identity.
+It compares copied names and context flags with the unwrapped SDK setter,
+including maximum/short/empty names and NULL clearing. The unwrapped reference
+must allocate, while wrapped calls must not. It also checks overlength rejection
+without replacing the old name, second-context exhaustion, reuse, each of the
+three remaining setup-allocation failures, unrelated allocation forwarding and
+100 complete setup/free cycles. The report records the ELF hash and SDK counts.
+
+Heap, ROM byte/string functions (including `strlen`) and PSA hash operations are
+doubled. The pinned SDK uses PSA errors -135 for invalid input and -141 for
+insufficient memory. This checks name storage and native setter semantics;
+it does not test certificate authentication, a handshake, radio or timing.
+
 ## TLS input lifetime and capacity probe
 
 `tls_input_probe.py` runs the existing SDK's receive path from a qualified,

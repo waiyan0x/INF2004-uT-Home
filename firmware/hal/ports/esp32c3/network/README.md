@@ -10,7 +10,7 @@ resource limits, build instructions, manual reviews and qualification evidence.
 | `c3boot` | Bounded native startup pool for selected static-network builds |
 | `c3lbox` | lwIP mailbox identities bound to the existing fixed queue payloads |
 | `c3tls` | Fixed ESP-TLS contexts, error trackers and temporary hostname storage |
-| `c3tout` | One fixed MQTT input/output buffer pair; scoped SDK setup and cleanup |
+| `c3tout` | Fixed MQTT input/output buffers and retained hostname; scoped SDK calls |
 | `c3lrec` | Fixed typed lwIP connection and datagram-envelope records |
 | `c3nq`, `c3event` | Native queue/event synchronization and fixed resource bindings |
 | `c3ewait` | Stateless native notification, clock and context boundary for events |
@@ -90,9 +90,10 @@ Only `calloc(1, sizeof(esp_tls_t))` is admitted. Unsupported shapes and exhauste
 stores return NULL; there is no general allocator or heap fallback. One
 254-byte temporary name buffer covers the existing 253-character server-name
 limit and numeric IPv4 address. The SDK copies/uses and frees that scratch name
-before returning; persistent mbedTLS hostname storage remains a separate open
-allocation path. Session-ticket storage is excluded by a build guard, matching
-the selected configuration. Global CA-store and saved-session APIs are outside
+before returning; `c3tout` below owns a separate persistent connection hostname.
+The build guard excludes ESP-TLS saved-session storage. mbedTLS ticket parsing
+can still allocate internally; it is not covered by that guard.
+Global CA-store and saved-session APIs are outside
 this adapter contract; selected callers supply their own CA bytes and no saved
 session. Do not add another ESP-TLS user without reviewing its allocation shapes.
 
@@ -130,7 +131,7 @@ partial-header failure is documented in the resource assessment below. The
 qualifier also rejects a linked `esp_mbedtls_add_rx_buffer` implementation.
 
 This closes ESP-TLS record/name allocation only. The adapter below owns TLS
-record buffers; certificates/keys, retained TLS hostnames and lwIP packet/control-block storage still
+record buffers and the connection hostname; certificates/keys, ticket state and lwIP packet/control-block storage still
 need bounded allocation and live acceptance. See the
 [current resource assessment](../../../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
 
@@ -148,7 +149,7 @@ certificate checks remain unchanged; HTTPS capacity has been removed.
 The setup wrapper calls the original SDK function through a checked linker
 alias. A borrowed setup-context pointer lives only for that synchronous call.
 Only `ssl_tls.c` binds `mbedtls_calloc`, `mbedtls_free` and
-`mbedtls_zeroize_and_free` to this adapter. A request selects fixed storage only
+`mbedtls_zeroize_and_free` to this adapter. A record request selects fixed storage only
 during setup: input is selected before either buffer exists, and output after
 input exists but before output is assigned. Setup requires an initialized,
 unused context, as the SDK does. A same-sized later allocation retains the SDK path. Other
@@ -164,10 +165,27 @@ guard remains. All calls belong to the single serialized application owner in
 task context with cache enabled. Adding another TLS owner or enabling another
 SDK TLS consumer requires review of capacity and serialization.
 
+The hostname wrapper calls the original `mbedtls_ssl_set_hostname` through a
+separate checked alias. One 254-byte character array retains the name used for
+certificate matching and SNI, distinct from `c3tls`'s temporary copy. The wrapper
+checks at most 254 bytes and rejects names longer than the existing MQTT limit
+of 253 characters before changing the old name. During that synchronous call,
+only its exact `calloc(1, length + 1)` request with a cleared SDK hostname selects
+the fixed slot. Same-sized allocations outside the setter keep the SDK path.
+Exhaustion returns the SDK allocation error without a hostname heap fallback.
+
+The original setter retains copying, the hostname-set flag, replacement and
+NULL-clear semantics. It requires an initialized context and borrowed immutable
+input that does not alias the retained SDK name. A NULL or empty name is supported
+at this SDK boundary; MQTT admission still requires a nonempty reviewed name.
+Cleanup/replace/clear erase the full 254-byte slot before reuse, including bytes
+beyond a shorter replacement name. All error returns clear the temporary selection
+scope. This changes storage, not certificate verification or SNI behavior.
+
 ### TLS output C review
 
-The original output adapter now also owns the input buffer; its existing public
-prefix and build bindings are retained. This review covers both record buffers.
+The original output adapter now also owns input and hostname storage; its existing
+public prefix is retained. This review covers all three fixed leases.
 
 Reviewed `c3tout.c/.h` and `touttest.c/.h` against the BARR-C checklist: C99,
 paired modules, named prototypes, fixed-width counters, initialized state,
@@ -182,7 +200,7 @@ is added, and vendor sources remain unchanged.
 The original SDK owns buffer pointer updates, retries and cleanup order. The
 adapter never releases a buffer at WANT_READ/WANT_WRITE or uses stack-backed storage for
 partial data. It uses the SDK's explicit zeroization operation before making
-storage reusable. Only the two selected record requests have a fixed-pool guarantee;
+storage reusable. The two record requests and scoped hostname request have a fixed-pool guarantee;
 other SDK allocations are visible remaining work. Host tests intercept direct
 allocator calls in the owned module and separately count intentional SDK
 forwarding. They cover independent exhaustion, alignment, complete clearing on
@@ -196,6 +214,19 @@ then check actual setup/failure cleanup, absence of record-buffer heap requests,
 partial headers/bodies, unread plaintext and erasure. Transport, heap, ROM byte
 copies and hash setup/abort are doubled; plaintext is injected after decryption.
 These are software checks, not encrypted-handshake or hardware acceptance.
+
+The hostname extension adds ordinary C99 state and matching prototypes, without
+casts, type punning, locks or hardware access. Character-array alignment suffices
+for the SDK's string operations. The bounded length scan keeps `length + 1` within
+254 bytes; `size_t` matches allocator sizes. The native SDK exclusively updates
+the context's name pointer and flags; exact-pointer release never dereferences a
+foreign pointer. Invalid length preserves existing storage and flags. The slot
+lease persists beyond setter return and ends only through SDK cleanup/replace.
+Host checks cover boundary lengths, copied lifetime, rejection, exhaustion,
+both erasure paths, unrelated requests and 1,000 connection/failure cycles.
+The compiled name probe compares the original setter with the fixed-storage
+wrapper, then exercises native setup failures and cleanup. ROM `strlen` is doubled;
+the SDK setter and its flag/copy/error paths execute their real instructions.
 
 ## Fixed lwIP records
 

@@ -1,6 +1,6 @@
 /**
  * @file c3tout.h
- * @brief Fixed record buffers for the serialized SDK TLS setup path.
+ * @brief Fixed MQTT buffers and hostname for serialized SDK calls.
  */
 #ifndef UTHOME_C3TOUT_H
 #define UTHOME_C3TOUT_H
@@ -17,8 +17,18 @@ int c3tout_setup (mbedtls_ssl_context *      p_ssl,
 int c3tout_native_setup (mbedtls_ssl_context *      p_ssl,
                          const mbedtls_ssl_config * p_config);
 
+/* Copy at most 253 hostname characters, matching MQTT admission. The borrowed
+ * name must remain immutable through this call and must not alias SDK storage.
+ * NULL retains the SDK's clear-name behavior. Invalid length preserves the old
+ * name; slot exhaustion fails without heap fallback. The SDK owns
+ * flags/copying.
+ */
+int c3tout_set_name (mbedtls_ssl_context * p_ssl, const char * p_hostname);
+int c3tout_native_name (mbedtls_ssl_context * p_ssl, const char * p_hostname);
+
 /* Bound only into ssl_tls.c. Its setup uses one input and one output buffer,
- * with no fallback on exhaustion. Other requests/releases keep
+ * and its scoped hostname setter uses one persistent name. Fixed leases have
+ * no heap fallback on exhaustion. Other requests keep
  * the SDK allocator; this is not whole-TLS static-memory qualification.
  */
 void * c3tout_alloc (size_t count, size_t size);

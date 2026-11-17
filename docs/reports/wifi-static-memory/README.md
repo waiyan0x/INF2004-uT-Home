@@ -10,9 +10,68 @@ full-profile setup/recovery uses USB. The host Desk and Home Assistant web
 interfaces remain available. No Wi-Fi-driver exception automatically exempts
 TLS, TCP/IP or ESP-TLS contexts.
 
+### Fixed retained MQTT hostname
+
+The latest 17 November step extends `c3tout`'s existing `ssl_tls.c` boundary with
+one 254-byte hostname slot, retaining the current 253-character MQTT admission
+limit. A checked wrapper calls the unchanged SDK setter, so the SDK still owns
+copying, context flags, replacement and NULL clearing. Oversized input leaves
+the old name unchanged; exhaustion fails without a hostname heap fallback.
+The entire slot is erased before reuse. It is separate from `c3tls`'s temporary
+name scratch, which overlaps the setter call. See the
+[contract and C review](../../../firmware/hal/ports/esp32c3/network/README.md#tls-output-c-review).
+
+All **114 affected tests**, the full **333-file pinned C gate**, manual BARR-C
+review, fresh warnings-as-errors target build, exact source snapshot and every
+memory reservation passed. The compiled SDK name probe passed boundary/replacement
+and clear cases, three length rejections, exhaustion/reuse, three setup failures
+and **100 setup/free cycles**. It observed **zero wrapped hostname heap requests**;
+the original setter reference made four allocations and produced matching copied
+values/flags. The previous heap-hostname ELF is rejected as a negative control.
+Record-buffer setup/cleanup, all 12 receive/read cases and all 12 connect-retry
+cases also passed on this exact new ELF.
+
+The first name-probe run exposed obsolete error values in the host fixture/probe.
+They now match the pinned SDK's PSA errors (-135/-141); affected tests and the C
+gate passed again. Firmware already used the SDK symbols and needed no correction.
+Heap, ROM string/byte functions and hash calls are doubled. These checks are not
+encrypted authentication, hardware, timing or runtime peak measurements.
+
+| Fixed-memory group | Linked bytes | Unchanged cap | Headroom |
+|---|---:|---:|---:|
+| Application | 139,212 | 147,456 | 8,244 |
+| Task pool | 18,499 | 18,560 | 61 |
+| SDK/kernel | 54,241 | 55,296 | 1,055 |
+| RAM code | 56,386 | 57,152 | 766 |
+| Total DRAM | 268,338 | 278,528 | 10,190 |
+| RTC, separate from DRAM | 60 | 128 | 68 |
+
+`c3tout` uses 21,421/21,424 bytes. The added name and selection state use 263
+application bytes plus one linker-alignment byte; aggregate caps are unchanged.
+The image is **unflashed** at `C:/Users/kkak4/esp/uthome-tls-name-fixed-20261117/`.
+Application SHA-256:
+`96ec9e59182186e0f02ef830d9251595c9942efc4d225a8fafbad70c2cf026d2`.
+`evidence.json` SHA-256:
+`b66666f63b0933a386a98c1112b0ad289052b5689b5211c064cc68dc501c9836`.
+Private logs and memory/name/input/output/connect reports are under
+`build/tls-name-fixed-20261117/`. No board, serial port or live network was used.
+
+The setup-state work must account for **renegotiation**, which the selected SDK
+client configuration explicitly enables. In the pinned `ssl_tls.c`,
+`mbedtls_ssl_start_renegotiation` initializes new negotiating state while the
+active transform/session remain alive; wrapup releases the old state and promotes
+the new one. One transform/session slot each is therefore insufficient for that
+existing behavior. Two transforms, two sessions and one handshake record alone
+need 2,904 typed bytes before lease metadata and other crypto allocations.
+This is a source/type-based capacity estimate, not implemented storage or a
+measured handshake peak. TLS record sizes and renegotiation behavior are unchanged.
+The ESP-TLS saved-session build guard also does not exclude mbedTLS's internal
+ticket parsing/allocation. Certificates, keys, ticket state and TCP/IP pools remain
+open; the hostname change does not complete static-memory qualification.
+
 ### Fixed MQTT receive buffer
 
-The 17 November follow-up extends the existing `c3tout` adapter with one full
+The preceding 17 November follow-up extended the existing `c3tout` adapter with one full
 16,717-byte input buffer in an eight-byte-aligned 16,720-byte slot. Both MQTT
 record buffers remain owned through SDK retries and are fully erased on failure
 or normal cleanup. Exhaustion fails setup without a record-buffer heap fallback.
@@ -346,7 +405,8 @@ the owned entry paths below establish application use.
 | Native task stacks/notifications | `c3task` and the owned compatibility patch reserve/seal startup slots | Software and target-link checks pass; runtime stack/creation counters need the board |
 | Native queues/semaphores/mutexes/event groups | `c3nq`/`c3event` pre-create native objects; SDK create/delete APIs lease/release fixed records | Bounded exhaustion/reuse; does not cover surrounding SDK heap storage |
 | ESP-TLS contexts, error records and temporary names | `c3mqtt` calls the SDK lifecycle; two SDK units bind allocation to `c3tls`, and error trackers use linked fixed replacements | Context/name allocation is bounded for the selected single-client path; live handshake/reconnect acceptance remains |
-| MQTT encryption state | After fixed context admission, SDK setup enters mbedTLS for handshake state, certificates, keys and persistent TLS hostnames | Still heap-backed on first connection/reconnect; outside the contemplated Wi-Fi-driver exception |
+| MQTT encryption state | After fixed context admission, SDK setup enters mbedTLS for handshake state, certificates, keys and tickets | Still heap-backed on first connection/reconnect; outside the contemplated Wi-Fi-driver exception |
+| Retained connection hostname | Scoped original SDK setter leases `c3tout`'s separate 254-byte string slot | Fixed storage for the existing 253-character MQTT limit; target software proof passes, live acceptance pending |
 | TLS output buffers | `ssl_tls.c` setup leases the complete `c3tout` buffer; SDK failure/normal cleanup release it | Fixed 4,429-byte buffers for 4,096-byte content; software and compiled SDK setup/cleanup proof pass, live acceptance pending |
 | TLS input buffer | `ssl_tls.c` setup leases the full `c3tout` input slot; SDK failure/normal cleanup release it | Fixed 16,717-byte buffer for 16,384-byte content; dynamic-buffer option remains off; live acceptance pending |
 | lwIP connection/datagram records | Three API units bind NETCONN/NETBUF allocation/free to typed `c3lrec` stores | Six connections/two envelopes; software and target proof pass, live acceptance pending |
@@ -550,18 +610,19 @@ for each live connection. One shared scratch array cannot replace storage still
 owned by another connection. Capacity must cover admitted handshake/record
 overlap with deterministic exhaustion and cleanup; it must fit the unchanged
 budgets alongside certificates, keys and TCP/IP storage. Default record buffers
-still exceed the available application headroom, so this assessment closes the
-SDK-option investigation, **not the network allocation blocker**.
+exceeded the application headroom in that earlier three-session image. The current
+single-client build reserves both full buffers; the rejected SDK option does not
+resolve the remaining network allocation work.
 
 ### Required closure before whole-system acceptance
 
 1. Provide bounded storage for the remaining mbedTLS and reachable lwIP
-   allocations, including retained TLS hostname copies. Establish lifetime,
+   allocations, including handshake, certificate/key and ticket state. Establish lifetime,
    concurrency, exhaustion, alignment and cleanup behavior before assigning
    capacities. Preserve vendor pins and all aggregate budget caps.
-2. Preserve simultaneous MQTT and HTTPS setup plus USB recovery. Budget their
-   overlapping lifetimes; reducing HTTPS client count alone does not solve the
-   TLS storage issue. Keep certificate and server-name checks intact.
+2. Preserve MQTT alongside USB recovery and permitted peripheral/configuration
+   traffic. Account for overlapping active and negotiating TLS state within the
+   existing single connection. Keep certificate and server-name checks intact.
 3. Test exhaustion and reconnect against the adapted real SDK paths, then rebuild
    and check every module and aggregate reservation. A fixed arena with unbounded
    fallback is not acceptable.

@@ -1,6 +1,6 @@
 /**
  * @file c3tout.c
- * @brief Retain MQTT TLS record buffers through SDK retries/cleanup.
+ * @brief Retain MQTT TLS buffers and hostname through SDK retries/cleanup.
  */
 /* Buffer lengths and setup state belong to the pinned SDK's private ABI. */
 #define MBEDTLS_ALLOW_PRIVATE_ACCESS
@@ -18,7 +18,8 @@
 #error "Fixed TLS buffers require distinct sizes without buffer resizing."
 #endif
 
-#define C3TOUT_SLOTS 1U
+#define C3TOUT_SLOTS      1U
+#define C3TOUT_NAME_BYTES 254U
 
 typedef union
 {
@@ -32,11 +33,15 @@ typedef union
     unsigned char bytes[MBEDTLS_SSL_IN_BUFFER_LEN];
 } c3tout_input_t;
 
-static c3tout_buffer_t       g_buffers[C3TOUT_SLOTS]     = {0};
-static bool                  gb_used[C3TOUT_SLOTS]       = {false};
-static c3tout_input_t        g_inputs[C3TOUT_SLOTS]      = {0};
-static bool                  gb_input_used[C3TOUT_SLOTS] = {false};
-static mbedtls_ssl_context * gp_setup                    = NULL;
+static c3tout_buffer_t       g_buffers[C3TOUT_SLOTS]       = {0};
+static bool                  gb_used[C3TOUT_SLOTS]         = {false};
+static c3tout_input_t        g_inputs[C3TOUT_SLOTS]        = {0};
+static bool                  gb_input_used[C3TOUT_SLOTS]   = {false};
+static mbedtls_ssl_context * gp_setup                      = NULL;
+static char                  g_hostname[C3TOUT_NAME_BYTES] = {0};
+static bool                  gb_name_used                  = false;
+static mbedtls_ssl_context * gp_name                       = NULL;
+static size_t                g_name_size                   = 0U;
 static bool release (void * p_memory);
 
 /** @brief Scope allocation selection to this synchronous SDK setup call. */
@@ -49,10 +54,44 @@ int c3tout_setup (mbedtls_ssl_context *      p_ssl,
     return result;
 }
 
-/** @brief Select setup record buffers, never a same-sized later object.
+/** @brief Scope the SDK setter while preserving its copy, flags and cleanup. */
+int c3tout_set_name (mbedtls_ssl_context * p_ssl, const char * p_hostname)
+{
+    size_t length = 0U;
+    if (NULL != p_hostname)
+    {
+        while ((length < sizeof(g_hostname)) && ('\0' != p_hostname[length]))
+        {
+            ++length;
+        }
+        if (sizeof(g_hostname) == length)
+        {
+            return MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
+        }
+    }
+    gp_name          = p_ssl;
+    g_name_size      = (NULL == p_hostname) ? 0U : (length + 1U);
+    const int result = c3tout_native_name(p_ssl, p_hostname);
+    gp_name          = NULL;
+    g_name_size      = 0U;
+    return result;
+}
+
+/** @brief Select scoped storage; unrelated allocations retain the SDK path.
  */
 void * c3tout_alloc (size_t count, size_t size)
 {
+    if ((NULL != gp_name) && (1U == count) && (0U != g_name_size) &&
+        (g_name_size == size) && (NULL == gp_name->MBEDTLS_PRIVATE(hostname)))
+    {
+        if (gb_name_used)
+        {
+            return NULL;
+        }
+        memset(g_hostname, 0, sizeof(g_hostname));
+        gb_name_used = true;
+        return g_hostname;
+    }
     if ((NULL != gp_setup) && (1U == count) &&
         (MBEDTLS_SSL_IN_BUFFER_LEN == size) &&
         (NULL == gp_setup->MBEDTLS_PRIVATE(in_buf)) &&
@@ -128,6 +167,12 @@ static bool release (void * p_memory)
             gb_used[index] = false;
             return true;
         }
+    }
+    if (p_memory == g_hostname)
+    {
+        mbedtls_platform_zeroize(g_hostname, sizeof(g_hostname));
+        gb_name_used = false;
+        return true;
     }
     return false;
 }
