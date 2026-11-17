@@ -714,6 +714,45 @@ were unchanged; the old VM issue and runtime allocation/peak-memory gates remain
 open. Private evidence is under `build/mqtt-observe-bench-20261117/`, including
 `trial-results.json`, USB/TCP captures, broker events and flash verification logs.
 
+#### Original-image quiet-interval trace
+
+The next read-only trace on 17 November kept that restored original firmware
+and normal profile unchanged. No reset, flash, Apply, rule load or execution
+occurred. Twenty short USB sessions, alternating same-thread observations with
+a joined observation worker, closed in 0.705–1.447 ms. Process-local tracing of
+the installed pySerial Windows calls made no dependency changes.
+
+The longer run then completed these sequential phases:
+
+| Phase | Status replies |
+|---|---:|
+| Initial readiness | 1/1 |
+| Three minutes, USB closed | 149/149 |
+| Three minutes, USB polling | 149/149 |
+| 90 seconds without status queries, USB closed | No queries |
+| Two minutes after the pause | 100/100 |
+
+All **399/399** queries replied in 0.023–0.457 seconds, with one boot identity
+and generation 1. Normal sensor telemetry and host keepalive continued during
+the pause; this was not an idle peripheral plan. All three serial closes in
+the longer run took 0.775–2.676 ms. The 1,573-packet TCP-header capture covered
+the whole observer run. Profile 943 / CRC 3623560383 remained active and saved;
+the final three workers reported zero errors/timeouts.
+
+Neither the later MQTT stall nor the earlier slow close recurred. This does
+not establish a fix or exclude a fault that depends on another condition.
+Original firmware exposes Wi-Fi observation v1, without the new MQTT counters.
+The next trial should use the checked diagnostic image and test the idle-plan
+transition only after reliable normal-profile controls, with a fresh verified
+full backup and explicit installation approval.
+
+The broker and capture stopped, port 8883 closed, and the entry laptop network
+was restored with the temporary profile removed. HA services were unchanged.
+Private evidence is under `build/transport-fix-20261117/`, including
+`trial-results.json`, Windows close timings and the retained USB/broker/TCP
+records. Remaining TLS allocations, runtime peaks and combined HA acceptance
+are still open; the old HA VM instability remains separate.
+
 ## One-shot codec and diagnostic client
 
 The low-level client remains useful for packet inspection and isolated tests:

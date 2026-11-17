@@ -67,9 +67,12 @@ now exposes the existing MQTT state and failure/publication counters. Its host
 checks, fresh target build and fixed-memory gate pass. The subsequent backed-up
 diagnostic trial captured five minutes of normal traffic and a broker restart;
 the later stall did not recur, and both original-image controls also passed.
-The original full flash and profile were restored. Continue the remaining TLS
-allocation work and longer normal-profile tracing with quiet intervals before
-idle-plan/combined HA acceptance. The timeout cause and runtime resource
+The original full flash and profile were restored. A subsequent
+[original-image trace](tools/transaction/README.md#original-image-quiet-interval-trace)
+answered 399/399 status queries across USB polling and quiet intervals; the
+earlier slow USB close did not recur. Continue with the checked diagnostic
+image and a guarded idle-plan transition, plus remaining TLS allocation work,
+before combined HA acceptance. The timeout cause and runtime resource
 compliance remain unresolved.
 
 The [Home Assistant display adapter](tools/transaction/README.md#home-assistant-display)
