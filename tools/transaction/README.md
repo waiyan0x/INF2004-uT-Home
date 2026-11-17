@@ -851,6 +851,35 @@ change was retained. Further diagnosis must distinguish intermittent Wi-Fi/TCP
 loss from startup/reconnect gaps; remaining TLS allocation and combined acceptance
 work stays open.
 
+#### Prepared laptop-hotspot comparison
+
+No second router or phone is available. A host-only preflight on 17 November
+successfully started and stopped a temporary 2.4 GHz WPA2 Windows hotspot.
+Neo_5G and the saved hotspot configuration were preserved. The
+[per-session API](https://learn.microsoft.com/en-us/uwp/api/windows.networking.networkoperators.networkoperatortetheringsessionaccesspointconfiguration)
+avoids replacing the persistent settings. The bench was reconfirmed unchanged;
+a fresh USB read found the same board, original NETWORK v1 and profile 943.
+
+The private build under `build/ap-compare-20261117/` uses source
+`11dac9bed9c9f15224c87ce2f2836459c5d4fe51`. All **255** target source records
+match the default-power control byte for byte. Only private Wi-Fi credentials
+and the numeric broker address change; TLS identity, CA, authentication,
+transmit power, SDK configuration and partition layout remain identical.
+Five provisioning tests, the full **334-file** pinned C gate, manual review,
+fresh target build and source-snapshot verification pass. Fixed DRAM remains
+**272,322/278,528 bytes**, with every group cap passing. Application SHA-256:
+`fad05dade7124d73693a4bcf26edc0c381f1616b9995c30d1800cb98a4263594`.
+
+The concrete private `trial-plan.json` awaits installation approval. It requires
+a fresh verified full-flash backup, the same normal/quiet controls, one idle
+Apply only after reliable replies, and a full verified original restoration.
+The host uses a temporary broker firewall rule restricted to its executable,
+hotspot interface/address, port and subnet; remove that exact rule during
+cleanup. Captures are bounded TCP headers, and no runtime transaction or HA
+change is planned. The ESP has not been flashed for this trial. The laptop
+becomes both AP and broker, changing the forwarding path as well as the AP;
+a passing run alone would not establish the phone hotspot as the cause.
+
 ## One-shot codec and diagnostic client
 
 The low-level client remains useful for packet inspection and isolated tests:

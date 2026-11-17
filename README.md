@@ -81,7 +81,10 @@ reply latency but did not establish a reliability fix. The original full flash,
 profile and laptop network are restored; its final startup control answered 2/5
 queries. Continue investigating intermittent Wi-Fi/TCP failure alongside remaining
 TLS allocation work before combined HA acceptance. The timeout cause and runtime
-resource compliance remain unresolved.
+resource compliance remain unresolved. A
+[laptop-hotspot trial](tools/transaction/README.md#prepared-laptop-hotspot-comparison)
+is prepared after a successful host start/stop check; exact-image installation
+approval is pending.
 
 The [Home Assistant display adapter](tools/transaction/README.md#home-assistant-display)
 is implemented on the host. Add `--home-assistant` to the existing controller
