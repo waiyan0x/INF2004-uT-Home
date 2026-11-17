@@ -521,19 +521,24 @@ class QualificationTests(unittest.TestCase):
                 ('mbedtls_ssl_renegotiate', 'c3tout_renegotiate', 'c3tout_native_renegotiate')):
             symbols['__wrap_' + original] = symbols[wrapper]
             symbols[native] = symbols[original]
-        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['output_slots'], 1)
-        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['input_slots'], 1)
-        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['hostname_slots'], 1)
-        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['hostname_bytes'], 254)
-        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['transform_slots'], 2)
-        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['session_slots'], 2)
-        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['handshake_slots'], 1)
-        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['certificate_slots'], 1)
-        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['peer_digest_slots'], 1)
-        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['peer_digest_bytes'], 32)
-        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['prf_seed_bytes'], 64)
-        self.assertEqual(qualification.check_tls_output(commands, symbols, True)['prf_label_bytes'], 22)
-        self.assertEqual(qualification.check_tls_output([], {}, False), {'enabled': False})
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['output_slots'], 1)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['input_slots'], 1)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['hostname_slots'], 1)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['hostname_bytes'], 254)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['transform_slots'], 2)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['session_slots'], 2)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['handshake_slots'], 1)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['certificate_slots'], 1)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['peer_digest_slots'], 1)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['peer_digest_bytes'], 32)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['prf_seed_bytes'], 64)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['prf_label_bytes'], 22)
+        self.assertFalse(qualification.check_tls_output(commands, symbols, True, ())['session_tickets'])
+        self.assertEqual(qualification.check_tls_output([], {}, False, ()), {'enabled': False})
+        for option in ('MBEDTLS_CLIENT_SSL_SESSION_TICKETS', 'MBEDTLS_SERVER_SSL_SESSION_TICKETS',
+                       'ESP_TLS_CLIENT_SESSION_TICKETS', 'ESP_TLS_SERVER_SESSION_TICKETS'):
+            with self.subTest(ticket_option=option), self.assertRaises(qualification.QualificationError):
+                qualification.check_tls_output(commands, symbols, True, ['CONFIG_' + option + '=y'])
         for damaged in ([], commands[:1], commands[1:], commands * 2,
                         commands[:1] * 2, commands[1:] * 2,
                         commands + [dict(file='/sdk/crypto.c', command='gcc' + flags)],
@@ -541,17 +546,17 @@ class QualificationTests(unittest.TestCase):
                         [dict(commands[0], command='gcc' + flags + ' -Dmbedtls_free=c3tout_free')],
                         [dict(commands[0], command=('gcc' + flags).replace('c3tout_wipe', 'free'))]):
             with self.subTest(commands=damaged), self.assertRaises(qualification.QualificationError):
-                qualification.check_tls_output(damaged, symbols, True)
+                qualification.check_tls_output(damaged, symbols, True, ())
         for name in symbols:
             with self.subTest(missing=name), self.assertRaises(qualification.QualificationError):
-                qualification.check_tls_output(commands, {k: v for k, v in symbols.items() if k != name}, True)
+                qualification.check_tls_output(commands, {k: v for k, v in symbols.items() if k != name}, True, ())
         for name in ('c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe', 'c3tout_native_setup',
                      'c3tout_set_name', 'c3tout_native_name', 'c3tout_start',
                      'c3tout_native_start', 'c3tout_renegotiate', 'c3tout_native_renegotiate',
                      'c3tout_certificate', 'c3tout_native_certificate',
                      'c3tout_prf_input', 'c3tout_prf_alloc'):
             with self.subTest(name=name), self.assertRaises(qualification.QualificationError):
-                qualification.check_tls_output(commands, dict(symbols, **{name: 0x40380000}), True)
+                qualification.check_tls_output(commands, dict(symbols, **{name: 0x40380000}), True, ())
         for damaged in (dict(symbols, c3tout_native_setup=symbols['c3tout_setup']),
                         dict(symbols, c3tout_native_name=symbols['c3tout_set_name']),
                         dict(symbols, c3tout_native_start=symbols['c3tout_start']),
@@ -565,17 +570,22 @@ class QualificationTests(unittest.TestCase):
                         dict(symbols, __wrap_mbedtls_ssl_set_hostname=symbols['mbedtls_ssl_set_hostname']),
                         dict(symbols, __wrap_mbedtls_ssl_setup=symbols['mbedtls_ssl_setup'])):
             with self.assertRaises(qualification.QualificationError):
-                qualification.check_tls_output(commands, damaged, True)
+                qualification.check_tls_output(commands, damaged, True, ())
         for name in ('mbedtls_ssl_session_copy', 'mbedtls_ssl_get_session',
                      'mbedtls_ssl_set_session', 'mbedtls_ssl_session_load',
                      'mbedtls_ssl_context_load', 'mbedtls_ssl_tls_prf',
                      'mbedtls_ssl_export_keying_material',
                      'mbedtls_ssl_tls12_export_keying_material'):
             with self.subTest(saved_session=name), self.assertRaises(qualification.QualificationError):
-                qualification.check_tls_output(commands, dict(symbols, **{name: 0x42003000}), True)
+                qualification.check_tls_output(commands, dict(symbols, **{name: 0x42003000}), True, ())
+        for name in ('ssl_write_session_ticket_ext', 'ssl_parse_session_ticket_ext',
+                     'ssl_parse_new_session_ticket', 'ssl_parse_new_session_ticket.constprop.0',
+                     'mbedtls_ssl_conf_session_tickets', 'mbedtls_ssl_ticket_parse'):
+            with self.subTest(ticket=name), self.assertRaises(qualification.QualificationError):
+                qualification.check_tls_output(commands, dict(symbols, **{name: 0x42003000}), True, ())
         for disabled_commands, disabled_symbols in ((commands, {}), ([], symbols)):
             with self.assertRaises(qualification.QualificationError):
-                qualification.check_tls_output(disabled_commands, disabled_symbols, False)
+                qualification.check_tls_output(disabled_commands, disabled_symbols, False, ())
 
     def test_lwip_records_reject_missing_escaped_and_wrong_bindings(self):
         flags = ' -Dmemp_malloc=c3lrec_alloc -Dmemp_free=c3lrec_free'

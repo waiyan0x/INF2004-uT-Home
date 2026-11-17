@@ -22,7 +22,7 @@
 #if !defined(MBEDTLS_SSL_PROTO_TLS1_2) || !defined(MBEDTLS_SSL_CLI_C) ||       \
     !defined(MBEDTLS_SSL_RENEGOTIATION) ||                                     \
     defined(MBEDTLS_SSL_PROTO_TLS1_3) || defined(MBEDTLS_SSL_SRV_C) ||         \
-    defined(MBEDTLS_SSL_PROTO_DTLS) ||                                         \
+    defined(MBEDTLS_SSL_SESSION_TICKETS) || defined(MBEDTLS_SSL_PROTO_DTLS) || \
     defined(MBEDTLS_SSL_KEEP_PEER_CERTIFICATE) ||                              \
     defined(MBEDTLS_ECP_RESTARTABLE) ||                                        \
     defined(MBEDTLS_SSL_ECP_RESTARTABLE_ENABLED) ||                            \

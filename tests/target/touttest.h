@@ -15,7 +15,7 @@ typedef struct
 typedef struct
 {
     uint8_t * p_digest;
-    uint8_t   bytes[144U - sizeof(uint8_t *)];
+    uint8_t   bytes[128U - sizeof(uint8_t *)];
 } touttest_session_t;
 
 typedef struct

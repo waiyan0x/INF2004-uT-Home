@@ -17,7 +17,7 @@ from .tls_output_probe import OutputProbe, record_storage
 FIELDS = ('transform', 'session', 'transform_negotiate', 'session_negotiate', 'handshake')
 ENTRIES = ('c3tout_start', 'c3tout_renegotiate')
 TYPES = {'transform': ('mbedtls_ssl_transform', 84, 2),
-         'session': ('mbedtls_ssl_session', 144, 2),
+         'session': ('mbedtls_ssl_session', 128, 2),
          'handshake': ('mbedtls_ssl_handshake_params', 2448, 1)}
 
 
@@ -280,7 +280,7 @@ def verify(path, memory):
         assert_storage(probe, storage, active)
     probe.run('mbedtls_ssl_free', SSL)
     assert_storage(probe, storage, [])
-    assert Counter(probe.allocations) == Counter({84: 1, 144: 1, 2448: 1})
+    assert Counter(probe.allocations) == Counter({84: 1, 128: 1, 2448: 1})
 
     headroom = memory['budgets']['application_fixed_limit'] - memory['groups']['application_fixed']
     return dict(passed=True, elf_sha256=digest, state_storage=storage,

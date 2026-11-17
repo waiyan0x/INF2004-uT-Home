@@ -452,6 +452,11 @@ calls cannot consume the application's scope. It uses existing interrupt
 exclusion, with no new kernel object or exception. See the
 [derivation C review](firmware/hal/ports/esp32c3/network/README.md#derivation-storage-c-review).
 
+The approved no-ticket profile adds a feature guard, updates the host session
+double to the measured native size, and uses `tlsconf.h` for the host peer's
+matching preprocessor policy. No deviation or language change is needed; see
+the [policy and C review](firmware/hal/ports/esp32c3/network/README.md#mqtt-session-ticket-policy).
+
 `tlspeer` is the host-only real-TLS compatibility fixture. It uses C99, typed
 SDK callbacks and matching public prefixes. TLS means Transport Layer Security;
 PSA identifies the SDK's Platform Security Architecture crypto API. Its empty

@@ -738,7 +738,7 @@ def verify_tls_storage(work, enabled):
     return check_tls_storage(commands, symbols, enabled)
 
 
-def check_tls_output(commands, symbols, enabled):
+def check_tls_output(commands, symbols, enabled, config_lines):
     """Require the scoped SDK allocator boundary and an unchanged setup alias."""
     bindings = {'mbedtls_calloc': 'c3tout_alloc',
                 'mbedtls_free': 'c3tout_free',
@@ -767,6 +767,10 @@ def check_tls_output(commands, symbols, enabled):
         return dict(enabled=False)
     if sorted(observed) != sorted(source_bindings):
         raise QualificationError('Missing or duplicate TLS output compiler input')
+    for option in ('MBEDTLS_CLIENT_SSL_SESSION_TICKETS', 'MBEDTLS_SERVER_SSL_SESSION_TICKETS',
+                   'ESP_TLS_CLIENT_SESSION_TICKETS', 'ESP_TLS_SERVER_SESSION_TICKETS'):
+        if 'CONFIG_' + option + '=y' in config_lines:
+            raise QualificationError('MQTT TLS session-ticket option is outside the approved profile: ' + option)
     for name in owned:
         if not 0x42000000 <= symbols.get(name, 0) < 0x43000000:
             raise QualificationError('TLS output helper absent or consumes RAM code: ' + name)
@@ -800,6 +804,10 @@ def check_tls_output(commands, symbols, enabled):
                                         'mbedtls_ssl_export_keying_material',
                                         'mbedtls_ssl_tls12_export_keying_material')):
         raise QualificationError('Arbitrary TLS PRF/exporter inputs have no reviewed fixed capacity')
+    if any(name.startswith(('ssl_write_session_ticket_ext', 'ssl_parse_session_ticket_ext',
+                            'ssl_parse_new_session_ticket', 'mbedtls_ssl_conf_session_tickets',
+                            'mbedtls_ssl_ticket_')) for name in symbols):
+        raise QualificationError('MQTT TLS session-ticket code is outside the approved profile')
     for name in ('mbedtls_ssl_free', 'mbedtls_platform_zeroize', 'mbedtls_zeroize_and_free',
                  'mbedtls_calloc', 'mbedtls_free', 'psa_key_derivation_input_bytes',
                  'psa_key_derivation_abort'):
@@ -809,7 +817,7 @@ def check_tls_output(commands, symbols, enabled):
                 input_slots=1, output_slots=1, hostname_slots=1, hostname_bytes=254,
                 transform_slots=2, session_slots=2, handshake_slots=1,
                 certificate_slots=1, peer_digest_slots=1, peer_digest_bytes=32,
-                prf_seed_bytes=64, prf_label_bytes=22,
+                prf_seed_bytes=64, prf_label_bytes=22, session_tickets=False,
                 qualification='Buffers, hostname, outer TLS state, peer records and PRF seed/label only; crypto heap paths remain open')
 
 
@@ -818,7 +826,8 @@ def verify_tls_output(work, enabled):
     output = run(['riscv32-esp-elf-nm', '-n', work / 'build/uthome_runtime_port.elf'])
     symbols = {name: int(address, 16) for address, _, name in
                re.findall(r'^([0-9a-fA-F]+)\s+(\w)\s+(\S+)$', output, re.MULTILINE)}
-    return check_tls_output(commands, symbols, enabled)
+    config_lines = (work / 'sdkconfig').read_text(encoding='utf-8').splitlines()
+    return check_tls_output(commands, symbols, enabled, config_lines)
 
 
 def check_lwip_records(commands, symbols, enabled):

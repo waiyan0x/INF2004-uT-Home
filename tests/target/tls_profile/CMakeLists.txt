@@ -8,7 +8,8 @@ set(GEN_FILES OFF CACHE BOOL "" FORCE)
 set(MBEDTLS_FATAL_WARNINGS ON CACHE BOOL "" FORCE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_compile_definitions(MBEDTLS_SSL_IN_CONTENT_LEN=${TLS_INPUT}
-                        MBEDTLS_SSL_OUT_CONTENT_LEN=${TLS_OUTPUT})
+                        MBEDTLS_SSL_OUT_CONTENT_LEN=${TLS_OUTPUT}
+                        MBEDTLS_USER_CONFIG_FILE="tlsconf.h")
 include_directories(BEFORE "${MBEDTLS_SOURCE}/../port/include"
                            "${CMAKE_CURRENT_SOURCE_DIR}")
 add_subdirectory("${MBEDTLS_SOURCE}" mbedtls)

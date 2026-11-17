@@ -13,8 +13,8 @@ INPUT_BYTES = 16717
 NAME_BYTES = 254
 CERTIFICATE_BYTES = 952
 DIGEST_BYTES = 32
-STATE_SIZES = {'transform_new': 84, 'session_new': 144, 'handshake': 2448,
-               'transform': 84, 'session': 144}
+STATE_SIZES = {'transform_new': 84, 'session_new': 128, 'handshake': 2448,
+               'transform': 84, 'session': 128}
 
 
 class Context(c.Structure):
@@ -35,7 +35,7 @@ class Derivation(c.Structure):
 
 
 class Session(c.Structure):
-    _fields_ = [('digest', c.c_void_p), ('bytes', c.c_uint8 * (144 - c.sizeof(c.c_void_p)))]
+    _fields_ = [('digest', c.c_void_p), ('bytes', c.c_uint8 * (128 - c.sizeof(c.c_void_p)))]
 
 
 class TlsOutputTests(unittest.TestCase):
@@ -387,7 +387,7 @@ class TlsOutputTests(unittest.TestCase):
             self.lib.touttest_promote(c.byref(context))
             for _ in range(50):
                 active = (context.transform, context.session)
-                for pointer, size in zip(active, (84, 144)):
+                for pointer, size in zip(active, (84, 128)):
                     c.memset(pointer, 0x5A, size)
                 before = self.lib.touttest_count(0)
                 self.assertEqual(getattr(self.lib, entry)(c.byref(context)), -0x6900)
@@ -395,7 +395,7 @@ class TlsOutputTests(unittest.TestCase):
                 self.assertEqual(len(set((*active, *pending))), 5)
                 self.assertTrue(all(pending))
                 self.assertEqual(self.lib.touttest_count(0), before)
-                for pointer, size in zip(active, (84, 144)):
+                for pointer, size in zip(active, (84, 128)):
                     self.assertEqual(c.string_at(pointer, size), b'\x5a' * size)
                 self.assertEqual(self.lib.c3tout_renegotiate(c.byref(context)), -0x6900)
                 self.assertEqual((context.transform_new, context.session_new,
@@ -403,7 +403,7 @@ class TlsOutputTests(unittest.TestCase):
                 self.assertEqual(self.lib.touttest_count(0), before + 3)
                 self.lib.touttest_promote(c.byref(context))
                 self.assertEqual((context.transform, context.session), pending[:2])
-                for pointer, size in zip((*active, pending[2]), (84, 144, 2448)):
+                for pointer, size in zip((*active, pending[2]), (84, 128, 2448)):
                     self.assertEqual(c.string_at(pointer, size), bytes(size))
             self.close(context)
 
@@ -451,14 +451,14 @@ class TlsOutputTests(unittest.TestCase):
                 holder.input = holder.output = None
                 self.close(holder)
                 active = (owner.transform, owner.session)
-                for current, size in zip(active, (84, 144)):
+                for current, size in zip(active, (84, 128)):
                     c.memset(current, 0x5A, size)
                 before = self.lib.touttest_count(0)
                 self.assertEqual(getattr(self.lib, entry)(c.byref(owner)), -141)
                 self.assertEqual((owner.transform, owner.session), active)
                 self.assertFalse(owner.transform_new or owner.session_new or owner.handshake)
                 self.assertEqual(self.lib.touttest_count(0), before)
-                for current, size in zip(active, (84, 144)):
+                for current, size in zip(active, (84, 128)):
                     self.assertEqual(c.string_at(current, size), b'\x5a' * size)
                 self.release_reservations()
                 self.assertEqual(getattr(self.lib, entry)(c.byref(owner)), -0x6900)
@@ -505,7 +505,7 @@ class TlsOutputTests(unittest.TestCase):
         self.assertTrue(context.transform and context.session)
         self.assertFalse(context.transform_new or context.session_new or context.handshake)
         self.assertEqual(self.lib.touttest_count(0), 16)
-        for size in (84, 144, 2448):
+        for size in (84, 128, 2448):
             pointer = self.lib.c3tout_alloc(1, size)
             self.assertTrue(pointer)
             self.lib.c3tout_free(pointer)
@@ -700,6 +700,7 @@ class TlsOutputTests(unittest.TestCase):
 
     def test_unsupported_tls_state_profiles_are_rejected_before_build(self):
         for profile in ('MBEDTLS_SSL_PROTO_TLS1_3', 'MBEDTLS_SSL_SRV_C',
+                        'MBEDTLS_SSL_SESSION_TICKETS',
                         'MBEDTLS_SSL_PROTO_DTLS', 'MBEDTLS_SSL_KEEP_PEER_CERTIFICATE',
                         'MBEDTLS_ECP_RESTARTABLE', 'MBEDTLS_SSL_ECP_RESTARTABLE_ENABLED'):
             with self.subTest(profile=profile):

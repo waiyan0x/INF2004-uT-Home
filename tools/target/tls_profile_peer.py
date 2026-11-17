@@ -32,6 +32,7 @@ class Peer:
         self.socket = connection
         self.wire = bytearray()
         self.records = []
+        self.client_extensions = None
         path = lambda value: str(value).encode()
         self.check(self.lib.tlspeer_start(path(ca or folder/'ca.pem'), name.encode()))
 
@@ -55,6 +56,8 @@ class Peer:
             outgoing = c.create_string_buffer(32768)
             size = self.lib.tlspeer_drain(outgoing, len(outgoing))
             if size:
+                if self.client_extensions is None:
+                    self.client_extensions = client_hello_extensions(outgoing.raw[:size])
                 self.socket.settimeout(max(0.01, deadline-time.monotonic()))
                 self.socket.sendall(outgoing.raw[:size])
             # Pinned SDK MBEDTLS_ERR_SSL_WANT_READ / WANT_WRITE.
@@ -103,6 +106,27 @@ class Peer:
         if self.socket is not None:
             self.socket.close()
             self.socket = None
+
+
+def client_hello_extensions(record):
+    """Inspect the peer's first, unfragmented TLS 1.2 ClientHello record."""
+    assert record[0] == 22 and len(record) == 5 + int.from_bytes(record[3:5], 'big')
+    hello = record[5:]
+    assert hello[0] == 1 and len(hello) == 4 + int.from_bytes(hello[1:4], 'big')
+    assert hello[4:6] == b'\x03\x03'
+    offset = 39 + hello[38]  # Version, random and session ID.
+    offset += 2 + int.from_bytes(hello[offset:offset + 2], 'big')
+    offset += 1 + hello[offset]  # Compression methods.
+    end = offset + 2 + int.from_bytes(hello[offset:offset + 2], 'big')
+    assert end == len(hello)
+    offset += 2
+    result = []
+    while offset < end:
+        assert offset + 4 <= end
+        result.append(int.from_bytes(hello[offset:offset + 2], 'big'))
+        offset += 4 + int.from_bytes(hello[offset + 2:offset + 4], 'big')
+        assert offset <= end
+    return result
 
 
 def packet(header, body):

@@ -85,7 +85,8 @@ demonstration.
 
 **Current priority (17 November): resume TLS transport and resource work.**
 The simulated Runtime Desk and HA operator walkthrough has passed. Continue
-independent TLS work and defer steps needing operator input. The
+TLS work, including operator-dependent steps after the necessary input and
+current equipment checks. The user lifted the earlier deferral on 17 November. The
 [connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
 has software and target-build verification. Its physical comparison requires
 installation approval. Whole-system resource compliance remains a final
@@ -185,8 +186,10 @@ The TLS derivation seed/label copies now also use fixed stores isolated to the
 application's native task; PSA secret copies and key storage remain open.
 The [removal verification](firmware/src/network/README.md#esp-https-removal) and
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
-record the fresh build and measured headroom. Inner certificate/key, ticket and TCP/IP state
-still need bounded storage. Keep full record limits and certificate checks while
+record the fresh build and measured headroom. The user approved disabling unused
+TLS session tickets on 17 November; reconnects still use full verified handshakes.
+Inner certificate/key, secret and TCP/IP state still need bounded storage.
+Keep full record limits and certificate checks while
 designing that storage. The pinned dynamic-buffer option remains rejected because
 it loses partial headers across nonblocking retries. No cap increase or new
 allocation exception is authorized by removing HTTPS.

@@ -120,6 +120,7 @@ def broker_case(peer, broker, *, name='127.0.0.1', ca=None, exchange=False):
         result.update(tls_error=error.code, description=str(error), verify_flags=peer.lib.tlspeer_verify())
     finally:
         result['received_records'] = peer.records
+        result['client_hello_extensions'] = peer.client_extensions
         peer.close()
         if companion is not None:
             companion.disconnect()
@@ -129,6 +130,9 @@ def broker_case(peer, broker, *, name='127.0.0.1', ca=None, exchange=False):
 
 def verify_cases(cases, incoming):
     assert cases['mqtt_small']['mqtt_echo_bytes'] == 96
+    assert cases['mqtt_reconnect']['mqtt_echo_bytes'] == 96
+    for case in cases.values():
+        assert case['client_hello_extensions'] and 35 not in case['client_hello_extensions']
     for name in ('wrong_ca', 'wrong_name'):
         assert not cases[name]['handshake'] and cases[name]['verify_flags'] != 0
         assert cases[name]['tls_error'] == -0x2700, cases[name]
@@ -164,6 +168,7 @@ def main(argv=None):
               'openssl': ssl.OPENSSL_VERSION, 'chain': chain, 'profiles': [],
               'hardware_tested': False, 'static_allocation_qualified': False,
               'configuration_apply_tested': False, 'expectations_passed': False,
+              'session_tickets': False,
               'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
               'source_sha256': {str(path.relative_to(ROOT)).replace('\\', '/'):
                                 hashlib.sha256(path.read_bytes()).hexdigest() for path in (
@@ -180,6 +185,7 @@ def main(argv=None):
             cases = {}
             report['profiles'].append(dict(identity, cases=cases))
             cases['mqtt_small'] = broker_case(peer, brokers[0], exchange=True)
+            cases['mqtt_reconnect'] = broker_case(peer, brokers[0], exchange=True)
             cases['wrong_ca'] = broker_case(peer, brokers[0], ca=wrong/'ca.pem')
             cases['wrong_name'] = broker_case(peer, brokers[0], name='wrong.invalid')
             cases['mqtt_chain'] = broker_case(peer, brokers[1])

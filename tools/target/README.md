@@ -540,13 +540,22 @@ hashes and a JSON report. It refuses disabled Python assertions and existing
 output directories. Fresh one-day test keys, certificates and broker credentials
 stay in the ignored output directory. It never opens serial or installs firmware.
 
-Four cases run per profile: authenticated MQTT with a 96-byte round trip;
-wrong trust root; wrong server name; and a longer valid broker certificate chain.
+Five cases run per profile: authenticated MQTT with a 96-byte round trip;
+a fresh reconnect and another round trip; wrong trust root; wrong server name;
+and a longer valid broker certificate chain.
 The report records negotiated protocol, cipher, verification flags, received
 record sizes and exact errors. Expected compatibility failures remain failures.
 The SDK aliases SSL bad-input/buffer-too-small results to PSA -135/-138; the
 Python binding labels those explicitly because the legacy SDK error formatter
 otherwise produces misleading text.
+
+The maintained peer now uses `tlsconf.h` to disable session tickets, matching
+the approved target policy. The Python driver inspects its first unfragmented
+TLS 1.2 ClientHello and reports extension types; every case must omit ticket
+extension 35. A fresh private ticket-enabled build of the same fixture provides
+the positive control. It is a test reference, not a supported target mode.
+Earlier reports retain their original policy and source hashes. See the
+[ticket-policy verification](../../docs/reports/wifi-static-memory/README.md#mqtt-session-tickets-disabled).
 
 `tls_profile_peer.py` drives the serialized C peer in
 `tests/target/tls_profile/`. Its two 32 KiB ciphertext queues are **host transport

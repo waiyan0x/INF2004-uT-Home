@@ -10,9 +10,71 @@ full-profile setup/recovery uses USB. The host Desk and Home Assistant web
 interfaces remain available. No Wi-Fi-driver exception automatically exempts
 TLS, TCP/IP or ESP-TLS contexts.
 
+### MQTT session tickets disabled
+
+On 17 November 2026 the user approved disabling TLS session tickets. The
+application does not reuse saved sessions across reconnects. It continues to
+make full authenticated TLS handshakes, with the same certificate checks,
+ciphers, renegotiation and 16384/4096 record-content limits. This resolves the
+ticket-capacity decision below by removing that optional feature; it does not
+add a smaller ticket limit or a heap exception.
+
+Owned defaults disable both mbedTLS ticket options. CMake and the C feature
+guard reject accidental re-enablement. Qualification checks the compiled SDK
+options and rejects linked ticket helpers, including inlined-code cases detected
+through configuration. Native session/handshake ticket fields are absent from the
+ELF. Each session is now 128 bytes rather than 144; the two typed session stores
+save 32 bytes. See the [policy and C review](../../../firmware/hal/ports/esp32c3/network/README.md#mqtt-session-ticket-policy).
+
+All **93 affected tests**, **29 final session-fixture tests**, the full
+**334-file pinned C gate**, manual BARR-C review, fresh warnings-as-errors target
+build, source snapshot and fixed memory budgets passed. All 47 qualification
+tests passed again after the final SDK-option check; it also rejected the
+previous ticket-enabled image and accepted the current image. The compiled buffer,
+input, hostname, state, certificate, PRF and connect-retry probes passed on the
+new ELF. Their existing crypto/transport doubles and acceptance limits remain.
+
+The pinned host SDK passed **15 encrypted TLS compatibility cases** across
+three record profiles: MQTT round trip, fresh reconnect, wrong CA, wrong name
+and a longer valid chain. All six MQTT exchanges returned 96 bytes. The smallest
+record profile still rejects the longer chain as expected; the target retains
+full record capacity. Every ClientHello omitted ticket extension 35. A fresh
+ticket-enabled build of the same C fixture passed MQTT and included extension
+35, validating the detector. The host fixture uses software crypto and heap;
+this establishes neither ESP authentication nor whole-system static memory.
+
+| Fixed-memory group | Linked bytes | Unchanged cap | Headroom |
+|---|---:|---:|---:|
+| Application | 143,185 | 147,456 | 4,271 |
+| Task pool | 18,499 | 18,560 | 61 |
+| SDK/kernel | 54,252 | 55,296 | 1,044 |
+| RAM code | 56,386 | 57,152 | 766 |
+| Total DRAM | 272,322 | 278,528 | 6,206 |
+| RTC, separate from DRAM | 60 | 128 | 68 |
+
+`c3tout` uses **25,398/25,440 bytes**. Application fixed memory decreased by
+36 bytes overall; removing a possible large ticket allocation is not a measured
+16 KB runtime saving. Inner certificate/key, secret and TCP/IP allocations,
+runtime peaks and physical acceptance remain open. The user also lifted the
+earlier deferral of operator-dependent work; installation still requires the
+reviewed image/backup procedure and explicit approval.
+
+The software-qualified image is **unflashed** at
+`C:/Users/kkak4/esp/uthome-tls-no-tickets-20261117/`.
+Application SHA-256:
+`d645cbddde5b5a650354f5e6fab71035d5d1bc41825e724dc9122869f22358dc`.
+ELF SHA-256:
+`b7f15bcb1b298dd284c6eff92cb09a81710661528872e4c241585d946cc3e10a`.
+`evidence.json` SHA-256:
+`860c615ec43b994aaadd94dbcc1b5488b5ab705b27c6f39657b6d7bc6ae3eff0`.
+Private reports and logs are under `build/tls-no-tickets-20261117/`. A read-only
+USB preflight confirmed the existing profile and Wi-Fi connection; no reset,
+profile write or flash occurred. That observation does not qualify the new image
+or resolve the earlier MQTT timeout cause or separate old HA VM instability.
+
 ### Fixed TLS derivation inputs
 
-The latest 17 November change reserves the TLS 1.2 PRF's 64-byte seed and
+The 17 November derivation change reserves the TLS 1.2 PRF's 64-byte seed and
 22-byte label copies. Native PSA still validates, copies and releases the inputs.
 Selection is limited to the serialized TLS task, using its native kernel ID and
 existing interrupt exclusion. Wi-Fi's concurrent PSA allocations keep the SDK
@@ -44,7 +106,7 @@ The selected exclusive-buffer PSA path and absence of arbitrary PRF/exporter
 callers are checked. Cipher admission, record capacities, certificate verification,
 dependency revisions and aggregate budgets are unchanged. Inner certificate/key,
 secret, ticket and TCP/IP allocations still prevent whole-system qualification.
-The ticket policy decision below remains deferred.
+The ticket policy was deferred at this checkpoint; the approved change is above.
 
 | Fixed-memory group | Linked bytes | Unchanged cap | Headroom |
 |---|---:|---:|---:|
@@ -130,7 +192,7 @@ ELF SHA-256:
 Private build/test/probe evidence is under `build/tls-certificate-fixed-20261117/`.
 No board, serial port, hotspot or live Home Assistant service was accessed.
 
-**Ticket capacity needs a separate decision.** The selected SDK enables internal
+**Earlier ticket-capacity finding, before the approved removal above.** The selected SDK enabled internal
 TLS 1.2 tickets even though ESP-TLS saved-session support is disabled. The native
 ticket parser allocates in `ssl_tls12_client.c`, outside the current `ssl_tls.c`
 allocation boundary. A private software probe on the unchanged preceding ELF
@@ -144,8 +206,8 @@ a demonstrated accepted size, not a claimed maximum or runtime peak.
 The ticket proof injects plaintext and doubles record reading, alerts, handshake,
 hash/ROM helpers and heap. Session-copy/get/set and application saved-session
 APIs are absent from that ELF. Silently choosing a smaller ticket slot would
-reduce current accepted behavior. Changing ticket support/admission remains
-deferred; this step leaves it unchanged. Whole-system resource qualification
+reduce that image's accepted behavior. Ticket support/admission was left
+unchanged at that checkpoint. Whole-system resource qualification
 and the physical MQTT timeout investigation are still open.
 
 ### Fixed TLS handshake state

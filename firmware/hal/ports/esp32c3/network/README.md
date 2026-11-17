@@ -236,7 +236,8 @@ The active transform/session remain alive while renegotiation prepares their
 replacements. The SDK owns initialization, promotion, interior crypto cleanup
 and release order; exact-pointer release erases the full outer object before
 its lease becomes reusable. Exhaustion returns NULL without a state-record
-heap fallback. Certificates, keys and ticket contents still use SDK allocation.
+heap fallback. Inner certificates and keys still use SDK allocation; session
+tickets are disabled by the approved policy below.
 
 Setup and both renegotiation entries call the unchanged SDK through checked
 aliases. Both `mbedtls_ssl_start_renegotiation` and `mbedtls_ssl_renegotiate`
@@ -380,6 +381,34 @@ different task, with assertions and compiler warnings enabled. The compiled
 checks actual input/abort instructions. Hash support, native task identity,
 interrupt exclusion and heap are doubled; PRF output, authentication, hardware
 preemption and whole-connection peak memory are not qualified by these checks.
+
+## MQTT session-ticket policy
+
+On 17 November 2026 the user approved disabling TLS session tickets. The app
+does not save/reuse a TLS session across reconnects, so it continues to perform
+a full verified handshake. Encryption, peer authentication, certificate checks,
+TLS 1.2 renegotiation and record capacities are unchanged. A peer must support
+an ordinary full handshake without session tickets.
+
+Owned network defaults disable both mbedTLS ticket options. CMake rejects either
+mbedTLS or ESP-TLS ticket storage being enabled; `c3tout` also rejects the native
+ticket feature macro. Qualification checks the compiled SDK options and rejects
+linked ticket helpers; absence of symbols alone cannot exclude inlined code. This removes
+the variable-length ticket allocation instead of introducing a smaller admission
+limit or a heap exception. No pinned SDK source is modified.
+
+The final ELF has no session/handshake ticket fields. A native session is now
+128 bytes, down from 144; the two session stores save 32 bytes. Transforms remain
+84 bytes and the handshake remains 2,448 bytes. State probes and host doubles
+use the reviewed new sizes. This does not close inner certificate/key, secret
+or TCP/IP allocations, nor establish runtime peaks or hardware acceptance.
+
+Manual BARR-C review covers the additional feature guard and the host fixture's
+session-size change: C99 and existing prefixes/types remain; bounds match the
+measured layout, and no runtime algorithm, cast, lifetime, synchronization,
+task/ISR contract or exception changes. The host-only `tlsconf.h` uses ordinary
+preprocessing to select the same ticket policy without altering vendor headers.
+See the [verification and build identity](../../../../../docs/reports/wifi-static-memory/README.md#mqtt-session-tickets-disabled).
 
 ## Fixed lwIP records
 

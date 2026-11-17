@@ -5,8 +5,9 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
             "Dynamic TLS buffers are unsupported: pinned SDK loses partial nonblocking record headers")
     endif()
     if(NOT CONFIG_ESP_TLS_USING_MBEDTLS OR CONFIG_ESP_TLS_CUSTOM_STACK OR
+       CONFIG_MBEDTLS_CLIENT_SSL_SESSION_TICKETS OR CONFIG_MBEDTLS_SERVER_SSL_SESSION_TICKETS OR
        CONFIG_ESP_TLS_CLIENT_SESSION_TICKETS OR CONFIG_ESP_TLS_SERVER_SESSION_TICKETS)
-        message(FATAL_ERROR "Fixed ESP-TLS records require mbedTLS without session-ticket storage")
+        message(FATAL_ERROR "Fixed MQTT TLS requires mbedTLS with session tickets disabled at both layers")
     endif()
     idf_component_get_property(UTHOME_TLS_LIB esp-tls COMPONENT_LIB)
     idf_component_get_property(UTHOME_TLS_DIR esp-tls COMPONENT_DIR)

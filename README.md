@@ -45,16 +45,17 @@ peer fingerprint; see the
 TLS derivation now also reserves its 64-byte seed and 22-byte label copies,
 with native-task isolation from Wi-Fi's PSA allocations. Secret/key copies
 remain heap-backed; this does not complete TLS memory qualification.
-Continue with the remaining inner certificate/key, ticket and TCP/IP allocations.
+Continue with the remaining inner certificate/key, secret and TCP/IP allocations.
 The [certificate record work](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records)
-preserves the native validation and renegotiation lifecycle. The ticket capacity
-check found an accepted ticket larger than the available application headroom;
-any change to ticket support/admission remains deferred for a policy decision.
+preserves the native validation and renegotiation lifecycle. The user approved
+[disabling session tickets](docs/reports/wifi-static-memory/README.md#mqtt-session-tickets-disabled)
+on 17 November: accepted tickets exceed available headroom, and the application
+does not reuse saved sessions. Reconnects retain full verified TLS handshakes.
 The [fixed handshake-state stores](docs/reports/wifi-static-memory/README.md#fixed-tls-handshake-state)
 retain active records while renegotiation prepares replacements. Scoped setup
 and both renegotiation entries preserve SDK ownership and deterministic exhaustion.
 The simulated Runtime Desk and Home Assistant walkthrough is complete. Continue
-independent TLS checks and defer steps that need operator input. The
+TLS checks and request operator input when needed; that work is no longer deferred. The
 [MQTT connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
 now passes software checks and a fresh target build. Installation and a physical
 comparison require approval under the existing target procedure. Resource

@@ -100,7 +100,10 @@ heap fallback. `c3tout` now also owns record buffers, the retained mbedTLS name
 and typed outer handshake state, temporary peer-certificate head and peer digest.
 Its derivation seed/label stores also replace those two PSA allocations while
 keeping Wi-Fi's competing allocations separate by native task identity.
-Inner certificate/key data, ticket contents and remaining
+Session tickets are disabled under the approved
+[MQTT policy](../../hal/ports/esp32c3/network/README.md#mqtt-session-ticket-policy);
+the application already starts a fresh verified TLS connection on reconnect.
+Inner certificate/key data, secret copies and remaining
 TCP/IP storage are still open; see the [TLS storage contracts](../../hal/ports/esp32c3/network/README.md#fixed-tls-handshake-state).
 Fixed native queue/task pools and a passing linker budget do not qualify these
 allocations; bounded allocation remediation and runtime measurements remain open.
