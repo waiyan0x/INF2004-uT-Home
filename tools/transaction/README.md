@@ -936,21 +936,42 @@ Fixed DRAM remains 272,322/278,528 bytes with unchanged caps. Application SHA-25
 
 The user confirmed the unchanged bench on 18 November. Read-only USB preflight
 found the expected board, NETWORK v1 and active/saved profile 943 with its
-original CRC. No new reset, installation or Apply has occurred. The concrete
-local plan is `build/mqtt-plan-fix-20261118/trial-plan.json`; installation still
-requires explicit approval.
+original CRC. The approved phone-network attempt stopped at host preflight:
+the laptop needed its original network for Internet access. The temporary
+profile was removed and the original connection verified. No broker, capture,
+ESP reset, installation or Apply started. This is not ESP timeout evidence.
 
-The trial will verify a fresh complete 4 MiB backup, check the original, install
-the exact candidate and run the normal USB/no-USB/quiet controls. Only if those
-pass will it apply the reviewed idle profile once. Recovery queries begin after
-the Apply acknowledgement; capture must show whether the existing ESP TCP/MQTT
-session survives. Ten ready replies, a 60-second quiet interval and ten further
-replies are required, with every timeout retained. Any partial-packet reconnect
-must remain distinguishable from successful session preservation. Full original
-flash/profile restoration and verification, original-image status controls,
-broker/capture shutdown and entry laptop-network restoration finish the trial.
-No runtime rule, peripheral transaction or HA service change is planned.
-Raw evidence and helper inputs remain local-only in that ignored build folder.
+The revised candidate uses the temporary laptop hotspot while retaining the
+laptop's Internet connection. All **255 target source records** match the
+`e402aeed029845f58ab2297faae515e8421d47a3` phone candidate exactly; only private
+SSID/password and broker address change. SDK settings, TLS verification and
+radio power policy are unchanged. The fresh target/snapshot and fixed-memory
+checks, full 334-file C gate and five provisioning tests pass. DRAM is unchanged.
+Revised application SHA-256:
+`4b12b2cb0098d6e43a0939a05d368da12f90752029024d5a481793c449d9225e`.
+A brief host preflight successfully started/stopped the 2.4 GHz hotspot,
+preserving the original Internet connection and saved hotspot settings.
+The concrete local plan is `build/mqtt-plan-ap-20261118/trial-plan.json`;
+this revised image requires installation approval.
+
+The trial will verify a fresh complete 4 MiB backup, check the original through
+USB, install the exact candidate and run the normal USB/no-USB/quiet controls.
+Only if those pass will it apply the reviewed idle profile once, after five
+fresh ready replies. Recovery queries begin after the Apply acknowledgement;
+capture must show whether the existing ESP TCP/MQTT session survives. Ten ready
+replies, a 60-second quiet interval and ten further replies are required, with
+every timeout retained. The observer pauses after each ten-reply phase so an
+in-flight query cannot be mistaken for a timeout. Any partial-packet reconnect
+must remain distinguishable from successful session preservation.
+
+Full original flash/profile restoration and independent verification finish
+the board work. Restoration checks use USB because the original firmware is
+provisioned for the phone network, not this AP. Stop the broker/captures, remove
+the narrowly scoped temporary firewall rule, stop the hotspot and verify the
+saved settings and original Internet connection. No runtime rule, peripheral
+transaction or HA service change is planned. The AP also changes the forwarding
+topology; this run cannot establish a phone-hotspot cause. Raw evidence and
+helper inputs remain local-only in the ignored build folders above.
 
 ## One-shot codec and diagnostic client
 

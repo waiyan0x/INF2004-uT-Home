@@ -95,7 +95,10 @@ a reconnect for every peripheral-plan change. Queued old-generation work is
 discarded; partial packets and real outages still reconnect. The 158 affected
 tests, full 334-file C gate and fresh target build pass with unchanged fixed
 memory. The [prepared backed-up trial](tools/transaction/README.md#plan-change-session-trial)
-awaits installation approval. This addresses the predictable reconnect gap;
+now uses a temporary laptop hotspot to retain the laptop's Internet connection.
+The rebuilt image has identical application sources and awaits revised installation
+approval; the phone-network attempt stopped before any board operation.
+This addresses the predictable reconnect gap;
 the separate intermittent Wi-Fi/TCP failure remains unresolved.
 
 The [Home Assistant display adapter](tools/transaction/README.md#home-assistant-display)
