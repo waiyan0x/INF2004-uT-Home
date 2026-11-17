@@ -59,7 +59,7 @@ runtime peaks and physical acceptance remain open. The user also lifted the
 earlier deferral of operator-dependent work; installation still requires the
 reviewed image/backup procedure and explicit approval.
 
-The software-qualified image is **unflashed** at
+The software-qualified image is at
 `C:/Users/kkak4/esp/uthome-tls-no-tickets-20261117/`.
 Application SHA-256:
 `d645cbddde5b5a650354f5e6fab71035d5d1bc41825e724dc9122869f22358dc`.
@@ -67,10 +67,15 @@ ELF SHA-256:
 `b7f15bcb1b298dd284c6eff92cb09a81710661528872e4c241585d946cc3e10a`.
 `evidence.json` SHA-256:
 `860c615ec43b994aaadd94dbcc1b5488b5ab705b27c6f39657b6d7bc6ae3eff0`.
-Private reports and logs are under `build/tls-no-tickets-20261117/`. A read-only
-USB preflight confirmed the existing profile and Wi-Fi connection; no reset,
-profile write or flash occurred. That observation does not qualify the new image
-or resolve the earlier MQTT timeout cause or separate old HA VM instability.
+Private software reports and logs are under `build/tls-no-tickets-20261117/`.
+The subsequent approved
+[board comparison](../../../tools/transaction/README.md#backed-up-tls-board-comparison)
+installed and verified this image temporarily. It answered ten initial and ten
+post-broker-restart status queries, then timed out on five normal-profile queries.
+The readiness guard prevented idle Apply. The original full flash and profile
+were restored and verified. This establishes encrypted board exchanges, but
+does not isolate ticket removal, qualify sustained reliability or close the
+runtime allocation/peak-memory gates. The separate old HA VM issue is unchanged.
 
 ### Fixed TLS derivation inputs
 

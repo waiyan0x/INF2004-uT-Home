@@ -617,11 +617,56 @@ probe logs, `trial-raw.pcap`, final board snapshot and full-restoration verifica
 The full backup and original application remain private. TLS work was paused
 during this HA-focused comparison and resumed on 17 November. The subsequent
 [SDK connect-retry correction](../../firmware/src/network/README.md#mqtt-tls-connect-retry)
-passes software checks and a target build. Its effect on the earlier live
-timeouts requires an approved physical comparison. The unattended Apply
+passes software checks and a target build. The cumulative comparison below
+does not isolate its effect on the earlier live timeouts. The unattended Apply
 reset remains unestablished. Keep readiness/freshness checks intact and physical
 ESP/HA acceptance open. The old VM instability remains a separate unresolved
 issue; the tested HA Container and simulated display path remain available.
+
+#### Backed-up TLS board comparison
+
+On 17 November, the user approved an original/candidate/original comparison on
+the confirmed unchanged bench. The candidate came from commit
+`385d829e75b80b6f80aac7d7e3c689a836bc0a19`, with application SHA-256
+`d645cbddde5b5a650354f5e6fab71035d5d1bc41825e724dc9122869f22358dc`.
+It includes the queued TLS storage/retry changes, disabled session tickets and
+ESP HTTPS removal. A fresh full 4 MiB backup passed independent flash verification;
+the partition layouts matched. Candidate bootloader, partition table, application
+and preserved configuration bytes were independently verified before restart.
+
+| Sequential control, normal peripheral profile | Status replies | Observed query time |
+|---|---:|---|
+| Restarted original | 0/10 | All reached the eight-second deadline |
+| Candidate after installation | 10/10 | 0.145–0.891 s |
+| Candidate after local broker restart, no board reset | 10/10 | 0.100–0.683 s |
+| Candidate pre-Apply readiness check | 0/5 | All reached the eight-second deadline |
+| Restored original | 0/10 | All reached the eight-second deadline |
+
+The twenty candidate replies share one boot identity and generation 1. The
+later five failures occurred with the normal profile still active. The readiness
+guard stopped the idle test before any Apply; no rule load or execution occurred.
+The broker logged dispatch of all five requests within 0.528–1.278 ms of receiving
+them, but no corresponding result before disconnection. Dispatch is not proof of
+delivery to the ESP. Its reader logged a Windows semaphore-timeout socket error;
+these observations do not locate the fault in the ESP, radio, hotspot or host.
+USB uptime continued from 121.695 to 167.921 seconds through this failure period;
+Wi-Fi still reported an address and all three workers reported zero errors/timeouts.
+
+This confirms real encrypted exchanges and one broker reconnection on the
+candidate, but sustained reliability and idle-plan acceptance remain open. The
+sequential cumulative comparison does not establish which individual change
+affected initial connection behavior or diagnose the earlier unattended reset.
+Final resource acceptance and the separate old HA VM issue are unchanged.
+
+The original full flash was restored and independently verified against SHA-256
+`7e2a57e7ba24af6578ac3d0309254c993ef9490bb7cdbf02f312e032572fb096`.
+The final active/saved profile remains revision 943 / CRC 3623560383. Both broker
+processes exited successfully, port 8883 closed, and an explicit Wi-Fi rescan
+restored the laptop's original network and removed the temporary profile.
+Evidence is local-only under `build/tls-bench-20261117/`, including
+`trial-results.json`, flash verification logs, USB captures and broker events.
+The full backup remains outside the repository. Continue with the later
+normal-profile stall before another idle-plan or combined ESP/HA demonstration.
 
 ## One-shot codec and diagnostic client
 

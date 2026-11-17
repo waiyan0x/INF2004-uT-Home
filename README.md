@@ -37,7 +37,9 @@ Generated verification is local-only under `build/controller/`.
 At the user's request on 17 November, the [ESP HTTPS service](firmware/src/network/README.md#esp-https-removal)
 and its host setup commands are removed. Full saved-profile setup/recovery uses
 USB; runtime rules/results use MQTT over verified TLS. The host Configuration Desk
-and Home Assistant web interfaces are unchanged. The new image is unflashed.
+and Home Assistant web interfaces are unchanged. The latest candidate was
+[temporarily tested on the board](tools/transaction/README.md#backed-up-tls-board-comparison);
+the original full flash was restored and verified afterward.
 MQTT now reserves its full-size TLS input/output buffers, retained broker
 hostname, typed outer handshake state, temporary certificate head and retained
 peer fingerprint; see the
@@ -57,8 +59,9 @@ and both renegotiation entries preserve SDK ownership and deterministic exhausti
 The simulated Runtime Desk and Home Assistant walkthrough is complete. Continue
 TLS checks and request operator input when needed; that work is no longer deferred. The
 [MQTT connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
-now passes software checks and a fresh target build. Installation and a physical
-comparison require approval under the existing target procedure. Resource
+now passes software checks and a fresh target build. The approved cumulative
+candidate answered initial and post-broker-restart status queries, then timed
+out on the normal profile before any idle Apply. Resource
 compliance remains a final gate.
 
 The [Home Assistant display adapter](tools/transaction/README.md#home-assistant-display)
@@ -109,10 +112,13 @@ environment alive; systemd services alone did not keep it running. Login details
 test configuration, backups and verification are private under that ignored
 folder. The fixture is stopped, so its six sensors are correctly unavailable.
 
-**Next: qualify the TLS retry correction on the board after installation approval,
-and complete the remaining TLS storage design.** The new image is unflashed.
-The software reproduction establishes a connect-retry defect. Its contribution
-to the earlier live timeouts still needs a controlled comparison. Packet loss,
+**Next: investigate the later normal-profile MQTT stall and complete the
+remaining TLS storage design.** The approved board comparison returned 10/10
+candidate replies initially and 10/10 after broker restart, then 0/5 before
+the proposed idle Apply. Both restarted-original controls returned 0/10.
+The idle test stopped at its readiness guard; no profile or transaction changed.
+The cumulative image does not isolate the retry correction's individual effect.
+The original full flash/profile and laptop network are restored. Packet loss,
 the unattended Apply reset and old VM instability remain open.
 The reviewed SPI/UART operation descriptions follow this work.
 The approved compact Runtime transactions tab is available in the existing
@@ -137,8 +143,9 @@ style and review proposed UI adjustments before implementation. See the
 
 **Final resource acceptance remains open.** The latest target fits unchanged
 fixed-memory budgets after removing HTTPS, but reachable TLS/TCP/IP heap
-paths remain. That build is unflashed. Smaller TLS records can still break valid
-broker certificate chains, so working limits stay unchanged. The
+paths remain. The bounded board trial does not qualify runtime resource peaks.
+Smaller TLS records can still break valid broker certificate chains, so working
+limits stay unchanged. The
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
 retains the implemented fixed-storage changes, build identities and unresolved
 capacity/lifetime work. Its generated evidence remains under ignored `build/`;

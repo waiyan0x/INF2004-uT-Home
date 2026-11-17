@@ -285,9 +285,14 @@ Its application image SHA-256 is
 Its `evidence.json` SHA-256 is
 `446751c37d77e0efd0bc2989f4b6f0984f7fab10e324e9c12c475d3224653462`.
 Private reports and logs are under `build/tls-retry-20261117/`.
-The image is unflashed. A backed-up physical comparison is deferred pending
-installation approval. The earlier packet loss, later status delays and
-unattended Apply reset still require their own observations. The remaining
+This intermediate image is unflashed. The later cumulative candidate, including
+this correction, completed an approved
+[backed-up board comparison](../../../tools/transaction/README.md#backed-up-tls-board-comparison).
+It answered initial and post-broker-restart queries, then lost normal-profile
+replies before any idle Apply. That comparison does not isolate this correction
+from the other changes. The original full flash was restored. Packet loss,
+later status delays and the unattended Apply reset still require their own
+observations. The remaining
 TLS/TCP/IP storage work is tracked in the
 [resource assessment](../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
 

@@ -88,9 +88,12 @@ The simulated Runtime Desk and HA operator walkthrough has passed. Continue
 TLS work, including operator-dependent steps after the necessary input and
 current equipment checks. The user lifted the earlier deferral on 17 November. The
 [connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
-has software and target-build verification. Its physical comparison requires
-installation approval. Whole-system resource compliance remains a final
-acceptance requirement. The numbered sections below track the remaining areas.
+has software and target-build verification. The approved
+[cumulative board comparison](tools/transaction/README.md#backed-up-tls-board-comparison)
+passed initial status and broker reconnection, then lost normal-profile replies
+before any idle Apply. The original image/profile were restored; sustained MQTT
+reliability and whole-system resource compliance remain final
+acceptance requirements. The numbered sections below track the remaining areas.
 
 The finished demonstration must let a user select reviewed peripheral Markdown
 and an operation on the host, inspect the proposed communication, load the rule,
