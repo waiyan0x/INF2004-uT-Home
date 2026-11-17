@@ -12,6 +12,10 @@ static int fail (netbroker_t * p_state,
                  uint64_t      now_ms,
                  uint32_t      jitter_ms,
                  bool          b_failure);
+static void invalidate_work (netbroker_t * p_state,
+                             uint64_t      now_ms,
+                             uint32_t      jitter_ms,
+                             bool          b_upstream);
 static void discard (netbroker_t * p_state, uint32_t count);
 static int write_packet (netbroker_t * p_state, uint64_t now_ms);
 static int read_packet (netbroker_t * p_state, uint64_t now_ms);
@@ -54,10 +58,7 @@ int netbroker_step (netbroker_t * p_state,
     p_state->last_ms = now_ms;
     if ((!b_upstream) || (generation != p_state->generation))
     {
-        if (NETBROKER_OFF != p_state->state)
-        {
-            (void)fail(p_state, now_ms, jitter_ms, !b_upstream);
-        }
+        invalidate_work(p_state, now_ms, jitter_ms, b_upstream);
         p_state->generation = generation;
     }
     admitted = netretry_poll(&p_state->retry, now_ms, b_upstream, jitter_ms);
@@ -314,6 +315,31 @@ static void connect_packet (netbroker_t * p_state)
         p_data[2] = (uint8_t)(remaining / 128U);
     }
     p_state->size = offset;
+}
+
+/** @brief Keep a healthy session only between complete MQTT packets. */
+static void invalidate_work (netbroker_t * p_state,
+                             uint64_t      now_ms,
+                             uint32_t      jitter_ms,
+                             bool          b_upstream)
+{
+    if (NETBROKER_OFF != p_state->state)
+    {
+        if ((!b_upstream) || (NETBROKER_READY != p_state->state) ||
+            (0U != p_state->size) || (0U != p_state->received))
+        {
+            /* Partial TLS writes and MQTT reads cannot be silently dropped. */
+            (void)fail(p_state, now_ms, jitter_ms, !b_upstream);
+        }
+        else
+        {
+            discard(p_state, p_state->mailbox.b_pending ? 1U : 0U);
+            const uint32_t replaced = p_state->mailbox.replaced;
+            p_state->mailbox        = (netmqtt_t){.replaced = replaced};
+            p_state->b_request      = false;
+            memset(p_state->request, 0, sizeof(p_state->request));
+        }
+    }
 }
 
 /** @brief Clear session buffers before scheduling the next bounded attempt. */

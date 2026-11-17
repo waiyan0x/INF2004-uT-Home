@@ -229,7 +229,92 @@ class BrokerTests(unittest.TestCase):
         self.step()
         self.assertTrue(self.lib.netbroker_idle(self.state))
         self.step(generation=2)
-        self.assertFalse(self.lib.netbroker_idle(self.state))
+        self.assertTrue(self.lib.netbroker_idle(self.state))
+        self.assertEqual(self.closes,0)
+
+    def test_plan_change_keeps_subscription_and_drops_old_queued_work(self):
+        self.subscribed()
+        self.publish_request(bytes(range(96)))
+        for _ in range(145): self.step()
+        self.offer(b'old'); self.offer(b'replacement')
+        before=self.view()
+        self.output.clear()
+        connects=self.connects
+        self.assertEqual(self.step(generation=2),0)
+        self.assertEqual(self.closes,0)
+        self.assertEqual(self.connects,connects)
+        self.assertEqual(self.view(),dict(state=5,failures=before['failures'],
+                                         replaced=before['replaced'],
+                                         discarded=before['discarded']+1))
+        self.assertEqual(self.take_request(),(1,b''))
+        self.assertEqual(self.output,b'')
+        self.assertEqual(self.offer(b'new'),0)
+        for _ in range(4): self.step(generation=2)
+        self.assertTrue(self.output.endswith(b'new'))
+        payload=bytes(reversed(range(96)))
+        self.publish_request(payload)
+        for _ in range(145): self.step(generation=2)
+        self.assertEqual(self.take_request(),(0,payload))
+        self.assertEqual(self.closes,0)
+        self.assertEqual(self.connects,connects)
+
+    def test_plan_change_keeps_outstanding_keepalive_deadline(self):
+        for respond in (True,False):
+            with self.subTest(respond=respond):
+                self.setUp(); self.subscribed()
+                self.step(16000); self.step()
+                self.assertTrue(self.output.endswith(b'\xc0\x00'))
+                self.assertEqual(self.step(generation=2),0)
+                self.assertEqual(self.closes,0)
+                if respond:
+                    self.input.extend(b'\xd0\x00')
+                    for _ in range(3): self.step(generation=2)
+                    self.assertTrue(self.lib.netbroker_idle(self.state))
+                    self.assertEqual(self.step(26000,generation=2),0)
+                else:
+                    self.assertEqual(self.step(26000,generation=2),-1)
+                    self.assertEqual(self.closes,1)
+                    self.assertEqual(self.view()['failures'],1)
+
+    def test_plan_change_still_closes_partial_receive_and_blocked_write(self):
+        for count in (1,2,3,8):
+            with self.subTest(received=count):
+                self.setUp(); self.subscribed()
+                self.publish_request(bytes(96))
+                for _ in range(count): self.step()
+                self.assertEqual(self.step(generation=2),0)
+                self.assertEqual(self.closes,1)
+                self.assertEqual(self.view()['state'],0)
+                self.assertEqual(self.take_request(),(1,b''))
+        self.setUp(); self.subscribed()
+        self.offer(b'old'); self.step()
+        self.limit=0
+        self.step()
+        self.assertEqual(self.step(generation=2),0)
+        self.assertEqual(self.closes,1)
+        self.assertEqual(self.view()['discarded'],1)
+
+    def test_plan_change_with_ip_loss_still_reconnects(self):
+        self.subscribed()
+        self.offer(b'old')
+        self.assertEqual(self.step(ip=False,generation=2),0)
+        self.assertEqual(self.closes,1)
+        self.assertEqual(self.view(),dict(state=0,failures=1,replaced=0,discarded=1))
+
+    def test_clean_plan_change_after_failures_does_not_enter_old_backoff(self):
+        self.connect_result=-1
+        for attempt in range(6):
+            self.assertEqual(self.step(1+attempt*30000),-1)
+        self.connect_result=1
+        self.now+=29999
+        self.subscribed()
+        closes=self.closes
+        connects=self.connects
+        self.assertEqual(self.step(generation=2),0)
+        self.assertEqual(self.view()['state'],5)
+        self.assertEqual(self.view()['failures'],6)
+        self.assertEqual(self.closes,closes)
+        self.assertEqual(self.connects,connects)
 
     def test_fragmented_connack_and_partial_writes(self):
         self.limit=1
@@ -311,6 +396,10 @@ class BrokerTests(unittest.TestCase):
         self.subscribed()
         connects=self.connects
         self.assertEqual(self.view()['failures'],6)
+        self.offer(b'old'); self.step()
+        self.limit=1
+        self.step()  # An in-progress write still requires clean reconnect.
+        self.limit=4096
         self.assertEqual(self.step(generation=2),0)
         self.assertEqual(self.view()['state'],0)
         self.assertEqual(self.step(self.now+29999,generation=2),0)

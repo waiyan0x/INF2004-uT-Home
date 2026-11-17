@@ -924,6 +924,34 @@ No maintained C or HA service changed. Raw evidence, setup corrections,
 restoration checks and file hashes are bound by
 `build/ap-compare-20261117/trial-results.json`.
 
+#### Plan-change session trial
+
+The [network correction](../../firmware/src/network/README.md#mqtt-plan-changes)
+preserves a healthy MQTT session across a plan change when no packet is in
+progress. This targets the observed reconnect gap; it does not establish the
+cause of the separate intermittent Wi-Fi/TCP failure. Software verification
+passes 158 affected tests, the full 334-file C gate and a fresh target build.
+Fixed DRAM remains 272,322/278,528 bytes with unchanged caps. Application SHA-256:
+`f434c1ade21328feb6e60e78823b687df6fa440bbc63bd2d4b41b64997c9776c`.
+
+The user confirmed the unchanged bench on 18 November. Read-only USB preflight
+found the expected board, NETWORK v1 and active/saved profile 943 with its
+original CRC. No new reset, installation or Apply has occurred. The concrete
+local plan is `build/mqtt-plan-fix-20261118/trial-plan.json`; installation still
+requires explicit approval.
+
+The trial will verify a fresh complete 4 MiB backup, check the original, install
+the exact candidate and run the normal USB/no-USB/quiet controls. Only if those
+pass will it apply the reviewed idle profile once. Recovery queries begin after
+the Apply acknowledgement; capture must show whether the existing ESP TCP/MQTT
+session survives. Ten ready replies, a 60-second quiet interval and ten further
+replies are required, with every timeout retained. Any partial-packet reconnect
+must remain distinguishable from successful session preservation. Full original
+flash/profile restoration and verification, original-image status controls,
+broker/capture shutdown and entry laptop-network restoration finish the trial.
+No runtime rule, peripheral transaction or HA service change is planned.
+Raw evidence and helper inputs remain local-only in that ignored build folder.
+
 ## One-shot codec and diagnostic client
 
 The low-level client remains useful for packet inspection and isolated tests:

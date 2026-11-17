@@ -45,6 +45,9 @@ bounded command is queued; transaction replies take priority over sensor
 telemetry. Slow transport preserves a partially written packet. Disconnect and
 plan-generation changes drop queued transport work; uncertain writes are not
 silently repeated. The transaction layer owns exact-ID retry semantics.
+At a complete packet boundary, a plan change now preserves a healthy MQTT
+session and subscription. A partial packet or unfinished connection still
+requires a clean reconnect; see [plan changes](#mqtt-plan-changes).
 
 The board uses `UTHOME_MQTT_VALUE_BYTES=112` and
 `UTHOME_MQTT_PACKET_BYTES=384`; tests exercise those actual bounds. Binary sensor
@@ -73,6 +76,43 @@ Settings, generated headers and firmware can contain credentials. Keep them
 outside Git. Immutable-input hashes detect changes between staging and build;
 this is development provisioning, not runtime credential persistence. Rules
 continue to change at runtime without rebuilding that provisioned firmware.
+
+## MQTT plan changes
+
+Previously, every plan-generation change closed TLS and restarted MQTT,
+including a healthy, subscribed connection with no packet in progress. The
+recorded idle trials show the first status query reaching the broker before
+the new ESP connection completed. This is a predictable reconnect gap,
+separate from the unresolved intermittent TCP/beacon-loss failure.
+
+`netbroker` now keeps a READY session when Wi-Fi is available and neither a
+write nor a received MQTT packet is in progress. It discards the old outbound
+mailbox and copied request, preserves diagnostic counters and adopts the new
+generation. Existing keepalive timing continues. Partially written TLS data,
+partial MQTT input, incomplete handshakes and actual outages retain the clean
+reconnect path. Bytes already handed to TCP cannot be recalled; transaction
+boot/generation checks still reject stale commands. No command is replayed.
+
+Verification on 18 November: 136 network and 22 transaction tests passed,
+including the actual ESP adapter over SDK doubles. New regressions failed on
+the prior implementation and pass with this change. They cover preserved
+subscription, old queued work, fresh commands, keepalive success/timeout,
+partial input/output, Wi-Fi loss and prior failure backoff. The full pinned
+BARR-C gate passed for 334 files, and a fresh ESP32-C3 build and source check
+passed. Fixed DRAM remains 272,322/278,528 bytes; all group caps are unchanged.
+The [prepared board trial](../../../tools/transaction/README.md#plan-change-session-trial)
+has not yet run. Runtime peaks, radio reliability and combined HA acceptance
+remain open.
+
+Manual BARR-C review: the change uses C99, the matching header and a private
+helper with a prototype. Boolean conditions, constant-left comparisons,
+braces and initialized fixed-width locals follow the project rules. The
+single application owner serializes invalidation with I/O; there is no new
+ISR access, cast, allocation, loop or public ABI. Mailbox replacement uses its
+actual type and retains the replacement counter; bounded clearing uses the
+destination object's size. Failure and partial-packet paths retain existing
+ownership and deadlines. The helper keeps the new branch out of the already
+long broker step. No dependency, formatter, exception or resource cap changed.
 
 ## Resource and scheduling boundaries
 

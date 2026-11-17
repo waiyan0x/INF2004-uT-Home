@@ -89,6 +89,15 @@ replies followed. Two normal replies took 1.09/4.31 seconds with repeated TCP
 data, so this run establishes neither a reliability fix nor a phone-hotspot
 fault. The original full flash/profile and host settings are restored.
 
+The latest [plan-change correction](firmware/src/network/README.md#mqtt-plan-changes)
+keeps a healthy MQTT session at complete packet boundaries instead of forcing
+a reconnect for every peripheral-plan change. Queued old-generation work is
+discarded; partial packets and real outages still reconnect. The 158 affected
+tests, full 334-file C gate and fresh target build pass with unchanged fixed
+memory. The [prepared backed-up trial](tools/transaction/README.md#plan-change-session-trial)
+awaits installation approval. This addresses the predictable reconnect gap;
+the separate intermittent Wi-Fi/TCP failure remains unresolved.
+
 The [Home Assistant display adapter](tools/transaction/README.md#home-assistant-display)
 is implemented on the host. Add `--home-assistant` to the existing controller
 session to publish six read-only entities from its copied state. Real-broker and

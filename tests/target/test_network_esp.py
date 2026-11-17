@@ -603,6 +603,7 @@ class EspBindingTests(unittest.TestCase):
 
         self.lib.c3fake_connect_timeouts(2)
         self.lib.c3fake_generation(8)
+        self.mqtt_pump(1,online=0)
         self.mqtt_pump(40, dt=1000)
         self.assertEqual(self.lib.c3fake_tls_polls(), 7)
         self.assertEqual(self.mqtt_connects, 2)
@@ -651,7 +652,7 @@ class EspBindingTests(unittest.TestCase):
         self.assertIn(b'transaction/result'+payload,output)
         self.assertEqual(self.lib.c3mqtt_result(payload,97),-1)
 
-    def test_mqtt_idle_generation_resubscribes_and_carries_queries_after_keepalive(self):
+    def test_mqtt_idle_generation_preserves_session_and_queries_after_keepalive(self):
         from tools.transaction.client import query
         self.mqtt_session()
         self.assertEqual(self.lib.c3mqtt_transactions(),0)
@@ -662,8 +663,9 @@ class EspBindingTests(unittest.TestCase):
         self.lib.c3fake_generation(5)
         for slot in range(8):
             self.lib.c3fake_capture_result(slot,1)
-        self.mqtt_pump(1200)
-        self.assertEqual(self.mqtt_connects,2)
+        self.mqtt_pump(1)
+        self.assertTrue(self.lib.c3mqtt_ready())
+        self.assertEqual(self.mqtt_connects,1)
         self.publishes.clear()
         # Exercise the real adapter/parser with no samples across two keepalives.
         # The owner is doubled here: its 96-byte reply is opaque to MQTT.
@@ -686,7 +688,7 @@ class EspBindingTests(unittest.TestCase):
                           for nonce in range(1,6)])
         view=(c.c_uint32*4)()
         self.assertEqual(self.lib.c3mqtt_status(view),0)
-        self.assertEqual((view[0],view[1],self.mqtt_connects),(5,0,2))
+        self.assertEqual((view[0],view[1],self.mqtt_connects),(5,0,1))
 
 
     def test_wifi_association_ip_loss_and_reconnect(self):
