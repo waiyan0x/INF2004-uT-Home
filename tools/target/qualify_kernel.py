@@ -744,13 +744,14 @@ def check_tls_output(commands, symbols, enabled, config_lines):
                 'mbedtls_free': 'c3tout_free',
                 'mbedtls_zeroize_and_free': 'c3tout_wipe'}
     source_bindings = {
-        'ssl_tls.c': {**bindings, 'psa_key_derivation_input_bytes': 'c3tout_prf_input'},
+        'ssl_tls.c': {**bindings, 'psa_key_derivation_input_bytes': 'c3tout_prf_input',
+                      'psa_key_derivation_input_key': 'c3tout_prf_key'},
         'psa_crypto.c': {**bindings, 'mbedtls_calloc': 'c3tout_prf_alloc'},
     }
     observed = []
     for entry in commands:
         name = Path(entry['file']).name
-        found = re.findall(r'(?:^|\s)-D\s*"?(mbedtls_calloc|mbedtls_free|mbedtls_zeroize_and_free|psa_key_derivation_input_bytes)=([^\s"]+)"?', entry['command'])
+        found = re.findall(r'(?:^|\s)-D\s*"?(mbedtls_calloc|mbedtls_free|mbedtls_zeroize_and_free|psa_key_derivation_input_bytes|psa_key_derivation_input_key)=([^\s"]+)"?', entry['command'])
         expected = source_bindings.get(name, {}) if enabled else {}
         if dict(found) != expected or len(found) != len(expected):
             raise QualificationError('TLS output binding escaped its source: ' + name)
@@ -760,7 +761,7 @@ def check_tls_output(commands, symbols, enabled, config_lines):
              'c3tout_set_name', 'c3tout_native_name', 'c3tout_start',
              'c3tout_native_start', 'c3tout_renegotiate', 'c3tout_native_renegotiate',
              'c3tout_certificate', 'c3tout_native_certificate',
-             'c3tout_prf_input', 'c3tout_prf_alloc')
+             'c3tout_prf_input', 'c3tout_prf_key', 'c3tout_prf_alloc')
     if not enabled:
         if any(name in symbols for name in owned):
             raise QualificationError('TLS output storage escaped selected Wi-Fi services')
@@ -810,7 +811,7 @@ def check_tls_output(commands, symbols, enabled, config_lines):
         raise QualificationError('MQTT TLS session-ticket code is outside the approved profile')
     for name in ('mbedtls_ssl_free', 'mbedtls_platform_zeroize', 'mbedtls_zeroize_and_free',
                  'mbedtls_calloc', 'mbedtls_free', 'psa_key_derivation_input_bytes',
-                 'psa_key_derivation_abort'):
+                 'psa_key_derivation_input_key', 'psa_key_derivation_abort'):
         if name not in symbols:
             raise QualificationError('Selected SDK TLS lifecycle missing: ' + name)
     return dict(enabled=True, allocator_sources=list(source_bindings), bindings=source_bindings,
@@ -818,7 +819,8 @@ def check_tls_output(commands, symbols, enabled, config_lines):
                 transform_slots=2, session_slots=2, handshake_slots=1,
                 certificate_slots=1, peer_digest_slots=1, peer_digest_bytes=32,
                 prf_seed_bytes=64, prf_label_bytes=22, session_tickets=False,
-                qualification='Buffers, hostname, outer TLS state, peer records and PRF seed/label only; crypto heap paths remain open')
+                prf_secret_slots=1,
+                qualification='Buffers, hostname, outer TLS state, peer records and PRF inputs; other crypto heap paths remain open')
 
 
 def verify_tls_output(work, enabled):

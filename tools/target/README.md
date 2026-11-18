@@ -480,7 +480,7 @@ python -B -m tools.target.tls_prf_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_p
 `--expect heap` exercises the unwrapped PSA input API, also usable on the previous
 ELF. Two hundred SHA-256/SHA-384 input lifecycles compare seed, secret and label
 copy ownership and cleanup. The fixed path eliminates 400 seed/label heap
-requests; 200 secret copies deliberately remain on the heap. Twenty-five input
+requests. Its 200 direct byte-secret calls exercise the native allocator. Twenty-five input
 length combinations, invalid ordering/steps, secret-allocation failure, both
 fixed-store exhaustion cases and recovery are checked. Foreign-task cases model
 the owner paused after scope publication; the competing allocation must use the
@@ -491,6 +491,22 @@ support setup/abort and native task/interrupt helpers. It does not produce PRF
 output, run a handshake, authenticate a broker or measure hardware concurrency,
 stack use or runtime peaks. See the
 [storage contract](../../firmware/hal/ports/esp32c3/network/README.md#fixed-tls-derivation-inputs).
+
+For the client's nonempty handshake secrets, run the key-ID probe. It starts
+at the compiled TLS PRF and follows PSA key import, lookup, derivation, abort and
+destruction. Use `--expect heap` for the preceding image with fixed seed/label
+stores. Use `--expect fixed` for an image that also reserves the secret copy.
+
+```powershell
+python -B -m tools.target.tls_prf_key_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --expect fixed --output build/tls-prf/new-key-report.json
+```
+
+The probe checks SHA-256 and SHA-384 known answers, master-secret derivation,
+Finished output and 256-byte key expansion. It verifies the native errors for
+an invalid key and a failed import, slot exhaustion, erasure and reuse. The
+compiled SDK assembles each output block. The host supplies HMAC, the simulated
+heap, ROM byte routines and task/mutex services. Physical handshakes and runtime
+memory measurements remain separate acceptance steps.
 
 ## TLS input lifetime and capacity probe
 

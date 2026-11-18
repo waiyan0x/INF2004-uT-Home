@@ -55,7 +55,10 @@ class TlsOutputTests(unittest.TestCase):
             '#define psa_status_t int32_t\n'
             '#define psa_key_derivation_operation_t touttest_derivation_t\n'
             '#define psa_key_derivation_step_t uint16_t\n'
+            '#define mbedtls_svc_key_id_t uint32_t\n'
+            '#define psa_key_derivation_input_key touttest_key\n'
             '#define PSA_ALG_IS_TLS12_PRF(alg) ((alg) == 1U)\n'
+            '#define PSA_KEY_DERIVATION_INPUT_SECRET 4U\n'
             '#define PSA_KEY_DERIVATION_INPUT_SEED 2U\n'
             '#define PSA_KEY_DERIVATION_INPUT_LABEL 3U\n')
         # Foreign header spellings map to maintained, conventionally named test
@@ -64,6 +67,7 @@ class TlsOutputTests(unittest.TestCase):
             '#include "touttest.h"\n#define MBEDTLS_PRIVATE(field) field\n'
             '#define MBEDTLS_ERR_SSL_BAD_INPUT_DATA (-135)\n'
             '#define MBEDTLS_SSL_PEER_CERT_DIGEST_DFL_LEN 32\n'
+            '#define MBEDTLS_PREMASTER_SIZE 66U\n'
             '#define MBEDTLS_SSL_HANDSHAKE_OVER 16\n'
             '#define MBEDTLS_SSL_RENEGOTIATION_IN_PROGRESS 1\n')
         for header in ('mbedtls/platform.h', 'mbedtls/platform_util.h', 'mbedtls/x509_crt.h'):
@@ -137,6 +141,7 @@ class TlsOutputTests(unittest.TestCase):
                 ('touttest_promote', [c.POINTER(Context)], None),
                 ('c3tout_alloc', [c.c_size_t, c.c_size_t], c.c_void_p),
                 ('c3tout_prf_alloc', [c.c_size_t, c.c_size_t], c.c_void_p),
+                ('c3tout_prf_key', [c.POINTER(Derivation), c.c_uint16, c.c_uint32], c.c_int32),
                 ('c3tout_prf_input', [c.POINTER(Derivation), c.c_uint16,
                                       c.c_char_p, c.c_size_t], c.c_int32),
                 ('c3tout_free', [c.c_void_p], None),
@@ -691,6 +696,32 @@ class TlsOutputTests(unittest.TestCase):
             self.assertTrue(pointer)
             self.assertEqual(self.lib.touttest_count(0), before + 1)
             self.lib.c3tout_wipe(pointer, size)
+
+    def test_key_id_secret_storage_and_native_errors(self):
+        first, second = Derivation(1), Derivation(1)
+        key_input = self.lib.c3tout_prf_key
+        for size in (32, 48, 66):
+            self.assertEqual(key_input(c.byref(first), 4, size), 0)
+            self.assertEqual(c.string_at(first.input, size), b'K' + bytes(size - 1))
+            self.assertEqual(key_input(c.byref(second), 4, 1), -141)
+            c.memset(first.input, 0xA5, 66)
+            self.lib.c3tout_wipe(first.input, size)
+            self.assertEqual(c.string_at(first.input, 66), bytes(66))
+        self.assertEqual(key_input(c.byref(second), 4, 67), -141)
+        self.assertEqual(key_input(c.byref(second), 4, 0), -136)
+        self.assertEqual(self.lib.touttest_count(0), 0)
+        for alg, step, failure in ((0, 4, 0), (1, 3, 0), (1, 4, 4)):
+            operation = Derivation(alg, failure)
+            before = self.lib.touttest_count(0)
+            self.assertEqual(key_input(c.byref(operation), step, 48), 0)
+            self.assertEqual(self.lib.touttest_count(0), before + 1)
+            self.lib.c3tout_free(operation.input)
+        for failure in (1, 3):
+            operation = Derivation(1, failure)
+            self.assertEqual(key_input(c.byref(operation), 4, 48), -137)
+            self.assertFalse(operation.input)
+        self.assertEqual(key_input(c.byref(second), 4, 1), 0)
+        self.lib.c3tout_free(second.input)
 
     def test_psa_copy_mode_is_rejected_before_build(self):
         command = [arg for arg in self.command if arg != '-DMBEDTLS_PSA_ASSUME_EXCLUSIVE_BUFFERS']

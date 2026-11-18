@@ -10,7 +10,7 @@ resource limits, build instructions, manual reviews and qualification evidence.
 | `c3boot` | Bounded native startup pool for selected static-network builds |
 | `c3lbox` | lwIP mailbox identities bound to the existing fixed queue payloads |
 | `c3tls` | Fixed ESP-TLS contexts, error trackers and temporary hostname storage |
-| `c3tout` | Fixed MQTT buffers, hostname, outer TLS/certificate records and PRF seed/label |
+| `c3tout` | Fixed MQTT buffers, hostname, outer TLS/certificate records and TLS 1.2 PRF inputs |
 | `c3lrec` | Fixed typed lwIP connection and datagram-envelope records |
 | `c3nq`, `c3event` | Native queue/event synchronization and fixed resource bindings |
 | `c3ewait` | Stateless native notification, clock and context boundary for events |
@@ -332,21 +332,24 @@ See the [fresh evidence and remaining work](../../../../../docs/reports/wifi-sta
 
 ## Fixed TLS derivation inputs
 
-The TLS 1.2 pseudorandom function (PRF) copies a seed and label into PSA-owned
-storage. `ssl_tls.c` alone routes its byte-input calls through `c3tout_prf_input`.
-One 64-byte seed and one 22-byte label cover the selected handshake's random
-pair (64 bytes), extended-master-secret hash (32/48 bytes), finished hash and
-fixed labels. The longest label is `extended master secret` (22 bytes).
-They coexist until the native PSA abort releases them, including error aborts.
-The adapter retains input validation, copying, state transitions and cleanup;
-it does not implement the PRF or change certificate verification.
+The TLS 1.2 pseudorandom function (PRF) keeps three inputs until PSA completes
+or aborts a derivation. Only `ssl_tls.c` routes byte inputs through
+`c3tout_prf_input` and key-ID inputs through `c3tout_prf_key`.
+The 64-byte seed fits the random pair and the 32/48-byte handshake hashes.
+The longest label is `extended master secret` (22 bytes). For a nonempty secret,
+the client imports a volatile derive key. PSA checks that key's permissions,
+locks its slot and copies the material into the PRF operation.
+The secret store fits the larger of a 48-byte TLS master secret and
+`MBEDTLS_PREMASTER_SIZE`, which is 66 bytes for the selected curves.
 
 Only `psa_crypto.c` binds its allocator to `c3tout_prf_alloc` and its free/wipe
 calls to the existing exact-pointer release. Its matching `calloc(1, size)`
-attempt consumes the scope even on exhaustion. An occupied/oversized selected
-store returns NULL without heap fallback. Other allocations, including secret
-copies and key material, retain the SDK allocator. Zero-length inputs allocate
-nothing. Cleanup erases each entire fixed store before reuse.
+attempt consumes the scope even on exhaustion. PSA supplies the copy length
+after the key lookup. The pinned volatile key-input path makes one allocation
+in this translation unit. An occupied or oversized store returns NULL.
+PSA's earlier import still allocates the key's backing storage. Direct secret
+byte inputs use the native allocator, and a zero-length input allocates nothing.
+Cleanup erases each entire fixed store before reuse.
 
 Wi-Fi also uses PSA, so allocation selection requires the native task ID of the
 serialized TLS owner. `c3bport_task` uses the kernel ID; the FreeRTOS shim handle
@@ -366,10 +369,11 @@ its TLS handshake. TLS 1.2, record capacities and cipher admission are unchanged
 
 Reviewed `c3tout`, `c3bport` and `touttest` against the complete BARR-C checklist:
 C99, paired headers, SDK-compatible PSA types, native ID returned as `int`,
-initialized private state, unsigned sizes, bounded 64/22-byte clearing and no
+initialized private state, unsigned sizes, bounded 64/22/66-byte clearing and no
 new casts. The existing single-core exclusion restores the exact saved mask;
 no SDK call, heap call or wait occurs while held. Only task identity is queried
-before exclusion. The scope is cleared on all native returns. Fixed leases
+before exclusion. Allocation consumes its owner's one-shot scope. Native returns
+also clear a scope when PSA rejects an input before allocating. Fixed leases
 outlive the wrapper and end at native cleanup; only the owner can receive them.
 No new task, lock, ISR/MMIO access, deviation, dependency change or aggregate cap
 increase. The module reservation uses existing application headroom.
@@ -378,9 +382,11 @@ Host tests check coexisting copies, exhaustion, bounds, zero-length inputs,
 whole-store erasure, repeated reuse, failures and identical allocations from a
 different task, with assertions and compiler warnings enabled. The compiled
 [PSA input probe](../../../../../tools/target/README.md#tls-derivation-input-probe)
-checks actual input/abort instructions. Hash support, native task identity,
-interrupt exclusion and heap are doubled; PRF output, authentication, hardware
-preemption and whole-connection peak memory are not qualified by these checks.
+checks actual input/abort instructions. The companion key-ID probe executes
+the compiled client from key import through output and destruction. It checks
+both hashes against reference output and verifies failure recovery. It doubles
+HMAC, heap, native task and mutex services. Broker authentication, physical
+preemption and whole-connection peak memory require separate evidence.
 
 ## MQTT session-ticket policy
 

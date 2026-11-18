@@ -142,13 +142,11 @@ also passed the BMP388 rule-switching and rejection sequence, host reopen and
 broker recovery. The allocation requirement and complete three-protocol/UI/Home
 Assistant demonstration remain open.
 
-The latest checked candidate uses **272,322/278,528 fixed DRAM bytes**, leaving
-6,206 bytes in the total budget. Its application group uses 143,185/147,456 bytes,
-leaving 4,271 bytes. Remaining TLS/TCP storage must fit the unchanged caps;
-reserved headroom is not a measurement of free runtime heap.
-The [current assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
-and [candidate verification](tools/transaction/README.md#plan-change-session-trial)
-record the stores, unchanged caps and backed-up hardware-trial limits.
+The [current assessment](docs/reports/wifi-static-memory/README.md#key-derived-tls-secret)
+gives the latest software image's measured fixed RAM and remaining budget.
+Use those limits for the remaining TLS/TCP storage. The previous
+[board trial](tools/transaction/README.md#plan-change-session-trial) records
+the backed-up installation and restoration.
 Fixed-linker fit is not free-heap, stack or timing acceptance.
 
 ### 1. Session contract and final resource acceptance
@@ -197,13 +195,13 @@ This supersedes the earlier requirement to retain MQTT plus two HTTPS sessions.
 input/output buffers, the retained broker hostname and typed outer handshake
 state, including overlapping active/negotiating transform and session records,
 plus the temporary peer-certificate head and retained peer digest.
-The TLS derivation seed/label copies now also use fixed stores isolated to the
-application's native task; PSA secret copies and key storage remain open.
+TLS derivation also reserves its seed, label and key-derived secret for the
+application's native task. The next allocation is the temporary imported key.
 The [removal verification](firmware/src/network/README.md#esp-https-removal) and
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
 record the fresh build and measured headroom. The user approved disabling unused
 TLS session tickets on 17 November; reconnects still use full verified handshakes.
-Inner certificate/key, secret and TCP/IP state still need bounded storage.
+Inner certificate, key and TCP/IP state still need bounded storage.
 Keep full record limits and certificate checks while
 designing that storage. The pinned dynamic-buffer option remains rejected because
 it loses partial headers across nonblocking retries. No cap increase or new

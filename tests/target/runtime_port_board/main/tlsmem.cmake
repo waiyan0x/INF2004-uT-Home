@@ -38,7 +38,8 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
         TARGET_DIRECTORY mbedtls APPEND PROPERTY COMPILE_DEFINITIONS
         mbedtls_calloc=c3tout_alloc mbedtls_free=c3tout_free
         mbedtls_zeroize_and_free=c3tout_wipe
-        psa_key_derivation_input_bytes=c3tout_prf_input)
+        psa_key_derivation_input_bytes=c3tout_prf_input
+        psa_key_derivation_input_key=c3tout_prf_key)
     set_property(SOURCE "${UTHOME_MBED_DIR}/mbedtls/tf-psa-crypto/core/psa_crypto.c"
         TARGET_DIRECTORY tfpsacrypto APPEND PROPERTY COMPILE_DEFINITIONS
         mbedtls_calloc=c3tout_prf_alloc mbedtls_free=c3tout_free

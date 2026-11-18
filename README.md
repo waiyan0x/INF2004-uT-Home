@@ -41,17 +41,19 @@ deferral does not waive the final reliability or hardware acceptance checks.
 At the user's request on 17 November, the [ESP HTTPS service](firmware/src/network/README.md#esp-https-removal)
 and its host setup commands are removed. Full saved-profile setup/recovery uses
 USB; runtime rules/results use MQTT over verified TLS. The host Configuration Desk
-and Home Assistant web interfaces are unchanged. The latest candidate was
+and Home Assistant web interfaces are unchanged. The previous board image was
 [temporarily tested on the board](tools/transaction/README.md#usb-mqtt-observation-board-trial);
 the original full flash was restored and verified afterward.
 MQTT now reserves its full-size TLS input/output buffers, retained broker
 hostname, typed outer handshake state, temporary certificate head and retained
 peer fingerprint; see the
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
-TLS derivation now also reserves its 64-byte seed and 22-byte label copies,
-with native-task isolation from Wi-Fi's PSA allocations. Secret/key copies
-remain heap-backed; this does not complete TLS memory qualification.
-Continue with the remaining inner certificate/key, secret and TCP/IP allocations.
+TLS 1.2 key derivation reserves its 64-byte seed, 22-byte label and 66-byte
+secret copy. The compiled client matched the SHA-256 and SHA-384 reference outputs. Each
+derivation still allocates backing storage when PSA imports the key. Bound
+that allocation next, then continue with inner certificate, crypto and TCP/IP
+storage. The current [TLS memory results](docs/reports/wifi-static-memory/README.md#key-derived-tls-secret)
+cover the software image. A fresh board handshake and runtime measurements remain open.
 The [certificate record work](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records)
 preserves the native validation and renegotiation lifecycle. The user approved
 [disabling session tickets](docs/reports/wifi-static-memory/README.md#mqtt-session-tickets-disabled)

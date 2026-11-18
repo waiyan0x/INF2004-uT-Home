@@ -45,6 +45,8 @@ int32_t touttest_input (touttest_derivation_t * p_operation,
                         uint16_t                step,
                         const uint8_t *         p_data,
                         size_t                  size);
+int32_t
+touttest_key (touttest_derivation_t * p_operation, uint16_t step, uint32_t key);
 
 typedef struct
 {

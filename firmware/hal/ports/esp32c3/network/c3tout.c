@@ -52,6 +52,13 @@ typedef union
     unsigned char bytes[MBEDTLS_SSL_IN_BUFFER_LEN];
 } c3tout_input_t;
 
+/* TLS 1.2 uses a 48-byte master secret or the SDK's full premaster. */
+typedef union
+{
+    uint8_t master[48U];
+    uint8_t premaster[MBEDTLS_PREMASTER_SIZE];
+} c3tout_secret_t;
+
 static c3tout_buffer_t              g_buffers[C3TOUT_SLOTS]          = {0};
 static bool                         gb_used[C3TOUT_SLOTS]            = {false};
 static c3tout_input_t               g_inputs[C3TOUT_SLOTS]           = {0};
@@ -77,6 +84,8 @@ static mbedtls_ssl_context *     gp_certificate                      = NULL;
 static uint32_t                  g_cert_phase                        = 0U;
 static uint8_t                   g_prf_seed[C3TOUT_SEED_BYTES]       = {0};
 static uint8_t                   g_prf_label[C3TOUT_LABEL_BYTES]     = {0};
+static c3tout_secret_t           g_prf_secret                        = {0};
+static bool                      gb_secret_used                      = false;
 static bool                      gb_seed_used                        = false;
 static bool                      gb_label_used                       = false;
 static psa_key_derivation_step_t g_prf_step                          = 0U;
@@ -88,30 +97,49 @@ static bool select_state (size_t count, size_t size, void ** pp_memory);
 static bool release_state (void * p_memory);
 static bool release (void * p_memory);
 
-/** @brief Scope only the TLS 1.2 PRF seed/label copies from ssl_tls.c. */
+/** @brief Publish or clear the synchronous TLS owner's copy request. */
+static void prf_scope (psa_key_derivation_step_t step, size_t size, int h_task)
+{
+    const uint32_t saved = c3bport_enter();
+    g_prf_step           = step;
+    g_prf_size           = size;
+    gh_prf_owner         = h_task;
+    c3bport_leave(saved);
+}
+
+/** @brief Scope the TLS 1.2 PRF seed/label copies from ssl_tls.c. */
 psa_status_t c3tout_prf_input (psa_key_derivation_operation_t * p_operation,
                                psa_key_derivation_step_t        step,
                                const uint8_t *                  p_data,
                                size_t                           size)
 {
-    const int h_task = c3bport_task();
-    uint32_t  saved  = c3bport_enter();
-    if ((PSA_ALG_IS_TLS12_PRF(p_operation->MBEDTLS_PRIVATE(alg))) &&
-        ((PSA_KEY_DERIVATION_INPUT_SEED == step) ||
-         (PSA_KEY_DERIVATION_INPUT_LABEL == step)))
+    if ((!PSA_ALG_IS_TLS12_PRF(p_operation->MBEDTLS_PRIVATE(alg))) ||
+        ((PSA_KEY_DERIVATION_INPUT_SEED != step) &&
+         (PSA_KEY_DERIVATION_INPUT_LABEL != step)))
     {
-        g_prf_step   = step;
-        g_prf_size   = size;
-        gh_prf_owner = h_task;
+        return psa_key_derivation_input_bytes(p_operation, step, p_data, size);
     }
-    c3bport_leave(saved);
+    prf_scope(step, size, c3bport_task());
     const psa_status_t result =
         psa_key_derivation_input_bytes(p_operation, step, p_data, size);
-    saved        = c3bport_enter();
-    gh_prf_owner = 0;
-    g_prf_step   = 0U;
-    g_prf_size   = 0U;
-    c3bport_leave(saved);
+    prf_scope(0U, 0U, 0);
+    return result;
+}
+
+/** @brief Let PSA validate the key and supply its own secret-copy length. */
+psa_status_t c3tout_prf_key (psa_key_derivation_operation_t * p_operation,
+                             psa_key_derivation_step_t        step,
+                             mbedtls_svc_key_id_t             h_key)
+{
+    if ((!PSA_ALG_IS_TLS12_PRF(p_operation->MBEDTLS_PRIVATE(alg))) ||
+        (PSA_KEY_DERIVATION_INPUT_SECRET != step))
+    {
+        return psa_key_derivation_input_key(p_operation, step, h_key);
+    }
+    prf_scope(step, 0U, c3bport_task());
+    const psa_status_t result =
+        psa_key_derivation_input_key(p_operation, step, h_key);
+    prf_scope(0U, 0U, 0);
     return result;
 }
 
@@ -123,11 +151,15 @@ void * c3tout_prf_alloc (size_t count, size_t size)
     const int      h_task     = c3bport_task();
     const uint32_t saved      = c3bport_enter();
     if ((0 < gh_prf_owner) && (h_task == gh_prf_owner) && (0U != g_prf_step) &&
-        (1U == count) && (0U != size) && (g_prf_size == size))
+        (1U == count) && (0U != size) &&
+        ((PSA_KEY_DERIVATION_INPUT_SECRET == g_prf_step) ||
+         (g_prf_size == size)))
     {
         b_selected                           = true;
         const psa_key_derivation_step_t step = g_prf_step;
         g_prf_step                           = 0U;
+        g_prf_size                           = 0U;
+        gh_prf_owner                         = 0;
         if (PSA_KEY_DERIVATION_INPUT_SEED == step)
         {
             if ((!gb_seed_used) && (sizeof(g_prf_seed) >= size))
@@ -135,6 +167,15 @@ void * c3tout_prf_alloc (size_t count, size_t size)
                 memset(g_prf_seed, 0, sizeof(g_prf_seed));
                 gb_seed_used = true;
                 p_result     = g_prf_seed;
+            }
+        }
+        else if (PSA_KEY_DERIVATION_INPUT_SECRET == step)
+        {
+            if ((!gb_secret_used) && (sizeof(g_prf_secret) >= size))
+            {
+                memset(&g_prf_secret, 0, sizeof(g_prf_secret));
+                gb_secret_used = true;
+                p_result       = &g_prf_secret;
             }
         }
         else if ((!gb_label_used) && (sizeof(g_prf_label) >= size))
@@ -307,6 +348,12 @@ static bool release (void * p_memory)
     {
         mbedtls_platform_zeroize(g_prf_seed, sizeof(g_prf_seed));
         gb_seed_used = false;
+        return true;
+    }
+    if (p_memory == &g_prf_secret)
+    {
+        mbedtls_platform_zeroize(&g_prf_secret, sizeof(g_prf_secret));
+        gb_secret_used = false;
         return true;
     }
     if (p_memory == g_prf_label)

@@ -497,7 +497,8 @@ class QualificationTests(unittest.TestCase):
         flags = (' -Dmbedtls_calloc=c3tout_alloc -Dmbedtls_free=c3tout_free'
                  ' -Dmbedtls_zeroize_and_free=c3tout_wipe')
         commands = [dict(file='/sdk/mbedtls/library/ssl_tls.c', command='gcc' + flags +
-                         ' -Dpsa_key_derivation_input_bytes=c3tout_prf_input'),
+                         ' -Dpsa_key_derivation_input_bytes=c3tout_prf_input'
+                         ' -Dpsa_key_derivation_input_key=c3tout_prf_key'),
                     dict(file='/sdk/mbedtls/tf-psa-crypto/core/psa_crypto.c',
                          command='gcc' + flags.replace('c3tout_alloc', 'c3tout_prf_alloc'))]
         names = ('c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe',
@@ -507,8 +508,9 @@ class QualificationTests(unittest.TestCase):
                  'c3tout_set_name', 'mbedtls_ssl_set_hostname',
                  'mbedtls_ssl_setup', 'mbedtls_ssl_free', 'mbedtls_platform_zeroize',
                  'mbedtls_zeroize_and_free', 'mbedtls_calloc', 'mbedtls_free',
-                 'c3tout_prf_input', 'c3tout_prf_alloc',
-                 'psa_key_derivation_input_bytes', 'psa_key_derivation_abort')
+                 'c3tout_prf_input', 'c3tout_prf_key', 'c3tout_prf_alloc',
+                 'psa_key_derivation_input_bytes', 'psa_key_derivation_input_key',
+                 'psa_key_derivation_abort')
         symbols = {name: 0x42001000 + index * 32 for index, name in enumerate(names)}
         symbols['__wrap_mbedtls_ssl_setup'] = symbols['c3tout_setup']
         symbols['c3tout_native_setup'] = symbols['mbedtls_ssl_setup']
@@ -533,6 +535,7 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['peer_digest_bytes'], 32)
         self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['prf_seed_bytes'], 64)
         self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['prf_label_bytes'], 22)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['prf_secret_slots'], 1)
         self.assertFalse(qualification.check_tls_output(commands, symbols, True, ())['session_tickets'])
         self.assertEqual(qualification.check_tls_output([], {}, False, ()), {'enabled': False})
         for option in ('MBEDTLS_CLIENT_SSL_SESSION_TICKETS', 'MBEDTLS_SERVER_SSL_SESSION_TICKETS',
@@ -554,7 +557,7 @@ class QualificationTests(unittest.TestCase):
                      'c3tout_set_name', 'c3tout_native_name', 'c3tout_start',
                      'c3tout_native_start', 'c3tout_renegotiate', 'c3tout_native_renegotiate',
                      'c3tout_certificate', 'c3tout_native_certificate',
-                     'c3tout_prf_input', 'c3tout_prf_alloc'):
+                     'c3tout_prf_input', 'c3tout_prf_key', 'c3tout_prf_alloc'):
             with self.subTest(name=name), self.assertRaises(qualification.QualificationError):
                 qualification.check_tls_output(commands, dict(symbols, **{name: 0x40380000}), True, ())
         for damaged in (dict(symbols, c3tout_native_setup=symbols['c3tout_setup']),

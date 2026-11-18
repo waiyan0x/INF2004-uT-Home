@@ -89,6 +89,18 @@ int32_t touttest_input (touttest_derivation_t * p_operation,
     return 0;
 }
 
+/** @brief Map synthetic key IDs to copy lengths, including one oversize ID. */
+int32_t
+touttest_key (touttest_derivation_t * p_operation, uint16_t step, uint32_t key)
+{
+    static const uint8_t key_data[67U] = {0x4BU};
+    if ((0U == key) || (sizeof(key_data) < key))
+    {
+        return -136;
+    }
+    return touttest_input(p_operation, step, key_data, key);
+}
+
 /** @brief Model setup/cleanup call order, without claiming a TLS handshake. */
 int touttest_setup (touttest_context_t *      p_ssl,
                     const touttest_config_t * p_config)
