@@ -83,10 +83,18 @@ demonstration.
 
 ## Completion plan
 
-**Current priority (17 November): resume TLS transport and resource work.**
+**Current priority (18 November): finish bounded TLS/network memory work.**
+The user moved dedicated intermittent-MQTT-delay investigation to last priority.
+Work in this order: remaining network allocation; reviewed SPI/UART descriptions
+and prerequisites; physical Desk/ESP/HA functional integration and runtime resource
+measurements; delivery documentation; then the deferred delay investigation and
+final reliability/recovery closure. Prepare delivery materials early, but retain
+unperformed/failed checks and limitations until final acceptance is complete.
+Functional hardware checks still require current equipment, verified readiness
+and applicable installation approval; do not relax those guards to bypass a delay.
 The simulated Runtime Desk and HA operator walkthrough has passed. Continue
 TLS work, including operator-dependent steps after the necessary input and
-current equipment checks. The user lifted the earlier deferral on 17 November. The
+current equipment checks. The user lifted the earlier input deferral on 17 November. The
 [connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
 has software and target-build verification. The approved
 [cumulative board comparison](tools/transaction/README.md#backed-up-tls-board-comparison)
@@ -121,8 +129,8 @@ rule must not require another build.
 | Generic operations | `txport` reaches actual I2C, SPI-write and raw UART HALs through `c3tx` | Physical acceptance, initialization prerequisites and selected timing extensions |
 | Description compiler | `tools/transaction/description.py` compiles simple I2C register reads | SPI/UART operation descriptions; OLED source/description; SEN0390 review |
 | MQTT | Live BMP388 rule switching, target rejection, cached results and broker recovery verified on the earlier image; HTTPS now removed | Wider secure-connection load and network allocation blocker |
-| UI | Existing Configuration Desk supports USB profiles and recovery | Runtime Markdown selection, rule loading/execution and result presentation |
-| Home Assistant | Read-only host discovery/display adapter and CLI option; real-broker/compiled-C software tests | Live Home Assistant + ESP acceptance and use from the planned UI |
+| UI | Runtime transactions tab implements description selection, preview, load/execute and expiring results; simulated operator walkthrough passed | Physical Desk/ESP/HA acceptance |
+| Home Assistant | Host discovery/display adapter and WSL2 container; simulated six-sensor operator and restart checks passed | Display real ESP results and verify combined failure/recovery behavior |
 | Verification | 531 target-facing tests plus 59 affected tests rerun after SDK-binding corrections; full 337-file C gate, checked target image, SDK setup/free instruction probe and unchanged memory budgets | Current image on hardware, runtime SPI/UART, prolonged combined load and whole-system resource acceptance |
 
 The [15 November hardware check](firmware/src/network/README.md#current-hardware-check)
@@ -134,12 +142,13 @@ also passed the BMP388 rule-switching and rejection sequence, host reopen and
 broker recovery. The allocation requirement and complete three-protocol/UI/Home
 Assistant demonstration remain open.
 
-The HTTPS-free build uses **251,346/278,528 fixed DRAM bytes**, leaving 27,182
-bytes in the total budget and 25,228 in the application group. This reclaims
-18,032 bytes from the prior retry image. MQTT still has only 8 bytes within its
-module reservation; additional TLS storage needs an explicit reservation.
+The latest checked candidate uses **272,322/278,528 fixed DRAM bytes**, leaving
+6,206 bytes in the total budget. Its application group uses 143,185/147,456 bytes,
+leaving 4,271 bytes. Remaining TLS/TCP storage must fit the unchanged caps;
+reserved headroom is not a measurement of free runtime heap.
 The [current assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
-records the one-session stores, unchanged aggregate caps and unflashed build.
+and [candidate verification](tools/transaction/README.md#plan-change-session-trial)
+record the stores, unchanged caps and backed-up hardware-trial limits.
 Fixed-linker fit is not free-heap, stack or timing acceptance.
 
 ### 1. Session contract and final resource acceptance
@@ -284,6 +293,12 @@ transaction and returns correlated raw bytes/status on the same installed image.
 
 ### 5. Connect the user interface
 
+**Implemented and verified with simulated buses.** The
+[Runtime transactions tab and operator walkthrough](tools/configurator/README.md#simulated-operator-walkthrough)
+cover preview versus active rule, A/B/A reads, expiry and disconnect. The
+requirements below describe the implemented contract; remaining acceptance is
+the physical Desk/ESP/HA demonstration on the selected image.
+
 Propose a small Runtime Transactions view within the existing Configuration Desk
 and review it with the user before UI implementation. Preserve the visual style.
 Show the selected description/operation, connection/readiness, proposed protocol,
@@ -312,10 +327,13 @@ Tests cover adapter/ESP availability, expiry, broker reconnection, retained
 discovery, non-retained raw state and HA birth/reload. Re-announcing discovery
 adds no driver call. See the [setup, topics and limits](tools/transaction/README.md#home-assistant-display).
 
-The [live trial](tools/transaction/README.md#current-live-trial) received discovery
-and ready-state messages, but completed no new rule execution. Post-idle-plan
-MQTT timeouts and an unstable local HA VM block combined acceptance; diagnose
-these before treating the display as demo-ready.
+The [earlier live trial](tools/transaction/README.md#current-live-trial) received
+discovery and ready-state messages, but completed no new rule execution. The
+[WSL2 HA container](tools/transaction/README.md#home-assistant-container-in-wsl2)
+subsequently passed simulated display and restart checks, including the rendered
+operator walkthrough. The old VM instability remains a separate unresolved issue.
+Physical combined acceptance remains open; the dedicated MQTT-delay investigation
+is deferred to last priority, not marked fixed.
 
 Acceptance still required: actual Home Assistant displays real ESP results and
 becomes unavailable when appropriate, including separate ESP, adapter, broker

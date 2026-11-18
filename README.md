@@ -33,7 +33,11 @@ changes are injected in C fixture tests. The live BMP388 MQTT check below now
 also covers rule switching, host reopen and broker recovery on the board.
 Generated verification is local-only under `build/controller/`.
 
-**Current priority: finish MQTT TLS transport and resource work.**
+**Current priority: finish TLS/network memory work.** On 18 November, the user
+moved dedicated investigation of the intermittent MQTT delays to last priority.
+Continue bounded allocation work, reviewed peripheral descriptions, physical
+functional integration and delivery preparation first. Retain the delay evidence;
+deferral does not waive the final reliability or hardware acceptance checks.
 At the user's request on 17 November, the [ESP HTTPS service](firmware/src/network/README.md#esp-https-removal)
 and its host setup commands are removed. Full saved-profile setup/recovery uses
 USB; runtime rules/results use MQTT over verified TLS. The host Configuration Desk
@@ -79,8 +83,8 @@ reboot. A subsequent backed-up
 passed normal and idle/quiet checks in both modes. Keeping the radio awake reduced
 reply latency but did not establish a reliability fix. The original full flash,
 profile and laptop network are restored; its final startup control answered 2/5
-queries. Continue investigating intermittent Wi-Fi/TCP failure alongside remaining
-TLS allocation work before combined HA acceptance. The timeout cause and runtime
+queries. Dedicated investigation of intermittent Wi-Fi/TCP failure is now deferred
+to last priority. The timeout cause and runtime
 resource compliance remain unresolved. A
 [laptop-hotspot comparison](tools/transaction/README.md#laptop-hotspot-comparison)
 then passed 390/390 normal queries and 11/11 after the idle quiet interval.
@@ -153,8 +157,9 @@ environment alive; systemd services alone did not keep it running. Login details
 test configuration, backups and verification are private under that ignored
 folder. The fixture is stopped, so its six sensors are correctly unavailable.
 
-**Next: isolate the normal-profile TCP delays, then complete the guarded
-idle-plan check and remaining TLS storage work.** The
+**Next: complete the remaining bounded TLS/network storage, then the reviewed
+SPI/UART descriptions and physical functional integration.** Dedicated delay
+investigation and its guarded idle-session check are last priority. The
 [timestamp recorder](tools/transaction/README.md#status-timestamp-capture) now
 retains complete broker replies after a client timeout and brackets the matching
 USB kernel clock. Its backed-up follow-up answered 393/393 queries, so it did not
@@ -164,7 +169,7 @@ recorder when the delay recurs; another clean run alone will not localize it.
 Do not treat USB polling, the phone hotspot or the plan change as an established
 cause. Packet loss, the earlier unattended Apply reset and old VM instability
 remain open.
-The reviewed SPI/UART operation descriptions follow this work.
+The [completion plan](CONTRIBUTING.md#completion-plan) records the revised order.
 The approved compact Runtime transactions tab is available in the existing
 [Configuration Desk](tools/configurator/README.md#runtime-transactions): choose
 a description, operation and address, then Load rule and Execute active rule.

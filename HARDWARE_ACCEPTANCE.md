@@ -508,8 +508,10 @@ hash, wiring, raw output and any physical observation for each executed check.
 | Reboot and interrupted save | Image/profile identity remains explainable; persistence checks follow the procedure |
 | Combined load | Repeat the selected configuration under sustained network and peripheral activity |
 
-The Home Assistant adapter is not implemented yet. Live combined MQTT acceptance
-remains open. Optional sonar/PWM profile tests in section 7 apply only if those
+The Home Assistant adapter and Runtime Desk are implemented, and their simulated
+operator walkthroughs passed. Physical combined MQTT/ESP/HA acceptance remains
+open; see the [current completion plan](CONTRIBUTING.md#completion-plan).
+Optional sonar/PWM profile tests in section 7 apply only if those
 existing capabilities are included in the selected demonstration.
 
 Any C changes made while fixing hardware issues must still follow
