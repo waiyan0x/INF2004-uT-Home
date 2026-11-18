@@ -137,8 +137,7 @@ jobs:
           from pathlib import Path
           Path(sys.argv[1]).write_text(json.dumps(dict(
               ssid="uthome-ci.invalid", password=secrets.token_hex(16),
-              token=secrets.token_hex(24), certificate_file="cert.pem",
-              key_file="key.pem", mqtt=dict(address="127.0.0.1",
+              mqtt=dict(address="127.0.0.1",
               server_name="ci.invalid", port=8883, user="ci-device",
               password=secrets.token_hex(16), ca_file="cert.pem"))))
           PY
