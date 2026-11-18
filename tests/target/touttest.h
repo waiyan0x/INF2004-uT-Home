@@ -41,6 +41,19 @@ typedef struct
     uint8_t * p_input;
 } touttest_derivation_t;
 
+typedef struct
+{
+    uint32_t                key_type;
+    uint32_t                algorithm;
+    uint32_t                usage;
+    uint32_t                lifetime;
+    touttest_derivation_t * p_copy;
+} touttest_attrs_t;
+
+int32_t touttest_import (const touttest_attrs_t * p_attributes,
+                         const uint8_t *          p_data,
+                         size_t                   size,
+                         uint32_t *               ph_key);
 int32_t touttest_input (touttest_derivation_t * p_operation,
                         uint16_t                step,
                         const uint8_t *         p_data,

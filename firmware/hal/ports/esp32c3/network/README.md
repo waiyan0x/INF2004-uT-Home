@@ -334,12 +334,14 @@ See the [fresh evidence and remaining work](../../../../../docs/reports/wifi-sta
 
 The TLS 1.2 pseudorandom function (PRF) keeps three inputs until PSA completes
 or aborts a derivation. Only `ssl_tls.c` routes byte inputs through
-`c3tout_prf_input` and key-ID inputs through `c3tout_prf_key`.
+`c3tout_prf_input`, key-ID inputs through `c3tout_prf_key` and imports
+through `c3tout_prf_import`.
 The 64-byte seed fits the random pair and the 32/48-byte handshake hashes.
 The longest label is `extended master secret` (22 bytes). For a nonempty secret,
 the client imports a volatile derive key. PSA checks that key's permissions,
 locks its slot and copies the material into the PRF operation.
-The secret store fits the larger of a 48-byte TLS master secret and
+The imported key stays live through PRF output, so the two copies have
+distinct stores. Each fits the larger of a 48-byte TLS master secret and
 `MBEDTLS_PREMASTER_SIZE`, which is 66 bytes for the selected curves.
 
 Only `psa_crypto.c` binds its allocator to `c3tout_prf_alloc` and its free/wipe
@@ -347,9 +349,12 @@ calls to the existing exact-pointer release. Its matching `calloc(1, size)`
 attempt consumes the scope even on exhaustion. PSA supplies the copy length
 after the key lookup. The pinned volatile key-input path makes one allocation
 in this translation unit. An occupied or oversized store returns NULL.
-PSA's earlier import still allocates the key's backing storage. Direct secret
-byte inputs use the native allocator, and a zero-length input allocates nothing.
-Cleanup erases each entire fixed store before reuse.
+Only a volatile `PSA_KEY_TYPE_DERIVE` import with derive-only usage and a
+TLS 1.2 PRF algorithm selects the imported-key store. The active native task
+ID and exact input length scope its allocation. The SDK releases the store
+when it destroys the key or unwinds a failed import. Both paths erase the full
+66 bytes. Record cipher, MAC and other PSA callers use their native allocations.
+PSA's shared key tables have independent lifetimes.
 
 Wi-Fi also uses PSA, so allocation selection requires the native task ID of the
 serialized TLS owner. `c3bport_task` uses the kernel ID; the FreeRTOS shim handle
@@ -359,8 +364,8 @@ heap allocations run outside exclusion. A competing task cannot consume or clear
 the TLS scope. Fixed pointers remain private to that owner; this does not make
 arbitrary simultaneous TLS owners supported.
 
-The selected SDK assumes exclusive input buffers. A compile guard rejects its
-copy-input mode, which would add another allocation before the intended copy.
+The selected SDK assumes exclusive input buffers and dynamically backed PSA
+key slots. Compile guards enforce both assumptions at this allocator boundary.
 Qualification rejects linked public PRF/exporter APIs with arbitrary seed/label
 lengths. The current application uses none; this is not a new restriction on
 its TLS handshake. TLS 1.2, record capacities and cipher admission are unchanged.
@@ -384,7 +389,11 @@ different task, with assertions and compiler warnings enabled. The compiled
 [PSA input probe](../../../../../tools/target/README.md#tls-derivation-input-probe)
 checks actual input/abort instructions. The companion key-ID probe executes
 the compiled client from key import through output and destruction. It checks
-both hashes against reference output and verifies failure recovery. It doubles
+both hashes against reference output, observes populated key bytes entering
+failed-import cleanup and verifies erasure and retry. Manual review covered
+the SDK attribute and key-ID types, full-slot bounds, distinct overlapping
+lifetimes, owner-only allocation and standard success/error cleanup. The
+adapter uses C99 and the existing interrupt exclusion. The probe doubles
 HMAC, heap, native task and mutex services. Broker authentication, physical
 preemption and whole-connection peak memory require separate evidence.
 

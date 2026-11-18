@@ -142,7 +142,7 @@ also passed the BMP388 rule-switching and rejection sequence, host reopen and
 broker recovery. The allocation requirement and complete three-protocol/UI/Home
 Assistant demonstration remain open.
 
-The [current assessment](docs/reports/wifi-static-memory/README.md#key-derived-tls-secret)
+The [current assessment](docs/reports/wifi-static-memory/README.md#imported-tls-derivation-key)
 gives the latest software image's measured fixed RAM and remaining budget.
 Use those limits for the remaining TLS/TCP storage. The previous
 [board trial](tools/transaction/README.md#plan-change-session-trial) records
@@ -195,8 +195,9 @@ This supersedes the earlier requirement to retain MQTT plus two HTTPS sessions.
 input/output buffers, the retained broker hostname and typed outer handshake
 state, including overlapping active/negotiating transform and session records,
 plus the temporary peer-certificate head and retained peer digest.
-TLS derivation also reserves its seed, label and key-derived secret for the
-application's native task. The next allocation is the temporary imported key.
+TLS derivation also reserves its seed, label, secret and temporary imported
+key for the application's native task. Measure concurrent Wi-Fi and TLS use
+of the shared PSA key tables before assigning them fixed capacity.
 The [removal verification](firmware/src/network/README.md#esp-https-removal) and
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
 record the fresh build and measured headroom. The user approved disabling unused

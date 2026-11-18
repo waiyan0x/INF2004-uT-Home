@@ -495,15 +495,20 @@ stack use or runtime peaks. See the
 For the client's nonempty handshake secrets, run the key-ID probe. It starts
 at the compiled TLS PRF and follows PSA key import, lookup, derivation, abort and
 destruction. Use `--expect heap` for the preceding image with fixed seed/label
-stores. Use `--expect fixed` for an image that also reserves the secret copy.
+stores. Use `--expect fixed` to require a reserved secret copy and
+`--expect fixed-import` to require the separate imported-key store as well.
 
 ```powershell
-python -B -m tools.target.tls_prf_key_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --expect fixed --output build/tls-prf/new-key-report.json
+python -B -m tools.target.tls_prf_key_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --expect fixed-import --output build/tls-prf/new-key-report.json
 ```
 
 The probe checks SHA-256 and SHA-384 known answers, master-secret derivation,
 Finished output and 256-byte key expansion. It verifies the native errors for
-an invalid key and a failed import, slot exhaustion, erasure and reuse. The
+an invalid key, a cold key-table allocation failure and an import that fails
+after copying the material. It checks the occupied slot, whole-store erasure
+and successful reuse. The report lists initialization, first-use and warm
+allocation counts separately. A direct call from another PSA caller retains
+its native allocation for the same attributes and key length. The
 compiled SDK assembles each output block. The host supplies HMAC, the simulated
 heap, ROM byte routines and task/mutex services. Physical handshakes and runtime
 memory measurements remain separate acceptance steps.

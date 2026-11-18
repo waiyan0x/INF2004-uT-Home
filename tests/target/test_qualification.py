@@ -498,7 +498,8 @@ class QualificationTests(unittest.TestCase):
                  ' -Dmbedtls_zeroize_and_free=c3tout_wipe')
         commands = [dict(file='/sdk/mbedtls/library/ssl_tls.c', command='gcc' + flags +
                          ' -Dpsa_key_derivation_input_bytes=c3tout_prf_input'
-                         ' -Dpsa_key_derivation_input_key=c3tout_prf_key'),
+                         ' -Dpsa_key_derivation_input_key=c3tout_prf_key'
+                         ' -Dpsa_import_key=c3tout_prf_import'),
                     dict(file='/sdk/mbedtls/tf-psa-crypto/core/psa_crypto.c',
                          command='gcc' + flags.replace('c3tout_alloc', 'c3tout_prf_alloc'))]
         names = ('c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe',
@@ -508,9 +509,9 @@ class QualificationTests(unittest.TestCase):
                  'c3tout_set_name', 'mbedtls_ssl_set_hostname',
                  'mbedtls_ssl_setup', 'mbedtls_ssl_free', 'mbedtls_platform_zeroize',
                  'mbedtls_zeroize_and_free', 'mbedtls_calloc', 'mbedtls_free',
-                 'c3tout_prf_input', 'c3tout_prf_key', 'c3tout_prf_alloc',
+                 'c3tout_prf_input', 'c3tout_prf_key', 'c3tout_prf_import', 'c3tout_prf_alloc',
                  'psa_key_derivation_input_bytes', 'psa_key_derivation_input_key',
-                 'psa_key_derivation_abort')
+                 'psa_key_derivation_abort', 'psa_import_key', 'psa_destroy_key')
         symbols = {name: 0x42001000 + index * 32 for index, name in enumerate(names)}
         symbols['__wrap_mbedtls_ssl_setup'] = symbols['c3tout_setup']
         symbols['c3tout_native_setup'] = symbols['mbedtls_ssl_setup']
@@ -536,14 +537,19 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['prf_seed_bytes'], 64)
         self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['prf_label_bytes'], 22)
         self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['prf_secret_slots'], 1)
+        self.assertEqual(qualification.check_tls_output(commands, symbols, True, ())['prf_import_slots'], 1)
         self.assertFalse(qualification.check_tls_output(commands, symbols, True, ())['session_tickets'])
         self.assertEqual(qualification.check_tls_output([], {}, False, ()), {'enabled': False})
         for option in ('MBEDTLS_CLIENT_SSL_SESSION_TICKETS', 'MBEDTLS_SERVER_SSL_SESSION_TICKETS',
                        'ESP_TLS_CLIENT_SESSION_TICKETS', 'ESP_TLS_SERVER_SESSION_TICKETS'):
             with self.subTest(ticket_option=option), self.assertRaises(qualification.QualificationError):
                 qualification.check_tls_output(commands, symbols, True, ['CONFIG_' + option + '=y'])
+        import_flag = ' -Dpsa_import_key=c3tout_prf_import'
+        missing_import = dict(commands[0], command=commands[0]['command'].replace(import_flag, ''))
+        extra_import = dict(commands[1], command=commands[1]['command'] + import_flag)
         for damaged in ([], commands[:1], commands[1:], commands * 2,
                         commands[:1] * 2, commands[1:] * 2,
+                        [missing_import, commands[1]], [commands[0], extra_import],
                         commands + [dict(file='/sdk/crypto.c', command='gcc' + flags)],
                         [dict(commands[0], command='gcc -Dmbedtls_calloc=c3tout_alloc')],
                         [dict(commands[0], command='gcc' + flags + ' -Dmbedtls_free=c3tout_free')],
@@ -557,7 +563,7 @@ class QualificationTests(unittest.TestCase):
                      'c3tout_set_name', 'c3tout_native_name', 'c3tout_start',
                      'c3tout_native_start', 'c3tout_renegotiate', 'c3tout_native_renegotiate',
                      'c3tout_certificate', 'c3tout_native_certificate',
-                     'c3tout_prf_input', 'c3tout_prf_key', 'c3tout_prf_alloc'):
+                     'c3tout_prf_input', 'c3tout_prf_key', 'c3tout_prf_import', 'c3tout_prf_alloc'):
             with self.subTest(name=name), self.assertRaises(qualification.QualificationError):
                 qualification.check_tls_output(commands, dict(symbols, **{name: 0x40380000}), True, ())
         for damaged in (dict(symbols, c3tout_native_setup=symbols['c3tout_setup']),

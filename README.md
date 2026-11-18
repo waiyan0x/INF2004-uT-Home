@@ -48,12 +48,14 @@ MQTT now reserves its full-size TLS input/output buffers, retained broker
 hostname, typed outer handshake state, temporary certificate head and retained
 peer fingerprint; see the
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
-TLS 1.2 key derivation reserves its 64-byte seed, 22-byte label and 66-byte
-secret copy. The compiled client matched the SHA-256 and SHA-384 reference outputs. Each
-derivation still allocates backing storage when PSA imports the key. Bound
-that allocation next, then continue with inner certificate, crypto and TCP/IP
-storage. The current [TLS memory results](docs/reports/wifi-static-memory/README.md#key-derived-tls-secret)
-cover the software image. A fresh board handshake and runtime measurements remain open.
+TLS 1.2 key derivation reserves its 64-byte seed, 22-byte label and two
+66-byte stores for the imported key and secret copy. After the key store
+warms up, the compiled client derives the expected SHA-256 and SHA-384 outputs
+with zero heap requests in the tested import and derivation path. Next, measure
+how many PSA key slots Wi-Fi and MQTT need together. The shared tables allocate
+1,408 bytes at startup and another 704 bytes on first use in the compiled probe.
+A fresh board handshake and runtime measurements remain open.
+[TLS memory results](docs/reports/wifi-static-memory/README.md#imported-tls-derivation-key)
 The [certificate record work](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records)
 preserves the native validation and renegotiation lifecycle. The user approved
 [disabling session tickets](docs/reports/wifi-static-memory/README.md#mqtt-session-tickets-disabled)

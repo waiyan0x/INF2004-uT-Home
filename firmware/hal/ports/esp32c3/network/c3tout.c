@@ -35,9 +35,14 @@
 #define C3TOUT_STATES      2U
 #define C3TOUT_SEED_BYTES  64U
 #define C3TOUT_LABEL_BYTES 22U
+/* A key import has an active owner and size, but no PSA derivation step. */
+#define C3TOUT_NO_STEP 0U
 
 #if !defined(MBEDTLS_PSA_ASSUME_EXCLUSIVE_BUFFERS)
 #error "Fixed derivation inputs require the reviewed PSA direct-input path."
+#endif
+#if defined(MBEDTLS_PSA_STATIC_KEY_SLOTS)
+#error "Fixed PRF imports require the reviewed PSA key-buffer path."
 #endif
 
 typedef union
@@ -85,6 +90,8 @@ static uint32_t                  g_cert_phase                        = 0U;
 static uint8_t                   g_prf_seed[C3TOUT_SEED_BYTES]       = {0};
 static uint8_t                   g_prf_label[C3TOUT_LABEL_BYTES]     = {0};
 static c3tout_secret_t           g_prf_secret                        = {0};
+static c3tout_secret_t           g_import_key                        = {0};
+static bool                      gb_import_used                      = false;
 static bool                      gb_secret_used                      = false;
 static bool                      gb_seed_used                        = false;
 static bool                      gb_label_used                       = false;
@@ -143,6 +150,26 @@ psa_status_t c3tout_prf_key (psa_key_derivation_operation_t * p_operation,
     return result;
 }
 
+/** @brief Scope only the volatile derive-key import used by the TLS 1.2 PRF. */
+psa_status_t c3tout_prf_import (const psa_key_attributes_t * p_attributes,
+                                const uint8_t *              p_data,
+                                size_t                       size,
+                                mbedtls_svc_key_id_t *       ph_key)
+{
+    if ((PSA_KEY_TYPE_DERIVE != psa_get_key_type(p_attributes)) ||
+        (!PSA_ALG_IS_TLS12_PRF(psa_get_key_algorithm(p_attributes))) ||
+        (PSA_KEY_USAGE_DERIVE != psa_get_key_usage_flags(p_attributes)) ||
+        (PSA_KEY_LIFETIME_VOLATILE != psa_get_key_lifetime(p_attributes)))
+    {
+        return psa_import_key(p_attributes, p_data, size, ph_key);
+    }
+    prf_scope(C3TOUT_NO_STEP, size, c3bport_task());
+    const psa_status_t result =
+        psa_import_key(p_attributes, p_data, size, ph_key);
+    prf_scope(0U, 0U, 0);
+    return result;
+}
+
 /** @brief PSA owns input validation/copying; fixed requests never fall back. */
 void * c3tout_prf_alloc (size_t count, size_t size)
 {
@@ -150,8 +177,8 @@ void * c3tout_prf_alloc (size_t count, size_t size)
     bool           b_selected = false;
     const int      h_task     = c3bport_task();
     const uint32_t saved      = c3bport_enter();
-    if ((0 < gh_prf_owner) && (h_task == gh_prf_owner) && (0U != g_prf_step) &&
-        (1U == count) && (0U != size) &&
+    if ((0 < gh_prf_owner) && (h_task == gh_prf_owner) && (1U == count) &&
+        (0U != size) &&
         ((PSA_KEY_DERIVATION_INPUT_SECRET == g_prf_step) ||
          (g_prf_size == size)))
     {
@@ -176,6 +203,15 @@ void * c3tout_prf_alloc (size_t count, size_t size)
                 memset(&g_prf_secret, 0, sizeof(g_prf_secret));
                 gb_secret_used = true;
                 p_result       = &g_prf_secret;
+            }
+        }
+        else if (C3TOUT_NO_STEP == step)
+        {
+            if ((!gb_import_used) && (sizeof(g_import_key) >= size))
+            {
+                memset(&g_import_key, 0, sizeof(g_import_key));
+                gb_import_used = true;
+                p_result       = &g_import_key;
             }
         }
         else if ((!gb_label_used) && (sizeof(g_prf_label) >= size))
@@ -354,6 +390,12 @@ static bool release (void * p_memory)
     {
         mbedtls_platform_zeroize(&g_prf_secret, sizeof(g_prf_secret));
         gb_secret_used = false;
+        return true;
+    }
+    if (p_memory == &g_import_key)
+    {
+        mbedtls_platform_zeroize(&g_import_key, sizeof(g_import_key));
+        gb_import_used = false;
         return true;
     }
     if (p_memory == g_prf_label)

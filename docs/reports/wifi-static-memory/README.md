@@ -10,6 +10,47 @@ full-profile setup/recovery uses USB. The host Desk and Home Assistant web
 interfaces remain available. No Wi-Fi-driver exception automatically exempts
 TLS, TCP/IP or ESP-TLS contexts.
 
+### Imported TLS derivation key
+
+The MQTT TLS 1.2 client reserves a separate 66-byte store for the volatile
+key it imports before deriving handshake material. PSA holds that key until
+the derivation finishes. Destruction and failed-import cleanup erase all 66
+bytes. The allocator also reserves one byte to track whether the store is in
+use. Other key types and policies retain the SDK's allocation behavior.
+
+The compiled client matched 80 reference derivations and two known answers
+across SHA-256 and SHA-384. The preceding image made one heap request per warm
+derivation in the tested path. The new image made zero. A deliberately
+inconsistent key length exercised the SDK's failure path after it had copied
+the bytes. The probe observed those bytes entering cleanup, verified their
+erasure and successfully retried. HMAC and platform services were doubled.
+[Compiled probe instructions](../../../tools/target/README.md#tls-derivation-input-probe)
+
+| Shared PSA key tables in the compiled probe | Heap request | Lifetime |
+|---|---:|---|
+| Persistent and built-in key cache | 1,408 bytes | Created at key-store initialization |
+| First volatile key-slot table | 704 bytes | Created on first import, reused by later derivations |
+
+Both tables remained allocated through the repeated derivations and were
+released at key-store shutdown. A failed first allocation of the volatile
+table returned an error and the next import succeeded. Determine simultaneous
+Wi-Fi and TLS key use before sizing the shared tables. Inner certificate,
+crypto and TCP/IP storage and physical runtime measurements also remain open.
+
+| Fixed memory on this image | Linked bytes | Budget | Headroom |
+|---|---:|---:|---:|
+| Application | 143,319 | 147,456 | 4,137 |
+| Task pool | 18,499 | 18,560 | 61 |
+| SDK/kernel | 54,254 | 55,296 | 1,042 |
+| RAM code | 56,386 | 57,152 | 766 |
+| Total DRAM | 272,458 | 278,528 | 6,070 |
+| RTC, separate from DRAM | 60 | 128 | 68 |
+
+`c3tout` uses 25,532 of its 25,536 reserved bytes. The 102 affected host
+tests, eight compiled probes, 334-file BARR-C gate, manual review and target
+build passed. The 822,048-byte application's SHA-256 is
+`b2e956a199a4f1dc7d7367059acf030d767c59b04e5aad4c894d8d0e020ccdd6`.
+
 ### Key-derived TLS secret
 
 On 18 November 2026 the single MQTT TLS client gained one fixed slot for the
@@ -45,10 +86,8 @@ DRAM caps are unchanged. The final 821,824-byte application's SHA-256 is
 The 99 affected host tests, eight compiled probes, 334-file BARR-C gate,
 manual C review and source-snapshot check passed for this software build.
 
-Next, bound the imported key's backing storage and verify that both normal
-destruction and a failed import return it. Inner certificate, crypto and TCP/IP
-allocations, target runtime memory peaks and physical handshake acceptance
-remain open.
+The [subsequent imported-key change](#imported-tls-derivation-key) covers the
+remaining copy seen in this image.
 
 ### MQTT session tickets disabled
 
@@ -759,7 +798,7 @@ the owned entry paths below establish application use.
 | Native task stacks/notifications | `c3task` and the owned compatibility patch reserve/seal startup slots | Software and target-link checks pass; runtime stack/creation counters need the board |
 | Native queues/semaphores/mutexes/event groups | `c3nq`/`c3event` pre-create native objects; SDK create/delete APIs lease/release fixed records | Bounded exhaustion/reuse; does not cover surrounding SDK heap storage |
 | ESP-TLS contexts, error records and temporary names | `c3mqtt` calls the SDK lifecycle; two SDK units bind allocation to `c3tls`, and error trackers use linked fixed replacements | Context/name allocation is bounded for the selected single-client path; live handshake/reconnect acceptance remains |
-| MQTT encryption state | SDK setup uses fixed outer state and PRF input slots. PSA imports the handshake key, and the certificate parser creates inner records. | Imported-key and inner crypto storage still allocate on connection and reconnect. Session tickets are disabled. |
+| MQTT encryption state | SDK setup uses fixed outer state, PRF inputs and temporary imported derive-key bytes. | Shared PSA key tables and inner certificate/crypto storage still allocate. Session tickets are disabled. |
 | Retained connection hostname | Scoped original SDK setter leases `c3tout`'s separate 254-byte string slot | Fixed storage for the existing 253-character MQTT limit; target software proof passes, live acceptance pending |
 | TLS output buffers | `ssl_tls.c` setup leases the complete `c3tout` buffer; SDK failure/normal cleanup release it | Fixed 4,429-byte buffers for 4,096-byte content; software and compiled SDK setup/cleanup proof pass, live acceptance pending |
 | TLS input buffer | `ssl_tls.c` setup leases the full `c3tout` input slot; SDK failure/normal cleanup release it | Fixed 16,717-byte buffer for 16,384-byte content; dynamic-buffer option remains off; live acceptance pending |
@@ -971,7 +1010,7 @@ resolve the remaining network allocation work.
 ### Required closure before whole-system acceptance
 
 1. Provide bounded storage for the remaining mbedTLS and reachable lwIP
-   allocations, including imported keys and inner certificate/crypto state. Establish lifetime,
+   allocations, including shared PSA key tables and inner certificate/crypto state. Establish lifetime,
    concurrency, exhaustion, alignment and cleanup behavior before assigning
    capacities. Preserve vendor pins and all aggregate budget caps.
 2. Preserve MQTT alongside USB recovery and permitted peripheral/configuration

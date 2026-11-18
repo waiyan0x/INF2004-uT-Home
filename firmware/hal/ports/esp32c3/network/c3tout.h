@@ -49,11 +49,11 @@ int c3tout_set_name (mbedtls_ssl_context * p_ssl, const char * p_hostname);
 int c3tout_native_name (mbedtls_ssl_context * p_ssl, const char * p_hostname);
 
 /* Source-bound ssl_tls.c PRF inputs use a 64-byte seed, a 22-byte label and
- * one key-derived secret sized for both the master and the SDK premaster.
+ * separate imported-key and secret copies sized for the master and premaster.
  * PSA validates/copies inputs and owns abort/cleanup. Input and operation must
  * satisfy the native PSA API; this synchronous single-owner wrapper cannot be
  * reentered. The selected TLS handshake has no arbitrary exporter/PRF callers.
- * PSA retains ownership of key slots and cryptographic operations.
+ * PSA owns its key slot until destruction or failed-import cleanup.
  */
 psa_status_t c3tout_prf_input (psa_key_derivation_operation_t * p_operation,
                                psa_key_derivation_step_t        step,
@@ -62,6 +62,10 @@ psa_status_t c3tout_prf_input (psa_key_derivation_operation_t * p_operation,
 psa_status_t c3tout_prf_key (psa_key_derivation_operation_t * p_operation,
                              psa_key_derivation_step_t        step,
                              mbedtls_svc_key_id_t             h_key);
+psa_status_t c3tout_prf_import (const psa_key_attributes_t * p_attributes,
+                                const uint8_t *              p_data,
+                                size_t                       size,
+                                mbedtls_svc_key_id_t *       ph_key);
 void * c3tout_prf_alloc (size_t count, size_t size);
 
 /* Allocation is bound into ssl_tls.c. Setup uses input and output buffers,

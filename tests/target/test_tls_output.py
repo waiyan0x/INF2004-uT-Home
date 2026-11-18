@@ -34,6 +34,11 @@ class Derivation(c.Structure):
     _fields_ = [('alg', c.c_uint32), ('failure', c.c_uint32), ('input', c.c_void_p)]
 
 
+class ImportAttributes(c.Structure):
+    _fields_ = [('key_type', c.c_uint32), ('algorithm', c.c_uint32), ('usage', c.c_uint32),
+                ('lifetime', c.c_uint32), ('copy', c.POINTER(Derivation))]
+
+
 class Session(c.Structure):
     _fields_ = [('digest', c.c_void_p), ('bytes', c.c_uint8 * (128 - c.sizeof(c.c_void_p)))]
 
@@ -53,6 +58,15 @@ class TlsOutputTests(unittest.TestCase):
         (cls.directory / 'psa/crypto.h').write_text(
             '#include "touttest.h"\n'
             '#define psa_status_t int32_t\n'
+            '#define psa_key_attributes_t touttest_attrs_t\n'
+            '#define psa_get_key_type(attrs) ((attrs)->key_type)\n'
+            '#define psa_get_key_algorithm(attrs) ((attrs)->algorithm)\n'
+            '#define psa_get_key_usage_flags(attrs) ((attrs)->usage)\n'
+            '#define psa_get_key_lifetime(attrs) ((attrs)->lifetime)\n'
+            '#define PSA_KEY_TYPE_DERIVE 2U\n'
+            '#define PSA_KEY_USAGE_DERIVE 8U\n'
+            '#define PSA_KEY_LIFETIME_VOLATILE 0U\n'
+            '#define psa_import_key touttest_import\n'
             '#define psa_key_derivation_operation_t touttest_derivation_t\n'
             '#define psa_key_derivation_step_t uint16_t\n'
             '#define mbedtls_svc_key_id_t uint32_t\n'
@@ -141,6 +155,8 @@ class TlsOutputTests(unittest.TestCase):
                 ('touttest_promote', [c.POINTER(Context)], None),
                 ('c3tout_alloc', [c.c_size_t, c.c_size_t], c.c_void_p),
                 ('c3tout_prf_alloc', [c.c_size_t, c.c_size_t], c.c_void_p),
+                ('c3tout_prf_import', [c.POINTER(ImportAttributes), c.c_char_p, c.c_size_t,
+                                       c.POINTER(c.c_uint32)], c.c_int32),
                 ('c3tout_prf_key', [c.POINTER(Derivation), c.c_uint16, c.c_uint32], c.c_int32),
                 ('c3tout_prf_input', [c.POINTER(Derivation), c.c_uint16,
                                       c.c_char_p, c.c_size_t], c.c_int32),
@@ -722,6 +738,56 @@ class TlsOutputTests(unittest.TestCase):
             self.assertFalse(operation.input)
         self.assertEqual(key_input(c.byref(second), 4, 1), 0)
         self.lib.c3tout_free(second.input)
+
+    def test_prf_import_owns_distinct_storage_until_destruction(self):
+        copy = Derivation(1)
+        attrs = ImportAttributes(2, 1, 8, 0, c.pointer(copy))
+        key = c.c_uint32(17)
+        def load(data):
+            return self.lib.c3tout_prf_import(c.byref(attrs), data, len(data), c.byref(key))
+
+        for length in (1, 32, 48, 66):
+            value = bytes(range(1, length + 1))
+            self.assertEqual(load(value), 0)
+            self.assertEqual(key.value, 1)
+            first = copy.input
+            secret = Derivation(1)
+            self.assertEqual(self.lib.c3tout_prf_key(c.byref(secret), 4, length), 0)
+            self.assertNotEqual(first, secret.input)
+            self.assertEqual(load(b'x'), -141)
+            self.assertEqual(key.value, 0)
+            self.assertEqual(c.string_at(first, length), value)
+            self.lib.c3tout_wipe(secret.input, length)
+            c.memset(first, 0xA5, 66)
+            self.lib.c3tout_wipe(first, length)
+            self.assertEqual(c.string_at(first, 66), bytes(66))
+        self.assertEqual(load(b'x' * 67), -141)
+        self.assertEqual(load(b''), -135)
+        for failure in (1, 3):
+            copy.failure = failure
+            self.assertEqual(load(b'x'), -137)
+            self.assertEqual(key.value, 0)
+        self.assertEqual(self.lib.touttest_count(0), 0)
+        copy.failure = 4  # Simulate a different task allocating the same size.
+        self.assertEqual(load(b'x'), 0)
+        self.assertEqual(self.lib.touttest_count(0), 1)
+        self.lib.c3tout_free(copy.input)
+
+    def test_other_key_import_policies_keep_the_native_allocator(self):
+        for policy in ((3, 1, 8, 0), (2, 2, 8, 0), (2, 1, 9, 0), (2, 1, 8, 1)):
+            copy, key = Derivation(), c.c_uint32()
+            attrs = ImportAttributes(*policy, c.pointer(copy))
+            before = self.lib.touttest_count(0)
+            self.assertEqual(self.lib.c3tout_prf_import(c.byref(attrs), b'k', 1, c.byref(key)), 0)
+            self.assertEqual(key.value, 1)
+            self.assertEqual(self.lib.touttest_count(0), before + 1)
+            self.lib.c3tout_wipe(copy.input, 1)
+
+    def test_global_static_psa_slots_are_outside_the_selected_build(self):
+        command = [*self.command, '-DMBEDTLS_PSA_STATIC_KEY_SLOTS', '-o', str(self.directory / 'rejected.o')]
+        result = subprocess.run(command, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('PSA key-buffer path', result.stderr)
 
     def test_psa_copy_mode_is_rejected_before_build(self):
         command = [arg for arg in self.command if arg != '-DMBEDTLS_PSA_ASSUME_EXCLUSIVE_BUFFERS']

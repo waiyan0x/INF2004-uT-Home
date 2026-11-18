@@ -89,6 +89,26 @@ int32_t touttest_input (touttest_derivation_t * p_operation,
     return 0;
 }
 
+/** @brief Return a test key ID and expose its storage for lifetime checks. */
+int32_t touttest_import (const touttest_attrs_t * p_attributes,
+                         const uint8_t *          p_data,
+                         size_t                   size,
+                         uint32_t *               ph_key)
+{
+    *ph_key = 0U;
+    if (0U == size)
+    {
+        return -135;
+    }
+    const int32_t result =
+        touttest_input(p_attributes->p_copy, 0U, p_data, size);
+    if (0 == result)
+    {
+        *ph_key = 1U;
+    }
+    return result;
+}
+
 /** @brief Map synthetic key IDs to copy lengths, including one oversize ID. */
 int32_t
 touttest_key (touttest_derivation_t * p_operation, uint16_t step, uint32_t key)

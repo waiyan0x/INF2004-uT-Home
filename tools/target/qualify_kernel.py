@@ -435,7 +435,7 @@ STARTUP_SYMBOLS = (
 
 
 def verify_startup_scope(commands, project, enabled):
-    """Confine startup tracing to the Wiâ€‘Fi diagnostic boundaries only."""
+    """Confine startup tracing to the WiÃ¢â‚¬â€˜Fi diagnostic boundaries only."""
     selected = {}
     all_names = {symbol for renames in STARTUP_RENAMES.values() for symbol in renames}
     for suffix, renames in STARTUP_RENAMES.items():
@@ -451,7 +451,7 @@ def verify_startup_scope(commands, project, enabled):
                 raise QualificationError(f"Invalid startup trace scope: {path}: {symbol}")
     trace_present = (project / "hal/c3start.c").resolve() in commands
     if trace_present != enabled:
-        raise QualificationError("Startup trace source does not match Wiâ€‘Fi mode")
+        raise QualificationError("Startup trace source does not match WiÃ¢â‚¬â€˜Fi mode")
     return {"enabled": enabled,
             "renames": {str(path): renames for path, renames in selected.items()} if enabled else {}}
 
@@ -487,7 +487,7 @@ def check_startup_symbols(symbols, enabled):
     if not enabled:
         leaked = sorted(name for name in names if name.startswith("c3start_") and name in symbols)
         if leaked:
-            raise QualificationError("Startup trace leaked outside Wiâ€‘Fi probe: " + ", ".join(leaked))
+            raise QualificationError("Startup trace leaked outside WiÃ¢â‚¬â€˜Fi probe: " + ", ".join(leaked))
         return {"enabled": False}
     linked = {}
     for original, wrapper, native in pairs:
@@ -745,13 +745,14 @@ def check_tls_output(commands, symbols, enabled, config_lines):
                 'mbedtls_zeroize_and_free': 'c3tout_wipe'}
     source_bindings = {
         'ssl_tls.c': {**bindings, 'psa_key_derivation_input_bytes': 'c3tout_prf_input',
-                      'psa_key_derivation_input_key': 'c3tout_prf_key'},
+                      'psa_key_derivation_input_key': 'c3tout_prf_key',
+                      'psa_import_key': 'c3tout_prf_import'},
         'psa_crypto.c': {**bindings, 'mbedtls_calloc': 'c3tout_prf_alloc'},
     }
     observed = []
     for entry in commands:
         name = Path(entry['file']).name
-        found = re.findall(r'(?:^|\s)-D\s*"?(mbedtls_calloc|mbedtls_free|mbedtls_zeroize_and_free|psa_key_derivation_input_bytes|psa_key_derivation_input_key)=([^\s"]+)"?', entry['command'])
+        found = re.findall(r'(?:^|\s)-D\s*"?(mbedtls_calloc|mbedtls_free|mbedtls_zeroize_and_free|psa_key_derivation_input_bytes|psa_key_derivation_input_key|psa_import_key)=([^\s"]+)"?', entry['command'])
         expected = source_bindings.get(name, {}) if enabled else {}
         if dict(found) != expected or len(found) != len(expected):
             raise QualificationError('TLS output binding escaped its source: ' + name)
@@ -761,7 +762,7 @@ def check_tls_output(commands, symbols, enabled, config_lines):
              'c3tout_set_name', 'c3tout_native_name', 'c3tout_start',
              'c3tout_native_start', 'c3tout_renegotiate', 'c3tout_native_renegotiate',
              'c3tout_certificate', 'c3tout_native_certificate',
-             'c3tout_prf_input', 'c3tout_prf_key', 'c3tout_prf_alloc')
+             'c3tout_prf_input', 'c3tout_prf_key', 'c3tout_prf_import', 'c3tout_prf_alloc')
     if not enabled:
         if any(name in symbols for name in owned):
             raise QualificationError('TLS output storage escaped selected Wi-Fi services')
@@ -811,7 +812,8 @@ def check_tls_output(commands, symbols, enabled, config_lines):
         raise QualificationError('MQTT TLS session-ticket code is outside the approved profile')
     for name in ('mbedtls_ssl_free', 'mbedtls_platform_zeroize', 'mbedtls_zeroize_and_free',
                  'mbedtls_calloc', 'mbedtls_free', 'psa_key_derivation_input_bytes',
-                 'psa_key_derivation_input_key', 'psa_key_derivation_abort'):
+                 'psa_key_derivation_input_key', 'psa_key_derivation_abort', 'psa_import_key',
+                 'psa_destroy_key'):
         if name not in symbols:
             raise QualificationError('Selected SDK TLS lifecycle missing: ' + name)
     return dict(enabled=True, allocator_sources=list(source_bindings), bindings=source_bindings,
@@ -819,8 +821,8 @@ def check_tls_output(commands, symbols, enabled, config_lines):
                 transform_slots=2, session_slots=2, handshake_slots=1,
                 certificate_slots=1, peer_digest_slots=1, peer_digest_bytes=32,
                 prf_seed_bytes=64, prf_label_bytes=22, session_tickets=False,
-                prf_secret_slots=1,
-                qualification='Buffers, hostname, outer TLS state, peer records and PRF inputs; other crypto heap paths remain open')
+                prf_secret_slots=1, prf_import_slots=1,
+                qualification='Buffers, hostname, outer TLS state, peer records, PRF inputs and imported derive key; other crypto heap paths remain open')
 
 
 def verify_tls_output(work, enabled):

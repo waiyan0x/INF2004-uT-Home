@@ -18,9 +18,9 @@ ALGORITHMS = (0x08000209, 0x0800020A)
 DATA = SSL + 0x1000
 
 
-def layouts(path):
+def layouts(path, extra=()):
     wanted = {'psa_key_derivation_s', 'psa_tls12_prf_key_derivation_t',
-              'psa_driver_key_derivation_context_t'}
+              'psa_driver_key_derivation_context_t', *extra}
     result = {}
     with path.open('rb') as stream:
         elf = ELFFile(stream)
