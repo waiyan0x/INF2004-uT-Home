@@ -51,13 +51,14 @@ peer fingerprint; see the
 TLS 1.2 key derivation reserves its 64-byte seed, 22-byte label and two
 66-byte stores for the imported key and secret copy. After the key store
 warms up, the compiled client derives the expected SHA-256 and SHA-384 outputs
-with zero heap requests in the tested import and derivation path. Next, measure
-how many PSA key slots Wi-Fi and MQTT need together using the
-[USB debugger procedure](tools/target/README.md#measuring-shared-psa-key-slots). The shared tables allocate
-1,408 bytes at startup and another 704 bytes on first use in the compiled probe.
-The current image completed verified MQTT TLS on two ESP32-C3 boots and
-returned a 96-byte status reply on each. The simultaneous slot peak during
-connection and reconnection still needs a complete board trace.
+with zero heap requests in the tested import and derivation path. The shared
+PSA key tables in the compiled probe allocated 1,408 bytes at startup and
+704 on first use.
+The ESP32-C3 used at most one slot while joining Wi-Fi with the broker offline
+and three during each verified MQTT TLS connection, including after a broker
+restart. Both 96-byte status replies came from the same boot. One follow-up
+status check after debugger detachment timed out. Qualify a fixed table
+against rekey, renegotiation and exhaustion before selecting its capacity.
 [TLS memory results](docs/reports/wifi-static-memory/README.md#imported-tls-derivation-key)
 The [certificate record work](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records)
 preserves the native validation and renegotiation lifecycle. The user approved

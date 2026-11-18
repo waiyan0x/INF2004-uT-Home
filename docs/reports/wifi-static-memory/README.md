@@ -33,18 +33,17 @@ erasure and successfully retried. HMAC and platform services were doubled.
 
 Both tables remained allocated through the repeated derivations and were
 released at key-store shutdown. A failed first allocation of the volatile
-table returned an error and the next import succeeded. Determine simultaneous
-Wi-Fi and TLS key use before sizing the shared tables. Inner certificate,
-crypto and TCP/IP storage and physical runtime measurements also remain open.
+table returned an error and the next import succeeded. Inner certificate,
+crypto and TCP/IP storage and whole-system runtime memory measurements remain
+open.
 
 An RV32 object comparison measured the SDK's native fixed table at 40 bytes
 per slot plus four bytes for the aligned initialization flag. The current
 dynamic table manager occupies 184 fixed bytes. Replacing it would add 1,020
 bytes for 30 slots, 1,060 for 31, or 1,100 for 32. The linked SDK/kernel group
 has 1,042 bytes free. If its other usage holds, 30 slots leave 22 bytes and
-31 slots exceed the group budget by 18 bytes. The
-[board measurement](../../../tools/target/README.md#measuring-shared-psa-key-slots)
-and a full target link are needed to select a capacity.
+31 slots exceed the group budget by 18 bytes. A full target link must verify
+the eventual fixed-table configuration.
 
 To reproduce the comparison, use the slot-management entry in the qualified
 build's `compile_commands.json`. Keep the ESP user configuration, undefine
@@ -56,9 +55,24 @@ On 19 November the ESP32-C3 running firmware `2b3f703` obtained a Wi-Fi
 address on its normal profile and completed MQTT over verified TLS on two
 separate boots. Each control returned a 96-byte transaction status reply.
 The complete original flash and saved profile were verified after both runs.
-A separate run with a breakpoint on every key reservation and wipe counted
-74 of each and peaked at one occupied slot. It ended before Wi-Fi obtained an
-address, so a combined Wi-Fi/MQTT peak still requires a completed trace.
+A preliminary trace counted 74 reservations and 74 wipes, with a peak of one
+occupied slot while the station was waiting for an address. A subsequent trace covered association, authenticated
+MQTT status and a broker restart on one boot.
+
+| Board phase | Reservations | Wipes | Peak occupied slots | Occupied at phase end |
+|---|---:|---:|---:|---:|
+| Wi-Fi association with the broker offline | 43 | 43 | 1 | 0 |
+| Broker startup through the first verified MQTT status | 13 | 11 | 3 | 2 |
+| Broker restart through the next verified MQTT status | 13 | 13 | 3 | 2 |
+
+Both traced status replies were 96 bytes and carried the same ESP boot ID and
+generation. All 136 events reconciled from an empty key store. A separate
+status check after debugger detachment timed out. The broker recorded nine
+distinct requests without matching replies. Its cause remains open. The
+original flash and profile were verified after restoration. The observed
+peak was three slots for this workload. Wi-Fi rekey, TLS renegotiation and
+exhaustion/recovery still need coverage to select a production limit.
+[USB debugger procedure](../../../tools/target/README.md#measuring-shared-psa-key-slots)
 
 | Fixed memory on this image | Linked bytes | Budget | Headroom |
 |---|---:|---:|---:|

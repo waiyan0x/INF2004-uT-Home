@@ -528,6 +528,8 @@ for its built-in JTAG interface. [ESP32-C3 USB driver setup](https://docs.espres
 ```gdb
 source tools/target/tls_slot_trace.py
 target remote 127.0.0.1:3333
+monitor poll_interval 2
+monitor poll_period 2
 monitor reset halt
 thbreak *psa_initialize_key_slots
 continue
@@ -548,8 +550,10 @@ Record the time Wi-Fi acquires an address with the broker stopped. Then record
 an authenticated MQTT status reply and a fresh reply after a broker restart,
 checking the same ESP boot identity. Match these phases to the trace's host
 monotonic timestamps. Debugger pauses affect timing. The highest observed
-count applies to the completed workload. Review other supported workloads
-before choosing a fixed capacity.
+count applies to the completed workload. In the completed ESP32-C3 trace,
+OpenOCD connected before broker startup and both polling intervals were set
+to 2 ms after GDB connected. Review other supported workloads before choosing
+a fixed capacity. [Board measurements](../../docs/reports/wifi-static-memory/README.md#imported-tls-derivation-key)
 
 ## TLS input lifetime and capacity probe
 
