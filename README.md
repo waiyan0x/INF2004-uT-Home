@@ -52,7 +52,8 @@ TLS 1.2 key derivation reserves its 64-byte seed, 22-byte label and two
 66-byte stores for the imported key and secret copy. After the key store
 warms up, the compiled client derives the expected SHA-256 and SHA-384 outputs
 with zero heap requests in the tested import and derivation path. Next, measure
-how many PSA key slots Wi-Fi and MQTT need together. The shared tables allocate
+how many PSA key slots Wi-Fi and MQTT need together using the
+[USB debugger procedure](tools/target/README.md#measuring-shared-psa-key-slots). The shared tables allocate
 1,408 bytes at startup and another 704 bytes on first use in the compiled probe.
 A fresh board handshake and runtime measurements remain open.
 [TLS memory results](docs/reports/wifi-static-memory/README.md#imported-tls-derivation-key)

@@ -513,6 +513,39 @@ compiled SDK assembles each output block. The host supplies HMAC, the simulated
 heap, ROM byte routines and task/mutex services. Physical handshakes and runtime
 memory measurements remain separate acceptance steps.
 
+## Measuring shared PSA key slots
+
+Use the matching unstripped ESP32-C3 ELF and the built-in USB debugger for a
+backed-up board trial. Start OpenOCD with `board/esp32c3-builtin.cfg`, load
+the ELF in Espressif's RISC-V GDB, and run these commands from the repository
+root. Choose a fresh local output file in an existing directory.
+
+```gdb
+source tools/target/tls_slot_trace.py
+target remote 127.0.0.1:3333
+monitor reset halt
+thbreak *psa_initialize_key_slots
+continue
+uthome-slot-trace build/psa-slots.jsonl
+continue
+```
+
+The observer starts with an empty key store. Two hardware breakpoints count a
+successful return from the SDK reservation function and entry into the wipe
+function for an occupied slot. These points run under native slot ownership.
+They include temporary imports, persistent cache loads and cleanup on error.
+The trace records occupancy and its peak across all callers. It reads only the
+reservation status and slot state during these events. A failed reservation is
+recorded separately. A reset, unexpected halt or `invalid` event ends the
+usable run.
+
+Record the time Wi-Fi acquires an address with the broker stopped. Then record
+an authenticated MQTT status reply and a fresh reply after a broker restart,
+checking the same ESP boot identity. Match these phases to the trace's host
+monotonic timestamps. Debugger pauses affect timing. The highest observed
+count applies to the completed workload. Review other supported workloads
+before choosing a fixed capacity.
+
 ## TLS input lifetime and capacity probe
 
 `tls_input_probe.py` runs the existing SDK's receive path from a qualified,
