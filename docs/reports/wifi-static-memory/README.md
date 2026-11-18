@@ -52,6 +52,14 @@ build's `compile_commands.json`. Keep the ESP user configuration, undefine
 `MBEDTLS_PSA_KEY_SLOT_COUNT`. Read the size of `global_data` with the target
 `nm -S`. This comparison measures table metadata only.
 
+On 19 November the ESP32-C3 running firmware `2b3f703` obtained a Wi-Fi
+address on its normal profile and completed MQTT over verified TLS on two
+separate boots. Each control returned a 96-byte transaction status reply.
+The complete original flash and saved profile were verified after both runs.
+A separate run with a breakpoint on every key reservation and wipe counted
+74 of each and peaked at one occupied slot. It ended before Wi-Fi obtained an
+address, so a combined Wi-Fi/MQTT peak still requires a completed trace.
+
 | Fixed memory on this image | Linked bytes | Budget | Headroom |
 |---|---:|---:|---:|
 | Application | 143,319 | 147,456 | 4,137 |

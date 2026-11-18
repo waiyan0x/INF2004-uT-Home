@@ -55,7 +55,9 @@ with zero heap requests in the tested import and derivation path. Next, measure
 how many PSA key slots Wi-Fi and MQTT need together using the
 [USB debugger procedure](tools/target/README.md#measuring-shared-psa-key-slots). The shared tables allocate
 1,408 bytes at startup and another 704 bytes on first use in the compiled probe.
-A fresh board handshake and runtime measurements remain open.
+The current image completed verified MQTT TLS on two ESP32-C3 boots and
+returned a 96-byte status reply on each. The simultaneous slot peak during
+connection and reconnection still needs a complete board trace.
 [TLS memory results](docs/reports/wifi-static-memory/README.md#imported-tls-derivation-key)
 The [certificate record work](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records)
 preserves the native validation and renegotiation lifecycle. The user approved

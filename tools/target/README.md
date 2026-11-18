@@ -520,6 +520,11 @@ backed-up board trial. Start OpenOCD with `board/esp32c3-builtin.cfg`, load
 the ELF in Espressif's RISC-V GDB, and run these commands from the repository
 root. Choose a fresh local output file in an existing directory.
 
+On Windows, verify that OpenOCD reports the ESP32-C3 core as examined and
+running before installing the trial image. Check the USB serial port and
+the debug interface separately. Espressif documents the Windows driver
+for its built-in JTAG interface. [ESP32-C3 USB driver setup](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/api-guides/jtag-debugging/configure-builtin-jtag.html)
+
 ```gdb
 source tools/target/tls_slot_trace.py
 target remote 127.0.0.1:3333
