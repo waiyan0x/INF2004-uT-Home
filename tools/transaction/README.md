@@ -1015,6 +1015,46 @@ settings remain excluded. The AP changes the forwarding topology, so these runs
 cannot establish a phone-hotspot cause. TLS/TCP allocation, runtime resource
 peaks and combined physical HA acceptance remain open.
 
+#### Status timestamp capture
+
+The private broker recorder now retains each complete, validated `TJ` status
+reply, including replies received after the querying client disconnects. A local
+verified-TLS check timed out at 8.002 seconds and still recorded its deliberately
+delayed reply at 9.507 seconds, without retrying the request. This verifies the
+host recorder, not ESP or radio behavior.
+
+Use USB telemetry `timestamp_ms` to bracket the kernel clock: it and the status
+reply's `now_ms` use `tk_get_otm`. `WORKCOST.timestamp_us` instead uses
+`esp_timer_get_time` and must not be treated as the same clock. The host records
+the start/end of each telemetry request, then compares adjacent clock brackets
+with broker request/result times. Status `now_ms` is sampled at owner-loop start,
+before USB/network handling; it is not an exact TLS-write timestamp. Report the
+observed offset range and loop-timing limitation rather than exact wire latency.
+
+The backed-up follow-up on 18 November reused the same approved application
+`4b12b2cb…` and normal saved profile. Its corrected capture answered **393/393**
+queries: one warmup, 98 with USB closed and 294 during USB polling, followed by
+60 seconds without new queries. Median reply time was 0.221 seconds; maximum
+was 0.521 seconds. All 393 full replies were matched to 305 kernel-clock samples;
+the USB clock exchanges took 90–183 ms. No timeout recurred, so there is no
+late-response classification or demonstrated fix. Added clock sampling changes
+the USB observation load and does not qualify the idle-plan correction.
+
+An initial 66/66 observation was retained separately when the clock association
+was corrected; the firmware, profile and boot identity stayed unchanged. The
+complete original flash was subsequently restored and independently verified,
+and USB confirmed the original profile and three workers. Both header captures,
+the broker and helpers exited; temporary firewall/AP setup was removed, saved
+hotspot settings preserved and the original Internet connection retained. No
+idle Apply, runtime transaction or HA change occurred.
+
+Local evidence is in `build/mqtt-status-timing-20261118/`: `trial-results.json`
+binds the image, fresh full backup, captures and restoration; `timing-analysis.json`
+records the clock ranges and all matched results. The original plan's incorrect
+clock description remains preserved with an explicit correction record. Keep
+this recorder enabled from the first query in any subsequent diagnostic trace.
+Another run without a delayed reply cannot identify the intermittent fault.
+
 ## One-shot codec and diagnostic client
 
 The low-level client remains useful for packet inspection and isolated tests:

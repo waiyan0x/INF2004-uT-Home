@@ -154,10 +154,13 @@ test configuration, backups and verification are private under that ignored
 folder. The fixture is stopped, so its six sensors are correctly unavailable.
 
 **Next: isolate the normal-profile TCP delays, then complete the guarded
-idle-plan check and remaining TLS storage work.** Keep passive full status replies
-from the start of the next trace so their device timestamps can be compared with
-broker and TCP timing. The latest four late replies have no saved device
-processing timestamp; the repeat that captured those timestamps had no timeouts.
+idle-plan check and remaining TLS storage work.** The
+[timestamp recorder](tools/transaction/README.md#status-timestamp-capture) now
+retains complete broker replies after a client timeout and brackets the matching
+USB kernel clock. Its backed-up follow-up answered 393/393 queries, so it did not
+reproduce the fault. The original flash/profile and host settings are restored.
+The earlier four late replies still lack saved device timestamps. Use the
+recorder when the delay recurs; another clean run alone will not localize it.
 Do not treat USB polling, the phone hotspot or the plan change as an established
 cause. Packet loss, the earlier unattended Apply reset and old VM instability
 remain open.
