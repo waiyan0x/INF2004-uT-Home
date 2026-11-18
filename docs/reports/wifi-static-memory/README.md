@@ -37,6 +37,21 @@ table returned an error and the next import succeeded. Determine simultaneous
 Wi-Fi and TLS key use before sizing the shared tables. Inner certificate,
 crypto and TCP/IP storage and physical runtime measurements also remain open.
 
+An RV32 object comparison measured the SDK's native fixed table at 40 bytes
+per slot plus four bytes for the aligned initialization flag. The current
+dynamic table manager occupies 184 fixed bytes. Replacing it would add 1,020
+bytes for 30 slots, 1,060 for 31, or 1,100 for 32. The linked SDK/kernel group
+has 1,042 bytes free. If its other usage holds, 30 slots leave 22 bytes and
+31 slots exceed the group budget by 18 bytes. The
+[board measurement](../../../tools/target/README.md#measuring-shared-psa-key-slots)
+and a full target link are needed to select a capacity.
+
+To reproduce the comparison, use the slot-management entry in the qualified
+build's `compile_commands.json`. Keep the ESP user configuration, undefine
+`MBEDTLS_PSA_KEY_STORE_DYNAMIC` after it, and compile one object per
+`MBEDTLS_PSA_KEY_SLOT_COUNT`. Read the size of `global_data` with the target
+`nm -S`. This comparison measures table metadata only.
+
 | Fixed memory on this image | Linked bytes | Budget | Headroom |
 |---|---:|---:|---:|
 | Application | 143,319 | 147,456 | 4,137 |
