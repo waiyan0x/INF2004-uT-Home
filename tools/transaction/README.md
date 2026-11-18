@@ -949,29 +949,71 @@ radio power policy are unchanged. The fresh target/snapshot and fixed-memory
 checks, full 334-file C gate and five provisioning tests pass. DRAM is unchanged.
 Revised application SHA-256:
 `4b12b2cb0098d6e43a0939a05d368da12f90752029024d5a481793c449d9225e`.
-A brief host preflight successfully started/stopped the 2.4 GHz hotspot,
-preserving the original Internet connection and saved hotspot settings.
-The concrete local plan is `build/mqtt-plan-ap-20261118/trial-plan.json`;
-this revised image requires installation approval.
+The user approved this image and its backed-up trial. The first attempt saved
+74 valid normal-profile replies, but its observer incorrectly required the
+transaction `ready` flag. That flag means the peripheral plan permits a runtime
+transaction; it is correctly false with the normal workers running. The original
+failed observer summary is retained, and its assertion was corrected. This was
+an observer failure, not 74 MQTT timeouts. The pause request ended that attempt
+after full original-flash restoration; its remaining temporary firewall rule
+was removed during the resumed host setup.
 
-The trial will verify a fresh complete 4 MiB backup, check the original through
-USB, install the exact candidate and run the normal USB/no-USB/quiet controls.
-Only if those pass will it apply the reviewed idle profile once, after five
-fresh ready replies. Recovery queries begin after the Apply acknowledgement;
-capture must show whether the existing ESP TCP/MQTT session survives. Ten ready
-replies, a 60-second quiet interval and ten further replies are required, with
-every timeout retained. The observer pauses after each ten-reply phase so an
-in-flight query cannot be mistaken for a timeout. Any partial-packet reconnect
-must remain distinguishable from successful session preservation.
+The resumed trial on 18 November verified a fresh complete 4 MiB backup,
+installed the same approved image and verified its unchanged saved profile.
+The temporary 2.4 GHz laptop hotspot retained the original Internet connection.
+Normal-profile results, using an eight-second client wait, were:
 
-Full original flash/profile restoration and independent verification finish
-the board work. Restoration checks use USB because the original firmware is
-provisioned for the phone network, not this AP. Stop the broker/captures, remove
-the narrowly scoped temporary firewall rule, stop the hotspot and verify the
-saved settings and original Internet connection. No runtime rule, peripheral
-transaction or HA service change is planned. The AP also changes the forwarding
-topology; this run cannot establish a phone-hotspot cause. Raw evidence and
-helper inputs remain local-only in the ignored build folders above.
+| Phase | Duration | Replies within the wait |
+| --- | --- | --- |
+| First trace, USB closed | 180 s | 136/136 |
+| First trace, USB polling | 180 s | 99/103 |
+| First trace, after 90 s without status queries, USB closed | 120 s | 98/98 |
+| Read-only repeat, USB polling | 180 s | 147/147 |
+| Read-only repeat, USB closed | 180 s | 147/147 |
+
+Including one successful warmup query per trace, totals were **334/338** and
+**295/295**. All four timed-out requests reached the broker promptly; their
+results arrived after 11.18, 15.52, 24.55 and 33.26 seconds. The repeat's slowest
+reply was 0.836 seconds. Both traces kept the same boot identity and generation;
+USB snapshots showed MQTT READY, no recorded MQTT failures and an assigned IP.
+No TCP SYN/FIN/RST appeared in either capture. The normal-control failure stopped
+the idle guard: **no idle Apply, rule load or runtime transaction occurred**.
+
+Offline analysis reconciled all 1,453 first-trace packet headers with the saved
+PCAP. Acknowledgements covering the timing-associated request bytes appeared
+after 0.94–12.25 seconds. In two return-stream gaps, ESP sequence numbers had
+advanced past 178 bytes that the host had not acknowledged; those bytes appeared
+later, after gaps of 1.10 and 11.91 seconds. Under the
+[TCP sequence/acknowledgement rules](https://www.rfc-editor.org/rfc/rfc9293.html#section-3.4),
+this is consistent with missing or delayed TCP data. The encrypted byte-range
+association is inferred from timing, not decrypted packet contents. Host capture
+does not isolate the radio, driver, network stack or host path, or exclude an
+additional application delay. USB polling did not reproduce the fault in the
+repeat, so it is not an established cause.
+
+The next normal-profile trace should retain passive full status replies from
+the start, alongside broker events and TCP headers. The existing status `now_ms`
+can help separate device processing from return delivery. Those timestamps were
+not saved for the four late replies; the repeat's passive subscriber saved all
+295 replies and published zero requests. The plan-change session-preservation
+check remains unqualified until normal controls pass. Do not loosen that guard
+or classify the intermittent failure as fixed.
+
+The full original flash was restored and independently verified. USB confirmed
+the original active/saved profile and three workers. The immediate postboot
+snapshot was still reconnecting; no original-image MQTT acceptance is claimed
+on this different AP. Broker, captures and subscriber stopped; both temporary
+firewall rules were removed, the hotspot stopped, saved settings were preserved
+and the original Internet connection remained active. HA was unchanged.
+
+Local-only evidence is in `build/mqtt-plan-ap-20261118/` and
+`build/mqtt-plan-resume-20261118/`. The latter's `trial-results.json` binds the
+backup, exact image, observations, restoration and cleanup; the separate
+`ack-timing-analysis.json` verifies its 109 saved evidence hashes and records the
+packet analysis without rewriting the original results. Raw captures and private
+settings remain excluded. The AP changes the forwarding topology, so these runs
+cannot establish a phone-hotspot cause. TLS/TCP allocation, runtime resource
+peaks and combined physical HA acceptance remain open.
 
 ## One-shot codec and diagnostic client
 

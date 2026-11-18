@@ -100,9 +100,12 @@ subscription, old queued work, fresh commands, keepalive success/timeout,
 partial input/output, Wi-Fi loss and prior failure backoff. The full pinned
 BARR-C gate passed for 334 files, and a fresh ESP32-C3 build and source check
 passed. Fixed DRAM remains 272,322/278,528 bytes; all group caps are unchanged.
-The [prepared board trial](../../../tools/transaction/README.md#plan-change-session-trial)
-has not yet run. Runtime peaks, radio reliability and combined HA acceptance
-remain open.
+The [backed-up board trial](../../../tools/transaction/README.md#plan-change-session-trial)
+returned 334/338 normal-profile replies within eight seconds; four arrived late,
+so idle Apply was skipped. A repeat passed 295/295 with the same boot identity.
+Captured TCP delays remain unexplained; the session-preservation change still
+needs hardware acceptance. Original flash/profile and host cleanup are verified.
+Runtime peaks, radio reliability and combined HA acceptance remain open.
 
 Manual BARR-C review: the change uses C99, the matching header and a private
 helper with a prototype. Boolean conditions, constant-left comparisons,

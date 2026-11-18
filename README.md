@@ -94,12 +94,16 @@ keeps a healthy MQTT session at complete packet boundaries instead of forcing
 a reconnect for every peripheral-plan change. Queued old-generation work is
 discarded; partial packets and real outages still reconnect. The 158 affected
 tests, full 334-file C gate and fresh target build pass with unchanged fixed
-memory. The [prepared backed-up trial](tools/transaction/README.md#plan-change-session-trial)
-now uses a temporary laptop hotspot to retain the laptop's Internet connection.
-The rebuilt image has identical application sources and awaits revised installation
-approval; the phone-network attempt stopped before any board operation.
-This addresses the predictable reconnect gap;
-the separate intermittent Wi-Fi/TCP failure remains unresolved.
+memory. The [backed-up laptop-hotspot trial](tools/transaction/README.md#plan-change-session-trial)
+returned 334/338 normal-profile replies within eight seconds. Four replies reached
+the broker after 11–33 seconds, so the idle Apply was skipped. A read-only repeat
+passed 295/295 queries with the same boot identity; the earlier USB-polling
+association did not recur. Captured TCP acknowledgements and return-data gaps
+show transport delays, but do not identify their cause. The original full flash,
+profile and host settings are restored and verified. The plan-change correction
+still needs hardware acceptance. The CI fixture's obsolete HTTPS fields are
+also removed; [all four jobs pass](https://github.com/waiyan0x/INF2004-uT-Home/actions/runs/44235575286)
+for that correction.
 
 The [Home Assistant display adapter](tools/transaction/README.md#home-assistant-display)
 is implemented on the host. Add `--home-assistant` to the existing controller
@@ -149,14 +153,14 @@ environment alive; systemd services alone did not keep it running. Login details
 test configuration, backups and verification are private under that ignored
 folder. The fixture is stopped, so its six sensors are correctly unavailable.
 
-**Next: investigate the later normal-profile MQTT stall and complete the
-remaining TLS storage design.** The approved board comparison returned 10/10
-candidate replies initially and 10/10 after broker restart, then 0/5 before
-the proposed idle Apply. Both restarted-original controls returned 0/10.
-The idle test stopped at its readiness guard; no profile or transaction changed.
-The cumulative image does not isolate the retry correction's individual effect.
-The original full flash/profile and laptop network are restored. Packet loss,
-the unattended Apply reset and old VM instability remain open.
+**Next: isolate the normal-profile TCP delays, then complete the guarded
+idle-plan check and remaining TLS storage work.** Keep passive full status replies
+from the start of the next trace so their device timestamps can be compared with
+broker and TCP timing. The latest four late replies have no saved device
+processing timestamp; the repeat that captured those timestamps had no timeouts.
+Do not treat USB polling, the phone hotspot or the plan change as an established
+cause. Packet loss, the earlier unattended Apply reset and old VM instability
+remain open.
 The reviewed SPI/UART operation descriptions follow this work.
 The approved compact Runtime transactions tab is available in the existing
 [Configuration Desk](tools/configurator/README.md#runtime-transactions): choose
