@@ -198,7 +198,8 @@ plus the temporary peer-certificate head and retained peer digest.
 TLS derivation also reserves its seed, label, secret and temporary imported
 key for the application's native task. The shared PSA table peaked at three
 slots on the board during MQTT connection and reconnect. A 30-slot diagnostic
-recovered from exhaustion in emulation. Measure overlap during Wi-Fi rekey
+recovered from exhaustion in emulation. The laptop TLS client used five
+slots during renegotiation. Measure overlap on the ESP during Wi-Fi rekey
 and TLS renegotiation before choosing the production capacity.
 The [removal verification](firmware/src/network/README.md#esp-https-removal) and
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)

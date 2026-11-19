@@ -59,8 +59,10 @@ and three during each verified MQTT TLS connection, including after a broker
 restart. Both 96-byte status replies came from the same boot. One follow-up
 status check after debugger detachment timed out. An offline 30-slot build
 left 18 bytes in the SDK/kernel budget. In emulation it rejected a 31st key
-and resumed TLS derivation after one slot was freed. Measure occupancy during
-Wi-Fi rekey and TLS renegotiation before choosing a production capacity.
+and resumed TLS derivation after one slot was freed. In a separate laptop
+trace, authenticated TLS renegotiation peaked at five slots whether the
+client or server requested it. Measure overlap on the ESP during Wi-Fi
+rekey and TLS renegotiation before choosing a production capacity.
 [Fixed-table results](docs/reports/wifi-static-memory/README.md#offline-fixed-table-build)
 The [certificate record work](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records)
 preserves the native validation and renegotiation lifecycle. The user approved

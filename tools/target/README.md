@@ -521,6 +521,28 @@ returns `PSA_ERROR_INSUFFICIENT_MEMORY`. Releasing one slot must let both
 SHA-256 and SHA-384 derivations succeed with every other key intact.
 [Offline build and results](../../docs/reports/wifi-static-memory/README.md#offline-fixed-table-build)
 
+### Tracing TLS renegotiation on the host
+
+Use a debug build of an isolated copy of `tests/target/tls_profile`. Select
+the fixed PSA base configuration described in the memory report and the
+16,384/4,096 record profile. In the host fixture, call
+`mbedtls_ssl_conf_renegotiation(&g_config, MBEDTLS_SSL_RENEGOTIATION_ENABLED)`
+before SSL setup, matching the ESP client policy. For a client-requested
+handshake, expose `mbedtls_ssl_renegotiate(&g_peer)` through the test fixture
+and drive the call using `Peer.call`. For a server request, let the client
+read while the server calls `SSL_renegotiate` and continues servicing TLS I/O.
+Use a loopback peer with a trusted test CA, hostname verification and the
+ECDHE-ECDSA AES-128-GCM SHA-256 suite. [OpenSSL renegotiation API](https://docs.openssl.org/3.5/man3/SSL_key_update/)
+
+Set a debugger breakpoint at the successful return in
+`psa_reserve_free_key_slot`. Count the nonempty records in
+`global_data.key_slots` at each stop. Mark the new phase at entry to
+`mbedtls_ssl_start_renegotiation`. Require a second full handshake on the
+same connection, zero client verification flags and a successful application
+exchange afterward. Check the independent peer's Certificate and Finished
+messages and run a wrong-hostname control.
+[Measured peaks](../../docs/reports/wifi-static-memory/README.md#authenticated-renegotiation-on-the-laptop)
+
 ## Measuring shared PSA key slots
 
 Use the matching unstripped ESP32-C3 ELF and the built-in USB debugger for a

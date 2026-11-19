@@ -119,6 +119,26 @@ keys retained their contents until destruction. The native test keys still
 needed heap storage for their material. The probe supplies HMAC, heap, ROM
 byte operations and task services. [Probe instructions](../../../tools/target/README.md#tls-derivation-input-probe)
 
+#### Authenticated renegotiation on the laptop
+
+A host build of the pinned TLS client used the same 30-slot base configuration,
+ticket policy and 16,384/4,096-byte record limits. Its debugger counted every
+occupied slot after each successful reservation.
+
+| TLS 1.2 phase | Reservations | Peak occupied slots |
+|---|---:|---:|
+| Initial authenticated handshake | 11 | 3 |
+| Renegotiation requested by the client | 10 | 5 |
+| Renegotiation requested by the server | 10 | 5 |
+
+Each direction ran twice with the same counts. The independent peer recorded
+two server Certificate messages and four Finished messages on each connection.
+The server-requested runs also echoed 96 encrypted application bytes after
+renegotiation. The wrong-hostname control failed certificate verification in
+the first handshake. The laptop used software crypto and host memory. The ESP
+still needs a combined measurement with its Wi-Fi stack active.
+[Host trace procedure](../../../tools/target/README.md#tracing-tls-renegotiation-on-the-host)
+
 ### Key-derived TLS secret
 
 On 18 November 2026 the single MQTT TLS client gained one fixed slot for the
