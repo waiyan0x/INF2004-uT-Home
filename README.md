@@ -70,7 +70,10 @@ and a six-slot build completed the handshake. The six-slot ESP image leaves
 RV32 exhaustion and reuse tests passed. On the normal profile, this six-slot
 image also passed Wi-Fi startup, MQTT broker restart and server-requested TLS
 renegotiation on one ESP boot. The remaining capacity check is a confirmed
-Wi-Fi group-key renewal during TLS renegotiation.
+Wi-Fi group-key renewal during TLS renegotiation. A ten-minute watch on the
+Windows hotspot detected the initial key installation and zero renewals. Resume
+this check when renewal timing is known or controllable. Inner certificate
+and crypto allocations can be investigated independently.
 [Shared-key capacity tests](docs/reports/wifi-static-memory/README.md#wi-fi-key-lifetime-during-tls-renegotiation)
 [Fixed-table results](docs/reports/wifi-static-memory/README.md#offline-fixed-table-build)
 The [certificate record work](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records)

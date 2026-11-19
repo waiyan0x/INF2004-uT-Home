@@ -150,6 +150,18 @@ The trial ran without a debugger. All 4 MiB of original flash and the
 active and saved profile were verified after restoration. Wi-Fi group-key
 renewal during renegotiation remains open for production qualification.
 
+A separate 600-second observation used the same six-slot image and a Windows
+2.4 GHz hotspot. The debugger detected the initial group-key installation.
+It detected zero subsequent group-key installations or group replies during
+the window. The ESP answered two distinct authenticated 96-byte MQTT status
+requests on the same TLS connection, boot and generation, one before the
+watch and one after. With no renewal cadence to target, the peer kept the
+original connection and issued no renegotiation request. The hotspot's renewal
+interval and the ESP's behavior during overlap remain unknown. Resume the
+overlap check with a known renewal time or a configurable access point.
+The full original flash, active and saved profile, and host cleanup were
+verified. [Observer procedure](../../../tools/target/README.md#observing-wi-fi-group-key-renewal-on-the-six-slot-image)
+
 #### Authenticated renegotiation on the laptop
 
 A host build of the pinned TLS client used the same 30-slot base configuration,
