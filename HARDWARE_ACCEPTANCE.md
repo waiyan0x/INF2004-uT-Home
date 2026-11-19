@@ -170,6 +170,15 @@ The display reads cached samples and does not drain those queues.
 **Do not copy GPIO2 CS from `configs/nodes/first-prototype.json`.** That historical
 profile is rejected by the current target. Keep DC/reset under GPIO control.
 
+For the [runtime SPI commands](datasheets/ssd1306.md), start with a cold panel.
+Activate the reviewed OLED profile and observe a nonblank pattern. Release the
+profile into the verified idle plan without interrupting panel power or pulsing
+RES. Since driver cleanup sends display-off, load and execute `display_on`
+first, then `display_off`, then `display_on`. Record the visible pattern, dark
+panel and restored pattern separately from the three MQTT completions (TX 1,
+RX 0 each). An accepted byte alone cannot establish what appeared on the panel.
+If initialization or the first visible pattern fails, record that stage.
+
 ### HLK-LD2450 radar over UART
 
 | LD2450 labelled signal | Connect to |
@@ -192,6 +201,13 @@ through the area; absence of motion alone is not proof that the link has failed.
 A valid no-target report is FRESH with three ABSENT slots; unavailable
 readings are not proof of an empty scene. Keep wiring stationary during capture
 and record any startup timeouts separately from valid reports.
+
+For the [runtime UART operations](datasheets/ld2450.md), verify the idle plan,
+then load and execute `raw_16` and `raw_32` separately at the module's default
+256000 baud. Match each firmware request ID to the Desk and HA result. Expect
+TX 0 and RX 16 or 32 on success. Preserve any timeout, partial count and raw
+bytes in the evidence. Frame alignment, target decoding and sustained
+reception require separate checks.
 
 ### Separate radar-to-LED test using layout A's pin assignments
 

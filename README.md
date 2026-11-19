@@ -196,8 +196,7 @@ environment alive; systemd services alone did not keep it running. Login details
 test configuration, backups and verification are private under that ignored
 folder. The fixture is stopped, so its six sensors are correctly unavailable.
 
-**Next: complete the remaining bounded TLS/network storage, then the reviewed
-SPI/UART descriptions and physical functional integration.** Dedicated delay
+**Next: complete the remaining bounded TLS/network storage, then physical SPI/UART functional integration using the reviewed descriptions.** Dedicated delay
 investigation and its guarded idle-session check are last priority. The
 [timestamp recorder](tools/transaction/README.md#status-timestamp-capture) now
 retains complete broker replies after a client timeout and brackets the matching
@@ -223,7 +222,8 @@ is available without the physical ESP. The subsequent physical chip-ID check use
 the host controller directly. A subsequent physical test exercised the Desk controls.
 The [power-save comparison](tools/transaction/README.md#normal-profile-packet-capture)
 is complete, with the original image/profile restored and no root-cause claim.
-Complete the reviewed SPI/UART descriptions before their physical demonstrations;
+The [reviewed SPI and UART operations](datasheets/README.md) passed the compiled C owner on simulated buses.
+Use the [bench guide](HARDWARE_ACCEPTANCE.md#ssd1306-oled-over-spi) for OLED initialization and raw radar reception;
 confirm current equipment and wiring before board work. Preserve the existing visual
 style and review proposed UI adjustments before implementation. See the
 [completion plan](CONTRIBUTING.md#completion-plan).
