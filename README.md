@@ -196,7 +196,11 @@ environment alive; systemd services alone did not keep it running. Login details
 test configuration, backups and verification are private under that ignored
 folder. The fixture is stopped, so its six sensors are correctly unavailable.
 
-**Next: complete the remaining bounded TLS/network storage, then physical SPI/UART functional integration using the reviewed descriptions.** Dedicated delay
+**Next: rehearse BMP388 (I2C) and LD2450 (UART) together on one ESP boot.**
+Use the Runtime tab to switch from chip ID and raw pressure to 16- and 32-byte
+radar reads, then back to chip ID. Record matching Desk and HA results. Visible
+OLED control is optional if time permits. The [completion plan](CONTRIBUTING.md#completion-plan)
+tracks resource measurements and the submission separately. Dedicated delay
 investigation and its guarded idle-session check are last priority. The
 [timestamp recorder](tools/transaction/README.md#status-timestamp-capture) now
 retains complete broker replies after a client timeout and brackets the matching

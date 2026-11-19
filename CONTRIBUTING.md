@@ -83,18 +83,18 @@ demonstration.
 
 ## Completion plan
 
-**Current priority (18 November): finish bounded TLS/network memory work.**
-The user moved dedicated intermittent-MQTT-delay investigation to last priority.
-Work in this order: remaining network allocation; reviewed SPI/UART descriptions
-and prerequisites; physical Desk/ESP/HA functional integration and runtime resource
-measurements; delivery documentation; then the deferred delay investigation and
-final reliability/recovery closure. Prepare delivery materials early, but retain
-unperformed/failed checks and limitations until final acceptance is complete.
-Functional hardware checks still require current equipment, verified readiness
-and applicable installation approval; do not relax those guards to bypass a delay.
-The simulated Runtime Desk and HA operator walkthrough has passed. Continue
-TLS work, including operator-dependent steps after the necessary input and
-current equipment checks. The user lifted the earlier input deferral on 17 November. The
+**Live demo scope (19 November).** Use the BMP388 and LD2450 on the same
+running ESP image. Each device has passed separately through the Desk and HA.
+Rehearse a cold start, a switch from BMP388 to radar and back, and clean
+disconnect. If using a power bank for the demonstration, rehearse with the
+laptop USB data cable removed.
+
+Demo-broker TLS and the five physical restart checks have passed. Remaining
+submission work includes sustained combined load, target resource measurements
+and the final demo script, diagram and evidence. Keep visible OLED control for
+spare time. Dedicated intermittent MQTT-delay investigation remains last priority.
+
+The user lifted the earlier input deferral on 17 November. The
 [connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
 has software and target-build verification. The approved
 [cumulative board comparison](tools/transaction/README.md#backed-up-tls-board-comparison)
@@ -139,8 +139,7 @@ The same image rejoined after an ESP restart and a hotspot outage, while retaini
 the original peripheral profile. This closes the hotspot connectivity blocker.
 The follow-up [live MQTT check](firmware/src/network/README.md#live-mqtt-check)
 also passed the BMP388 rule-switching and rejection sequence, host reopen and
-broker recovery. The allocation requirement and complete three-protocol/UI/Home
-Assistant demonstration remain open.
+broker recovery. Whole-system resource acceptance and the combined BMP388/radar rehearsal remain open.
 
 The [current assessment](docs/reports/wifi-static-memory/README.md#imported-tls-derivation-key)
 gives the latest software image's measured fixed RAM and remaining budget.
@@ -347,8 +346,9 @@ also passed for the Desk, both MQTT brokers, HA Core and the ESP.
 ### 7. Complete integrated acceptance
 
 On one selected image, demonstrate valid zero bytes, changes in command/read
-length, protocol switching, invalid-update preservation and the chosen second
-I2C device once qualified. Exercise stale/duplicate/out-of-order messages,
+length, protocol switching and preservation of the active rule after a rejected
+update. Use the BMP388 and radar for the demo. The desired second I2C device
+requires separate qualification. Exercise stale/duplicate/out-of-order messages,
 wrong sessions/generations, full buffers, oversized input, missing peripherals,
 timeouts, cleanup failure and reconnects. Include a cold boot and sustained load.
 
