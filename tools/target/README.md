@@ -593,6 +593,31 @@ OpenOCD connected before broker startup and both polling intervals were set
 to 2 ms after GDB connected. Review other supported workloads before choosing
 a fixed capacity. [Board measurements](../../docs/reports/wifi-static-memory/README.md#imported-tls-derivation-key)
 
+### Observing Wi-Fi group-key renewal on the six-slot image
+
+The following two hardware breakpoints apply to the diagnostic ELF with SHA-256
+`f82d3d7424322cc0ebd6f0ba03aa9f5215b2b1a0fa228066327c433f4428a218`.
+Attach before Wi-Fi startup. Set both breakpoints before continuing the core.
+
+| Breakpoint | What to record |
+|---|---|
+| `0x42097408`, immediately after the driver accepts a fresh group key | Read the saved return address at `$sp + 76`. The initial association returns to `0x42097940`. A group-key renewal returns to `0x42097556`. For a renewal, remember the caller's stack pointer (`$sp + 80`). |
+| `0x42097564`, on return from the group reply function | Match `$sp` to the pending renewal. A zero `(int)$a0` means the station's send call succeeded. Clear the pending event on either return value. |
+
+On each renewal marker, record the host monotonic time and
+`'c3mqtt.c'::gp_tls->ssl.renego_status` if the TLS handle exists. Key
+material is unnecessary. Twelve RV32 branch checks on this ELF covered both
+driver call sites, duplicate-key exits and the reply return codes.
+
+Count an overlap when both markers of one fresh renewal report TLS state
+`1` (renegotiation in progress) between the peer's handshake request and its
+second completed handshake on the same connection. Confirm two server
+Certificate messages, four Finished messages and authenticated MQTT replies
+from the same boot and generation before and after. The initial association
+serves as a positive control for the installation breakpoint. These events
+measure timing and successful operations. Peak key-slot occupancy requires
+the separate slot trace above.
+
 ## TLS input lifetime and capacity probe
 
 `tls_input_probe.py` runs the existing SDK's receive path from a qualified,
