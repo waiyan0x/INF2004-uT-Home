@@ -256,6 +256,17 @@ rule opens the bus and D/C only. The panel's reset level and the waveform at
 its pins were unmeasured. Visible on/off control after the idle transition
 remains open.
 
+A follow-up used the SSD1306 whole-display override to check whether a blank
+framebuffer could account for the dark panel. The operator again saw content
+on the normal profile. On the same boot after idle Apply, the Desk requested
+`A5 AF`, then `A4 AE` 4.7 seconds later. The ESP and HA confirmed TX 2 / RX 0
+for each transaction, and the operator saw a blank panel throughout. A working,
+initialized SSD1306 receiving `A5 AF` should light even with empty display RAM.
+Panel reset level, initialization state and SPI signals at the module were
+unmeasured. The original full flash, profile and host setup were verified after
+restoration. The private diagnostic rules and results are under
+`build/desk-oled-all-pixels-20261119/`.
+
 ## Configuration recipes
 
 The professor-feedback change starts with one bounded generic I2C operation:
