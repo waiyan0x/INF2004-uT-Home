@@ -136,8 +136,10 @@ two server Certificate messages and four Finished messages on each connection.
 The server-requested runs also echoed 96 encrypted application bytes after
 renegotiation. The wrong-hostname control failed certificate verification in
 the first handshake. The laptop used software crypto and host memory. The ESP
-still needs a combined measurement with its Wi-Fi stack active.
+still needs a measurement during simultaneous TLS renegotiation and Wi-Fi rekey.
 [Host trace procedure](../../../tools/target/README.md#tracing-tls-renegotiation-on-the-host)
+
+#### Server-requested renegotiation over MQTT on the ESP
 
 A separate loopback check exercised the MQTT bench endpoint with a simulated
 device and the authenticated broker. The device answered two distinct status
@@ -150,8 +152,18 @@ startup ended during Wi-Fi association. The station reported disconnect
 reason 15 and had no IP address after 60 seconds. The debugger counted 68
 reservations and 68 wipes, with a peak of one occupied slot. MQTT and TLS
 had not started. The full 4 MiB flash and saved profile were restored and
-verified. To isolate the handshake, establish an authenticated MQTT session
-before attaching the debugger.
+verified.
+
+In the next run, the same ESP image joined Wi-Fi and returned an authenticated
+96-byte MQTT status before debugger attachment. The server then sent one TLS
+1.2 HelloRequest. On that single TCP connection it observed two full handshakes
+with two server Certificate messages and four Finished messages in total. A
+second status query returned a fresh 96-byte reply with the original ESP boot
+ID and generation. The full flash and saved profile were restored and verified.
+
+OpenOCD could not identify the running target, so this run yielded no slot
+count. Wi-Fi group-key renewal was also unobserved. Verify debugger attachment
+to the running device before repeating the measurement.
 
 ### Key-derived TLS secret
 

@@ -61,8 +61,10 @@ status check after debugger detachment timed out. An offline 30-slot build
 left 18 bytes in the SDK/kernel budget. In emulation it rejected a 31st key
 and resumed TLS derivation after one slot was freed. In a separate laptop
 trace, authenticated TLS renegotiation peaked at five slots whether the
-client or server requested it. Measure overlap on the ESP during Wi-Fi
-rekey and TLS renegotiation before choosing a production capacity.
+client or server requested it. The ESP also completed a server-requested
+renegotiation and returned MQTT status on the same connection. Its USB
+debugger failed to attach for that run. Measure the ESP key-slot peak,
+including overlap with Wi-Fi rekey, before choosing a production capacity.
 [Fixed-table results](docs/reports/wifi-static-memory/README.md#offline-fixed-table-build)
 The [certificate record work](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records)
 preserves the native validation and renegotiation lifecycle. The user approved
