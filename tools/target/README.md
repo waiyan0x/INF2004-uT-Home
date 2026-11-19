@@ -467,6 +467,27 @@ progress are doubled. DER internals, multi-certificate chains, authentication,
 encrypted handshake, runtime peaks and hardware remain untested. See the
 [current record assessment](../../docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records).
 
+## Measuring broker certificate parsing
+
+Run the compiled DER parser in the fixed-slot ESP32-C3 ELF with the optional
+Unicorn and pyelftools dependencies above. Supply a PEM file containing only
+public certificates in TLS wire order, starting with the leaf. Choose a fresh
+report path in an existing directory.
+
+```powershell
+python -B -m tools.target.tls_x509_parse_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf broker-chain.pem --output build/tls-certificate/parse.json
+```
+
+The parser borrows the DER input and starts with the linked `g_certificate`
+head. The probe records the highest sum of live heap requests while parsing
+each certificate, the blocks that survive parsing, allocation caller return
+addresses and final cleanup. Each allocation fails once in a separate run,
+followed by a successful retry of the entire chain. The emulator models heap,
+ROM helpers, locking and the C3 integer multiplier. SDK limb allocation,
+curve checks, public-key parsing and chain cleanup execute from the ELF.
+Certificate trust and handshake memory are separate measurements.
+[Measured broker and chain](../../docs/reports/wifi-static-memory/README.md#broker-certificate-parser-heap)
+
 ## TLS derivation input probe
 
 `tls_prf_probe.py` executes the compiled PSA derivation setup, byte-input and

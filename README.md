@@ -72,8 +72,12 @@ image also passed Wi-Fi startup, MQTT broker restart and server-requested TLS
 renegotiation on one ESP boot. The remaining capacity check is a confirmed
 Wi-Fi group-key renewal during TLS renegotiation. A ten-minute watch on the
 Windows hotspot detected the initial key installation and zero renewals. Resume
-this check when renewal timing is known or controllable. Inner certificate
-and crypto allocations can be investigated independently.
+this check when renewal timing is known or controllable. The compiled certificate
+parser peaked at 461 requested heap bytes for the bench broker and 2,554 for
+a three-certificate RSA chain. Two intermediate records accounted for 1,904
+bytes still live when parsing finished. Trust verification and the handshake's
+peer-key copy remain to be measured.
+[Certificate parser measurements](docs/reports/wifi-static-memory/README.md#broker-certificate-parser-heap)
 [Shared-key capacity tests](docs/reports/wifi-static-memory/README.md#wi-fi-key-lifetime-during-tls-renegotiation)
 [Fixed-table results](docs/reports/wifi-static-memory/README.md#offline-fixed-table-build)
 The [certificate record work](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records)

@@ -432,6 +432,34 @@ the private tests, probe reports and verification. No board, serial port,
 hotspot or live Home Assistant service was accessed. Physical MQTT timeout
 causation and the separate old HA VM instability remain unresolved.
 
+### Broker certificate parser heap
+
+The diagnostic six-slot RV32 ELF ran its compiled `mbedtls_x509_crt_parse_der_nocopy`
+on the bench broker's P-256 certificate and a freshly generated RSA-2048
+compatibility chain. Each row includes the certificates parsed in earlier rows
+of the same chain. The 952-byte chain head was already reserved in firmware.
+
+| Input processed | DER bytes added | Peak live heap bytes requested | Heap bytes still live after parse |
+|---|---:|---:|---:|
+| Bench broker leaf | 488 | 461 | 32 |
+| RSA leaf | 850 | 650 | 0 |
+| RSA first intermediate | 816 | 1,602 | 952 |
+| RSA second intermediate | 816 | 2,554 | 1,904 |
+
+The bench leaf retained two 16-byte subject alternative name nodes. For the
+RSA chain, each intermediate added a 952-byte certificate record that stayed
+live until chain cleanup. Temporary RSA public-key parsing added 650 bytes
+at the peak. Cleanup released all tracked requests for both inputs. Failing
+each of the 11 bench and 14 RSA allocation requests in turn returned an error.
+Every retry reproduced the original peak and retained blocks.
+
+These are concurrent requested payload bytes in instruction emulation.
+Allocator overhead, the input record, fixed storage, trust verification and
+the subsequent handshake copy of the peer public key are outside the figures.
+The measured chains do not establish a maximum for other brokers. The two
+intermediate records are a distinct storage cost to account for when preserving
+the tested chain compatibility. [Probe and reproduction](../../../tools/target/README.md#measuring-broker-certificate-parsing)
+
 ### Fixed peer certificate records
 
 The 17 November peer-certificate change reserves one typed 952-byte temporary peer-chain
