@@ -269,7 +269,7 @@ encode device-name cases in the generic drivers.
 | Demonstration | Required work |
 |---|---|
 | BMP388 | Preserve chip-ID and three-byte raw reads; make initialization and possible zero data explicit |
-| SPI OLED | Physical Desk and HA verified AE/AF writes. The initialized panel stayed blank after idle Apply and AF. Establish deterministic panel setup and verify visible on/off |
+| SPI OLED | Physical Desk and HA verified AE/AF writes. On idle the panel stayed blank after the normal setup bytes and all-pixels command. The normal profile restored content on the same boot. Isolate reset and SPI ownership before claiming visible idle control |
 | LD2450 | 16- and 32-byte raw chunks passed on the physical ESP, Desk and HA. Sustained reception remains open |
 | SEN0390, desired second I2C device | Resolve the source's register/timing ambiguity and EN handling; expose the HAL's existing read pause only through a reviewed rule extension; physically qualify before claiming device switching |
 

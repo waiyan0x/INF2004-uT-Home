@@ -267,6 +267,21 @@ unmeasured. The original full flash, profile and host setup were verified after
 restoration. The private diagnostic rules and results are under
 `build/desk-oled-all-pixels-20261119/`.
 
+The initialization trial compared three stages on one boot of firmware
+`370d09e`. The operator saw content on the normal profile (generation 1).
+On idle (generation 2), the Desk sent the working driver's 25 setup bytes
+with its usual 128x64 panel and charge-pump settings. It then sent `A5 AF`
+and, 4.3 seconds later, `A4 AE`. The ESP accepted 25, 2 and 2 bytes and HA
+matched all three completions. The operator saw no light during the pulse.
+
+Reapplying the original normal profile advanced the plan to generation 3.
+Content returned on the same boot, before flash restoration. That path drives
+GPIO10 through reset, initializes the panel and redraws using the configured
+SPI driver. The idle path released the bus between writes and left RESET
+undriven by the ESP. This comparison establishes same-boot recovery and leaves
+the individual effects of reset, bus ownership and redraw unresolved.
+Local packet, profile and operator records are in `build/desk-oled-reinit-20261119/`.
+
 ## Configuration recipes
 
 The professor-feedback change starts with one bounded generic I2C operation:
