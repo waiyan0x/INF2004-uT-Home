@@ -243,6 +243,19 @@ laptop network settings were restored and checked. Local evidence is in
 reads establish bounded raw reception on this setup. Longer-run reception and
 radar target interpretation require separate evidence.
 
+In a separate operator-paced check, the six-pin panel showed content on the
+normal profile. After one idle Apply on the same ESP boot, the Desk sent
+`display_on` (`AF`). The ESP reported TX 1 / RX 0 and HA matched the result,
+but the operator saw a blank panel. The run stopped at that first command.
+Both full flash restores and host cleanups verified. Local evidence is in
+`build/desk-oled-observed-20261119/verified-io.json` and the two operator
+observations alongside it.
+
+Profile cleanup sends `AE` and releases the GPIO10 reset output. The raw SPI
+rule opens the bus and D/C only. The panel's reset level and the waveform at
+its pins were unmeasured. Visible on/off control after the idle transition
+remains open.
+
 ## Configuration recipes
 
 The professor-feedback change starts with one bounded generic I2C operation:
