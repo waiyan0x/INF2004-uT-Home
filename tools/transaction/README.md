@@ -237,9 +237,8 @@ and [sensor availability/expiry](https://www.home-assistant.io/integrations/sens
 
 Host tests verify the messages through a real local MQTT broker and compiled C
 owner with simulated buses. The [isolated HA check](#home-assistant-vm-check)
-also verifies entity states in a real Home Assistant instance. **A running Home
-Assistant instance and a live ESP have not yet completed acceptance together
-with this adapter.** The approved Configuration Desk Runtime transactions tab is
+also verifies entity states in a real Home Assistant instance. The [physical chip-ID check](#physical-bmp388-chip-id-in-home-assistant)
+verified one real ESP execution through this adapter in Home Assistant Container. The approved Configuration Desk Runtime transactions tab is
 implemented. Its HTTP actions passed the local compiled-owner/MQTT/HA A/B/A,
 expiry and journal-reopen check on 17 November, with exactly three simulated
 operations and none added by loading or recovery. This supplements the existing
@@ -257,6 +256,32 @@ then close/reopen the same host journal; verify no new execution request is sent
 by those recovery actions. Stop the host and confirm unavailable entities.
 Record actual HA version, firmware identity and observed results separately
 from the software checks before claiming that the full display path is accepted.
+
+### Physical BMP388 chip ID in Home Assistant
+
+On 19 November 2026 the ESP32-C3 read register `0x00` from the physical BMP388
+at I2C address `0x77`. Home Assistant Container 2026.11.1 recorded the raw hex
+byte `50` at 22:15:15 Singapore time. Firmware commit `370d09e` used the
+repository-default TLS configuration. The controller sent commands to the bench
+TLS broker and its host display adapter published to the separate WSL TLS broker
+using the physical node identity.
+
+| Check | Observation |
+|---|---|
+| Idle readiness | Active and saved idle profiles matched. A fresh MQTT reply reported generation 2 on the original boot. |
+| Load | HA showed the acknowledged BMP388 rule at revision 1. Raw bytes and counts stayed unavailable. |
+| Execute | The broker recorded one update and one execution. HA showed `execute_ok`, `i2c`, raw `50`, TX 1 and RX 1. Its request ID, boot ID, generation and completion time matched the ESP reply. |
+| Expiry and disconnect | After five seconds HA showed `result_expired` and cleared the bytes and counts. All six entities became unavailable when the publisher disconnected. |
+
+The temporary firmware installation ended with a verified full 4 MiB flash and
+profile restore. The temporary hotspot and firewall rule were removed and the
+WSL broker ACL matched its original hash. The chip-ID result remains in HA
+history. Local evidence is in `build/ha-bmp388-physical-20261119/verified-result.json`
+and `ha-history.json` in the same folder.
+
+The physical Configuration Desk A/B/A walkthrough, broker and HA restart
+recovery with a real peripheral, and repeatability of idle MQTT readiness
+remain open. The earlier VM observations below refer to the separate HA OS setup.
 
 ### Current live trial
 

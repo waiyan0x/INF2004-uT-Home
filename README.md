@@ -94,9 +94,10 @@ does not reuse saved sessions. Reconnects retain full verified TLS handshakes.
 The [fixed handshake-state stores](docs/reports/wifi-static-memory/README.md#fixed-tls-handshake-state)
 retain active records while renegotiation prepares replacements. Scoped setup
 and both renegotiation entries preserve SDK ownership and deterministic exhaustion.
-The simulated Runtime Desk and Home Assistant walkthrough is complete. The next
-physical integration check is a real peripheral transaction reaching Home Assistant
-over MQTT. The
+The simulated Runtime Desk and Home Assistant walkthrough is complete. The physical ESP has now returned BMP388 chip ID `50` over
+TLS MQTT, and Home Assistant recorded the same result and byte counts.
+[Physical chip-ID check](tools/transaction/README.md#physical-bmp388-chip-id-in-home-assistant)
+The next display milestone is the physical Desk chip-ID / raw-pressure / chip-ID walkthrough. The
 [MQTT connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
 now passes software checks and a fresh target build. The approved cumulative
 candidate answered initial and post-broker-restart status queries, then timed
@@ -152,8 +153,7 @@ restarts without extra peripheral operations. The subsequent live trial received
 six discovery definitions and a ready-state display over MQTT, but completed no
 new rule load or execution: status replies became intermittent after applying the
 idle plan. Home Assistant OS 18.4 / Core 2026.11.1 was installed and connected to
-the broker, but its local VM repeatedly stalled. Combined display acceptance is
-still open. See the [trial limits](tools/transaction/README.md#current-live-trial);
+the broker, but its local VM repeatedly stalled. This was the earlier HA OS trial. See the [trial limits](tools/transaction/README.md#current-live-trial);
 local-only evidence is under `build/homeassistant/` and
 `build/homeassistant-live-20261115/`.
 
@@ -216,8 +216,8 @@ preview versus active rule, three explicit A/B/A reads, expiry and disconnect,
 with all six HA sensors unavailable afterward. Physical ESP/HA acceptance remains
 separate. The local HA container and simulated six-sensor visual check are ready. A
 [repeatable demo](tools/transaction/README.md#repeatable-simulated-display-demo)
-is available without the physical ESP. Physical ESP/HA acceptance stays open
-until transport work is resumed and MQTT readiness is repeatable.
+is available without the physical ESP. The subsequent physical chip-ID check used
+the host controller directly. Physical Desk operation and repeatability remain open.
 The [power-save comparison](tools/transaction/README.md#normal-profile-packet-capture)
 is complete, with the original image/profile restored and no root-cause claim.
 Complete the reviewed SPI/UART descriptions before their physical demonstrations;
@@ -312,10 +312,9 @@ flowchart LR
     S --> HA[Home Assistant]
 ```
 
-All MQTT topics use the same broker. The host adapter now publishes discovery
-and state from the command-line controller. The Configuration Desk view and
-combined live Home Assistant/ESP
-acceptance remain to be completed.
+The normal controller session uses one broker for commands, results and display.
+The physical chip-ID trial used the bench broker for the ESP and the WSL broker
+for HA display. The Configuration Desk walkthrough has passed with the simulator.
 MQTT discovery registers Home Assistant entities; state topics supply their
 values. See the [Home Assistant MQTT documentation](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery).
 
