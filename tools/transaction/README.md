@@ -281,7 +281,9 @@ and `ha-history.json` in the same folder.
 
 The subsequent [physical Desk walkthrough](../configurator/README.md#physical-bmp388-walkthrough)
 verified chip ID, raw pressure and chip ID through the browser controls.
-Physical restart recovery and repeatability of idle MQTT readiness remain open. The earlier VM observations below refer to the separate HA OS setup.
+The [physical restart check](../configurator/README.md#physical-restart-recovery)
+covered the Desk, both brokers, HA Core and the ESP. Repeatability of idle
+MQTT readiness remains open. The earlier VM observations below refer to HA OS.
 
 ### Current live trial
 

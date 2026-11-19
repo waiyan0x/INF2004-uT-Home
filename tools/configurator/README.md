@@ -186,12 +186,40 @@ The first attempt stopped during a read-only USB network query before the idle
 profile was applied. On the successful run an authenticated MQTT status reply
 established readiness. Both attempts restored and verified the original full
 flash and saved profile. The temporary hotspot and firewall rule were removed
-and the HA broker ACL matched its original hash. Physical restart recovery and
-repeatability of idle readiness remain open.
+and the HA broker ACL matched its original hash. Repeatability of idle readiness
+remains open.
 
 Local evidence, including the three Desk screenshots and `verified-result.json`,
 is under `build/desk-bmp388-retry-20261119/`. The Desk checkpoint was `d231b89`
 and the temporarily installed ESP firmware was built from `370d09e`.
+
+### Physical restart recovery
+
+On 19 November 2026 the Desk runtime HTTP API loaded the BMP388 chip-ID rule
+once at address `0x77`. The test requested one read before each separate restart,
+using the same two brokers as the browser walkthrough above.
+
+| Restart | What the Desk and Home Assistant showed after recovery |
+|---|---|
+| Desk process, reopened with the same journal | Revision 1 stayed active. The last result had expired. |
+| Physical TLS MQTT broker | The ESP and Desk reconnected. Revision 1 stayed active and the result had expired. |
+| HA display MQTT broker | The publisher reconnected. HA recovered the rule and showed the result as expired. |
+| HA Core container | The HA API returned and the six entities recovered with the previous result expired. |
+| ESP32-C3 | A new boot reported ready with zero completed commands. The previous rule, protocol and result were unavailable. |
+
+On the first four restarts the firmware retained the request ID and completion
+time of the preceding read. Across both physical broker traces there was one
+load and exactly five executions (IDs 2 through 6). Each returned `50` with one
+byte sent and one received. HA history recorded exactly five fresh values for
+each of raw bytes, TX and RX. All six entities became unavailable on final
+disconnect.
+
+The full 4 MiB flash and saved profile were restored and verified. Both HA
+containers were running, the original broker permissions were verified, and
+the temporary hotspot and firewall rule were removed. This was one controlled
+run on Desk commit `46c0e09` and firmware `370d09e`. The private packet and HA
+checks are in `build/desk-restart-physical-20261119/verified-result.json`
+and `ha-history.json` in the same folder.
 
 ## Configuration recipes
 

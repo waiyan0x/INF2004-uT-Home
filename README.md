@@ -99,8 +99,9 @@ TLS MQTT, and Home Assistant recorded the same result and byte counts.
 [Physical chip-ID check](tools/transaction/README.md#physical-bmp388-chip-id-in-home-assistant)
 The [physical Desk walkthrough](tools/configurator/README.md#physical-bmp388-walkthrough)
 also passed. The Desk and HA recorded `50`, `24 87 6A` and `50` on one boot.
-Separate ESP, adapter, broker and HA restart recovery remains to be verified
-across the full display path. The
+The [physical restart check](tools/configurator/README.md#physical-restart-recovery)
+passed for the Desk, both MQTT brokers, HA Core and the ESP. Five explicit reads
+produced five chip-ID replies. Recovery added no execution. The
 [MQTT connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
 now passes software checks and a fresh target build. The approved cumulative
 candidate answered initial and post-broker-restart status queries, then timed

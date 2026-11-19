@@ -129,8 +129,8 @@ rule must not require another build.
 | Generic operations | `txport` reaches actual I2C, SPI-write and raw UART HALs through `c3tx` | Physical acceptance, initialization prerequisites and selected timing extensions |
 | Description compiler | `tools/transaction/description.py` compiles simple I2C register reads | SPI/UART operation descriptions; OLED source/description; SEN0390 review |
 | MQTT | Live BMP388 rule switching, target rejection, cached results and broker recovery verified on the earlier image; HTTPS now removed | Wider secure-connection load and network allocation blocker |
-| UI | Runtime transactions tab implements description selection, preview, load/execute and expiring results; simulated operator and physical BMP388 browser walkthroughs passed | Physical restart recovery |
-| Home Assistant | Host discovery/display adapter and WSL2 container; simulated six-sensor operator and restart checks passed | Display real ESP results and verify combined failure/recovery behavior |
+| UI | Runtime transactions tab implements description selection, preview, load/execute and expiring results; simulated operator and physical BMP388 browser walkthroughs passed | Combined demo with additional peripherals |
+| Home Assistant | WSL2 container displayed physical BMP388 results and recovered across five separate restarts | Prolonged combined-system load |
 | Verification | 531 target-facing tests plus 59 affected tests rerun after SDK-binding corrections; full 337-file C gate, checked target image, SDK setup/free instruction probe and unchanged memory budgets | Current image on hardware, runtime SPI/UART, prolonged combined load and whole-system resource acceptance |
 
 The [15 November hardware check](firmware/src/network/README.md#current-hardware-check)
@@ -341,8 +341,8 @@ Physical combined acceptance remains open; the dedicated MQTT-delay investigatio
 is deferred to last priority, not marked fixed.
 
 Physical BMP388 display, expiry and disconnect passed on 19 November.
-Separate ESP, adapter, broker and HA restarts still require physical
-end-to-end recovery evidence.
+The [physical restart check](tools/configurator/README.md#physical-restart-recovery)
+also passed for the Desk, both MQTT brokers, HA Core and the ESP.
 
 ### 7. Complete integrated acceptance
 
