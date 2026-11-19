@@ -161,9 +161,28 @@ with two server Certificate messages and four Finished messages in total. A
 second status query returned a fresh 96-byte reply with the original ESP boot
 ID and generation. The full flash and saved profile were restored and verified.
 
-OpenOCD could not identify the running target, so this run yielded no slot
-count. Wi-Fi group-key renewal was also unobserved. Verify debugger attachment
-to the running device before repeating the measurement.
+OpenOCD could not identify the running target in that run. In a later
+attempt, attaching GDB after the first status reset the core and broke the
+connection. The event tally disagreed with the native table at the end of
+that attempt, so its count was excluded.
+
+In the corrected run on firmware `2b3f703`, GDB attached before Wi-Fi
+started and stayed connected. After the first authenticated MQTT status,
+a scan of the initialized PSA table found two occupied slots. The ESP
+answered a second status query with the counters armed. The server then
+requested renegotiation, and the ESP answered a third query. Each 96-byte
+reply matched a distinct request ID on the same boot and generation.
+The TLS peer recorded two server Certificate messages and four Finished
+messages on one connection.
+
+| ESP phase | Occupied at start | Reservations | Wipes | Peak occupied | Occupied at end |
+|---|---:|---:|---:|---:|---:|
+| Server request through the next verified MQTT status | 2 | 11 | 11 | 5 | 2 |
+
+A second native table scan confirmed the final count of two. The full
+4 MiB flash and saved profile were restored and verified. Five is the
+observed peak for this workload. Simultaneous Wi-Fi group-key renewal
+remains unmeasured.
 
 ### Key-derived TLS secret
 

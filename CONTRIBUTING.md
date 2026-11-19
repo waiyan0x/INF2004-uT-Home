@@ -199,9 +199,9 @@ TLS derivation also reserves its seed, label, secret and temporary imported
 key for the application's native task. The shared PSA table peaked at three
 slots on the board during MQTT connection and reconnect. A 30-slot diagnostic
 recovered from exhaustion in emulation. The laptop TLS client used five
-slots during renegotiation. The ESP completed server-requested renegotiation
-and returned status on the same connection. Its slot peak and overlap with
-Wi-Fi rekey still need measurement before selecting a production capacity.
+slots during renegotiation. The ESP also peaked at five during a verified
+server-requested renegotiation and returned to two occupied slots. Measure
+overlap with Wi-Fi rekey before selecting a production capacity.
 The [removal verification](firmware/src/network/README.md#esp-https-removal) and
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
 record the fresh build and measured headroom. The user approved disabling unused
