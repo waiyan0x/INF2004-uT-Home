@@ -63,9 +63,11 @@ and resumed TLS derivation after one slot was freed. In a separate laptop
 trace, authenticated TLS renegotiation peaked at five slots whether the
 client or server requested it. On the ESP, server-requested renegotiation
 also peaked at five slots and returned to two. Three MQTT status replies
-confirmed the same boot across the measurement. Measure occupancy during
-simultaneous Wi-Fi rekey and TLS renegotiation before choosing a production
-capacity.
+confirmed the same boot across the measurement. With one extra AES key held
+through renegotiation on the laptop, a five-slot build exhausted its table
+and a six-slot build completed the handshake. A directly observed Wi-Fi
+group-key renewal on the ESP is still needed to qualify production capacity.
+[Shared-key capacity tests](docs/reports/wifi-static-memory/README.md#wi-fi-key-lifetime-during-tls-renegotiation)
 [Fixed-table results](docs/reports/wifi-static-memory/README.md#offline-fixed-table-build)
 The [certificate record work](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records)
 preserves the native validation and renegotiation lifecycle. The user approved

@@ -203,6 +203,24 @@ known block before and after renegotiation. Releasing it returned occupancy
 from three to two. This is a software measurement with deliberately overlapping
 key lifetimes. A live ESP group-key renewal remains unmeasured.
 
+To check that boundary, two laptop builds of the same fixture changed only
+`MBEDTLS_PSA_KEY_SLOT_COUNT` in the crypto configuration. All 117 C
+translation units in each build selected its configuration. The extra key,
+when used, was imported after the initial verified handshake and kept until
+renegotiation finished or failed.
+
+| Fixed host slots | Renegotiation with no extra key | Renegotiation with one extra AES key |
+|---:|---|---|
+| 5 | Passed twice, peak 5 | Failed twice at the next reservation with all 5 slots occupied |
+| 6 | Passed twice, peak 5 | Passed twice, peak 6 |
+
+Both failures reported `PSA_ERROR_INSUFFICIENT_MEMORY` in the native slot
+allocator. Neither connection completed the second handshake or echoed any
+application bytes afterward. The independently held key remained usable and
+was released in both cases. Every successful run echoed 96 bytes after
+renegotiation. Six slots sufficed for this controlled overlap. Production
+capacity remains open pending board evidence.
+
 ### Key-derived TLS secret
 
 On 18 November 2026 the single MQTT TLS client gained one fixed slot for the
