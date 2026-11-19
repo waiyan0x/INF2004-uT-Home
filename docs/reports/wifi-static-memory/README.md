@@ -137,6 +137,19 @@ and the other five keys retained their contents. The probe matched 80
 derivations and two known answers. The 821,616-byte application has SHA-256
 `7670fc069cdbf1c82c7ca4b3a014560e849f884c06e558fee29be4fd472a1332`.
 
+On the physical ESP32-C3, the six-slot image joined Wi-Fi on the normal
+saved profile and answered an authenticated 96-byte MQTT status request.
+After a full broker stop and restart, the ESP reconnected and answered
+a second request. The server then requested a full TLS 1.2 renegotiation
+on that connection and the ESP answered a third request. The three replies
+matched distinct request IDs on the same boot and generation. The TLS peer
+recorded two server Certificate messages and four Finished messages on the
+reconnected session.
+
+The trial ran without a debugger. All 4 MiB of original flash and the
+active and saved profile were verified after restoration. Wi-Fi group-key
+renewal during renegotiation remains open for production qualification.
+
 #### Authenticated renegotiation on the laptop
 
 A host build of the pinned TLS client used the same 30-slot base configuration,

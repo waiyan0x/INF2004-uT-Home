@@ -202,8 +202,10 @@ recovered from exhaustion in emulation. The laptop TLS client used five
 slots during renegotiation. The ESP also peaked at five during a verified
 server-requested renegotiation and returned to two occupied slots. In host
 tests with one additional AES key held, five slots exhausted the table and
-six completed renegotiation. Measure the ESP during a confirmed overlapping
-Wi-Fi group-key renewal before selecting a production capacity.
+six completed renegotiation. The fixed-six ESP diagnostic also passed Wi-Fi
+startup, broker restart and TLS renegotiation on its normal profile. Measure
+the ESP during a confirmed overlapping Wi-Fi group-key renewal before
+selecting a production capacity.
 The [removal verification](firmware/src/network/README.md#esp-https-removal) and
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
 record the fresh build and measured headroom. The user approved disabling unused

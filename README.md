@@ -67,8 +67,10 @@ confirmed the same boot across the measurement. With one extra AES key held
 through renegotiation on the laptop, a five-slot build exhausted its table
 and a six-slot build completed the handshake. The six-slot ESP image leaves
 978 bytes in the SDK/kernel budget and 6,006 bytes in total fixed DRAM. Its
-RV32 exhaustion and reuse tests passed. A directly observed Wi-Fi
-group-key renewal on the ESP is still needed to qualify production capacity.
+RV32 exhaustion and reuse tests passed. On the normal profile, this six-slot
+image also passed Wi-Fi startup, MQTT broker restart and server-requested TLS
+renegotiation on one ESP boot. The remaining capacity check is a confirmed
+Wi-Fi group-key renewal during TLS renegotiation.
 [Shared-key capacity tests](docs/reports/wifi-static-memory/README.md#wi-fi-key-lifetime-during-tls-renegotiation)
 [Fixed-table results](docs/reports/wifi-static-memory/README.md#offline-fixed-table-build)
 The [certificate record work](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records)
