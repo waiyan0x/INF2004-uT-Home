@@ -518,6 +518,34 @@ a simultaneous Wi-Fi renewal remain open. Local evidence is under
 `build/tls-shared-20261119/`. The six-slot ELF SHA-256 is
 `a0f482aa97de3f0319c986a61947e4076d8464974cd233c838e33a6f7acdbbb5`.
 
+### Physical demo-broker acceptance
+
+On 19 November 2026 the USB-connected ESP32-C3 joined the temporary 2.4 GHz
+hotspot with the normal saved profile. The board ran the repository-default
+firmware from commit `370d09e6f16f500292f9f9c6ab25ae77f9ef8c66`, with the
+configured P-256 broker certificate and MQTT credentials. The controller
+matched three fresh request IDs to 96-byte replies on one ESP boot.
+
+| Board check | Observed result |
+|---|---|
+| Initial connection | The broker and ESP completed TLS and exchanged a status request and reply. |
+| Broker restart | A fresh broker accepted a new connection and the ESP returned the second status. |
+| Server-requested renegotiation | Both peers sent a second Finished message on the reconnected session. The third status arrived afterward. |
+| Recovery | The complete 4 MiB original flash matched its verified backup. Active and saved profile revisions and CRCs matched their preflight values. The temporary hotspot and firewall rule were removed. |
+
+On the default ELF, the separate instruction test accepted the demo broker and
+rejected a wrong hostname and an empty trust list. Its verification peak was
+5,946 requested heap bytes including the dynamic PSA tables. Cleanup left the
+two expected table allocations of 1,408 and 704 bytes. Calendar-date checks are
+disabled in this SDK configuration. The live board trial exercised the valid
+broker. Its application SHA-256 was
+`4fd99ab283ee237084a1f1f83cc6b49849850973707867c9bb27ec19ab20d8d5`.
+
+This completes the demo-broker TLS acceptance target. General fixed-memory
+qualification, Wi-Fi key-renewal overlap, idle-profile timing and end-to-end
+physical Home Assistant acceptance have separate evidence requirements. Local
+trial evidence is in `build/tls-demo-broker-20261119/verified-result.json`.
+
 ### Fixed peer certificate records
 
 The 17 November peer-certificate change reserves one typed 952-byte temporary peer-chain

@@ -33,7 +33,7 @@ changes are injected in C fixture tests. The live BMP388 MQTT check below now
 also covers rule switching, host reopen and broker recovery on the board.
 Generated verification is local-only under `build/controller/`.
 
-**Current priority: finish TLS/network memory work.** On 18 November, the user
+**Demo-broker TLS acceptance passed on the physical ESP32-C3.** On 18 November, the user
 moved dedicated investigation of the intermittent MQTT delays to last priority.
 Continue bounded allocation work, reviewed peripheral descriptions, physical
 functional integration and delivery preparation first. Retain the delay evidence;
@@ -76,9 +76,13 @@ this check when renewal timing is known or controllable. The USB configuration p
 intermediates. In the six-slot ESP emulator, verification peaked at 3,834
 requested heap bytes for the demo broker and 5,090 for the three-certificate
 RSA chain. Both passed with a 5,990-byte payload ceiling. A seven-certificate
-chain needed 6,978 bytes and exceeded that ceiling. The next acceptance target
-is the configured demo broker on the physical ESP. Track general fixed-memory
-qualification and Wi-Fi key-renewal overlap separately.
+chain needed 6,978 bytes and exceeded that ceiling. The repository-default firmware also passed the
+physical demo-broker check on the normal profile. Three authenticated status
+replies identified one boot across initial connection, broker restart and
+server-requested TLS renegotiation. The original full flash and profile were
+restored and verified. General fixed-memory qualification and Wi-Fi key-renewal
+overlap remain open.
+[Demo-broker acceptance](docs/reports/wifi-static-memory/README.md#physical-demo-broker-acceptance)
 [Certificate parser measurements](docs/reports/wifi-static-memory/README.md#broker-certificate-parser-heap)
 [Shared-key capacity tests](docs/reports/wifi-static-memory/README.md#wi-fi-key-lifetime-during-tls-renegotiation)
 [Fixed-table results](docs/reports/wifi-static-memory/README.md#offline-fixed-table-build)
@@ -90,8 +94,9 @@ does not reuse saved sessions. Reconnects retain full verified TLS handshakes.
 The [fixed handshake-state stores](docs/reports/wifi-static-memory/README.md#fixed-tls-handshake-state)
 retain active records while renegotiation prepares replacements. Scoped setup
 and both renegotiation entries preserve SDK ownership and deterministic exhaustion.
-The simulated Runtime Desk and Home Assistant walkthrough is complete. Continue
-TLS checks and request operator input when needed; that work is no longer deferred. The
+The simulated Runtime Desk and Home Assistant walkthrough is complete. The next
+physical integration check is a real peripheral transaction reaching Home Assistant
+over MQTT. The
 [MQTT connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
 now passes software checks and a fresh target build. The approved cumulative
 candidate answered initial and post-broker-restart status queries, then timed
