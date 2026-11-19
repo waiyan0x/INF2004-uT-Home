@@ -282,6 +282,37 @@ undriven by the ESP. This comparison establishes same-boot recovery and leaves
 the individual effects of reset, bus ownership and redraw unresolved.
 Local packet, profile and operator records are in `build/desk-oled-reinit-20261119/`.
 
+### Power-bank demo rehearsal
+
+On 19 November 2026 the supplied ESP32-C3 cold-started on a power bank with
+the laptop USB data cable disconnected. USB setup had verified firmware
+`370d09e` (image SHA-256 prefix `4fd99ab2`) and saved the idle profile.
+Authenticated MQTT status identified a new boot. Automated Chromium used
+the Runtime tab from Desk commit `35b9496` to perform the sequence below.
+
+| Step | Operation | Execute ID | TX / RX bytes | Observed result |
+|---|---|---:|---:|---|
+| 1 | BMP388 `chip_id`, I2C `0x77` | 2 | 1 / 1 | `50` |
+| 2 | BMP388 `pressure_raw`, I2C `0x77` | 4 | 1 / 3 | `00 00 80` |
+| 3 | LD2450 `raw_16`, UART 256000 baud | 6 | 0 / 16 | 16 bytes, beginning `AA FF 03 00` |
+| 4 | LD2450 `raw_32`, UART 256000 baud | 8 | 0 / 32 | 32 bytes, ending `55 CC AA FF` |
+| 5 | BMP388 `chip_id`, I2C `0x77` | 10 | 1 / 1 | `50` |
+
+To rehearse, connect the Desk after the bank-powered node reports ready.
+For each row, select the description and operation, **Load rule**, then
+**Execute active rule** once. Check the raw bytes and counts in both the Desk
+and HA. Use the two chip-ID reads as the repeatable check. Pressure and radar
+bytes depend on the device state, and radar chunks can cross report boundaries.
+
+The physical broker recorded exactly five loads and five executions on the same
+boot. The full payloads, request IDs and completion times matched the Desk and
+HA. Windows detected no matching USB device during the walkthrough. After the
+last result expired, the Desk and HA hid the raw data. Disconnecting the Desk
+made all six HA sensors unavailable. The full trace and USB-presence samples
+are local under `build/power-bank-bmp-radar-20261119/`. After reconnecting
+USB, the original 4 MiB flash and profile revision 943 were restored and
+verified. Cleanup restored the laptop network settings and HA broker permissions.
+
 ## Configuration recipes
 
 The professor-feedback change starts with one bounded generic I2C operation:

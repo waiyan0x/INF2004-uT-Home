@@ -196,11 +196,12 @@ environment alive; systemd services alone did not keep it running. Login details
 test configuration, backups and verification are private under that ignored
 folder. The fixture is stopped, so its six sensors are correctly unavailable.
 
-**Next: rehearse BMP388 (I2C) and LD2450 (UART) together on one ESP boot.**
-Use the Runtime tab to switch from chip ID and raw pressure to 16- and 32-byte
-radar reads, then back to chip ID. Record matching Desk and HA results. Visible
-OLED control is optional if time permits. The [completion plan](CONTRIBUTING.md#completion-plan)
-tracks resource measurements and the submission separately. Dedicated delay
+**The [power-bank demo rehearsal](tools/configurator/README.md#power-bank-demo-rehearsal) passed.**
+The Desk switched from BMP388 to LD2450 and back on one cold ESP boot while the
+laptop USB cable was disconnected. All five results matched Home Assistant.
+Next, measure sustained combined load, timing and memory use for the final
+submission. Visible OLED control remains optional. See the
+[completion plan](CONTRIBUTING.md#completion-plan). Dedicated delay
 investigation and its guarded idle-session check are last priority. The
 [timestamp recorder](tools/transaction/README.md#status-timestamp-capture) now
 retains complete broker replies after a client timeout and brackets the matching

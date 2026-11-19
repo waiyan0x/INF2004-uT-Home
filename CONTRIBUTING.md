@@ -84,10 +84,9 @@ demonstration.
 ## Completion plan
 
 **Live demo scope (19 November).** Use the BMP388 and LD2450 on the same
-running ESP image. Each device has passed separately through the Desk and HA.
-Rehearse a cold start, a switch from BMP388 to radar and back, and clean
-disconnect. If using a power bank for the demonstration, rehearse with the
-laptop USB data cable removed.
+running ESP image. The [physical power-bank rehearsal](tools/configurator/README.md#power-bank-demo-rehearsal)
+passed all five reads on a single cold boot over Wi-Fi/MQTT, including the
+switch back to BMP388, final result expiry and clean disconnect.
 
 Demo-broker TLS and the five physical restart checks have passed. Remaining
 submission work includes sustained combined load, target resource measurements
@@ -129,7 +128,7 @@ rule must not require another build.
 | Generic operations | `txport` reaches actual I2C, SPI-write and raw UART HALs through `c3tx` | Physical acceptance, initialization prerequisites and selected timing extensions |
 | Description compiler | `tools/transaction/description.py` compiles I2C register reads, SPI writes and raw UART chunks | OLED cold-start and sustained radar reception, SEN0390 review |
 | MQTT | Live BMP388 rule switching, target rejection, cached results and broker recovery verified on the earlier image; HTTPS now removed | Wider secure-connection load and network allocation blocker |
-| UI | Runtime transactions tab implements description selection, preview, load/execute and expiring results; simulated operator and physical BMP388 browser walkthroughs passed | Combined demo with additional peripherals |
+| UI | Runtime transactions tab implements description selection, preview, load/execute and expiring results; physical BMP388/radar power-bank browser walkthrough passed | Final demonstration script |
 | Home Assistant | WSL2 container displayed physical BMP388 results and recovered across five separate restarts | Prolonged combined-system load |
 | Verification | 531 target-facing tests plus 59 affected tests rerun after SDK-binding corrections; full 337-file C gate, checked target image, SDK setup/free instruction probe and unchanged memory budgets | Current image on hardware, runtime SPI/UART, prolonged combined load and whole-system resource acceptance |
 
@@ -139,7 +138,7 @@ The same image rejoined after an ESP restart and a hotspot outage, while retaini
 the original peripheral profile. This closes the hotspot connectivity blocker.
 The follow-up [live MQTT check](firmware/src/network/README.md#live-mqtt-check)
 also passed the BMP388 rule-switching and rejection sequence, host reopen and
-broker recovery. Whole-system resource acceptance and the combined BMP388/radar rehearsal remain open.
+broker recovery. Whole-system resource acceptance remains open.
 
 The [current assessment](docs/reports/wifi-static-memory/README.md#imported-tls-derivation-key)
 gives the latest software image's measured fixed RAM and remaining budget.
