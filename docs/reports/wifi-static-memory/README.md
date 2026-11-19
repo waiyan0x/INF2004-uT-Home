@@ -184,6 +184,25 @@ A second native table scan confirmed the final count of two. The full
 observed peak for this workload. Simultaneous Wi-Fi group-key renewal
 remains unmeasured.
 
+#### Wi-Fi key lifetime during TLS renegotiation
+
+The linked WPA2 station code in `2b3f703` uses the shared PSA store for
+message integrity and key unwrapping. In the SHA-1 integrity path,
+`hmac_vector` imports a temporary HMAC key and destroys it after use.
+In the AES unwrap path, `aes_decrypt_init` imports a temporary AES key;
+`aes_decrypt_deinit` destroys it after the unwrap. The driver installs the
+group key through a separate call. These call paths identify where a Wi-Fi
+key can occupy a slot while TLS is active. They do not establish how many
+Wi-Fi keys are live at the ESP's TLS peak.
+
+A host test held one independent AES-128 key across a server-requested TLS
+1.2 renegotiation in the 30-slot fixture. Two controls peaked at five slots.
+Both runs with the extra key peaked at six. Each completed two full handshakes
+on one connection and echoed 96 encrypted bytes. The extra key decrypted a
+known block before and after renegotiation. Releasing it returned occupancy
+from three to two. This is a software measurement with deliberately overlapping
+key lifetimes. A live ESP group-key renewal remains unmeasured.
+
 ### Key-derived TLS secret
 
 On 18 November 2026 the single MQTT TLS client gained one fixed slot for the
