@@ -119,6 +119,24 @@ keys retained their contents until destruction. The native test keys still
 needed heap storage for their material. The probe supplies HMAC, heap, ROM
 byte operations and task services. [Probe instructions](../../../tools/target/README.md#tls-derivation-input-probe)
 
+The six-slot ESP32-C3 diagnostic build uses the same pinned application and
+SDK as the 30-slot comparison. All 1,050 C/C++ compile commands selected
+the six-slot configuration. The build passed the 334-file coding-standard
+gate and the same fixed-memory budget.
+
+| Fixed allocation | Six slots | Budget | Headroom |
+|---|---:|---:|---:|
+| SDK/kernel | 54,318 bytes | 55,296 bytes | 978 bytes |
+| Total fixed DRAM | 272,522 bytes | 278,528 bytes | 6,006 bytes |
+
+Reducing the table from 30 slots to six saved 960 bytes of fixed DRAM.
+In RV32 emulation of this exact ELF, six native keys filled the table.
+The seventh import returned `PSA_ERROR_INSUFFICIENT_MEMORY` and an empty
+handle. After releasing one slot, SHA-256 and SHA-384 derivations succeeded
+and the other five keys retained their contents. The probe matched 80
+derivations and two known answers. The 821,616-byte application has SHA-256
+`7670fc069cdbf1c82c7ca4b3a014560e849f884c06e558fee29be4fd472a1332`.
+
 #### Authenticated renegotiation on the laptop
 
 A host build of the pinned TLS client used the same 30-slot base configuration,
