@@ -35,12 +35,15 @@ python -m tools.transaction.client build/transactions/a.json --boot-id 0x1122334
 
 The final command writes packet bytes to a report; it does not contact a board.
 The boot identity, generation and address above are examples, not discovery of the current
-hardware. Markdown compilation uses reviewed I2C register reads, a 100 kHz bus
-and a 100 ms timeout. Description schema 1.0.0 is independent of wire version 2. Compilation now emits
-version-2 transaction JSON; the target limits device names to 15 characters and
-rejects longer names rather than truncating. The description retains its
-1-16-byte read limit;
-the general `TJ` service independently allows up to 32 received bytes.
+hardware. I2C register descriptions use 100 kHz, a 100 ms timeout and a 1-16 byte
+read. Schema 1.1.0 also compiles reviewed SPI writes and UART receive operations
+to the same v2 wire format. Their descriptions specify clock or baud and timeout.
+Omit `--address` for these operations. For example:
+
+```powershell
+python -m tools.transaction.description datasheets/ssd1306.md --operation display_off --revision 1 --output build/transactions/oled.json
+python -m tools.transaction.description datasheets/ld2450.md --operation raw_32 --revision 2 --output build/transactions/radar.json
+```
 
 A `.report.json` sidecar records the Markdown/source hashes, operation, source
 pages, configured bytes/counts and `hardware_executed=false`. Optional

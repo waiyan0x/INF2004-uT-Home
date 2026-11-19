@@ -20,7 +20,7 @@ class DescriptionTests(unittest.TestCase):
     def setUp(self):
         self.bmp, self.digest = desc.load_description(DOCS / "bmp388.md")
 
-    def test_all_six_descriptions_have_valid_sources_and_explicit_support(self):
+    def test_all_descriptions_have_valid_sources_and_explicit_support(self):
         supported = []
         blocked = []
         for path in DOCS.glob("*.md"):
@@ -33,10 +33,10 @@ class DescriptionTests(unittest.TestCase):
                         desc.compile_rule(obj, name, 1)
                     blocked.append(obj["device"])
                 else:
-                    rule = desc.compile_rule(obj, name, 1, obj["addresses"][0])
-                    self.assertEqual(rule["read_length"], op["read_length"])
+                    rule = desc.compile_rule(obj, name, 1, next(iter(obj["addresses"]), None))
+                    self.assertEqual(rule["read_length"], op.get("read_length", 0))
                     supported.append(obj["device"])
-        self.assertEqual(set(supported), {"bmp388", "adxl345", "veml7700"})
+        self.assertEqual(set(supported), {"bmp388", "adxl345", "veml7700", "oled", "ld2450"})
         self.assertEqual(set(blocked), {"sht4x", "sen0390", "ld2450"})
 
     def test_bmp_markdown_reproduces_bench_fixture_rules_exactly(self):
@@ -53,6 +53,41 @@ class DescriptionTests(unittest.TestCase):
                 desc.compile_rule(self.bmp, "chip_id", 1, address)
         veml, _ = desc.load_description(DOCS / "veml7700.md")
         self.assertEqual(desc.compile_rule(veml, "ambient_raw", 3)["address"], 16)
+
+    def test_stream_operations_match_reviewed_wire_fixtures(self):
+        for doc, name, rev, fixture in (
+                ("ssd1306", "display_off", 1, "oled-off"), ("ssd1306", "display_on", 2, "oled-on"),
+                ("ld2450", "raw_16", 1, "radar-raw16"), ("ld2450", "raw_32", 2, "radar-raw32")):
+            obj, _ = desc.load_description(DOCS / (doc + ".md"))
+            self.assertEqual(desc.compile_rule(obj, name, rev),
+                             json.loads((ROOT/"configs/transactions"/(fixture+".json")).read_text()))
+            with self.assertRaises(ValueError):
+                desc.compile_rule(obj, name, rev, 0)
+            obj["schema_version"] = "1.0.0"
+            with self.assertRaises(ValueError):
+                desc.validate_description(obj)
+
+    def test_stream_contracts_reject_wrong_bus_fields_and_bounds(self):
+        for doc, name, changes in (
+                ("ssd1306", "display_off", {"cs_pin": 3, "write_hex": "", "rate": 9000000, "read_length": 1}),
+                ("ld2450", "raw_16", {"read_length": 33, "rate": 0, "write_hex": "00", "timeout_ms": True})):
+            original, _ = desc.load_description(DOCS / (doc + ".md"))
+            for key, value in changes.items():
+                obj = deepcopy(original)
+                obj["operations"][name][key] = value
+                with self.subTest(key=key), self.assertRaises(ValueError):
+                    desc.validate_description(obj)
+
+    def test_cli_reports_stream_lengths_and_sequence(self):
+        for doc, op, tx, rx, sequence in (
+                ("ld2450", "raw_32", 0, 32, "UART raw receive"),
+                ("ssd1306", "display_off", 1, 0, "SPI write")):
+            with tempfile.TemporaryDirectory() as folder, redirect_stdout(io.StringIO()):
+                out = Path(folder)/"rule.json"
+                desc.main([str(DOCS/(doc+".md")), "--operation", op, "--revision", "1", "--output", str(out)])
+                transfer = json.loads(out.with_suffix(".report.json").read_text())["transaction"]
+                self.assertEqual((transfer["write_length"], transfer["read_length"], transfer["sequence"]),
+                                 (tx, rx, sequence))
 
     def test_unknown_operation_and_invalid_revisions(self):
         with self.assertRaisesRegex(ValueError, "unknown operation"):
@@ -143,6 +178,19 @@ class DescriptionCParityTests(unittest.TestCase):
     setUp = owner.OwnerTests.setUp
     pump = owner.OwnerTests.pump
     exchange = owner.OwnerTests.exchange
+
+    def test_spi_then_uart_from_reviewed_descriptions(self):
+        for revision, (doc, name, payload) in enumerate((
+                ("ssd1306", "display_off", None), ("ssd1306", "display_on", None),
+                ("ld2450", "raw_16", bytes(range(16))), ("ld2450", "raw_32", bytes(range(32)))), 1):
+            obj, _ = desc.load_description(DOCS / (doc + ".md"))
+            rule = desc.compile_rule(obj, name, revision)
+            self.assertEqual(self.exchange(rule)["status"], "ok")
+            result = self.exchange(rule, True, feed=payload)
+            self.assertEqual(result["status"], "ok")
+            self.assertEqual(result["tx_accepted"], len(bytes.fromhex(rule["write_hex"])))
+            self.assertEqual(result["rx_received"], rule["read_length"])
+            self.assertEqual(bytes.fromhex(result["raw_hex"]), payload or b"")
 
     def test_markdown_switches_actual_owner_and_hal_without_rebuild(self):
         obj, _ = desc.load_description(DOCS / "bmp388.md")

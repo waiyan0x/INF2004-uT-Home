@@ -1,6 +1,6 @@
 # Team-authored peripheral descriptions
 
-These six Markdown files were prepared from the PDFs in the project's
+These seven Markdown files were prepared from the PDFs in the project's
 `ESP/Datasheets` folder. Each contains a concise communication summary, PDF-page
 references, exact source SHA-256, prerequisites and one `peripheral-json` block.
 They are editable starting points for the team, not automatic PDF extraction
@@ -13,12 +13,12 @@ or a claim that every device has been tested on hardware.
 | [VEML7700](veml7700.md) | `configuration_raw`, `ambient_raw` | Defaults to shutdown; no measurement initialization; host tests only |
 | [SEN0390](sen0390.md) | None; `illumination_raw` is listed but rejected | Timing and register ambiguities require review |
 | [SHT4x](sht4x.md) | None; `measure_high_precision` is listed but rejected | Separate command/wait/read sequence required |
-| [LD2450](ld2450.md) | None; `raw_report` is listed but rejected | UART framing and 30-byte response required |
+| [LD2450](ld2450.md) | `raw_16`, `raw_32` | Unaligned UART chunks. Complete `raw_report` requires framing. |
+| [SSD1306](ssd1306.md) | `display_off`, `display_on` | Four-wire SPI, previously initialized panel. Visible behavior requires a bench check. |
 
 The compiler now produces the maintained `TJ` transaction format. Description
 schema 1.0.0 supports one register byte followed by repeated START and an
-immediate 1-16-byte I2C read. The broader firmware service allows more raw
-transfer shapes; this description schema deliberately remains narrower.
+immediate 1-16-byte I2C read. Schema 1.1.0 adds bounded SPI writes and receive-only UART chunks.
 Unsupported operations explain their missing timing or framing capability.
 See the [host guide](../tools/transaction/README.md) and
 [firmware contract](../firmware/src/services/transaction/README.md).
@@ -65,18 +65,18 @@ tagged `peripheral-json`. Ordinary prose, tables and other code blocks are
 documentation only. The parser does not infer executable fields from prose,
 execute Markdown, load Python or contact an AI service.
 
-The description schema is independently versioned `1.0.0`:
+The description schema is versioned independently of the wire protocol:
 
 | Field | Meaning |
 |---|---|
-| `schema_version` | Exactly `"1.0.0"` |
+| `schema_version` | `1.0.0` or `1.1.0` |
 | `device` | Schema accepts 1-31 ASCII letters, digits, `_` or `-`; current `TJ` v2 compilation requires at most 15 |
-| `bus` | `i2c` or reference-only `uart` in this schema |
-| `addresses` | Unique seven-bit I2C address choices, or empty for UART |
+| `bus` | `i2c`, `uart`, or (since 1.1.0) `spi` |
+| `addresses` | Unique seven-bit I2C address choices, or empty for UART and SPI |
 | `source` | PDF basename, lowercase SHA-256 and total PDF page count |
 | `operations` | 1-16 uniquely named operations |
 
-For an executable operation, the exact fields are `kind: i2c_register_read`,
+For an I2C register read, the exact fields are `kind: i2c_register_read`,
 `register` (integer 0-255), `read_length` (integer 1-16), `pages` (nonempty list of
 one-based PDF page numbers), and `notes` (prerequisites, side effects and limits).
 All JSON numbers are decimal; explanatory prose may use hexadecimal. The CLI
@@ -85,9 +85,10 @@ write/read address bytes into `addresses`.
 
 For a deferred operation, use `kind: unsupported`, `reason`, `pages` and `notes`.
 Explain its real sequence and byte counts in the prose. Do not relabel it as
-`i2c_register_read` simply to make compilation succeed. Writes, delays, multi-step
-sequences and SPI need a later description schema; transfer shapes absent from
-the `TJ` service also need firmware work. Additional fields
+`i2c_register_read` simply to make compilation succeed. For `spi_write`, supply mode, cs_pin, dc_pin, dc_level, rate (Hz), timeout_ms
+and write_hex (1-30 bytes). For `uart_receive`, supply rate (baud), timeout_ms
+and read_length (1-32 bytes). Both require pages and notes. Omit the CLI address
+for both buses. Delays and multi-step sequences require separate support. Additional fields
 such as `delay_ms` are rejected rather than silently ignored.
 
 The CLI requires an explicit address when multiple choices exist; one choice
@@ -112,7 +113,7 @@ $env:PYTHONPATH = 'tests/target;.'
 python -B -m unittest test_descriptions test_transaction_client test_txjob test_tx_owner
 ```
 
-Tests cover all six descriptions, strict schema/provenance checks, unsupported
+Tests cover all seven descriptions, strict schema/provenance checks, unsupported
 operations, rejected-output preservation and Markdown-to-C runtime switching.
 Member 4 owns the description contract/compiler; driver owners review bus
 semantics; Member 5 owns the controller workflow; Member 2 owns transport.

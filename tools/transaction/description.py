@@ -30,13 +30,25 @@ def unique_object(pairs):
     return obj
 
 
+def stream_rule(device, bus, op, revision):
+    # Address zero and absent sidebands are wire-format values for these buses.
+    rule = dict(version=2, device=device, revision=revision, protocol=bus,
+                address=0, mode=0, cs_pin=255, dc_pin=255, dc_level=0,
+                rate=op["rate"], timeout_ms=op["timeout_ms"], write_hex="", read_length=0)
+    if bus == "spi":
+        rule.update({key: op[key] for key in ("cs_pin", "dc_pin", "dc_level", "mode", "write_hex")})
+    else:
+        rule["read_length"] = op["read_length"]
+    return validate(rule)
+
+
 def validate_description(obj):
     exact(obj, "schema_version device bus addresses source operations", "description")
-    if obj["schema_version"] != "1.0.0":
+    if obj["schema_version"] not in ("1.0.0", "1.1.0"):
         raise ValueError("unsupported description schema_version")
     if not isinstance(obj["device"], str) or not NAME.fullmatch(obj["device"]):
         raise ValueError("invalid device identifier")
-    if obj["bus"] not in ("i2c", "uart"):
+    if obj["bus"] not in ("i2c", "uart") and not (obj["bus"] == "spi" and obj["schema_version"] == "1.1.0"):
         raise ValueError("unsupported description bus")
     addresses = obj["addresses"]
     if not isinstance(addresses, list):
@@ -45,8 +57,8 @@ def validate_description(obj):
         integer(address, 8, 119, "seven-bit address")
     if len(set(addresses)) != len(addresses):
         raise ValueError("duplicate address")
-    if (obj["bus"] == "i2c" and not addresses) or (obj["bus"] == "uart" and addresses):
-        raise ValueError("I2C needs address choices; UART has no I2C addresses")
+    if (obj["bus"] == "i2c" and not addresses) or (obj["bus"] != "i2c" and addresses):
+        raise ValueError("I2C needs address choices; SPI and UART have no I2C addresses")
     source = obj["source"]
     exact(source, "file sha256 page_count", "source")
     if (not isinstance(source["file"], str) or
@@ -68,6 +80,14 @@ def validate_description(obj):
                 raise ValueError("register read requires I2C")
             integer(op["register"], 0, 255, "register")
             integer(op["read_length"], 1, 16, "description read_length")
+        elif kind in ("spi_write", "uart_receive"):
+            bus = obj["bus"]
+            if obj["schema_version"] != "1.1.0" or (kind, bus) not in (
+                    ("spi_write", "spi"), ("uart_receive", "uart")):
+                raise ValueError(f"{kind} requires its matching bus and schema 1.1.0")
+            fields = "mode dc_pin dc_level cs_pin write_hex" if bus == "spi" else "read_length"
+            exact(op, "kind pages notes rate timeout_ms " + fields, name)
+            stream_rule(obj["device"], bus, op, 1)
         elif kind == "unsupported":
             exact(op, "kind reason pages notes", name)
             if not isinstance(op["reason"], str) or not op["reason"].strip():
@@ -107,6 +127,10 @@ def compile_rule(description, operation, revision, address=None):
     op = obj["operations"][operation]
     if op["kind"] == "unsupported":
         raise ValueError(f"{operation} is unsupported: {op['reason']}")
+    if obj["bus"] != "i2c":
+        if address is not None:
+            raise ValueError("only I2C operations accept an address")
+        return stream_rule(obj["device"], obj["bus"], op, revision)
     if address is None:
         if len(obj["addresses"]) != 1:
             raise ValueError("select --address explicitly for this peripheral")
@@ -147,8 +171,9 @@ def main(argv=None):
             raise ValueError("compilation requires --operation, --revision and --output")
         rule = compile_rule(obj, args.operation, args.revision, args.address)
         report = dict(rule=rule, transaction=dict(write_hex=rule["write_hex"],
-                      write_length=1, read_length=rule["read_length"],
-                      sequence="register write, repeated START, read, STOP"),
+                      write_length=len(bytes.fromhex(rule["write_hex"])), read_length=rule["read_length"],
+                      sequence={"i2c": "register write, repeated START, read, STOP",
+                                "spi": "SPI write", "uart": "UART raw receive"}[rule["protocol"]]),
                       provenance=dict(description_sha256=digest, source=obj["source"],
                       source_pdf_verified=verified, operation=args.operation,
                       pages=obj["operations"][args.operation]["pages"]),
