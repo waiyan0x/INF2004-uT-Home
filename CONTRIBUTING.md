@@ -196,8 +196,10 @@ input/output buffers, the retained broker hostname and typed outer handshake
 state, including overlapping active/negotiating transform and session records,
 plus the temporary peer-certificate head and retained peer digest.
 TLS derivation also reserves its seed, label, secret and temporary imported
-key for the application's native task. Measure concurrent Wi-Fi and TLS use
-of the shared PSA key tables before assigning them fixed capacity.
+key for the application's native task. The shared PSA table peaked at three
+slots on the board during MQTT connection and reconnect. A 30-slot diagnostic
+recovered from exhaustion in emulation. Measure overlap during Wi-Fi rekey
+and TLS renegotiation before choosing the production capacity.
 The [removal verification](firmware/src/network/README.md#esp-https-removal) and
 [resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
 record the fresh build and measured headroom. The user approved disabling unused

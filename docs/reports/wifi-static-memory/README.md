@@ -70,8 +70,8 @@ generation. All 136 events reconciled from an empty key store. A separate
 status check after debugger detachment timed out. The broker recorded nine
 distinct requests without matching replies. Its cause remains open. The
 original flash and profile were verified after restoration. The observed
-peak was three slots for this workload. Wi-Fi rekey, TLS renegotiation and
-exhaustion/recovery still need coverage to select a production limit.
+peak was three slots for this workload. Wi-Fi rekey and TLS renegotiation
+still need overlap measurements to select a production limit.
 [USB debugger procedure](../../../tools/target/README.md#measuring-shared-psa-key-slots)
 
 | Fixed memory on this image | Linked bytes | Budget | Headroom |
@@ -107,6 +107,17 @@ absolute path of that copy. Keep the ESP user configuration and the existing
 transaction memory budget. All 1,050 application-build C/C++ compiler commands
 selected the comparison header. The pinned SDK and kernel revisions,
 `sdkconfig` and the other 254 staged project inputs matched the baseline.
+
+The RV32 emulator recorded zero table allocations at startup and first key
+derivation on this image. The dynamic baseline requested 1,408 and 704 bytes
+at those points. Both images matched 80 SHA-256/SHA-384 derivations and two
+known answers. With 30 distinct native volatile keys held, the 31st import
+returned `PSA_ERROR_INSUFFICIENT_MEMORY` and an empty handle. The TLS PRF
+returned its SDK error and left its output untouched. After releasing one
+slot, both SHA-256 and SHA-384 derivations succeeded and all 29 remaining
+keys retained their contents until destruction. The native test keys still
+needed heap storage for their material. The probe supplies HMAC, heap, ROM
+byte operations and task services. [Probe instructions](../../../tools/target/README.md#tls-derivation-input-probe)
 
 ### Key-derived TLS secret
 

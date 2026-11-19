@@ -513,6 +513,14 @@ compiled SDK assembles each output block. The host supplies HMAC, the simulated
 heap, ROM byte routines and task/mutex services. Physical handshakes and runtime
 memory measurements remain separate acceptance steps.
 
+For an ELF built with a fixed shared PSA table, add `--fixed-slot-count 30`
+to the `--expect fixed-import` command above, substituting the compiled
+count. This mode checks for zero table allocations at startup and on first
+use. It fills the table with distinct native keys and checks the next import
+returns `PSA_ERROR_INSUFFICIENT_MEMORY`. Releasing one slot must let both
+SHA-256 and SHA-384 derivations succeed with every other key intact.
+[Offline build and results](../../docs/reports/wifi-static-memory/README.md#offline-fixed-table-build)
+
 ## Measuring shared PSA key slots
 
 Use the matching unstripped ESP32-C3 ELF and the built-in USB debugger for a

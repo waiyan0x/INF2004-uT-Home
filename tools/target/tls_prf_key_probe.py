@@ -183,7 +183,45 @@ def check_import_lifetime(probe, retained):
     assert probe.run('psa_destroy_key', key) == 0 and probe.live == retained
 
 
-def verify(path, fixed, require_import=False):
+def check_fixed_slot_limit(probe, count, case):
+    # Each native caller keeps its own key material until it destroys its key.
+    assert not probe.live
+    held = {}
+    for index in range(count):
+        value = hashlib.sha256(index.to_bytes(4, 'little')).digest()
+        previous = set(probe.live)
+        status, key = probe.import_key(value, native=True)
+        assert status == 0 and key and key not in held, 'Advertised slots could not all be filled'
+        address, = probe.live.keys() - previous
+        assert probe.live[address] == len(value)
+        held[key] = (address, value)
+
+    allocations = len(probe.allocations)
+    key_inputs = probe.key_inputs
+    psa_status, key = probe.import_key(case[0], native=True)
+    assert (psa_status, key) == (-141, 0), 'Expected PSA_ERROR_INSUFFICIENT_MEMORY'
+    assert probe.import_key(case[0]) == (-141, 0)
+    # The pinned TLS PRF maps an unsuccessful key import to MBEDTLS_ERR_SSL_HW_ACCEL_FAILED.
+    prf_status, output = probe.derive('sha256', *case)
+    assert prf_status == -0x7F80 and output == b'\xA5' * case[-1]
+    assert probe.key_inputs == key_inputs and len(probe.allocations) == allocations
+
+    key = list(held)[count // 2]
+    address, _ = held.pop(key)
+    assert probe.run('psa_destroy_key', key) == 0 and address not in probe.live
+    for alg in ('sha256', 'sha384'):
+        assert probe.derive(alg, *case) == (0, expected(alg, *case))
+    assert len(probe.allocations) == allocations
+
+    for key, (address, value) in held.items():
+        assert bytes(probe.uc.mem_read(address, len(value))) == value
+        assert probe.run('psa_destroy_key', key) == 0 and address not in probe.live
+    assert not probe.live
+    return dict(slots_filled=count, overflow_psa_status=psa_status, full_table_prf_status=prf_status,
+                recovered_derivations=['sha256', 'sha384'], surviving_keys_verified=len(held))
+
+
+def verify(path, fixed, require_import=False, fixed_slot_count=None):
     probe = KeyProbe(path, fixed, require_import)
     init_requests = list(probe.allocations)
     warm_count = sum(address is None for address in (probe.secret_address, probe.import_address))
@@ -191,16 +229,21 @@ def verify(path, fixed, require_import=False):
              (bytes(range(66)), b'extended master secret', None, 48),
              (bytes(range(48)), b'client finished', None, 12),
              (bytes(range(48)), b'key expansion', bytes(range(64)), 256)]
-    # A cold volatile-key table can fail before PSA requests key material.
-    initial_live = dict(probe.live)
-    probe.fail_call = len(init_requests) + 1
-    status, output = probe.derive('sha256', *cases[0])
-    assert status != 0 and output == b'\xA5' * len(output)
-    failed_requests = probe.allocations[len(init_requests):]
-    assert len(failed_requests) == 1 and probe.key_inputs == 0 and probe.live == initial_live
-    if probe.import_address:
-        assert probe.uc.mem_read(probe.symbols['gb_import_used'], 1) == b'\0'
-    probe.fail_call = None
+    failed_requests = []
+    if fixed_slot_count is None:
+        # A cold dynamic table can fail before PSA requests key material.
+        initial_live = dict(probe.live)
+        probe.fail_call = len(init_requests) + 1
+        status, output = probe.derive('sha256', *cases[0])
+        assert status != 0 and output == b'\xA5' * len(output)
+        failed_requests = probe.allocations[len(init_requests):]
+        assert len(failed_requests) == 1 and probe.key_inputs == 0 and probe.live == initial_live
+        if probe.import_address:
+            assert probe.uc.mem_read(probe.symbols['gb_import_used'], 1) == b'\0'
+        probe.fail_call = None
+    else:
+        assert fixed_slot_count > 0 and require_import
+        assert not init_requests and not probe.live, 'Fixed key store allocated on initialization'
     checked = 0
     active = None
     for alg, hash_size in (('sha256', 32), ('sha384', 48)):
@@ -269,9 +312,12 @@ def verify(path, fixed, require_import=False):
         probe.run('c3tout_free', probe.import_address)
     probe.fail_call = None
     assert probe.derive('sha256', *cases[0]) == (0, expected('sha256', *cases[0]))
+    if fixed_slot_count is not None:
+        assert not first_requests and not active, 'Fixed table allocated on first derivation'
+        slot_result = check_fixed_slot_limit(probe, fixed_slot_count, cases[0])
     probe.run('psa_wipe_all_key_slots')
     assert not probe.live
-    return dict(passed=True, elf_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+    result = dict(passed=True, elf_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
                 fixed_key_copy=fixed, matched_derivations=checked, known_answer_vectors=2,
                 invalid_key_aborted=True, recovered_after_failure=True,
                 fixed_import=bool(probe.import_address), post_copy_failure_cleaned=True,
@@ -284,17 +330,24 @@ def verify(path, fixed, require_import=False):
                          'mutexes, native task identity and interrupt exclusion'],
                 scope='Compiled client PRF, key import/lookup, output, abort and destruction',
                 authenticated_tls_tested=False, hardware_tested=False)
+    if fixed_slot_count is not None:
+        result['fixed_key_table'] = slot_result
+    return result
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('elf', type=Path)
     parser.add_argument('--expect', choices=('heap', 'fixed', 'fixed-import'), required=True)
+    parser.add_argument('--fixed-slot-count', type=int,
+                        help='Test exhaustion and reuse of this many compiled shared PSA key slots')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     if not __debug__ or args.output.exists():
         parser.error('Enable assertions and choose a fresh report path')
-    result = verify(args.elf, args.expect != 'heap', args.expect == 'fixed-import')
+    if args.fixed_slot_count is not None and (args.fixed_slot_count < 1 or args.expect != 'fixed-import'):
+        parser.error('--fixed-slot-count requires a positive count and --expect fixed-import')
+    result = verify(args.elf, args.expect != 'heap', args.expect == 'fixed-import', args.fixed_slot_count)
     with args.output.open('x', encoding='utf-8') as report:
         report.write(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
