@@ -460,6 +460,33 @@ The measured chains do not establish a maximum for other brokers. The two
 intermediate records are a distinct storage cost to account for when preserving
 the tested chain compatibility. [Probe and reproduction](../../../tools/target/README.md#measuring-broker-certificate-parsing)
 
+#### Trust verification and peer-key copy
+
+The same six-slot ELF verified both fixture chains with the configured hostname
+and the SDK default X.509 profile. The native verifier rejected the wrong name
+and an empty trust list. The compiled peer-key parser consumed the entire leaf
+public key after the certificate chain was released.
+
+| Concurrent requested heap payload | Bench P-256 | RSA-2048 with two intermediates |
+|---|---:|---:|
+| CA bytes retained after loading the configured PEM | 433 | 816 |
+| Peak during X.509 trust verification, including CA and chain | 3,834 | 6,994 |
+| Peak when copying the peer key after freeing the chain | 894 | 1,466 |
+| Still live after key cleanup | 433 | 816 |
+
+Removing the CA released the remaining bytes. The public-key copy used inline
+SDK key storage after its temporary allocations were freed. A 6,006-byte
+payload ceiling admitted the bench verification and caused the RSA verification
+to fail closed. Both passed again with the limit lifted. The RSA peak exceeds
+the total fixed DRAM headroom by 988 bytes before allocator overhead.
+
+The instruction probe modeled ROM operations, SHA-256, MPI hardware and its
+completion interrupt. Signature verification ran in the compiled SDK. This
+measurement excludes transport and whole-handshake peaks. The selected image
+has the SDK calendar-date check disabled; these results establish signature,
+chain and hostname checks only. Local evidence is under
+`build/tls-verify-memory-20261119/`.
+
 ### Fixed peer certificate records
 
 The 17 November peer-certificate change reserves one typed 952-byte temporary peer-chain
