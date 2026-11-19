@@ -567,6 +567,14 @@ uthome-slot-trace build/psa-slots.jsonl
 continue
 ```
 
+For a measurement on an established MQTT connection, attach GDB before
+network startup and keep that debugger session open. The ESP32-C3 OpenOCD
+configuration used here reset the running core when GDB attached with
+memory protection enabled. OpenOCD had already reported the target running.
+That reset ended the original MQTT session. Check the OpenOCD reset log and
+the MQTT boot ID on both sides of the measurement. Reject the slot count if
+its final occupancy disagrees with a direct read of the native slot states.
+
 The observer starts with an empty key store. Two hardware breakpoints count a
 successful return from the SDK reservation function and entry into the wipe
 function for an occupied slot. These points run under native slot ownership.
