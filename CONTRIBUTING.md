@@ -127,7 +127,7 @@ rule must not require another build.
 |---|---|---|
 | ESP decision program | `txjob` validates/stores a rule, chooses execution and preserves it on a rejected update; host journal recovers exact cached completions | Live combined-system acceptance |
 | Generic operations | `txport` reaches actual I2C, SPI-write and raw UART HALs through `c3tx` | Physical acceptance, initialization prerequisites and selected timing extensions |
-| Description compiler | `tools/transaction/description.py` compiles I2C register reads, SPI writes and raw UART chunks | OLED cold-start and radar bench checks, SEN0390 review |
+| Description compiler | `tools/transaction/description.py` compiles I2C register reads, SPI writes and raw UART chunks | OLED cold-start and sustained radar reception, SEN0390 review |
 | MQTT | Live BMP388 rule switching, target rejection, cached results and broker recovery verified on the earlier image; HTTPS now removed | Wider secure-connection load and network allocation blocker |
 | UI | Runtime transactions tab implements description selection, preview, load/execute and expiring results; simulated operator and physical BMP388 browser walkthroughs passed | Combined demo with additional peripherals |
 | Home Assistant | WSL2 container displayed physical BMP388 results and recovered across five separate restarts | Prolonged combined-system load |
@@ -270,7 +270,7 @@ encode device-name cases in the generic drivers.
 |---|---|
 | BMP388 | Preserve chip-ID and three-byte raw reads; make initialization and possible zero data explicit |
 | SPI OLED | AE/AF command descriptions verified on the simulated bus. Verify the documented cold-start initialization and visible on/off sequence on the supplied panel |
-| LD2450 | 16- and 32-byte raw chunks verified on the simulated bus. Verify actual reception on the bench and report timeouts separately from complete reads |
+| LD2450 | 16- and 32-byte raw chunks passed on the physical ESP, Desk and HA. Sustained reception remains open |
 | SEN0390, desired second I2C device | Resolve the source's register/timing ambiguity and EN handling; expose the HAL's existing read pause only through a reviewed rule extension; physically qualify before claiming device switching |
 
 The HAL already has `read_pause_ms`; `txport` currently sets it to zero. This is

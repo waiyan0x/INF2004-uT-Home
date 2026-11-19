@@ -222,7 +222,8 @@ is available without the physical ESP. The subsequent physical chip-ID check use
 the host controller directly. A subsequent physical test exercised the Desk controls.
 The [power-save comparison](tools/transaction/README.md#normal-profile-packet-capture)
 is complete, with the original image/profile restored and no root-cause claim.
-The [reviewed SPI and UART operations](datasheets/README.md) passed the compiled C owner on simulated buses.
+The [physical SPI and UART check](tools/configurator/README.md#physical-oled-and-radar-transactions)
+verified three OLED command writes and both 16- and 32-byte radar reads through the Desk and HA.
 Use the [bench guide](HARDWARE_ACCEPTANCE.md#ssd1306-oled-over-spi) for OLED initialization and raw radar reception;
 confirm current equipment and wiring before board work. Preserve the existing visual
 style and review proposed UI adjustments before implementation. See the

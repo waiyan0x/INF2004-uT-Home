@@ -221,6 +221,28 @@ run on Desk commit `46c0e09` and firmware `370d09e`. The private packet and HA
 checks are in `build/desk-restart-physical-20261119/verified-result.json`
 and `ha-history.json` in the same folder.
 
+### Physical OLED and radar transactions
+
+On 19 November 2026 Chromium drove the Runtime tab on Desk commit `e9af4f2`.
+The ESP32-C3 used firmware `370d09e` on the idle plan with the visualiser
+wiring. The physical MQTT trace and HA states were checked through the same
+two-broker setup as the physical BMP388 walkthrough.
+
+| Device and operation | Execute request IDs | TX / RX | Observation |
+|---|---|---:|---|
+| SSD1306 SPI on, off, on | 2, 4, 6 | 1 / 0 each | ESP accepted `AF`, `AE`, `AF`. Desk and HA reported success and empty RX. The panel sequence was unobserved in this run. |
+| LD2450 UART `raw_16` | 8 | 0 / 16 | The Desk and HA matched all 16 bytes from the ESP. |
+| LD2450 UART `raw_32` | 10 | 0 / 32 | The chunk ended in `55 CC AA FF`, crossing a report boundary. |
+
+The physical broker recorded exactly five loads and five executions. Request
+IDs, boot identity, generation, result bytes and completion times matched the
+display records. All six HA entities became unavailable after disconnect. The
+original 4 MiB flash, profile revision 943, display-broker permissions and
+laptop network settings were restored and checked. Local evidence is in
+`build/desk-spi-uart-20261119/verified-io.json`. The two successful UART
+reads establish bounded raw reception on this setup. Longer-run reception and
+radar target interpretation require separate evidence.
+
 ## Configuration recipes
 
 The professor-feedback change starts with one bounded generic I2C operation:
