@@ -82,14 +82,14 @@ view does not apply an idle plan or save startup rules automatically. Keep the
 existing profile workflow for explicit setup/restoration.
 
 On small screens, fields stack and the four tabs remain keyboard accessible.
-The view uses the current reviewed-description compiler; unsupported SPI/UART
-or timing-dependent descriptions stay unavailable. Normal actions need no JSON
+The Runtime tab previews the SPI clock, mode, CS and D/C, or the UART baud.
+Only I2C operations take an address. Unsupported operations stay unavailable. Normal actions need no JSON
 editing. Details contains one historical receipt; there is no repeated-read mode.
 
 `GET /api/runtime-catalogue` compiles only repository descriptions, without
 peripheral I/O. Session-authenticated `POST /api/runtime` accepts `snapshot`,
 `connect`, `disconnect`, `load`, `execute`, `status` and `recover`. A load names
-the catalogue filename, operation, documented address and reviewed description
+the catalogue filename, operation, I2C address (null for SPI/UART) and reviewed description
 SHA-256. Changed descriptions require another page review. Actions are queued
 to one owner; HTTP handlers never access the journal or MQTT client directly.
 The existing Host/Origin/session-token and request-size checks apply.

@@ -29,7 +29,7 @@ function session({connected = true, status = 'execute_ok', operation = 'chip_id'
       details: {operation}, raw_hex: length === 1 ? '50' : '00 00 00', tx_accepted: 1, rx_received: length}};
 }
 
-async function desk(page, initial = session()) {
+async function desk(page, initial = session(), catalogue = descriptions) {
   const model = {view: initial, requests: [], action: null, snapshot: null};
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -38,7 +38,7 @@ async function desk(page, initial = session()) {
     if (path === '/api/catalogue') {
       await route.fulfill({json: {examples: {}, descriptors: [], connections: []}});
     } else if (path === '/api/runtime-catalogue') {
-      await route.fulfill({json: {descriptions}});
+      await route.fulfill({json: {descriptions: catalogue}});
     } else if (path === '/api/runtime') {
       const body = route.request().postDataJSON();
       model.requests.push(body);
@@ -55,7 +55,7 @@ async function desk(page, initial = session()) {
   await page.clock.install({time: new Date('2026-11-17T00:00:00+08:00')});
   await page.goto('http://uthome.test/');
   await page.locator('#tab-runtime').click();
-  await expect(page.locator('#runtime-description option')).toHaveCount(2);
+  await expect(page.locator('#runtime-description option')).toHaveCount(catalogue.length + 1);
   await expect(page.locator('#runtime-connection')).not.toHaveText('Status unavailable');
   return {model, errors};
 }
@@ -65,6 +65,30 @@ async function choose(page, operation = 'pressure_raw') {
   await page.locator('#runtime-operation').selectOption(operation);
   if (operation !== 'deferred') await page.locator('#runtime-address').selectOption('119');
 }
+
+test('SPI and UART load without an I2C address', async ({page}) => {
+  const catalogue = [...descriptions];
+  for (const [id, fixture, op] of [['ssd1306', 'oled-on', 'display_on'], ['ld2450', 'radar-raw32', 'raw_32']]) {
+    const rule = JSON.parse(await readFile(new URL(`../../configs/transactions/${fixture}.json`, import.meta.url)));
+    catalogue.push({id: id + '.md', device: rule.device, addresses: [], sha256: 'b'.repeat(64),
+      source: {}, operations: [{name: op, pages: [1], rules: {'': rule}}]});
+  }
+  const {model} = await desk(page, session(), catalogue);
+  for (const [doc, op, preview] of [
+    ['ssd1306.md', 'display_on', 'SPI / TX AF / Read 0 bytes / 4000 kHz / Mode 0 / CS GPIO4 / D/C GPIO3=0'],
+    ['ld2450.md', 'raw_32', 'UART / TX none / Read 32 bytes / 256000 baud'],
+  ]) {
+    await page.locator('#runtime-description').selectOption(doc);
+    await page.locator('#runtime-operation').selectOption(op);
+    await expect(page.locator('#runtime-address')).toBeDisabled();
+    await expect(page.locator('#runtime-preview')).toContainText(preview);
+    await page.locator('#runtime-load').click();
+    await expect.poll(() => model.requests.filter(r => r.action === 'load').at(-1))
+      .toEqual({action: 'load', description: doc, operation: op, address: null, sha256: 'b'.repeat(64)});
+  }
+  await choose(page);
+  await expect(page.locator('#runtime-address')).toHaveValue('119');
+});
 
 test('offline preview and unsupported choices send no peripheral action', async ({page}) => {
   const {model, errors} = await desk(page, session({connected: false, status: 'esp_disconnected'}));

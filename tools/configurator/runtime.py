@@ -23,8 +23,9 @@ def catalogue():
         for name, operation in document['operations'].items():
             rules, reason = {}, operation.get('reason', '')
             if operation['kind'] != 'unsupported':
-                for address in document['addresses']:
-                    rules[str(address)] = description.compile_rule(document, name, 1, address)
+                for address in document['addresses'] or [None]:
+                    key = '' if address is None else str(address)
+                    rules[key] = description.compile_rule(document, name, 1, address)
             operations.append(dict(name=name, notes=operation['notes'], pages=operation['pages'],
                                    rules=rules, reason=reason))
         items.append(dict(id=path.name, device=document['device'], sha256=digest,
@@ -41,6 +42,8 @@ def selected_path(command):
     document, digest = description.load_description(path)
     if digest != command['sha256']:
         raise ValueError('Description changed; reload the page and review it again')
+    if document['addresses'] and command['address'] is None:
+        raise ValueError('Choose a documented I2C address')
     description.compile_rule(document, command['operation'], 1, command['address'])
     return path
 
@@ -97,7 +100,7 @@ class Runtime:
         if action == 'load':
             if (set(command) != {'action', 'description', 'operation', 'address', 'sha256'}
                     or not all(isinstance(command[key], str) for key in ('description', 'operation', 'sha256'))
-                    or type(command['address']) is not int):
+                    or (command['address'] is not None and type(command['address']) is not int)):
                 raise ValueError('Load requires a reviewed description, operation, address and hash')
         elif action not in ('connect', 'disconnect', 'execute', 'status', 'recover') or set(command) != {'action'}:
             raise ValueError('Unknown runtime action or unexpected fields')

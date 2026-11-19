@@ -36,8 +36,17 @@ export function setupRuntime() {
 
   function preview() {
     const {item, operation, rule} = selection();
+    let settings = '';
+    if (rule?.protocol === 'uart') settings = `${rule.rate} baud`;
+    else if (rule) {
+      settings = `${rule.rate / 1000} kHz`;
+      if (rule.protocol === 'spi') {
+        const dc = rule.dc_pin === 255 ? 'unused' : `GPIO${rule.dc_pin}=${rule.dc_level}`;
+        settings += ` / Mode ${rule.mode} / CS GPIO${rule.cs_pin} / D/C ${dc}`;
+      }
+    }
     el('preview').textContent = rule
-      ? `${rule.protocol.toUpperCase()} / TX ${rule.write_hex} / Read ${rule.read_length} ${rule.read_length === 1 ? 'byte' : 'bytes'} / ${rule.rate / 1000} kHz / ${rule.timeout_ms} ms`
+      ? `${rule.protocol.toUpperCase()} / TX ${rule.write_hex || 'none'} / Read ${rule.read_length} ${rule.read_length === 1 ? 'byte' : 'bytes'} / ${settings} / ${rule.timeout_ms} ms`
       : operation?.reason || 'Select a reviewed description, operation and address.';
     el('notes').textContent = operation?.notes || '';
     el('details').textContent = JSON.stringify({source: item ? {
@@ -127,7 +136,7 @@ export function setupRuntime() {
     if (action === 'load') {
       if (!rule) return;
       Object.assign(body, {description: item.id, operation: operation.name,
-        address: Number(el('address').value), sha256: item.sha256});
+        address: item.addresses.length ? Number(el('address').value) : null, sha256: item.sha256});
     }
     ++epoch;
     sending = true;
@@ -165,7 +174,7 @@ export function setupRuntime() {
     const {item} = selection();
     options(el('operation'), item?.operations.map(operation => [operation.name,
       operation.name + (operation.reason ? ' (unsupported)' : '')]) || [], 'Choose operation');
-    options(el('address'), item?.addresses.map(address => [String(address), '0x' + address.toString(16)]) || [], 'Choose address');
+    options(el('address'), item?.addresses.map(address => [String(address), '0x' + address.toString(16)]) || [], item && !item.addresses.length ? 'Not applicable' : 'Choose address');
     if (item?.addresses.length === 1) el('address').value = String(item.addresses[0]);
     preview();
     render();
