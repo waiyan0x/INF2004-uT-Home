@@ -17,6 +17,12 @@ from .tls_output_probe import OutputProbe
 class ParserProbe(OutputProbe):
     def __init__(self, elf):
         super().__init__(elf)
+        self.entry = 'mbedtls_x509_crt_parse_der_nocopy'
+        if 'c3peer_der' in self.symbols:
+            self.entry = 'c3peer_der'
+            self.hook(self.symbols['c3bport_task'], lambda *_: self.finish(1))
+            for name in ('c3bport_enter', 'c3bport_leave'):
+                self.hook(self.symbols[name], lambda *_: self.finish(0))
         self.peak = 0
         self.sites = []
         self.multiplications = 0
@@ -100,7 +106,7 @@ def measure(elf, pem):
         for source, der in inputs:
             size = len(der)
             probe.peak = sum(probe.live.values())
-            status = probe.run('mbedtls_x509_crt_parse_der_nocopy', chain, source, size)
+            status = probe.run(probe.entry, chain, source, size)
             if status != 0:
                 break
             records.append(dict(der_bytes=size, der_sha256=hashlib.sha256(der).hexdigest(),
@@ -118,9 +124,53 @@ def measure(elf, pem):
         status, failed = parse(fail_at=index)
         assert status < 0 and len(failed['requests']) >= index, (index, status)
         assert parse() == (0, baseline), 'Successful retry must match the original trace'
+    if probe.entry == 'c3peer_der':
+        check_shared_views(probe, chain, *inputs[0])
     peak = max(record['peak_requested_bytes'] for record in baseline['certificates'])
     return dict(**baseline, peak_requested_bytes=peak, after_free_bytes=0,
                 allocation_failures_retried=len(baseline['requests']))
+
+
+def check_shared_views(probe, chain, source, der):
+    """Exercise both owners, failed appends, and the first SDK-owned overflow node."""
+    def strchr(*_):
+        ptr = probe.uc.reg_read(UC_RISCV_REG_A0)
+        needle = probe.uc.reg_read(UC_RISCV_REG_A1) & 255
+        while (value := probe.uc.mem_read(ptr, 1)[0]) not in (0, needle):
+            ptr += 1
+        probe.finish(ptr if value == needle else 0)
+
+    probe.hook(probe.symbols['strchr'], strchr)
+    document = SSL + 0x80000
+    probe.uc.mem_map(document, 4096)
+    probe.uc.mem_write(document, b'{"value":42}')
+    assert probe.run('cfgjson_init') == 0
+
+    def open_views():
+        return probe.run('cfgjson_open', document, 12)
+
+    def append(size=len(der)):
+        return probe.run('c3peer_der', chain, source, size)
+
+    views = open_views()
+    assert views
+    original = bytes(probe.uc.mem_read(views, 16))
+    assert append() < 0 and not probe.live
+    assert open_views() == 0 and bytes(probe.uc.mem_read(views, 16)) == original
+    probe.run('cfgjson_close')
+    assert append() == 0
+    before = sorted(probe.live.values())
+    assert append(1) < 0 and sorted(probe.live.values()) == before
+    for _ in range(4):
+        assert append() == 0
+        assert open_views() == 0
+        probe.run('cfgjson_close')  # A failed open cannot release a TLS lease.
+    assert 952 not in probe.live.values()
+    assert append() == 0 and list(probe.live.values()).count(952) == 1
+    probe.run('mbedtls_x509_crt_free', chain)
+    assert not probe.live and open_views() == views
+    assert bytes(probe.uc.mem_read(views, 16)) == original
+    probe.run('cfgjson_close')
 
 
 if __name__ == '__main__':

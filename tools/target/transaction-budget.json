@@ -3,7 +3,7 @@
   "scope": "Three-protocol Wi-Fi/MQTT application fixed memory; unchanged group/total caps; runtime heap/stack and hardware acceptance unqualified",
   "evidence_basis": {
     "reference": "wifi-station-budget.json (aggregate limits unchanged)",
-    "policy": "New image-specific per-module reservations use the linked transaction map, rounded up to 16 bytes within existing caps; original policy retained. MQTT target payload 112/packet 384. Task-pool cap and existing group/total limits unchanged. Compact configuration views reserve 4128 bytes; the unused cJSON mutable-state reservation is retired. Four enabled driver workspaces reduce c3app to 37728 bytes while retaining eight profile entries. Fixed ESP-TLS contexts, error records and hostname scratch reserve 3200 bytes from reclaimed application capacity. Fixed TLS buffers, hostname, outer state, temporary certificate head and peer digest reserve 25536 bytes for the single MQTT session, including the full 16717-byte input capacity in a 16720-byte aligned slot, a separate 254-byte hostname slot, and two typed transforms, two sessions and one handshake record (2872 typed bytes with tickets disabled), one 952-byte temporary peer-chain head and one 32-byte peer digest, a 64-byte PRF seed, 22-byte label and two 66-byte stores for the imported key and key-derived secret, plus scope/lease metadata. Fixed lwIP connection and datagram records reserve 352 bytes. No group or aggregate cap increases."
+    "policy": "New image-specific per-module reservations use the linked transaction map, rounded up to 16 bytes within existing caps; original policy retained. MQTT target payload 112/packet 384. Task-pool cap and existing group/total limits unchanged. Compact configuration views share their 4096-byte workspace with up to four temporary TLS intermediate records. Parser state reserves 32 bytes and the shared store with its ownership state reserves 4112 bytes; the unused cJSON mutable-state reservation is retired. Four enabled driver workspaces reduce c3app to 37728 bytes while retaining eight profile entries. Fixed ESP-TLS contexts, error records and hostname scratch reserve 3200 bytes from reclaimed application capacity. Fixed TLS buffers, hostname, outer state, temporary certificate head and peer digest reserve 25536 bytes for the single MQTT session, including the full 16717-byte input capacity in a 16720-byte aligned slot, a separate 254-byte hostname slot, and two typed transforms, two sessions and one handshake record (2872 typed bytes with tickets disabled), one 952-byte temporary peer-chain head and one 32-byte peer digest, a 64-byte PRF seed, 22-byte label and two 66-byte stores for the imported key and key-derived secret, plus scope/lease metadata. Fixed lwIP connection and datagram records reserve 352 bytes. No group or aggregate cap increases."
   },
   "required_evidence": {
     "configuration_application": true,
@@ -33,7 +33,8 @@
     "c3audit.c.obj": 184,
     "c3app.c.obj": 37728,
     "tkport.c.obj": 33428,
-    "cfgjson.c.obj": 4128,
+    "cfgjson.c.obj": 32,
+    "c3peer.c.obj": 4112,
     "c3tls.c.obj": 3200,
     "c3tout.c.obj": 25536,
     "c3lrec.c.obj": 352,

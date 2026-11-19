@@ -72,12 +72,13 @@ image also passed Wi-Fi startup, MQTT broker restart and server-requested TLS
 renegotiation on one ESP boot. The remaining capacity check is a confirmed
 Wi-Fi group-key renewal during TLS renegotiation. A ten-minute watch on the
 Windows hotspot detected the initial key installation and zero renewals. Resume
-this check when renewal timing is known or controllable. The compiled certificate
-parser peaked at 461 requested heap bytes for the bench broker and 2,554 for
-a three-certificate RSA chain. Two intermediate records accounted for 1,904
-bytes still live when parsing finished. Including the configured CA, trust
-verification peaked at 3,834 bytes and 6,994 bytes respectively. The RSA case
-exceeds total fixed RAM headroom by 988 bytes before allocator overhead.
+this check when renewal timing is known or controllable. The USB configuration parser now lends its 4 KiB workspace to up to four peer
+intermediates. In the six-slot ESP emulator, verification peaked at 3,834
+requested heap bytes for the demo broker and 5,090 for the three-certificate
+RSA chain. Both passed with a 5,990-byte payload ceiling. A seven-certificate
+chain needed 6,978 bytes and exceeded that ceiling. The next acceptance target
+is the configured demo broker on the physical ESP. Track general fixed-memory
+qualification and Wi-Fi key-renewal overlap separately.
 [Certificate parser measurements](docs/reports/wifi-static-memory/README.md#broker-certificate-parser-heap)
 [Shared-key capacity tests](docs/reports/wifi-static-memory/README.md#wi-fi-key-lifetime-during-tls-renegotiation)
 [Fixed-table results](docs/reports/wifi-static-memory/README.md#offline-fixed-table-build)

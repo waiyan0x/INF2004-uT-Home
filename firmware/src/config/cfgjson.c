@@ -6,13 +6,19 @@
 #include "jsonscan.h"
 #include <string.h>
 
-static cfgjson_value_t g_nodes[UTHOME_JSON_NODES] = {0};
-static const uint8_t * gp_data                    = NULL;
-static size_t          g_size                     = 0U;
-static size_t          g_count                    = 0U;
-static size_t          g_steps                    = 0U;
-static size_t          g_peak                     = 0U;
-static bool            gb_initialized             = false;
+#if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
+#include "c3peer.h"
+static cfgjson_value_t * gp_nodes = NULL;
+#else
+static cfgjson_value_t         g_local[UTHOME_JSON_NODES] = {0};
+static cfgjson_value_t * const gp_nodes                   = g_local;
+#endif
+static const uint8_t * gp_data        = NULL;
+static size_t          g_size         = 0U;
+static size_t          g_count        = 0U;
+static size_t          g_steps        = 0U;
+static size_t          g_peak         = 0U;
+static bool            gb_initialized = false;
 
 static void whitespace (size_t * p_offset);
 static bool step (void);
@@ -45,6 +51,13 @@ const cfgjson_value_t * cfgjson_open (const uint8_t * p_data, size_t size)
     {
         return NULL;
     }
+#if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
+    gp_nodes = c3peer_views();
+    if (NULL == gp_nodes)
+    {
+        return NULL;
+    }
+#endif
     gp_data       = p_data;
     g_size        = size;
     g_peak        = 0U;
@@ -62,12 +75,19 @@ const cfgjson_value_t * cfgjson_open (const uint8_t * p_data, size_t size)
         cfgjson_close();
         return NULL;
     }
-    return &g_nodes[0];
+    return &gp_nodes[0];
 }
 
 /** @brief Invalidate all borrowed views; retain the last storage high water. */
 void cfgjson_close (void)
 {
+#if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
+    if (NULL != gp_nodes)
+    {
+        c3peer_close();
+        gp_nodes = NULL;
+    }
+#endif
     gp_data = NULL;
     g_size  = 0U;
     g_count = 0U;
@@ -89,11 +109,11 @@ const cfgjson_value_t * cfgjson_get (const cfgjson_value_t * p_value,
         return NULL;
     }
     for (size_t index = first_child(p_value); index < p_value->next;
-         index        = g_nodes[index].next)
+         index        = gp_nodes[index].next)
     {
-        if (text_equal(g_nodes[index].key, p_key))
+        if (text_equal(gp_nodes[index].key, p_key))
         {
-            return &g_nodes[index];
+            return &gp_nodes[index];
         }
     }
     return NULL;
@@ -110,10 +130,10 @@ const cfgjson_value_t * cfgjson_at (const cfgjson_value_t * p_value,
     size_t child = first_child(p_value);
     while ((child < p_value->next) && (0U != index))
     {
-        child = g_nodes[child].next;
+        child = gp_nodes[child].next;
         --index;
     }
-    return (child < p_value->next) ? &g_nodes[child] : NULL;
+    return (child < p_value->next) ? &gp_nodes[child] : NULL;
 }
 
 /** @brief Count immediate array values under the caller's explicit limit. */
@@ -127,7 +147,7 @@ bool cfgjson_array (const cfgjson_value_t * p_value,
     }
     size_t count = 0U;
     for (size_t index = first_child(p_value); index < p_value->next;
-         index        = g_nodes[index].next)
+         index        = gp_nodes[index].next)
     {
         ++count;
         if (count > max)
@@ -152,11 +172,11 @@ bool cfgjson_object (const cfgjson_value_t * p_value,
     }
     uint32_t seen = 0U;
     for (size_t child = first_child(p_value); child < p_value->next;
-         child        = g_nodes[child].next)
+         child        = gp_nodes[child].next)
     {
         size_t index = 0U;
         while ((index < count) &&
-               (!text_equal(g_nodes[child].key, pp_keys[index])))
+               (!text_equal(gp_nodes[child].key, pp_keys[index])))
         {
             ++index;
         }
@@ -403,7 +423,7 @@ static bool kind (const cfgjson_value_t * p_value, uint8_t expected)
 static size_t first_child (const cfgjson_value_t * p_value)
 {
     /* Live views refer to this array; the difference lies in 0..511. */
-    return (size_t)(p_value - g_nodes) + 1U;
+    return (size_t)(p_value - gp_nodes) + 1U;
 }
 
 /** @brief Build one bounded preorder view; publish its subtree end on success.
@@ -416,9 +436,9 @@ static bool value (size_t * p_offset, size_t depth, uint16_t key)
         return false;
     }
     const size_t index = g_count++;
-    g_peak             = g_count * sizeof(g_nodes[0]);
+    g_peak             = g_count * sizeof(gp_nodes[0]);
     /* Input offsets are at most 8192; node indices are at most 512. */
-    g_nodes[index] =
+    gp_nodes[index] =
         (cfgjson_value_t){.start = (uint16_t)*p_offset, .key = key};
     const uint8_t character   = gp_data[*p_offset];
     const bool    b_container = ('{' == character) || ('[' == character);
@@ -428,8 +448,8 @@ static bool value (size_t * p_offset, size_t depth, uint16_t key)
         return false;
     }
     /* Both bounds were enforced before advancing the cursor or node count. */
-    g_nodes[index].end  = (uint16_t)*p_offset;
-    g_nodes[index].next = (uint16_t)g_count;
+    gp_nodes[index].end  = (uint16_t)*p_offset;
+    gp_nodes[index].next = (uint16_t)g_count;
     return true;
 }
 
@@ -468,9 +488,9 @@ static bool container (size_t index, size_t * p_offset, size_t depth)
             }
             ++(*p_offset);
             for (size_t child = index + 1U; child < g_count;
-                 child        = g_nodes[child].next)
+                 child        = gp_nodes[child].next)
             {
-                if (keys_equal(g_nodes[child].key, key))
+                if (keys_equal(gp_nodes[child].key, key))
                 {
                     return false;
                 }

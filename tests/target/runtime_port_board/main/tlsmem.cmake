@@ -40,7 +40,11 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
         mbedtls_zeroize_and_free=c3tout_wipe
         psa_key_derivation_input_bytes=c3tout_prf_input
         psa_key_derivation_input_key=c3tout_prf_key
-        psa_import_key=c3tout_prf_import)
+        psa_import_key=c3tout_prf_import
+        mbedtls_x509_crt_parse_der_nocopy=c3peer_der)
+    set_property(SOURCE "${UTHOME_MBED_DIR}/mbedtls/library/x509_crt.c"
+        TARGET_DIRECTORY mbedx509 APPEND PROPERTY COMPILE_DEFINITIONS
+        mbedtls_calloc=c3peer_alloc mbedtls_free=c3peer_free)
     set_property(SOURCE "${UTHOME_MBED_DIR}/mbedtls/tf-psa-crypto/core/psa_crypto.c"
         TARGET_DIRECTORY tfpsacrypto APPEND PROPERTY COMPILE_DEFINITIONS
         mbedtls_calloc=c3tout_prf_alloc mbedtls_free=c3tout_free

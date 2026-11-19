@@ -45,6 +45,9 @@ the [firmware guide](../../README.md) and [target tooling](../../../tools/target
   Each view contains input offsets and the index after its complete subtree;
   strings and numbers are read from the original input without a copied tree.
   The caller keeps that input unchanged and alive until `cfgjson_close()`.
+  On the static Wi-Fi target, TLS can borrow the view storage for intermediate
+  certificates between documents. The parser holds exclusive access while a
+  tree is live. A failed open leaves the current owner's data intact.
   At most 1024 work units are admitted: one per value, object key, and string
   or number payload. These retain the former parsing-work ceiling without
   allocation hooks. Exhaustion rejects the whole candidate; a later parse can

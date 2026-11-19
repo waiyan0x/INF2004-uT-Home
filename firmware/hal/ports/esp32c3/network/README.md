@@ -283,6 +283,23 @@ Fresh checks, build identity and limits are in the
 
 ## Fixed peer certificate records
 
+On the static Wi-Fi target, the single MQTT owner lends the 512-entry JSON view
+workspace to the first four peer intermediates. Each typed certificate occupies
+952 bytes on the pinned ESP32-C3 SDK. The USB configuration parser borrows the
+whole workspace from open through close. A live view tree rejects a peer parse,
+and a live intermediate rejects a new tree. USB transport buffers and the
+configured trust anchor have separate lifetimes.
+
+The no-copy peer parser requests a node before parsing each additional
+certificate. Only its owning task can claim that allocation in `x509_crt.c`.
+The SDK links, verifies, zeroes and releases its own chain, including failed
+appends. Exact addresses identify shared nodes on release. Nodes beyond four
+use the SDK's existing allocation path. The application loop serializes USB
+parsing and MQTT, and certificate verification completes synchronously. The
+typed union preserves alignment, and the build checks its size against the
+original JSON workspace. These ownership, bounds, failure and task-context
+checks form the manual C review for this change.
+
 The selected parser uses one actual `mbedtls_x509_crt` chain head (952 bytes)
 temporarily and retains one 32-byte peer-certificate digest. Both now belong to
 `c3tout`. The head and old digest can coexist while parsing a renegotiation

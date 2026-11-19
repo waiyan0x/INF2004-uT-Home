@@ -487,6 +487,37 @@ has the SDK calendar-date check disabled; these results establish signature,
 chain and hostname checks only. Local evidence is under
 `build/tls-verify-memory-20261119/`.
 
+### Shared USB views and peer intermediates
+
+The static Wi-Fi build now shares the existing 4,096-byte USB configuration
+workspace with up to four temporary peer intermediates. The default and six-slot
+images both passed the pinned 336-file C gate, target build, source snapshot
+and linked memory budgets. The JSON, TLS adapter and build-qualification suites
+passed 87 host tests. Top-level RAM limits are unchanged.
+
+| Trusted broker chain | Peak verification payload | Outcome at 5,990 bytes |
+|---|---:|---|
+| Project broker, P-256 leaf | 3,834 bytes | Accepted |
+| RSA-2048 leaf and two intermediates | 5,090 bytes | Accepted |
+| RSA-2048 leaf and six intermediates | 6,978 bytes | Rejected |
+
+The six-slot image leaves 5,990 bytes of total fixed DRAM headroom and 4,124
+bytes of application headroom. The ceiling experiment limits the sum of live
+allocation requests in the emulator. A deployable fixed allocator must also
+meet its group budget and cover alignment, bookkeeping and other simultaneous
+handshake allocations. The firmware continues to support the SDK's normal
+chain handling. All three fixtures verified at normal allocation, rejected a
+wrong hostname and an empty trust list, and released all tracked allocations.
+The seven-certificate fixture was 8,018 PEM bytes.
+
+The parser-only RSA peak fell from 2,554 to 650 bytes. The emulator exercised
+a live USB document, failed appends and retries, all four shared nodes and the
+first additional SDK node. Both owners recovered their storage. The normal
+broker is the physical demo acceptance target. General fixed-memory proof and
+a simultaneous Wi-Fi renewal remain open. Local evidence is under
+`build/tls-shared-20261119/`. The six-slot ELF SHA-256 is
+`a0f482aa97de3f0319c986a61947e4076d8464974cd233c838e33a6f7acdbbb5`.
+
 ### Fixed peer certificate records
 
 The 17 November peer-certificate change reserves one typed 952-byte temporary peer-chain

@@ -89,6 +89,8 @@ RUNTIME_SOURCE_FILES = {
     'firmware/hal/ports/esp32c3/network/c3lbox.h': 'hal/c3lbox.h',
     'firmware/hal/ports/esp32c3/network/c3tls.c': 'hal/c3tls.c',
     'firmware/hal/ports/esp32c3/network/c3tls.h': 'hal/c3tls.h',
+    'firmware/hal/ports/esp32c3/network/c3peer.c': 'hal/c3peer.c',
+    'firmware/hal/ports/esp32c3/network/c3peer.h': 'hal/c3peer.h',
     'firmware/hal/ports/esp32c3/network/c3tout.c': 'hal/c3tout.c',
     'firmware/hal/ports/esp32c3/network/c3tout.h': 'hal/c3tout.h',
     'firmware/hal/ports/esp32c3/network/c3lrec.c': 'hal/c3lrec.c',
@@ -746,19 +748,21 @@ def check_tls_output(commands, symbols, enabled, config_lines):
     source_bindings = {
         'ssl_tls.c': {**bindings, 'psa_key_derivation_input_bytes': 'c3tout_prf_input',
                       'psa_key_derivation_input_key': 'c3tout_prf_key',
-                      'psa_import_key': 'c3tout_prf_import'},
+                      'psa_import_key': 'c3tout_prf_import',
+                      'mbedtls_x509_crt_parse_der_nocopy': 'c3peer_der'},
+        'x509_crt.c': {'mbedtls_calloc': 'c3peer_alloc', 'mbedtls_free': 'c3peer_free'},
         'psa_crypto.c': {**bindings, 'mbedtls_calloc': 'c3tout_prf_alloc'},
     }
     observed = []
     for entry in commands:
         name = Path(entry['file']).name
-        found = re.findall(r'(?:^|\s)-D\s*"?(mbedtls_calloc|mbedtls_free|mbedtls_zeroize_and_free|psa_key_derivation_input_bytes|psa_key_derivation_input_key|psa_import_key)=([^\s"]+)"?', entry['command'])
+        found = re.findall(r'(?:^|\s)-D\s*"?(mbedtls_calloc|mbedtls_free|mbedtls_zeroize_and_free|psa_key_derivation_input_bytes|psa_key_derivation_input_key|psa_import_key|mbedtls_x509_crt_parse_der_nocopy)=([^\s"]+)"?', entry['command'])
         expected = source_bindings.get(name, {}) if enabled else {}
         if dict(found) != expected or len(found) != len(expected):
             raise QualificationError('TLS output binding escaped its source: ' + name)
         if expected:
             observed.append(name)
-    owned = (*bindings.values(), 'c3tout_setup', 'c3tout_native_setup',
+    owned = (*bindings.values(), 'c3peer_der', 'c3peer_alloc', 'c3peer_free', 'c3peer_views', 'c3peer_close', 'c3tout_setup', 'c3tout_native_setup',
              'c3tout_set_name', 'c3tout_native_name', 'c3tout_start',
              'c3tout_native_start', 'c3tout_renegotiate', 'c3tout_native_renegotiate',
              'c3tout_certificate', 'c3tout_native_certificate',
@@ -953,9 +957,9 @@ def verify_compile_profiles(work, startup_trace=False):
         profiles[source] = expected
     for path, command in commands.items():
         adapted = "-Dasm=__asm__" in command
-        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3lrec.c")}):
+        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3peer.c", "c3lrec.c")}):
             raise QualificationError("SDK assembly spelling adaptation escaped its adapter")
-    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3lrec.c"):
+    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3peer.c", "c3lrec.c"):
         owned_radio = (work / "project/hal" / name).read_text()
         if re.search(r"\b(?:asm|__asm__|typeof|__typeof__)\b", owned_radio):
             raise QualificationError("Owned radio adapter must remain C99: " + name)
