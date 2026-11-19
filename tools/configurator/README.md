@@ -104,8 +104,7 @@ checks through the compiled C owner, local TLS broker and HA Container, with
 exactly three simulated reads. A separate run drove the actual browser controls
 through first connect, A/B/A, expiry and disconnect with three reads and no
 browser errors. Evidence is local-only under
-`build/runtime-ui-review-20261117/`. Physical ESP/HA acceptance remains open;
-this change does not resume TLS work or alter firmware.
+`build/runtime-ui-review-20261117/`. The [physical BMP388 walkthrough](#physical-bmp388-walkthrough) follows below.
 
 ### Simulated operator walkthrough
 
@@ -161,8 +160,38 @@ loading, expiry, disconnect and helper cleanup added none. The Desk disconnected
 all six HA sensors became unavailable, and the user confirmed HA stayed responsive.
 Local evidence is in `desk-20261117-014224/` under the folder above, including
 separate `user-observations.json`, `events.jsonl` and `verification.json` files.
-The helper is stopped. This completes the simulated operator walkthrough;
-physical ESP/HA acceptance remains open.
+The helper is stopped.
+
+### Physical BMP388 walkthrough
+
+On 19 November 2026 an automated Chromium session used **Connect**, **Load rule**,
+**Execute active rule** and **Disconnect** on the Runtime transactions tab. The
+ESP32-C3 read the BMP388 at I2C address `0x77`. The Desk sent commands to the
+bench TLS MQTT broker and its display publisher used the local WSL TLS broker.
+Home Assistant Container 2026.11.1 recorded the following raw hex bytes.
+
+| Active rule | Register | MQTT execution ID | Desk and HA result | TX / RX bytes |
+|---|---|---:|---|---|
+| `chip_id`, revision 1 | `0x00` | 2 | `50` | 1 / 1 |
+| `pressure_raw`, revision 2 | `0x04` | 4 | `24 87 6A` | 1 / 3 |
+| `chip_id`, revision 3 | `0x00` | 6 | `50` | 1 / 1 |
+
+Each load cleared the displayed bytes. All three executions matched the ESP
+replies by request ID, boot ID, generation and completion time. The final result
+expired after five seconds. Disconnect made all six HA entities unavailable.
+The pressure bytes are specific to this read. Pressure accuracy requires a
+separate measurement.
+
+The first attempt stopped during a read-only USB network query before the idle
+profile was applied. On the successful run an authenticated MQTT status reply
+established readiness. Both attempts restored and verified the original full
+flash and saved profile. The temporary hotspot and firewall rule were removed
+and the HA broker ACL matched its original hash. Physical restart recovery and
+repeatability of idle readiness remain open.
+
+Local evidence, including the three Desk screenshots and `verified-result.json`,
+is under `build/desk-bmp388-retry-20261119/`. The Desk checkpoint was `d231b89`
+and the temporarily installed ESP firmware was built from `370d09e`.
 
 ## Configuration recipes
 

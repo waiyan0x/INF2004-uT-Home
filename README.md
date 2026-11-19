@@ -97,7 +97,10 @@ and both renegotiation entries preserve SDK ownership and deterministic exhausti
 The simulated Runtime Desk and Home Assistant walkthrough is complete. The physical ESP has now returned BMP388 chip ID `50` over
 TLS MQTT, and Home Assistant recorded the same result and byte counts.
 [Physical chip-ID check](tools/transaction/README.md#physical-bmp388-chip-id-in-home-assistant)
-The next display milestone is the physical Desk chip-ID / raw-pressure / chip-ID walkthrough. The
+The [physical Desk walkthrough](tools/configurator/README.md#physical-bmp388-walkthrough)
+also passed. The Desk and HA recorded `50`, `24 87 6A` and `50` on one boot.
+Separate ESP, adapter, broker and HA restart recovery remains to be verified
+across the full display path. The
 [MQTT connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
 now passes software checks and a fresh target build. The approved cumulative
 candidate answered initial and post-broker-restart status queries, then timed
@@ -213,11 +216,10 @@ through MQTT and HA, with exactly three reads. Backend and desktop/mobile browse
 checks passed. The user then completed the
 [operator walkthrough](tools/configurator/README.md#simulated-operator-walkthrough):
 preview versus active rule, three explicit A/B/A reads, expiry and disconnect,
-with all six HA sensors unavailable afterward. Physical ESP/HA acceptance remains
-separate. The local HA container and simulated six-sensor visual check are ready. A
+with all six HA sensors unavailable afterward. The local HA container and simulated six-sensor visual check are ready. A
 [repeatable demo](tools/transaction/README.md#repeatable-simulated-display-demo)
 is available without the physical ESP. The subsequent physical chip-ID check used
-the host controller directly. Physical Desk operation and repeatability remain open.
+the host controller directly. A subsequent physical test exercised the Desk controls.
 The [power-save comparison](tools/transaction/README.md#normal-profile-packet-capture)
 is complete, with the original image/profile restored and no root-cause claim.
 Complete the reviewed SPI/UART descriptions before their physical demonstrations;
@@ -314,7 +316,7 @@ flowchart LR
 
 The normal controller session uses one broker for commands, results and display.
 The physical chip-ID trial used the bench broker for the ESP and the WSL broker
-for HA display. The Configuration Desk walkthrough has passed with the simulator.
+for HA display. The physical Desk walkthrough used the same two-broker setup.
 MQTT discovery registers Home Assistant entities; state topics supply their
 values. See the [Home Assistant MQTT documentation](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery).
 

@@ -129,7 +129,7 @@ rule must not require another build.
 | Generic operations | `txport` reaches actual I2C, SPI-write and raw UART HALs through `c3tx` | Physical acceptance, initialization prerequisites and selected timing extensions |
 | Description compiler | `tools/transaction/description.py` compiles simple I2C register reads | SPI/UART operation descriptions; OLED source/description; SEN0390 review |
 | MQTT | Live BMP388 rule switching, target rejection, cached results and broker recovery verified on the earlier image; HTTPS now removed | Wider secure-connection load and network allocation blocker |
-| UI | Runtime transactions tab implements description selection, preview, load/execute and expiring results; simulated operator walkthrough passed | Physical Desk/ESP/HA acceptance |
+| UI | Runtime transactions tab implements description selection, preview, load/execute and expiring results; simulated operator and physical BMP388 browser walkthroughs passed | Physical restart recovery |
 | Home Assistant | Host discovery/display adapter and WSL2 container; simulated six-sensor operator and restart checks passed | Display real ESP results and verify combined failure/recovery behavior |
 | Verification | 531 target-facing tests plus 59 affected tests rerun after SDK-binding corrections; full 337-file C gate, checked target image, SDK setup/free instruction probe and unchanged memory budgets | Current image on hardware, runtime SPI/UART, prolonged combined load and whole-system resource acceptance |
 
@@ -300,11 +300,9 @@ transaction and returns correlated raw bytes/status on the same installed image.
 
 ### 5. Connect the user interface
 
-**Implemented and verified with simulated buses.** The
-[Runtime transactions tab and operator walkthrough](tools/configurator/README.md#simulated-operator-walkthrough)
-cover preview versus active rule, A/B/A reads, expiry and disconnect. The
-requirements below describe the implemented contract; remaining acceptance is
-the physical Desk/ESP/HA demonstration on the selected image.
+The [simulated operator walkthrough](tools/configurator/README.md#simulated-operator-walkthrough)
+verified preview versus active rule. The [physical BMP388 walkthrough](tools/configurator/README.md#physical-bmp388-walkthrough)
+verified A/B/A reads, expiry and disconnect in the Desk and Home Assistant.
 
 Propose a small Runtime Transactions view within the existing Configuration Desk
 and review it with the user before UI implementation. Preserve the visual style.
@@ -342,9 +340,9 @@ operator walkthrough. The old VM instability remains a separate unresolved issue
 Physical combined acceptance remains open; the dedicated MQTT-delay investigation
 is deferred to last priority, not marked fixed.
 
-Acceptance still required: actual Home Assistant displays real ESP results and
-becomes unavailable when appropriate, including separate ESP, adapter, broker
-and HA restarts.
+Physical BMP388 display, expiry and disconnect passed on 19 November.
+Separate ESP, adapter, broker and HA restarts still require physical
+end-to-end recovery evidence.
 
 ### 7. Complete integrated acceptance
 

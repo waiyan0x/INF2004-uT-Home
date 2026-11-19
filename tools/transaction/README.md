@@ -279,9 +279,9 @@ WSL broker ACL matched its original hash. The chip-ID result remains in HA
 history. Local evidence is in `build/ha-bmp388-physical-20261119/verified-result.json`
 and `ha-history.json` in the same folder.
 
-The physical Configuration Desk A/B/A walkthrough, broker and HA restart
-recovery with a real peripheral, and repeatability of idle MQTT readiness
-remain open. The earlier VM observations below refer to the separate HA OS setup.
+The subsequent [physical Desk walkthrough](../configurator/README.md#physical-bmp388-walkthrough)
+verified chip ID, raw pressure and chip ID through the browser controls.
+Physical restart recovery and repeatability of idle MQTT readiness remain open. The earlier VM observations below refer to the separate HA OS setup.
 
 ### Current live trial
 
