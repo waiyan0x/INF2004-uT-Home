@@ -42,8 +42,8 @@ per slot plus four bytes for the aligned initialization flag. The current
 dynamic table manager occupies 184 fixed bytes. Replacing it would add 1,020
 bytes for 30 slots, 1,060 for 31, or 1,100 for 32. The linked SDK/kernel group
 has 1,042 bytes free. If its other usage holds, 30 slots leave 22 bytes and
-31 slots exceed the group budget by 18 bytes. A full target link must verify
-the eventual fixed-table configuration.
+31 slots exceed the group budget by 18 bytes. The
+[30-slot diagnostic build](#offline-fixed-table-build) measures the full-image cost.
 
 To reproduce the comparison, use the slot-management entry in the qualified
 build's `compile_commands.json`. Keep the ESP user configuration, undefine
@@ -87,6 +87,26 @@ exhaustion/recovery still need coverage to select a production limit.
 tests, eight compiled probes, 334-file BARR-C gate, manual review and target
 build passed. The 822,048-byte application's SHA-256 is
 `b2e956a199a4f1dc7d7367059acf030d767c59b04e5aad4c894d8d0e020ccdd6`.
+
+#### Offline fixed-table build
+
+An isolated ESP32-C3 Wi-Fi/MQTT build linked the native PSA store with 30
+slots. The SDK/kernel group grew by 1,024 bytes to 55,278 of 55,296 bytes,
+leaving **18 bytes**. Total fixed DRAM reached 273,482 of 278,528 bytes,
+leaving 5,046. Application storage, task pool, RAM code and RTC usage matched
+the baseline above. The 821,616-byte diagnostic application's SHA-256 is
+`9b1d8267d5f5784d3b74cbd832a7c3ae0b60c45d78431bdd1f274956a6587f33`.
+The production build still uses the dynamic table.
+
+To reproduce the comparison, use an isolated copy of the Wi-Fi/MQTT build.
+Copy the pinned TF-PSA-Crypto `include/psa/crypto_config.h`, disable
+`MBEDTLS_PSA_KEY_STORE_DYNAMIC` there and set `MBEDTLS_PSA_KEY_SLOT_COUNT`
+to 30. Before importing the ESP-IDF project, set `TF_PSA_CRYPTO_CONFIG_FILE`
+in the CMake cache and as a project-wide compile definition to the quoted
+absolute path of that copy. Keep the ESP user configuration and the existing
+transaction memory budget. All 1,050 application-build C/C++ compiler commands
+selected the comparison header. The pinned SDK and kernel revisions,
+`sdkconfig` and the other 254 staged project inputs matched the baseline.
 
 ### Key-derived TLS secret
 
