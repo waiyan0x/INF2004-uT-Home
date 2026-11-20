@@ -56,14 +56,14 @@ and all eight BMP388/radar reads passed across a broker restart.
 The TCP/IP scheduler now uses twelve fixed records. On this image, the board
 completed all eight sensor reads across a broker restart. A snapshot found
 five live timers, each in its reserved pool.
-The station now reserves one full-size frame for ARP queue copies or Wi-Fi
-transmission of chained packets, and a separate UDP header. Application
-headroom is 113 bytes and total fixed DRAM headroom is 2,082 bytes. The
-board completed eight sensor reads across a broker restart and answered two
-full-size IPv4 pings. ICMP replies and outgoing IPv4 fragments now share the
-same frame slot. The linked firmware passed the reply, fragmentation and
-slot-exhaustion tests with zero general heap calls in those paths. Next, trace
-which remaining DNS and IGMP allocations the one-broker station actually uses.
+The station shares one full-size frame between ARP queue copies, Wi-Fi chain
+copies, ICMP replies and outgoing IPv4 fragments. The UDP header has its own
+slot. Application headroom is 113 bytes and total fixed DRAM headroom is
+2,082 bytes. The ESP completed eight sensor reads across a broker restart
+and answered two full-size pings. The debugger observed the echo handler
+calling the fixed allocator. Linked-firmware replay covered fragmentation,
+exhaustion and recovery with zero general heap calls in the tested paths.
+Next, trace which DNS and IGMP allocations the one-broker station uses.
 [IPv4 packet checks](docs/reports/wifi-static-memory/README.md#fixed-icmp-and-outbound-ipv4-fragments)
 [Frame copy checks](docs/reports/wifi-static-memory/README.md#fixed-arp-and-wi-fi-frame-copies)
 Certificate verification and the Wi-Fi driver allocation inventory remain open.

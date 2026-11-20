@@ -632,6 +632,20 @@ python -B -m tools.target.ipv4_packet_probe --case icmp --elf PATH_TO_ESP_ELF --
 python -B -m tools.target.ipv4_packet_probe --case fragment --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
 ```
 
+On the USB-connected ESP32-C3, eight BMP388/LD2450 reads matched their MQTT
+result frames across one broker restart on the same saved-idle boot. Both
+pings with 1,472 data bytes and the Don't Fragment flag received full-size
+replies. While sending these pings, the hardware breakpoint hit `0x4203b844`,
+the linked echo handler's call to `c3pkt_frame`. The debugger recorded the
+instruction address. Its log omitted the argument registers. Both packet
+slots were free at the subsequent snapshot, and the node confirmed
+completed request 16 after resuming.
+
+A fresh 4 MiB backup verified before installation. The restored flash
+matched it byte for byte. USB confirmed original active and saved profile
+943 and CRC 3623560383. The laptop kept its original uplink and the temporary
+hotspot and firewall rule were cleaned up.
+
 The ELF still contains native packet allocations from DNS, IGMP, raw sockets,
 netbuf and loopback output. Which of those run during the one-broker demo
 requires separate evidence. Certificate verification and Wi-Fi driver
