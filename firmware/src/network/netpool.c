@@ -100,7 +100,7 @@ void * netpool_create (netpool_t *    p_pool,
     for (uint32_t index = first; index < limit; ++index)
     {
         netpool_slot_t * p_slot = &p_pool->slots[index];
-        if (p_slot->b_live)
+        if (NULL != p_slot->p_key)
         {
             continue;
         }
@@ -129,7 +129,6 @@ void * netpool_create (netpool_t *    p_pool,
         p_slot->users    = 0U;
         p_slot->owner    = 0U;
         p_slot->depth    = 0U;
-        p_slot->b_live   = true;
         p_key            = p_candidate_key;
         break;
     }
@@ -148,8 +147,8 @@ int netpool_release (netpool_t * p_pool, void * p_key)
         if ((index < NETPOOL_SLOTS) && (0U == p_pool->slots[index].users) &&
             (0U == p_pool->slots[index].owner))
         {
-            p_pool->slots[index].b_live = false;
-            result                      = 0;
+            p_pool->slots[index].p_key = NULL;
+            result                     = 0;
         }
         p_pool->ops.p_leave(p_pool->ops.p_context, saved);
     }
@@ -374,8 +373,7 @@ static uint32_t find_slot (netpool_t const * p_pool, void const * p_key)
     {
         for (uint32_t index = 0U; index < NETPOOL_SLOTS; ++index)
         {
-            if ((p_pool->slots[index].b_live) &&
-                (p_key == p_pool->slots[index].p_key))
+            if (p_key == p_pool->slots[index].p_key)
             {
                 return index;
             }

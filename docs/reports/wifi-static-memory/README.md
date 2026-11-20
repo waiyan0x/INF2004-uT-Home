@@ -550,6 +550,46 @@ After debugger resume MQTT confirmed the same boot and completed request 16.
 The full 4 MiB flash matched its fresh backup, the active and saved profiles
 returned to revision 943, and the laptop hotspot and firewall cleanup passed.
 
+#### Fixed ARP and Wi-Fi frame copies
+
+Firmware `d4c47a74`, ELF `07420520`. An unresolved ARP entry must preserve
+a volatile packet before its caller can reuse the source. A UDP send from a
+borrowed payload can require a separate header. When the resulting chain goes
+straight to a resolved neighbour, the Wi-Fi adapter joins it into one frame
+for transmission. The station now has one 1,536-byte slot for either copy and
+a separate 64-byte UDP header slot. Each slot remains reserved until its last
+pbuf reference is released. A competing copy returns `ERR_MEM` and protects
+the live frame.
+
+The network queue adapter reclaimed 640 bytes. Each of its 56 slots has one
+native read semaphore or mutex handle. Only the eight queue slots have a
+second handle. A non-null lease key also serves as the occupied flag.
+The queue counts, semaphore and mutex counts, and queue payload capacity are
+unchanged. All fixed RAM limits passed.
+
+| Fixed RAM | Linked | Limit | Available |
+|---|---:|---:|---:|
+| Application | 147,343 | 147,456 | 113 |
+| Total DRAM | 276,446 | 278,528 | 2,082 |
+
+The linked RV32 test sent a 1,472-byte UDP payload through native UDP, IPv4,
+ARP and Wi-Fi output. It checked the outgoing 1,514-byte Ethernet frame,
+addresses, ports and payload at the driver handoff. It exercised both a known
+neighbour and an initially unresolved one. Releasing and overwriting the
+original buffer preserved the queued bytes. While a simulated driver retained
+the frame, other copies failed cleanly. All slots became reusable after final
+release. Both borrowed buffers returned exactly once. The old image reached
+`mem_malloc` on the same UDP send. The new image made zero general heap calls
+in the tested packet path. The test supplies the Wi-Fi driver handoff.
+
+```powershell
+python -B -m tools.target.frame_copy_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
+```
+
+The linked ICMP input and IPv4 fragmentation functions still call the native
+packet allocator. Certificate verification and the Wi-Fi driver allocation
+inventory remain open.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

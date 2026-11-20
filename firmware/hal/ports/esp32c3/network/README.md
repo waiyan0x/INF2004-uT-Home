@@ -547,7 +547,7 @@ temporarily appends a fourth before rejecting it. Seven native queue records
 cover two full neighbours and this temporary append. Each entry holds a
 packet reference. After resolution the native ARP code sends that neighbour's
 packets in arrival order and releases them. Interface teardown drains the
-remaining entries. A packet that requires copying still uses the SDK clone path.
+remaining entries. A volatile packet chain takes the independent frame slot described below.
 
 **C review.** The station uses the SDK's actual UDP and ARP queue element types,
 their native alignment and zero initialization. Record counts, lease flags and
@@ -558,6 +558,33 @@ layer and the exact SDK frame size. Its 44-byte backing length fits the
 are unchanged. The two reviewed C99 adapters require no new deviation.
 
 [ARP and UDP measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-arp-and-udp-storage)
+
+## ARP and Wi-Fi packet copies
+
+The one-station build reserves one contiguous 1,536-byte slot. An unresolved
+ARP entry can hold an independent copy of an IPv4 packet up to the station
+MTU of 1,500 bytes. Wi-Fi output uses the same slot when it must join a
+chain into one untagged Ethernet frame (up to 1,514 bytes). A resolved
+ARP clone already consists of one pbuf and can transmit from that slot.
+A second copy while the slot is held returns the native memory error.
+Ordinary single-buffer sends and ARP request/reply frames use separate storage.
+
+UDP can prepend its header to a datagram with headroom. For a borrowed
+payload it uses a separate 64-byte slot, including the eight UDP header bytes,
+native pbuf and network headroom. Each slot stays leased through the final
+pbuf release. The reserve operation is protected by the existing interrupt
+guard. Copying the payload runs outside the guard, after the caller acquires
+the slot. The native pbuf header remains the first member and its backing
+words have four-byte alignment. Length bounds precede conversion to the
+16-bit native size. These changes add no BARR-C deviation.
+
+The network queue adapter stores one native read-semaphore or mutex handle
+per slot and a second notification handle for each of the eight queues.
+The non-null opaque key identifies a live slot under the same guard used
+for lookup and deletion. The eight queues, sixteen semaphores, thirty-two
+mutexes and 8,192 queue payload bytes retain their previous capacities.
+
+[Packet-copy measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-arp-and-wi-fi-frame-copies)
 
 ## DHCP client and outgoing messages
 

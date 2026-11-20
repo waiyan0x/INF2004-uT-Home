@@ -12,17 +12,12 @@
 #include <tk/tkernel.h>
 #include <tk/syslib.h>
 
-typedef struct
-{
-    ID h_readable;
-    ID h_writable;
-    ID h_mutex;
-} c3nq_native_t;
-
-static netpool_t     g_pool                  = {0};
-static c3nq_native_t g_native[NETPOOL_SLOTS] = {0};
-static bool          gb_attempted            = false;
-static bool          gb_task_started         = false;
+/* Each slot owns one readable semaphore or mutex. Only queues also write. */
+static netpool_t g_pool                           = {0};
+static ID        gh_objects[NETPOOL_SLOTS]        = {0};
+static ID        gh_writable[NETPOOL_QUEUE_SLOTS] = {0};
+static bool      gb_attempted                     = false;
+static bool      gb_task_started                  = false;
 
 #if defined(UTHOME_WIFI_PROBE) && UTHOME_WIFI_PROBE
 static c3nq_diagnostic_t g_diagnostic = {0};
@@ -75,20 +70,19 @@ int c3nq_init (void)
         bool b_failed = false;
         if (index < NETPOOL_QUEUE_SLOTS)
         {
-            g_native[index].h_readable = tk_cre_sem(&semaphore);
-            g_native[index].h_writable = tk_cre_sem(&semaphore);
-            b_failed                   = ((g_native[index].h_readable <= 0) ||
-                        (g_native[index].h_writable <= 0));
+            gh_objects[index]  = tk_cre_sem(&semaphore);
+            gh_writable[index] = tk_cre_sem(&semaphore);
+            b_failed = ((gh_objects[index] <= 0) || (gh_writable[index] <= 0));
         }
         else if (index < (NETPOOL_QUEUE_SLOTS + NETPOOL_SEMAPHORE_SLOTS))
         {
-            g_native[index].h_readable = tk_cre_sem(&semaphore);
-            b_failed                   = (g_native[index].h_readable <= 0);
+            gh_objects[index] = tk_cre_sem(&semaphore);
+            b_failed          = (gh_objects[index] <= 0);
         }
         else
         {
-            g_native[index].h_mutex = tk_cre_mtx(&mutex);
-            b_failed                = (g_native[index].h_mutex <= 0);
+            gh_objects[index] = tk_cre_mtx(&mutex);
+            b_failed          = (gh_objects[index] <= 0);
         }
         if (b_failed)
         {
@@ -484,13 +478,13 @@ static int wait_event (void *   p_context,
                        uint32_t milliseconds)
 {
     (void)p_context;
-    if (NETPOOL_SLOTS <= slot)
+    if (slot >= (b_sender ? NETPOOL_QUEUE_SLOTS
+                          : NETPOOL_QUEUE_SLOTS + NETPOOL_SEMAPHORE_SLOTS))
     {
         return -1;
     }
-    const ID h_object =
-        b_sender ? g_native[slot].h_writable : g_native[slot].h_readable;
-    const ER result = tk_wai_sem(h_object, 1, native_timeout(milliseconds));
+    const ID h_object = b_sender ? gh_writable[slot] : gh_objects[slot];
+    const ER result   = tk_wai_sem(h_object, 1, native_timeout(milliseconds));
     return (E_OK == result) ? 0 : ((E_TMOUT == result) ? 1 : -1);
 }
 
@@ -499,10 +493,10 @@ static int wait_event (void *   p_context,
 static void signal_event (void * p_context, uint32_t slot, bool b_sender)
 {
     (void)p_context;
-    if (slot < NETPOOL_SLOTS)
+    if (slot < (b_sender ? NETPOOL_QUEUE_SLOTS
+                         : NETPOOL_QUEUE_SLOTS + NETPOOL_SEMAPHORE_SLOTS))
     {
-        const ID h_object =
-            b_sender ? g_native[slot].h_writable : g_native[slot].h_readable;
+        const ID h_object = b_sender ? gh_writable[slot] : gh_objects[slot];
         (void)tk_sig_sem(h_object, 1);
     }
 }
@@ -511,12 +505,13 @@ static void signal_event (void * p_context, uint32_t slot, bool b_sender)
 static int lock_mutex (void * p_context, uint32_t slot, uint32_t milliseconds)
 {
     (void)p_context;
-    if (NETPOOL_SLOTS <= slot)
+    if ((slot < (NETPOOL_QUEUE_SLOTS + NETPOOL_SEMAPHORE_SLOTS)) ||
+        (slot >= NETPOOL_SLOTS))
     {
         return -1;
     }
     const ER result =
-        tk_loc_mtx(g_native[slot].h_mutex, native_timeout(milliseconds));
+        tk_loc_mtx(gh_objects[slot], native_timeout(milliseconds));
     return (E_OK == result) ? 0 : ((E_TMOUT == result) ? 1 : -1);
 }
 
@@ -525,8 +520,8 @@ static int lock_mutex (void * p_context, uint32_t slot, uint32_t milliseconds)
 static int unlock_mutex (void * p_context, uint32_t slot)
 {
     (void)p_context;
-    return ((slot < NETPOOL_SLOTS) &&
-            (E_OK == tk_unl_mtx(g_native[slot].h_mutex)))
+    return ((slot >= (NETPOOL_QUEUE_SLOTS + NETPOOL_SEMAPHORE_SLOTS)) &&
+            (slot < NETPOOL_SLOTS) && (E_OK == tk_unl_mtx(gh_objects[slot])))
                ? 0
                : -1;
 }

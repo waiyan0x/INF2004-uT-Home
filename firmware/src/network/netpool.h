@@ -62,7 +62,6 @@ typedef struct
     uint32_t       users;
     uint32_t       owner;
     uint32_t       depth;
-    bool           b_live;
 } netpool_slot_t;
 
 typedef struct

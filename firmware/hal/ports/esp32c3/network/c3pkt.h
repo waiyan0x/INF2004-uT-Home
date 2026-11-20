@@ -12,6 +12,13 @@
 /** @brief Lease a copied TCP packet or an Ethernet ARP frame. */
 struct pbuf * c3pkt_alloc (pbuf_layer layer, uint16_t length, pbuf_type type);
 
+/** @brief Lease an independent UDP header or Ethernet frame copy. */
+struct pbuf * c3pkt_aux (pbuf_layer layer, uint16_t length, pbuf_type type);
+
+/** @brief Make an owned, contiguous copy for a pending ARP entry. */
+struct pbuf *
+c3pkt_clone (pbuf_layer layer, pbuf_type type, struct pbuf * p_source);
+
 /** @brief Let the core split its unsent head using the reserved capacity. */
 err_t c3pkt_split (struct tcp_pcb * p_connection, uint16_t length);
 #endif

@@ -55,9 +55,12 @@ On the ESP32-C3, the active interface held a bound lease in the fixed client
 and all eight BMP388/radar reads passed across a broker restart.
 The TCP/IP scheduler now uses twelve fixed records. On this image, the board
 completed all eight sensor reads across a broker restart. A snapshot found
-five live timers, each in its reserved pool. The current image leaves
-1,073 application bytes and 3,146 total fixed DRAM bytes available. Next,
-trace the packet copies made during ARP resolution and UDP transmission.
+five live timers, each in its reserved pool.
+The station now reserves one full-size frame for ARP queue copies or Wi-Fi
+transmission of chained packets, and a separate UDP header. Application
+headroom is 113 bytes and total fixed DRAM headroom is 2,082 bytes. Next,
+qualify ICMP reply buffers and outgoing IPv4 fragmentation.
+[Frame copy checks](docs/reports/wifi-static-memory/README.md#fixed-arp-and-wi-fi-frame-copies)
 Certificate verification and the Wi-Fi driver allocation inventory remain open.
 [Timer memory checks](docs/reports/wifi-static-memory/README.md#fixed-tcpip-timeout-records)
 [DHCP memory checks](docs/reports/wifi-static-memory/README.md#fixed-dhcp-client-and-messages)
