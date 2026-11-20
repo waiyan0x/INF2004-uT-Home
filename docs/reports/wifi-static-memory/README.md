@@ -130,6 +130,45 @@ qualification. Attribute any remaining heap traffic to the documented
 driver exception and verify all group limits on the resulting image.
 [Static design and recovery contracts](../../../firmware/README.md#mandatory-static-memory-change)
 
+#### Measuring TCP/IP storage for one broker
+
+The sizing target is one authenticated MQTT broker, including a reconnect, under
+the existing RAM caps. The diagnostic built from `0318bdb` uses the production
+allocator with lwIP's native counters. In an isolated build, add
+`CONFIG_LWIP_STATS=y` to `wifi-station.defaults` and add
+`add_compile_definitions(MEM_STATS=1 MEMP_STATS=1)` before the project includes
+ESP-IDF in the board's top-level CMake file. All lwIP components and the
+application's record adapter must agree on the descriptor layout. Confirm the
+flags in the resulting compile commands. The ordinary firmware uses its
+original settings.
+
+The diagnostic image (`aed481c7`) added 664 bytes of linked SDK/kernel data.
+It used 273,138 of 278,528 total fixed DRAM bytes. All group and module checks
+passed. With the matching ELF loaded in ESP GDB and the target halted, use
+the debugger command below from the repository root.
+
+```gdb
+source tools/target/lwip_memory.py
+uthome-lwip-memory
+```
+
+`requested_bytes` reports live and peak requested bytes through lwIP's memory
+allocator. It includes direct packet allocations and heap-backed pool records.
+It excludes libc overhead, the diagnostic size prefix, and allocations that
+bypass lwIP. Each pool reports live and peak **record counts**, failures and
+element size. The two existing application-owned record pools bypass these
+counters. A pool's own peak may occur at a different time from another's.
+Use the aggregate byte peak directly for simultaneous demand. Reserve storage
+by type and validate exhaustion and recovery before assigning final capacities.
+
+An RV32 instruction replay checked the counters with two live 16-byte TCP
+segment records and one 97-byte raw packet. Packet alignment and its header
+brought the total to 148 bytes. An injected allocator refusal advanced both
+error counters and preserved live counts. Releasing all three objects returned
+live bytes to zero, retained the peak and allowed a new record. The allocator
+and critical sections were simulated. This verifies the measurement method.
+Board traffic is needed to size the pools.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
