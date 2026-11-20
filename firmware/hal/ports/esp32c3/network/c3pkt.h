@@ -1,6 +1,6 @@
 /**
  * @file c3pkt.h
- * @brief Fixed outgoing packet storage for the single TCP broker.
+ * @brief Fixed outgoing TCP and ARP packet storage for the Wi-Fi station.
  */
 #ifndef UTHOME_C3PKT_H
 #define UTHOME_C3PKT_H
@@ -9,7 +9,7 @@
 #include "lwip/tcp.h"
 #include <stdint.h>
 
-/** @brief Allocate a copied TCP transport packet or IP control packet. */
+/** @brief Lease a copied TCP packet or an Ethernet ARP frame. */
 struct pbuf * c3pkt_alloc (pbuf_layer layer, uint16_t length, pbuf_type type);
 
 /** @brief Let the core split its unsent head using the reserved capacity. */

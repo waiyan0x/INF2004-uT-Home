@@ -1,6 +1,6 @@
 /**
  * @file c3lrec.h
- * @brief Fixed typed lwIP socket, TCP connection and segment records.
+ * @brief Fixed typed lwIP connection, segment, queue and message records.
  */
 #ifndef UTHOME_C3LREC_H
 #define UTHOME_C3LREC_H

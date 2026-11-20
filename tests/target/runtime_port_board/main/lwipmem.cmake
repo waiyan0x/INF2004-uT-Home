@@ -1,13 +1,14 @@
-# Redirect both ends of each socket, TCP PCB and segment record lifetime.
+# Redirect both ends of socket, TCP, UDP, message and ARP queue record lifetimes.
 if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
     idf_component_get_property(UTHOME_LWIP_LIB lwip COMPONENT_LIB)
     idf_component_get_property(UTHOME_LWIP_DIR lwip COMPONENT_DIR)
-    foreach(source IN ITEMS api/api_lib.c api/api_msg.c api/netbuf.c api/tcpip.c core/tcp.c core/tcp_out.c)
+    foreach(source IN ITEMS api/api_lib.c api/api_msg.c api/netbuf.c api/tcpip.c core/udp.c core/ipv4/etharp.c core/tcp.c core/tcp_out.c)
         set_property(SOURCE "${UTHOME_LWIP_DIR}/lwip/src/${source}"
             TARGET_DIRECTORY ${UTHOME_LWIP_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
             memp_malloc=c3lrec_alloc memp_free=c3lrec_free)
     endforeach()
     set_property(SOURCE "${UTHOME_LWIP_DIR}/lwip/src/core/tcp_out.c"
+                        "${UTHOME_LWIP_DIR}/lwip/src/core/ipv4/etharp.c"
         TARGET_DIRECTORY ${UTHOME_LWIP_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
         pbuf_alloc=c3pkt_alloc)
     set_property(SOURCE "${UTHOME_LWIP_DIR}/lwip/src/core/tcp.c"

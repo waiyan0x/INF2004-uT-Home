@@ -46,10 +46,13 @@ thread has eight fixed messages for those frames and eight for callbacks.
 The compiled receive and dispatch test returned all 23 driver buffers exactly
 once. Booting from saved idle, the board passed eight BMP388/radar reads
 across a broker restart. The receive pool peaked at three of eight slots on
-that boot. The image leaves 283 application bytes and 2,362
-total fixed DRAM bytes.
-ARP packets, UDP connection records and TLS certificate verification still
-use heap-backed paths.
+that boot.
+The current station image also fixes storage for UDP endpoints, ARP requests
+and replies, and records for packets awaiting address resolution. It leaves
+74 application bytes and 2,154 total fixed DRAM bytes. DHCP state and outgoing
+messages, some packet-copy paths and TLS certificate verification still use
+the heap.
+[ARP and UDP memory checks](docs/reports/wifi-static-memory/README.md#fixed-arp-and-udp-storage)
 [Wi-Fi receive and dispatch checks](docs/reports/wifi-static-memory/README.md#fixed-tcpip-message-handoff)
 [Outgoing TCP packet checks](docs/reports/wifi-static-memory/README.md#fixed-outgoing-tcp-packets)
 

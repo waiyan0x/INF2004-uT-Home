@@ -11,7 +11,7 @@ resource limits, build instructions, manual reviews and qualification evidence.
 | `c3lbox` | lwIP mailbox identities bound to the existing fixed queue payloads |
 | `c3tls` | Fixed ESP-TLS contexts, error trackers and temporary hostname storage |
 | `c3tout` | Fixed MQTT buffers, hostname, outer TLS/certificate records and TLS 1.2 PRF inputs |
-| `c3lrec`, `c3pkt`, `c3rx` | Fixed socket, TCP and TCP/IP message records, outgoing TCP packets and Wi-Fi receive references |
+| `c3lrec`, `c3pkt`, `c3rx` | Fixed socket, TCP, UDP, ARP and TCP/IP message storage and Wi-Fi receive references |
 | `c3nq`, `c3event` | Native queue/event synchronization and fixed resource bindings |
 | `c3ewait` | Stateless native notification, clock and context boundary for events |
 | `c3wifi` | Isolated Wi-Fi scan diagnostic |
@@ -445,9 +445,9 @@ See the [verification and build identity](../../../../../docs/reports/wifi-stati
 ## Fixed lwIP records
 
 The Wi-Fi station uses fixed arrays of native SDK objects. The build redirects
-both allocation and release in `api_lib.c`, `api_msg.c`, `netbuf.c`, `tcpip.c`, `tcp.c`
-and `tcp_out.c`. Capacities come from the same lwIP settings used by their
-callers.
+both allocation and release in `api_lib.c`, `api_msg.c`, `netbuf.c`, `tcpip.c`,
+`tcp.c`, `tcp_out.c`, `udp.c` and `etharp.c`. The ARP queue is sized for two
+unresolved neighbours. The other capacities use the configured lwIP counts.
 
 | Record | Slots | Use |
 |---|---:|---|
@@ -458,6 +458,8 @@ callers.
 | TCP_SEG | 16 | Queued transmit and receive segment metadata |
 | TCPIP_MSG_INPKT | 8 | Input frames awaiting the TCP/IP thread |
 | TCPIP_MSG_API | 8 | Callback messages awaiting the same thread |
+| UDP_PCB | 2 | DHCP client and one concurrent UDP endpoint |
+| ARP_QUEUE | 7 | Three waiting packets per neighbour and one temporary append |
 
 One MQTT client can connect while earlier connections finish closing.
 The SDK retains its native TIME_WAIT reclamation on connection exhaustion.
@@ -490,10 +492,10 @@ the TCP/IP thread releases the message after dispatch. Reusable callback
 messages follow the SDK's explicit deletion rule. The caller remains
 responsible for the lifetime of callback arguments.
 
-The host suite fills all seven pools, rejects exhaustion, checks alignment and
+The host suite fills all nine pools, rejects exhaustion, checks alignment and
 zeroing and repeats release and reuse 1,000 times with heap calls trapped.
 Run it with `python -B -m unittest discover -s tests/target -p test_lwip_records.py -v`.
-The target build checks the six source bindings. The linked-instruction
+The target build checks the eight record source bindings. The linked-instruction
 test exercises both immediate failure and partial-write rollback.
 [TCP record measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-tcp-records)
 [Receive and dispatch measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-tcpip-message-handoff)
@@ -520,6 +522,31 @@ the pbuf back to its enclosing custom header, whose first member is the pbuf.
 It marks the slot free only after the last reference. All array scans are
 bounded. Oversize requests and exhausted pools return NULL to lwIP. This
 C99 boundary adds no coding-standard deviation.
+
+## ARP frames and UDP endpoints
+
+The station reserves one 64-byte slot for a 28-byte ARP request or reply.
+It has a native custom pbuf and aligned link-header space for the 14-byte
+Ethernet header. A retained transmission can hold the slot until its final
+reference is released. During that time another ARP frame returns `ERR_MEM`.
+TCP transport, TCP control and incoming Wi-Fi frames use separate storage.
+
+The pinned SDK can queue three packets per unresolved IPv4 neighbour. It
+temporarily appends a fourth before rejecting it. Seven native queue records
+cover two full neighbours and this temporary append. Each entry holds a
+packet reference. After resolution the native ARP code sends that neighbour's
+packets in arrival order and releases them. Interface teardown drains the
+remaining entries. A packet that requires copying still uses the SDK clone path.
+
+**C review.** The station uses the SDK's actual UDP and ARP queue element types,
+their native alignment and zero initialization. Record counts, lease flags and
+bounded scans share the existing interrupt guard. The ARP slot uses the fixed
+packet release callback and reserves aligned storage for the selected link
+layer and the exact SDK frame size. Its 44-byte backing length fits the
+16-bit SDK argument. The ABI, device register access and task/ISR contracts
+are unchanged. The two reviewed C99 adapters require no new deviation.
+
+[ARP and UDP measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-arp-and-udp-storage)
 
 ## Wi-Fi receive records
 

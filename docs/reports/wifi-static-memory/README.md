@@ -402,6 +402,49 @@ driver, the final ELF still calls the native packet allocator from
 packet and record paths can reach libc allocation. TLS certificate verification
 also remains heap-backed. Whole-system static memory qualification is open.
 
+#### Fixed ARP and UDP storage
+
+Firmware `89e3f994`, ELF `777261ae`. The IPv4 demo station has two fixed
+40-byte UDP records for DHCP and one concurrent endpoint, down from the SDK
+default setting of 16. Seven 8-byte ARP queue entries and their lease flags
+support two unresolved neighbours with three waiting packets each and one
+temporary append. Together these records and flags add 145 application bytes.
+ARP requests and replies share a separate 64-byte frame slot. Each use sends a
+42-byte Ethernet frame. The TCP transport and control reservations retain their
+previous capacities.
+
+| Fixed RAM | Linked | Limit | Available |
+|---|---:|---:|---:|
+| Application | 147,382 | 147,456 | 74 |
+| Total DRAM | 276,374 | 278,528 | 2,154 |
+
+All module and group checks passed. The station, transaction and configuration
+module reservations now use their measured linked sizes where needed. Application
+module reservations total 147,455 bytes. The application gained 209 fixed bytes
+and the kernel/SDK group decreased by one byte relative to image `d4edb5d9`.
+
+In the RV32 replay the native UDP stack allocated and bound two endpoints,
+refused a third, then removed and rebound the first. The native ARP code
+produced byte-exact request and reply frames. A retained reference prevented
+reuse of the ARP frame. Two unresolved queues held six packets. A full queue
+or exhausted pool returned `ERR_MEM` and preserved caller ownership.
+Resolving one peer sent its three packets in order. Interface cleanup released
+the remaining references and all seven queue records could be leased again.
+The replay trapped general allocation and supplied the final link-output
+callback. The existing full-window TCP and Wi-Fi receive/dispatch replays
+also passed on this ELF.
+
+```powershell
+python -B -m tools.target.arp_udp_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
+```
+
+The same ELF calls `mem_malloc` from `dhcp_start` for a 92-byte client state
+when no state has been supplied. Its `dhcp_create_msg` calls the native packet
+allocator for a 309-byte message before packet metadata and headroom. Native
+ARP cloning of volatile packets, the optional UDP header allocation and TLS
+certificate verification also retain heap paths. The Wi-Fi driver allocation
+inventory and whole-system static-memory qualification remain open.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

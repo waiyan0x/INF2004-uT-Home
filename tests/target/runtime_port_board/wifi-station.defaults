@@ -1,6 +1,8 @@
 # Real station services use IPv4 DHCP and WPA2-PSK only.
 CONFIG_LWIP_IPV6=n
 CONFIG_LWIP_DHCPS=n
+# Reserve the DHCP client and one concurrent UDP endpoint.
+CONFIG_LWIP_MAX_UDP_PCBS=2
 CONFIG_ESP_WIFI_SOFTAP_SUPPORT=n
 CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT=n
 # Four IPv4 TCP segments can queue for the single MQTT broker.

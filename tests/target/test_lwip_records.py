@@ -16,6 +16,8 @@ HEADERS = {
 #ifndef UTHOME_TEST_MEMP_H
 #define UTHOME_TEST_MEMP_H
 #define MEMP_NUM_NETCONN 6
+#define MEMP_NUM_UDP_PCB 2
+#define ARP_QUEUE_LEN 3
 #define MEMP_NUM_NETBUF  2
 #define MEMP_NUM_TCP_PCB 3
 #define MEMP_NUM_TCP_PCB_LISTEN 1
@@ -32,8 +34,42 @@ typedef enum
     MEMP_TCP_SEG,
     MEMP_TCPIP_MSG_INPKT,
     MEMP_TCPIP_MSG_API,
+    MEMP_UDP_PCB,
+    MEMP_ARP_QUEUE,
     MEMP_MAX
 } memp_t;
+#endif
+
+/* End of file. */
+
+""",
+    "udp.h": r"""/**
+ * @file udp.h
+ * @brief Typed host record for the udp adapter test.
+ */
+#ifndef UTHOME_TEST_UDP_H
+#define UTHOME_TEST_UDP_H
+#include <stdint.h>
+struct udp_pcb
+{
+    uint64_t words[5];
+};
+#endif
+
+/* End of file. */
+
+""",
+    "etharp.h": r"""/**
+ * @file etharp.h
+ * @brief Typed host record for the etharp adapter test.
+ */
+#ifndef UTHOME_TEST_ETHARP_H
+#define UTHOME_TEST_ETHARP_H
+#include <stdint.h>
+struct etharp_q_entry
+{
+    uint64_t words[1];
+};
 #endif
 
 /* End of file. */
@@ -127,7 +163,8 @@ struct netbuf
 
 
 class LwipRecordTests(unittest.TestCase):
-    pools = ((0, 6, 128), (1, 2, 32), (3, 3, 168), (4, 1, 40), (5, 16, 16), (6, 8, 16), (7, 8, 16))
+    pools = ((0, 6, 128), (1, 2, 32), (3, 3, 168), (4, 1, 40), (5, 16, 16), (6, 8, 16), (7, 8, 16),
+             (8, 2, 40), (9, 7, 8))
 
     @classmethod
     def setUpClass(cls):
@@ -230,12 +267,12 @@ class LwipRecordTests(unittest.TestCase):
         for nested in (False, True):
             saved = self.lib.lrectest_enter() if nested else 0
             before = self.lib.lrectest_calls()
-            for kind in range(8):
+            for kind in range(10):
                 record = self.lib.c3lrec_alloc(kind)
                 self.assertEqual(self.lib.lrectest_mask(), int(nested))
                 self.lib.c3lrec_free(kind, record)
                 self.assertEqual(self.lib.lrectest_mask(), int(nested))
-            self.assertEqual(self.lib.lrectest_calls() - before, 16)
+            self.assertEqual(self.lib.lrectest_calls() - before, 20)
             if nested:
                 self.lib.lrectest_leave(saved)
 
@@ -250,7 +287,7 @@ class LwipRecordTests(unittest.TestCase):
             self.assertEqual(leased, expected)
             self.assertFalse(self.lib.c3lrec_alloc(0))
             self.assertFalse(self.lib.c3lrec_alloc(1))
-            for kind in (3, 4, 5, 6, 7):
+            for kind in (3, 4, 5, 6, 7, 8, 9):
                 self.assertFalse(self.lib.c3lrec_alloc(kind))
             # The SDK returns a record after cleanup even if setup failed.
             for kind, pointer in reversed(leased):

@@ -182,7 +182,7 @@ foreach(allocator malloc calloc realloc free)
 endforeach()
 
 # Preserve the three native startup boundaries under private names and route
-# callers through a flash-resident trace only in the isolated Wiâ€‘Fi probe.
+# callers through a flash-resident trace only in the isolated WiÃ¢â‚¬â€˜Fi probe.
 # This reports exact return values without changing device policy, resources,
 # or the cache-safe memory-audit path.
 function(uthome_startup_trace source syscall name)
@@ -289,7 +289,7 @@ if(UTHOME_NETWORK_WIFI)
        CONFIG_ESP_WIFI_SOFTAP_SUPPORT OR CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT OR
        NOT CONFIG_ESP_TLS_USING_MBEDTLS OR NOT CONFIG_MBEDTLS_TLS_CLIENT OR CONFIG_MBEDTLS_TLS_SERVER OR
        NOT CONFIG_MBEDTLS_SSL_PROTO_TLS1_2 OR CONFIG_ESP_WIFI_NVS_ENABLED OR
-       NOT CONFIG_LWIP_MAX_SOCKETS EQUAL 6 OR CONFIG_LWIP_SO_REUSE)
+       NOT CONFIG_LWIP_MAX_SOCKETS EQUAL 6 OR NOT CONFIG_LWIP_MAX_UDP_PCBS EQUAL 2 OR CONFIG_LWIP_SO_REUSE)
         message(FATAL_ERROR "Wi-Fi services require reviewed station/TLS/socket/RAM-only settings")
     endif()
 endif()

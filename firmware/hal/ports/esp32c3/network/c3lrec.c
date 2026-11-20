@@ -6,13 +6,18 @@
 #if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
 #include "c3bport.h"
 #include "lwip/api.h"
+#include "lwip/etharp.h"
 #include "lwip/netbuf.h"
 #include "lwip/priv/tcp_priv.h"
 #include "lwip/priv/tcpip_priv.h"
 #include "lwip/stats.h"
+#include "lwip/udp.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
+
+/* Two unresolved neighbours plus one append during the queue-limit check. */
+#define C3LREC_ARP_SLOTS ((2U * ARP_QUEUE_LEN) + 1U)
 
 typedef struct
 {
@@ -40,6 +45,11 @@ static struct tcpip_msg g_inputs[MEMP_NUM_TCPIP_MSG_INPKT]   = {0};
 static struct tcpip_msg g_callbacks[MEMP_NUM_TCPIP_MSG_API]  = {0};
 static bool             gb_inputs[MEMP_NUM_TCPIP_MSG_INPKT]  = {false};
 static bool             gb_callbacks[MEMP_NUM_TCPIP_MSG_API] = {false};
+
+static struct udp_pcb        g_datagrams[MEMP_NUM_UDP_PCB]  = {0};
+static struct etharp_q_entry g_pending[C3LREC_ARP_SLOTS]    = {0};
+static bool                  gb_datagrams[MEMP_NUM_UDP_PCB] = {false};
+static bool                  gb_pending[C3LREC_ARP_SLOTS]   = {false};
 
 /* Each base denotes the complete typed array, including all its elements. */
 static c3lrec_pool_t const g_pools[] = {
@@ -73,7 +83,17 @@ static c3lrec_pool_t const g_pools[] = {
      &g_callbacks,
      gb_callbacks,
      MEMP_NUM_TCPIP_MSG_API,
-     sizeof(g_callbacks[0])}};
+     sizeof(g_callbacks[0])},
+    {MEMP_UDP_PCB,
+     &g_datagrams,
+     gb_datagrams,
+     MEMP_NUM_UDP_PCB,
+     sizeof(g_datagrams[0])},
+    {MEMP_ARP_QUEUE,
+     &g_pending,
+     gb_pending,
+     C3LREC_ARP_SLOTS,
+     sizeof(g_pending[0])}};
 
 /** @brief Lease a zeroed, naturally aligned record of the requested SDK type.
  */

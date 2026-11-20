@@ -1,11 +1,12 @@
 /**
  * @file c3pkt.c
- * @brief Own copied TCP packets until lwIP releases their last reference.
+ * @brief Own TCP packets and the ARP frame until their last lwIP reference.
  */
 #include "c3pkt.h"
 #if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
 #include "c3bport.h"
 #include "lwip/priv/tcp_priv.h"
+#include "lwip/prot/etharp.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -35,6 +36,15 @@ typedef struct
                    sizeof(uint32_t)];
 } c3pkt_control_t;
 
+typedef struct
+{
+    struct pbuf_custom header;
+    uint32_t words[LWIP_MEM_ALIGN_SIZE(LWIP_MEM_ALIGN_SIZE(PBUF_LINK) +
+                                       SIZEOF_ETHARP_HDR) /
+                   sizeof(uint32_t)];
+} c3pkt_arp_t;
+
+static c3pkt_arp_t     g_arp                          = {0};
 static c3pkt_data_t    g_data[C3PKT_DATA_SLOTS]       = {0};
 static c3pkt_control_t g_control[C3PKT_CONTROL_SLOTS] = {0};
 /* Only lwIP's serialized TCP core enters the split or allocates a packet. */
@@ -85,9 +95,16 @@ struct pbuf * c3pkt_alloc (pbuf_layer layer, uint16_t length, pbuf_type type)
             }
         }
     }
+    else if ((PBUF_LINK == layer) && (SIZEOF_ETHARP_HDR == length) &&
+             (NULL == g_arp.header.custom_free_function))
+    {
+        p_header  = &g_arp.header;
+        p_storage = g_arp.words;
+        size      = sizeof(g_arp.words);
+    }
     else
     {
-        /* This TCP port emits no other packet shapes. */
+        /* No storage for this frame shape or an already leased ARP frame. */
     }
     struct pbuf * p_packet = NULL;
     if (NULL != p_header)
