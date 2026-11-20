@@ -86,11 +86,32 @@ four error-tracker entry points are linked to owned implementations. The
 original tracker implementation must not remain linked. Vendor files and pins
 are unchanged, and the SDK still owns connection setup and TLS/socket cleanup.
 
+For the one MQTT client, only the socket setup in `esp_tls.c` binds
+`lwip_getaddrinfo` and `lwip_freeaddrinfo` to the numeric endpoint in
+`c3mqtt`. ESP-TLS supplies a null service, a stream socket and an unspecified
+or IPv4 family. The endpoint parses the broker literal with the same IPv4
+parser used at admission. ESP-TLS sets the port and copies the socket address
+before releasing it. Its TLS certificate name still comes from `common_name`.
+
+**C review.** The C99 adapter keeps the SDK resolver signatures. Its fixed
+result points at the generic socket address member of an aligned union. The
+SDK reads the IPv4 member at the same address. Each successful lookup
+initializes the entire IPv4 address and result, including a zero port and
+null next pointer. A live result belongs to the serialized network owner.
+A second borrow returns the SDK memory error and preserves the first
+address. Only the matching release clears the lease. No task, lock or
+coding-standard deviation is added.
+
 Only `calloc(1, sizeof(esp_tls_t))` is admitted. Unsupported shapes and exhausted
 stores return NULL; there is no general allocator or heap fallback. One
 254-byte temporary name buffer covers the existing 253-character server-name
 limit and numeric IPv4 address. The SDK copies/uses and frees that scratch name
 before returning; `c3tout` below owns a separate persistent connection hostname.
+The three stored MQTT topic buffers use the size of each format string and
+the full 31-character node limit. This pays for the socket endpoint within the
+original MQTT module reservation. The maximum-name test checks availability,
+the transaction subscription and the result topic through the MQTT adapter.
+
 The build guard excludes ESP-TLS saved-session storage. mbedTLS ticket parsing
 can still allocate internally; it is not covered by that guard.
 Global CA-store and saved-session APIs are outside
@@ -130,7 +151,7 @@ The selected build rejects `CONFIG_MBEDTLS_DYNAMIC_BUFFER`; the pinned SDK's
 partial-header failure is documented in the resource assessment below. The
 qualifier also rejects a linked `esp_mbedtls_add_rx_buffer` implementation.
 
-This closes ESP-TLS record/name allocation only. The adapter below owns TLS
+The scoped bindings cover ESP-TLS context, name and numeric endpoint storage. The adapter below owns TLS
 record buffers and the connection hostname; certificates/keys, ticket state and lwIP packet/control-block storage still
 need bounded allocation and live acceptance. See the
 [current resource assessment](../../../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).

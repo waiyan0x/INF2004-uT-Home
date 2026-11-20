@@ -701,6 +701,43 @@ endpoint while preserving the separate TLS certificate name. The 16-byte
 station membership also needs fixed storage. Packet allocation for other
 DNS or multicast workloads remains outside this measurement.
 
+#### Fixed numeric broker endpoint
+
+On image `1e2ae91c` (ELF `f01163e8`), the serialized MQTT connection
+borrows a 32-byte address result and a 16-byte IPv4 socket address from
+fixed storage. ESP-TLS copies the address, sets the port and releases the
+result. The binding applies to the static Wi-Fi build's ESP-TLS socket
+source. The configured certificate name still goes to the TLS verifier
+separately. The previous image requested 308 heap bytes per numeric lookup.
+
+The three MQTT topic buffers now reserve precisely the space needed for
+the existing 31-character maximum node name, including the terminator. A
+host test checked the complete availability, request and result topics at
+that limit. The MQTT module occupies 1,802 of its 1,816 reserved bytes.
+All original memory limits passed.
+
+| Linked memory | Used (bytes) | Limit (bytes) | Free (bytes) |
+|---|---:|---:|---:|
+| Application fixed storage | 147,329 | 147,456 | 127 |
+| Total fixed DRAM | 275,270 | 278,528 | 3,258 |
+
+The compiled ESP-TLS socket path preserved IPv4 address and port bytes,
+rejected invalid input, and recovered after socket creation failed.
+A second lookup while the record was occupied failed without changing
+the first address. An unrelated release left the record occupied, and the
+matching release allowed reuse. Across four calls to the socket test double,
+the replay recorded zero general resolver or address-lookup heap calls.
+The same check detected the general resolver in the previous ELF. The
+93 affected host tests and the C standard check across 342 files passed.
+
+```powershell
+python -B -m tools.target.dns_igmp_probe --fixed-endpoint --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
+```
+
+The station's 16-byte multicast membership at Wi-Fi startup remains the
+next allocation to qualify. Certificate verification and the Wi-Fi driver
+allocation inventory remain open.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

@@ -18,6 +18,9 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
             TARGET_DIRECTORY ${UTHOME_TLS_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
             calloc=c3tls_alloc free=c3tls_free strndup=c3tls_dup)
     endforeach()
+    set_property(SOURCE "${UTHOME_TLS_DIR}/esp_tls.c"
+        TARGET_DIRECTORY ${UTHOME_TLS_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
+        lwip_getaddrinfo=c3mqtt_resolve lwip_freeaddrinfo=c3mqtt_release)
     foreach(pair IN ITEMS
             esp_tls_internal_event_tracker_create=c3tls_error_create
             esp_tls_internal_event_tracker_destroy=c3tls_error_destroy

@@ -6,7 +6,8 @@ from pathlib import Path
 import struct
 
 from unicorn import UC_HOOK_CODE
-from unicorn.riscv_const import UC_RISCV_REG_A0, UC_RISCV_REG_A1, UC_RISCV_REG_PC, UC_RISCV_REG_RA
+from unicorn.riscv_const import (UC_RISCV_REG_A0, UC_RISCV_REG_A1, UC_RISCV_REG_A2,
+                                 UC_RISCV_REG_A4, UC_RISCV_REG_A5, UC_RISCV_REG_PC, UC_RISCV_REG_RA)
 from .tcp_packet_probe import target_layout
 from .tls_fragment_probe import Probe, RECV, SSL
 from .tls_output_probe import OutputProbe
@@ -119,9 +120,80 @@ def verify(elf, gdb):
                 dns_packet_heap_request=sizes[3], igmp_packet_heap_request=sizes[4])
 
 
+def verify_endpoint(elf, gdb):
+    """Run the SDK socket setup, with only socket creation and ROM routines supplied."""
+    cpu = Probe(elf)
+    layout = target_layout(elf, gdb, ("addrinfo", "sockaddr_in"),
+                           ("ESP_TLS_AF_UNSPEC", "ESP_TLS_AF_INET"))
+    host, target, fd, hints, out = (SSL + n for n in (0x8000, 0x9000, 0xa000, 0xb000, 0xc000))
+    sockets = []
+    descriptor = 7
+
+    def run(name, *args):
+        return OutputProbe.run(cpu, name, *args)
+
+    def reject(_uc, pc, *_):
+        raise AssertionError(f"Broker endpoint reached general lookup or heap at {pc:#x}")
+
+    def socket(*_):
+        args = tuple(cpu.uc.reg_read(r) for r in (UC_RISCV_REG_A0, UC_RISCV_REG_A1, UC_RISCV_REG_A2))
+        assert args == (2, 1, 0)
+        sockets.append(descriptor)
+        cpu.finish(descriptor)
+
+    for name in ("malloc", "calloc", "free", "mem_malloc", "mem_free", "lwip_getaddrinfo", "dns_send"):
+        if name in cpu.symbols:
+            cpu.hook(cpu.symbols[name], reject)
+    cpu.hook(cpu.symbols["lwip_socket"], socket)
+
+    def connect(literal, family, port):
+        cpu.uc.mem_write(host, literal + b"\0")
+        cpu.uc.mem_write(target, bytes(32))
+        cpu.uc.reg_write(UC_RISCV_REG_A4, target)
+        cpu.uc.reg_write(UC_RISCV_REG_A5, fd)
+        return run("esp_tls_hostname_to_fd", host, len(literal), port, layout[family])
+
+    def check_peer(ip, port):
+        pos = layout["sockaddr_in"]
+        assert bytes(cpu.uc.mem_read(target + pos["sin_addr"][0], 4)) == ip
+        assert bytes(cpu.uc.mem_read(target + pos["sin_port"][0], 2)) == struct.pack("!H", port)
+        assert cpu.uc.mem_read(target + pos["sin_family"][0], 1) == b"\x02"
+        assert struct.unpack("<i", cpu.uc.mem_read(fd, 4))[0] == descriptor
+
+    assert connect(b"192.0.2.1", "ESP_TLS_AF_UNSPEC", 8883) == 0
+    check_peer(bytes([192, 0, 2, 1]), 8883)
+    assert connect(b"broker.example", "ESP_TLS_AF_UNSPEC", 8883) != 0
+    assert sockets == [7]
+    descriptor = -1
+    assert connect(b"192.0.2.1", "ESP_TLS_AF_INET", 8883) != 0
+    descriptor = 8
+    assert connect(b"203.0.113.4", "ESP_TLS_AF_INET", 65535) == 0
+    check_peer(bytes([203, 0, 113, 4]), 65535)
+
+    # Hold a live result while the real SDK attempts another connection.
+    socktype, width = layout["addrinfo"]["ai_socktype"]
+    cpu.uc.mem_write(hints + socktype, (1).to_bytes(width, "little"))
+    assert run("c3mqtt_resolve", host, 0, hints, out) == 0
+    held = int.from_bytes(cpu.uc.mem_read(out, 4), "little")
+    ai_addr = int.from_bytes(cpu.uc.mem_read(held + layout["addrinfo"]["ai_addr"][0], 4), "little")
+    ip = ai_addr + layout["sockaddr_in"]["sin_addr"][0]
+    run("c3mqtt_release", out)
+    run("c3mqtt_release", 0)
+    assert connect(b"192.0.2.5", "ESP_TLS_AF_INET", 8883) != 0
+    assert bytes(cpu.uc.mem_read(ip, 4)) == bytes([203, 0, 113, 4])
+    run("c3mqtt_release", held)
+    assert connect(b"192.0.2.5", "ESP_TLS_AF_INET", 8883) == 0
+    check_peer(bytes([192, 0, 2, 5]), 8883)
+    assert sockets == [7, -1, 8, 8]
+    return dict(elf_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(),
+                socket_attempts=len(sockets), general_lookup_calls=0, endpoint_heap_calls=0)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--elf", type=Path, required=True)
     parser.add_argument("--gdb", default="riscv32-esp-elf-gdb")
+    parser.add_argument("--fixed-endpoint", action="store_true", help="exercise the SDK socket path with the fixed numeric endpoint")
     args = parser.parse_args()
-    print(json.dumps(verify(args.elf, args.gdb), indent=2))
+    check = verify_endpoint if args.fixed_endpoint else verify
+    print(json.dumps(check(args.elf, args.gdb), indent=2))

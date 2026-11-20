@@ -18,6 +18,20 @@ typedef struct
     uint16_t        port;
 } c3mqtt_config_t;
 
+#if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
+struct addrinfo;
+
+/** @brief Lease the numeric IPv4 stream endpoint to the single ESP-TLS caller.
+ */
+int c3mqtt_resolve (const char *            p_host,
+                    const char *            p_service,
+                    const struct addrinfo * p_hints,
+                    struct addrinfo **      pp_result);
+
+/** @brief Release the endpoint after the SDK copies the socket address. */
+void c3mqtt_release (struct addrinfo * p_result);
+#endif
+
 /* Immutable boot-lifetime inputs. IPv4 literal avoids synchronous SDK DNS;
  * server_name remains mandatory for certificate verification/SNI. No NVS,
  * task or controller mutation. SDK TLS allocation remains unqualified.

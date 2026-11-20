@@ -386,11 +386,11 @@ void c3fake_wifi_disconnected(uint8_t reason)
 { wifi_event_sta_disconnected_t data={reason};g_event(NULL,WIFI_EVENT,WIFI_EVENT_STA_DISCONNECTED,&data); }
 int c3fake_connects(void) { return g_connects; }
 int c3fake_disconnects(void) { return g_disconnects; }
-int c3fake_mqtt_start(void)
+int c3fake_mqtt_start(const char * p_node)
 { static const uint8_t ca[]="certificate";
  const c3mqtt_config_t cfg={.p_address="127.0.0.1",.p_server_name="broker.test",
  .p_user="user",.p_password="password",.p_ca=ca,.ca_size=sizeof(ca),.port=8883};
- return c3mqtt_start(&cfg,"node"); }
+ return c3mqtt_start(&cfg,p_node); }
 int c3fake_mqtt_step(uint64_t now,int online)
 { return c3mqtt_step(now,online!=0,&g_info,capture,NULL); }
 void c3fake_capture_result(int slot,int result) { if(slot>=0 && slot<8) { g_capture_result[slot]=result; } }
@@ -506,7 +506,7 @@ class EspBindingTests(unittest.TestCase):
         return bytes(output[:size])
 
 
-    def mqtt_session(self,absent=range(1,8)):
+    def mqtt_session(self,absent=range(1,8),node=b"node"):
         """Real c3mqtt over the TLS double; whole-packet writes; slot 0 present."""
         self.lib.c3fake_mqtt_step.argtypes=[c.c_uint64,c.c_int]
         self.lib.c3fake_take_output.argtypes=[c.c_int,c.c_void_p]
@@ -516,11 +516,12 @@ class EspBindingTests(unittest.TestCase):
         self.lib.c3mqtt_status.argtypes=[c.c_void_p]
         for slot in absent:
             self.lib.c3fake_capture_result(slot,1)
-        self.assertEqual(self.lib.c3fake_mqtt_start(),0)
+        self.assertEqual(self.lib.c3fake_mqtt_start(node),0)
         self.lib.c3fake_handshake(1)
         self.lib.c3fake_write_limit(4096)
         self.mqtt_now=0
         self.mqtt_stream=bytearray()
+        self.subscriptions=[]
         self.publishes=[]  # (owner time, retain bit, topic, payload)
         self.mqtt_connects=0
 
@@ -563,6 +564,8 @@ class EspBindingTests(unittest.TestCase):
                 self.publishes.append((self.mqtt_now,packet[0]&1,
                                        body[2:2+size].decode('ascii'),body[2+size:]))
             elif kind==8:
+                size=int.from_bytes(body[2:4],'big')
+                self.subscriptions.append(body[4:4+size].decode('ascii'))
                 self.lib.c3fake_input(0,b'\x90\x03'+body[:2]+b'\x00',5)
             elif kind==12:
                 self.lib.c3fake_input(0,b'\xd0\x00',2)
@@ -572,6 +575,19 @@ class EspBindingTests(unittest.TestCase):
 
     CAPTURE_RETRIES=100  # Mirrors C3MQTT_CAPTURE_RETRIES in c3mqtt.c.
 
+
+    def test_mqtt_topics_fit_the_longest_node_name(self):
+        node = b"n" * 31
+        self.mqtt_session(absent=range(8), node=node)
+        self.assertEqual(self.lib.c3mqtt_transactions(), 0)
+        self.mqtt_pump(100)
+        prefix = "uthome/v1/" + node.decode("ascii")
+        self.assertIn(prefix + "/transaction/request", self.subscriptions)
+        self.assertEqual(self.publishes[0][2:], (prefix + "/availability", b"online"))
+        payload = bytes(range(96))
+        self.assertEqual(self.lib.c3mqtt_result(payload, len(payload)), 0)
+        self.mqtt_pump(100)
+        self.assertEqual(self.publishes[-1][2:], (prefix + "/transaction/result", payload))
 
     def test_mqtt_target_buffers_publish_binary_telemetry_without_discovery(self):
         from tools.target.network_client import decode_mqtt
@@ -610,7 +626,7 @@ class EspBindingTests(unittest.TestCase):
         self.assertTrue(self.lib.c3mqtt_ready())
 
     def test_mqtt_command_subscription_and_priority_result(self):
-        self.assertEqual(self.lib.c3fake_mqtt_start(),0)
+        self.assertEqual(self.lib.c3fake_mqtt_start(b"node"),0)
         self.assertEqual(self.lib.c3mqtt_transactions(),0)
         self.lib.c3fake_handshake(1)
         self.lib.c3fake_mqtt_step.argtypes=[c.c_uint64,c.c_int]
@@ -909,7 +925,7 @@ class EspBindingTests(unittest.TestCase):
         self.assertEqual(self.lib.c3mqtt_status(view),0)
         self.assertEqual(list(view),[6,0,0,0])
         self.assertEqual(self.lib.c3fake_deleted(),0)
-        self.assertEqual(self.lib.c3fake_mqtt_start(),0)
+        self.assertEqual(self.lib.c3fake_mqtt_start(b"node"),0)
         self.lib.c3fake_mqtt_step.argtypes=[c.c_uint64,c.c_int]
         self.lib.c3fake_handshake(0)
         self.lib.c3fake_mqtt_step(1,1)
@@ -924,8 +940,8 @@ class EspBindingTests(unittest.TestCase):
 
     def test_mqtt_tls_partial_start_and_upstream_loss_release_once(self):
         self.lib.c3fake_mqtt_step.argtypes=[c.c_uint64,c.c_int]
-        self.assertEqual(self.lib.c3fake_mqtt_start(),0)
-        self.assertEqual(self.lib.c3fake_mqtt_start(),-1)
+        self.assertEqual(self.lib.c3fake_mqtt_start(b"node"),0)
+        self.assertEqual(self.lib.c3fake_mqtt_start(b"node"),-1)
         self.lib.c3fake_handshake(0)
         self.assertEqual(self.lib.c3fake_mqtt_step(1,1),0)
         self.assertEqual(self.lib.c3fake_deleted(),0)

@@ -9,23 +9,35 @@
 #include "esp_tls_private.h"
 #include "esp_random.h"
 #include "lwip/inet.h"
+#if UTHOME_STATIC_NET_QUEUES
+#include "lwip/netdb.h"
+#endif
 #include "lwip/sockets.h"
 #include <stdio.h>
 #include <string.h>
 
-static netbroker_t       g_broker            = {0};
-static c3mqtt_config_t   g_config            = {0};
-static esp_tls_cfg_t     g_tls_config        = {0};
-static esp_tls_t *       gp_tls              = NULL;
-static sampcache_entry_t g_sample            = {0};
-static char              g_node[32]          = {0};
-static char              g_availability[80]  = {0};
-static uint64_t          g_next_ms           = 0U;
-static uint16_t          g_source            = 0U;
-static bool              gb_attempted        = false;
-static char              g_request_topic[80] = {0};
-static char              g_result_topic[80]  = {0};
-static bool              gb_result           = false;
+#define C3MQTT_AVAILABILITY_FORMAT "uthome/v1/%s/availability"
+#define C3MQTT_REQUEST_FORMAT      "uthome/v1/%s/transaction/request"
+#define C3MQTT_RESULT_FORMAT       "uthome/v1/%s/transaction/result"
+/* A format's terminating NUL is retained when its single %s expands. */
+#define C3MQTT_TOPIC_GROWTH (sizeof(g_node) - sizeof("%s"))
+
+static netbroker_t       g_broker                            = {0};
+static c3mqtt_config_t   g_config                            = {0};
+static esp_tls_cfg_t     g_tls_config                        = {0};
+static esp_tls_t *       gp_tls                              = NULL;
+static sampcache_entry_t g_sample                            = {0};
+static char              g_node[32]                          = {0};
+static char              g_availability[sizeof(C3MQTT_AVAILABILITY_FORMAT) +
+                           C3MQTT_TOPIC_GROWTH] = {0};
+static uint64_t          g_next_ms                           = 0U;
+static uint16_t          g_source                            = 0U;
+static bool              gb_attempted                        = false;
+static char
+    g_request_topic[sizeof(C3MQTT_REQUEST_FORMAT) + C3MQTT_TOPIC_GROWTH] = {0};
+static char g_result_topic[sizeof(C3MQTT_RESULT_FORMAT) + C3MQTT_TOPIC_GROWTH] =
+    {0};
+static bool gb_result = false;
 static bool server_name (const char * p_name);
 static int telemetry_step (uint64_t              now_ms,
                            const netble_meta_t * p_meta,
@@ -35,6 +47,64 @@ static int connect_step (void * p_context);
 static int read_step (void * p_context, uint8_t * p_data, size_t size);
 static int write_step (void * p_context, const uint8_t * p_data, size_t size);
 static void close_step (void * p_context);
+
+#if UTHOME_STATIC_NET_QUEUES
+/* The SDK accepts sockaddr and reads the IPv4 member it points to. */
+static union
+{
+    struct sockaddr    generic;
+    struct sockaddr_in ipv4;
+} g_endpoint                    = {0};
+static struct addrinfo g_lookup = {0};
+
+/** @brief Match the pinned ESP-TLS call for the configured numeric broker. */
+int c3mqtt_resolve (const char *            p_host,
+                    const char *            p_service,
+                    const struct addrinfo * p_hints,
+                    struct addrinfo **      pp_result)
+{
+    if (NULL == pp_result)
+    {
+        return EAI_FAIL;
+    }
+    *pp_result = NULL;
+    if ((NULL == p_host) || (NULL != p_service) || (NULL == p_hints) ||
+        ((AF_UNSPEC != p_hints->ai_family) &&
+         (AF_INET != p_hints->ai_family)) ||
+        (SOCK_STREAM != p_hints->ai_socktype) || (0 != p_hints->ai_flags) ||
+        (0 != p_hints->ai_protocol))
+    {
+        return EAI_FAIL;
+    }
+    if (NULL != g_lookup.ai_addr)
+    {
+        return EAI_MEMORY;
+    }
+    struct in_addr address = {0};
+    if (1 != inet_pton(AF_INET, p_host, &address))
+    {
+        return EAI_NONAME;
+    }
+    g_endpoint.ipv4 = (struct sockaddr_in){.sin_len = sizeof(g_endpoint.ipv4),
+                                           .sin_family = AF_INET,
+                                           .sin_addr   = address};
+    g_lookup        = (struct addrinfo){.ai_family   = AF_INET,
+                                        .ai_socktype = SOCK_STREAM,
+                                        .ai_addrlen  = sizeof(g_endpoint.ipv4),
+                                        .ai_addr     = &g_endpoint.generic};
+    *pp_result      = &g_lookup;
+    return 0;
+}
+
+/** @brief Only the serialized ESP-TLS connection owner borrows this record. */
+void c3mqtt_release (struct addrinfo * p_result)
+{
+    if (&g_lookup == p_result)
+    {
+        g_lookup.ai_addr = NULL;
+    }
+}
+#endif
 
 /** @brief Initialize only once, with explicit certificate and broker identity.
  */
@@ -58,7 +128,7 @@ int c3mqtt_start (const c3mqtt_config_t * p_config, const char * p_node)
     memcpy(g_node, p_node, strlen(p_node) + 1U);
     length = snprintf(g_availability,
                       sizeof(g_availability),
-                      "uthome/v1/%s/availability",
+                      C3MQTT_AVAILABILITY_FORMAT,
                       g_node);
     if ((0 > length) || ((size_t)length >= sizeof(g_availability)))
     {
@@ -168,12 +238,10 @@ int c3mqtt_transactions (void)
 {
     const int input  = snprintf(g_request_topic,
                                sizeof(g_request_topic),
-                               "uthome/v1/%s/transaction/request",
+                               C3MQTT_REQUEST_FORMAT,
                                g_node);
-    const int output = snprintf(g_result_topic,
-                                sizeof(g_result_topic),
-                                "uthome/v1/%s/transaction/result",
-                                g_node);
+    const int output = snprintf(
+        g_result_topic, sizeof(g_result_topic), C3MQTT_RESULT_FORMAT, g_node);
     if ((!gb_attempted) || (input <= 0) || (output <= 0) ||
         ((size_t)input >= sizeof(g_request_topic)) ||
         ((size_t)output >= sizeof(g_result_topic)))

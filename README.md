@@ -58,19 +58,19 @@ completed all eight sensor reads across a broker restart. A snapshot found
 five live timers, each in its reserved pool.
 The station shares one full-size frame between ARP queue copies, Wi-Fi chain
 copies, ICMP replies and outgoing IPv4 fragments. The UDP header has its own
-slot. Application headroom is 113 bytes and total fixed DRAM headroom is
-2,082 bytes. The ESP completed eight sensor reads across a broker restart
-and answered two full-size pings. The debugger observed the echo handler
-calling the fixed allocator. Linked-firmware replay covered fragmentation,
-exhaustion and recovery with zero general heap calls in the tested paths.
-The linked firmware requests 308 heap bytes for a numeric broker address
-result and 16 for the station's all-systems multicast membership. The two
-records overlap during connection setup. On the ESP, the reconnect trace
-showed two address results allocated and freed, zero DNS or IGMP packet
-allocations, and one live station membership. Next, remove the temporary
-address-result heap allocation for the numeric broker and qualify the
-station membership storage.
-[Resolver and multicast checks](docs/reports/wifi-static-memory/README.md#numeric-broker-lookup-and-multicast-membership)
+slot. On the IPv4 packet image the ESP completed eight sensor reads across a
+broker restart and answered two full-size pings. The debugger observed the
+echo handler calling the fixed allocator. Linked-firmware replay covered
+fragmentation, exhaustion and recovery with zero general heap calls in
+those paths.
+The MQTT connection now uses one fixed IPv4 broker address record.
+The previous firmware requested 308 heap bytes per lookup. The new
+ESP-TLS socket replay used zero heap calls for address lookup, including
+failure and retry. The existing RAM limits leave 127 application bytes and
+3,258 total fixed DRAM bytes. The next target is the 16-byte station
+multicast membership allocated when Wi-Fi starts.
+[Fixed broker endpoint](docs/reports/wifi-static-memory/README.md#fixed-numeric-broker-endpoint)
+[Earlier resolver and multicast checks](docs/reports/wifi-static-memory/README.md#numeric-broker-lookup-and-multicast-membership)
 [IPv4 packet checks](docs/reports/wifi-static-memory/README.md#fixed-icmp-and-outbound-ipv4-fragments)
 [Frame copy checks](docs/reports/wifi-static-memory/README.md#fixed-arp-and-wi-fi-frame-copies)
 Certificate verification and the Wi-Fi driver allocation inventory remain open.
