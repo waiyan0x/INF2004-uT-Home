@@ -215,8 +215,8 @@ must check the following for each changed module and record the result in the PR
 
 | Rules | Review responsibility beyond the automated checks |
 |---|---|
-| 1.1, 1.5â€“1.8 | Language/ABI profile; meaningful names; justified casts and ranges; const/static; concurrency and hardware qualifiers. |
-| 1.3â€“1.4, 3 | Braces and expression grouping; spaces and alignment; switch indentation; one statement per line. |
+| 1.1, 1.5Ã¢â‚¬â€œ1.8 | Language/ABI profile; meaningful names; justified casts and ranges; const/static; concurrency and hardware qualifiers. |
+| 1.3Ã¢â‚¬â€œ1.4, 3 | Braces and expression grouping; spaces and alignment; switch indentation; one statement per line. |
 | 2 | Accurate complete comments, assumptions and useful interface contracts; no dead or misleading commented code. |
 | 4 | Cohesive modules, minimal includes, public/private boundaries and correct paired headers. |
 | 5 | Fixed-width decisions, signedness, promotions, unsigned bit operations/literals, Boolean conditions and external data layout. |
@@ -462,3 +462,8 @@ SDK callbacks and matching public prefixes. TLS means Transport Layer Security;
 PSA identifies the SDK's Platform Security Architecture crypto API. Its empty
 host `sdkconfig.h` enables no ESP hardware options. No exception is added; see
 the [manual review](tools/target/README.md#host-tls-fixture-c-review).
+
+`c3pkt` owns the station's copied TCP send and control packets. Its C99 SDK
+boundary uses native custom pbufs and the existing interrupt guard. The
+[packet storage review](firmware/hal/ports/esp32c3/network/README.md#outgoing-tcp-packets)
+covers alignment, reference lifetime, split capacity and allocation bounds.

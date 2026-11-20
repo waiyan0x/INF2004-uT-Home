@@ -11,7 +11,7 @@ resource limits, build instructions, manual reviews and qualification evidence.
 | `c3lbox` | lwIP mailbox identities bound to the existing fixed queue payloads |
 | `c3tls` | Fixed ESP-TLS contexts, error trackers and temporary hostname storage |
 | `c3tout` | Fixed MQTT buffers, hostname, outer TLS/certificate records and TLS 1.2 PRF inputs |
-| `c3lrec` | Fixed typed lwIP connection and datagram-envelope records |
+| `c3lrec`, `c3pkt` | Fixed socket and TCP records, outgoing TCP packets and control packets |
 | `c3nq`, `c3event` | Native queue/event synchronization and fixed resource bindings |
 | `c3ewait` | Stateless native notification, clock and context boundary for events |
 | `c3wifi` | Isolated Wi-Fi scan diagnostic |
@@ -487,3 +487,27 @@ Run it with `python -B -m unittest discover -s tests/target -p test_lwip_records
 The target build checks the five source bindings. The linked-instruction
 test exercises both immediate failure and partial-write rollback.
 [Target measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-tcp-records)
+
+## Outgoing TCP packets
+
+The station's copied TCP transmit path uses five aligned packet slots. Four
+can carry the 2,440-byte send window. The core may use the last free slot only
+while splitting its unsent head to fit a smaller peer receive window. Two
+independent IP control slots can carry the TCP header, up to 40 option bytes
+and the one-byte zero-window probe while all transport slots are occupied.
+The native SDK still owns queuing, retransmission, reference counting and
+final release. Other protocols and incoming packet allocations retain their
+own allocation paths.
+
+The pinned single-buffer build always copies TCP writes. The only redirected
+packet allocator is in `tcp_out.c`. Only the call in `tcp.c` to the native
+split routine permits an extra transport lease. Both are serialized by lwIP's
+TCP core. Final reference release may occur in another context. Allocation
+and release use the existing interrupt exclusion and create no kernel objects.
+Each slot contains a real custom pbuf followed by four-byte-aligned storage
+for the selected layer's full headers and payload. lwIP skips heap trimming
+and invokes the release callback for a custom buffer. The callback converts
+the pbuf back to its enclosing custom header, whose first member is the pbuf.
+It marks the slot free only after the last reference. All array scans are
+bounded. Oversize requests and exhausted pools return NULL to lwIP. This
+C99 boundary adds no coding-standard deviation.

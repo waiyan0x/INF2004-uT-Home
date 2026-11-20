@@ -267,6 +267,48 @@ and received lengths, and returned bytes. Full flash and profile 943 verified
 after restoration. TLS allocations and other lwIP memory still need fixed
 storage for whole-system acceptance.
 
+#### Fixed outgoing TCP packets
+
+The Wi-Fi station keeps the 610-byte MSS and 2,440-byte send window. Moving
+ring descriptors into the eight slots that actually hold queues freed 1,152
+application bytes. The new TCP packet adapter uses 3,681 bytes. Five aligned
+transport slots take 3,440 bytes, two control slots take 240 and one byte
+tracks whether the core is splitting a segment. The final image uses
+146,677 of 147,456 application bytes and 275,670 of 278,528 total fixed DRAM
+bytes. Every module and group fits its cap.
+
+In a replay of the linked ESP instructions, a full-window write with one
+ordinary packet already held returned `ERR_MEM` and kept the send window
+and queue intact. It also refused the write after just one of two references
+to that packet was released. Once its last reference was released, the same
+write queued all four segments. A simulated reduction in peer window split
+the first segment into 1 and 609 bytes. All 2,440 payload bytes remained in
+order. Control packets could still be allocated, and all four ordinary slots
+were reusable after cleanup. The emulator trapped general heap calls and
+observed zero throughout this test. ROM copies and interrupt guards were
+simulated. Other protocols, receive-side allocations and TLS certificate
+verification remain outside this result.
+
+On the physical ESP32-C3, firmware
+`403605498d6772f2c9357cfee6eb3fa7a0a9f8eddd96f716885a664516ffa192`
+completed four BMP388/LD2450 reads before a broker restart and four after it.
+All eight replies matched the broker frames on one ESP boot. Full flash and
+both copies of profile 943 verified after restoration.
+
+The same ELF still calls `mem_malloc(28)` in `esp_pbuf_allocate`. With the
+station's receive-copy option disabled, this record tracks a driver-owned
+incoming frame until its last lwIP reference is released. Its peak
+simultaneous demand and deterministic recovery still need qualification.
+
+Run from the repository root using the optional Unicorn and pyelftools probe
+dependencies and the ESP toolchain debugger. Pass the matching qualified ELF.
+
+```powershell
+python -B -m tools.target.tcp_packet_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
+```
+
+[Packet ownership and C review](../../../firmware/hal/ports/esp32c3/network/README.md#outgoing-tcp-packets)
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
