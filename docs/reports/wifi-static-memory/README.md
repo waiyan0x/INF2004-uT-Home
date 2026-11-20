@@ -438,6 +438,18 @@ also passed on this ELF.
 python -B -m tools.target.arp_udp_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
 ```
 
+On the physical ESP32-C3, the normal profile answered authenticated MQTT
+status. After booting the saved idle configuration, the board completed a
+BMP388 chip-ID read, a 16-byte LD2450 read, a BMP388 pressure read and a
+32-byte LD2450 read on each side of a broker restart. All eight results
+matched their individual MQTT frames. A single debugger snapshot after the
+last read found the DHCP client pointing at fixed UDP slot 0 on local port
+68, slot 1 free, and all seven ARP queue records free. These occupancy
+figures describe the sampling instant. The same boot ID and completed request
+16 were confirmed over MQTT after resume. The fresh backup and full 4 MiB
+restoration verified, as did the saved and active profile 943 and host network
+settings.
+
 The same ELF calls `mem_malloc` from `dhcp_start` for a 92-byte client state
 when no state has been supplied. Its `dhcp_create_msg` calls the native packet
 allocator for a 309-byte message before packet metadata and headroom. Native

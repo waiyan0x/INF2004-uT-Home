@@ -51,7 +51,8 @@ The current station image also fixes storage for UDP endpoints, ARP requests
 and replies, and records for packets awaiting address resolution. It leaves
 74 application bytes and 2,154 total fixed DRAM bytes. DHCP state and outgoing
 messages, some packet-copy paths and TLS certificate verification still use
-the heap.
+the heap. The board completed eight sensor reads across a broker restart; the
+DHCP client used one of the two fixed UDP slots.
 [ARP and UDP memory checks](docs/reports/wifi-static-memory/README.md#fixed-arp-and-udp-storage)
 [Wi-Fi receive and dispatch checks](docs/reports/wifi-static-memory/README.md#fixed-tcpip-message-handoff)
 [Outgoing TCP packet checks](docs/reports/wifi-static-memory/README.md#fixed-outgoing-tcp-packets)
