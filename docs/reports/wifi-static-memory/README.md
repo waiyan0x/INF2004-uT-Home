@@ -130,6 +130,39 @@ qualification. Attribute any remaining heap traffic to the documented
 driver exception and verify all group limits on the resulting image.
 [Static design and recovery contracts](../../../firmware/README.md#mandatory-static-memory-change)
 
+#### Fixed-slot certificate verification experiment
+
+A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
+diagnostic ELF (`a0f482aa`). The emulator provided fixed 16-byte-aligned
+addresses, handed out the smallest free slot that fit each request, zeroed
+the slot and returned NULL at exhaustion. The compiled SDK performed the
+certificate parsing, verification and key copy. The layout below covers
+those observed lifetimes.
+
+| Slot size (bytes) | 16 | 32 | 64 | 80 | 128 | 160 | 448 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Number of slots | 4 | 9 | 4 | 36 | 1 | 1 | 2 |
+
+The verifier accepted the project broker, rejected a wrong hostname and an
+empty trust list, and accepted the broker again. With all free slots held
+immediately before verification, the first unavailable allocation caused
+verification to fail. The live allocation set matched its pre-call state.
+Releasing the held slots allowed that same verifier to succeed. All slots
+were free after cleanup.
+
+The 57 slots require 4,672 bytes of payload, 548 bytes above the diagnostic
+image's 4,124-byte application headroom before bookkeeping. For the default
+image, even a four-byte-rounded fixed-slot layout needs at least 6,228 bytes
+for the observed verification trace. To obtain this lower bound, sort the
+live allocation sizes at every allocation and take the largest size ever
+needed at each rank. It applies to distinct, non-moving slots with one
+allocation per slot. Other memory layouts can have different costs.
+
+This experiment used a simulated allocator and hardware services. A deployable
+budget must include the storage manager, remaining handshake work and concurrent
+TCP/IP buffers. The original board image still uses its SDK allocators.
+Private results are in `build/static-requirement-20261120/six-fixed-exhaustion.json`.
+
 ### Imported TLS derivation key
 
 The MQTT TLS 1.2 client reserves a separate 66-byte store for the volatile
