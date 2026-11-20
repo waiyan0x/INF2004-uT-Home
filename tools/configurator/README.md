@@ -313,6 +313,38 @@ are local under `build/power-bank-bmp-radar-20261119/`. After reconnecting
 USB, the original 4 MiB flash and profile revision 943 were restored and
 verified. Cleanup restored the laptop network settings and HA broker permissions.
 
+### Repeated BMP388 and radar switching
+
+On 20 November 2026 the USB-powered ESP ran the same demo firmware
+(`4fd99ab2`) with profile diagnostics over USB and rule traffic over TLS MQTT.
+The Desk at `36e82c8` loaded and executed BMP388 chip ID, LD2450 16-byte
+receive, BMP388 raw pressure and LD2450 32-byte receive twice on one boot.
+The broker saw eight loads and eight executions. Both displays matched every
+reply, including the request ID, rule revision, completion time and raw bytes.
+
+| Execute operation | Reads | Median broker round trip (ms) | Maximum (ms) |
+|---|---:|---:|---:|
+| BMP388 chip ID | 2 | 46.52 | 46.71 |
+| LD2450 16 bytes | 2 | 119.38 | 138.25 |
+| BMP388 raw pressure | 2 | 46.54 | 50.00 |
+| LD2450 32 bytes | 2 | 179.65 | 203.10 |
+
+The first load through the last execution reply spanned 36.087 s. Times use
+one broker clock from incoming command to incoming device reply and include
+transport and ESP processing. The separate post-read status query took 2.386 s.
+The Desk temporarily withheld the boot identity before load nine. The eventual
+status reported the same boot and generation, command 16 complete and no
+pending command. The run ended at eight of the planned 64 reads.
+
+Across the 46.609 s diagnostic window, normal-mode counters rose by 1,532
+allocations, 1,531 frees and 416,244 cumulative bytes requested. Live heap
+size and allocation ownership are outside this measurement. All audited kernel
+object-creation and kernel allocator call counts held steady. The controller
+and idle stack watermarks showed 5,088 and 896 bytes unused at both snapshots.
+Original flash, saved profile 943, broker permissions and laptop settings
+were restored and verified. The local packet trace, display snapshots and
+counter deltas are under `build/member4-switch-load-20261120/`.
+
 ## Configuration recipes
 
 The professor-feedback change starts with one bounded generic I2C operation:
