@@ -734,6 +734,20 @@ The same check detected the general resolver in the previous ELF. The
 python -B -m tools.target.dns_igmp_probe --fixed-endpoint --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
 ```
 
+On the physical ESP32-C3, each set of four reads comprised BMP388 chip ID,
+16 radar bytes, BMP388 pressure bytes and 32 radar bytes. Four ran before
+the broker restart and four after it. Each result matched its individual
+MQTT reply. The ESP retained its boot identity and confirmed request 16
+after the debugger resumed it.
+
+The debugger armed after the first four reads. Across the broker restart
+it confirmed two entries into the fixed lookup and two into its release
+function. Both releases received the same reserved record. The final
+snapshot found that record free and one all-systems multicast membership
+on the station interface. The original 4 MiB flash and active and saved
+profile 943 were restored and verified. The temporary hotspot and firewall
+rule were removed and the laptop retained its original uplink.
+
 The station's 16-byte multicast membership at Wi-Fi startup remains the
 next allocation to qualify. Certificate verification and the Wi-Fi driver
 allocation inventory remain open.
