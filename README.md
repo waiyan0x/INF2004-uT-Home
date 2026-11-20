@@ -36,7 +36,12 @@ Generated verification is local-only under `build/controller/`.
 **Static-memory compliance is the first priority.** The tested image fits its
 fixed DRAM budget, but its TCP/IP and certificate verification paths still
 use the heap. The [tribunal memory check](docs/reports/wifi-static-memory/README.md#tribunal-static-memory-check-20-november-2026)
-contains the per-module table, board counters and remaining acceptance tests.
+contains the per-module table, board counters and remaining acceptance tests. The
+[one-broker TCP settings](docs/reports/wifi-static-memory/README.md#one-broker-tcp-sizing)
+reduced the measured lwIP peak from 3,496 to 1,884 bytes through reconnect
+and renegotiation. The ordinary image passed eight BMP388/radar reads.
+The next allocation work is fixed storage for TCP/IP packets and records
+and for the remaining certificate-verification allocations.
 
 **Demo-broker TLS acceptance passed on the physical ESP32-C3.** On 18 November, the user
 moved dedicated investigation of the intermittent MQTT delays to last priority.

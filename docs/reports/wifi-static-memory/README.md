@@ -200,6 +200,40 @@ send-path cases. On the pinned ESP port, single-packet transmission reserves
 a full segment for each new packet. Segment and send-window sizing therefore
 affect the storage needed even for one small MQTT status reply.
 
+##### One-broker TCP sizing
+
+The Wi-Fi station uses **610-byte TCP segments** and a **2,440-byte send
+buffer**, enough for four full segments. The latter is the minimum allowed
+by the pinned SDK. The receive window stays at 5,760 bytes. Smaller
+segments require more packets for larger writes. The broker's credentials,
+certificate checks and MQTT packet limits use their existing settings.
+
+The matched diagnostic image (`c3a8f899`) passed the same seven authenticated
+status replies, broker restart and TLS renegotiation on one ESP boot. Its
+peak live lwIP request fell from **3,496 to 1,884 bytes**. The Wi-Fi-only
+peak was 688 bytes, the first connected peak was 1,840, and reconnect
+raised it to 1,884. All recorded pool and memory error counters stayed
+at zero. Both diagnostics used 273,138 bytes of fixed DRAM. The board and
+laptop were restored and verified after each trial.
+
+In the compiled send-path replay, a 96-byte TCP write used 868 live bytes
+including the connection, down from 1,696. A full send window used 2,968
+bytes including four segment records, down from 6,280 for the former window.
+These numbers cover queued writes with no incoming traffic. The measured
+1,884-byte workload peak is a lower bound for fixed-pool design. Packet
+buffers, TCP/IP records and TLS can still call the heap.
+
+The ordinary image with these two station settings, SHA-256
+`7162048ddb046cb499829606ca482f44607f0fc8d84647fb2e3247b583e71a56`,
+used 272,474 of 278,528 fixed DRAM bytes with diagnostic counters disabled.
+After an idle-profile Apply on the same boot, eight reads made two complete
+cycles of BMP388 chip ID, 16 radar bytes, three pressure bytes and 32 radar
+bytes. All eight broker result frames matched their controller request IDs,
+byte counts and returned data. Both chip IDs were `50`. The original full
+flash and profile 943 verified after restoration. This hardware check used
+the direct MQTT controller. The earlier power-bank, Desk and HA acceptance
+records identify their own images.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
