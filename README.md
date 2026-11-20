@@ -77,10 +77,12 @@ On the ESP, all eight BMP388 and radar reads matched their MQTT replies
 across a broker restart. The station held the same fixed slot before and
 after that restart. The image has 110 application bytes and 3,242 total
 fixed DRAM bytes free.
-The compiled station constructor retains 237 bytes in seven general-heap
-blocks. It released every earlier block when each of its first four
-allocations was refused. These SDK network-interface records need their
-own fixed-memory budget.
+The station interface retained 237 heap bytes and the SDK default event
+loop retained 316 more across a broker restart and eight verified sensor
+reads. A direct fixed-storage conversion of both layouts would require
+reclaiming at least 443 application bytes. Size those records before
+changing the allocator. The physical trace also identified separate
+Wi-Fi driver buffer and TLS certificate-path requests.
 [Wi-Fi startup and reconnect heap callers](docs/reports/wifi-static-memory/README.md#wi-fi-startup-and-broker-reconnect-heap-callers)
 [Fixed station membership](docs/reports/wifi-static-memory/README.md#fixed-station-multicast-membership)
 [Fixed broker endpoint](docs/reports/wifi-static-memory/README.md#fixed-numeric-broker-endpoint)

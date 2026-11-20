@@ -823,6 +823,49 @@ buffers.
 python -B -m tools.target.netif_creation_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
 ```
 
+**Physical observations.** On the same production image, four BMP388 and
+LD2450 reads completed before the TLS broker restart and four after it.
+All eight matched their individual MQTT results on the same ESP boot.
+At completed requests 8 and 16, the debugger followed the station registry
+and the default event loop. The same seven station allocations and 27
+distinct event records were reachable at both stops. The parent interface
+and event loop pointers also matched the results returned by their startup
+allocators.
+
+| Default event-loop storage | Live records | Payload bytes |
+|---|---:|---:|
+| Event loop and its list node | 1 each | 24 + 12 |
+| Event bases and event IDs | 3 and 6 | 48 + 72 |
+| Handler records and their contexts | 8 each | 96 + 64 |
+| **Total** | **27** | **316** |
+
+Together, the station interface and default event loop retain **553 bytes**
+outside the Wi-Fi driver. With 110 bytes free in the application fixed-RAM
+budget, a direct conversion of both layouts would require reclaiming at
+least **443 bytes**, before alignment or occupancy flags. This lower bound
+excludes queue storage, driver buffers, TLS temporaries and heap metadata.
+
+One-shot hardware breakpoints sampled selected calls on the idle-profile
+boot and during broker reconnection. The sizes below are individual
+successful requests. They cannot be added to obtain a peak.
+
+| Owner | At startup | During broker reconnection |
+|---|---|---|
+| Wi-Fi driver | `wifi_zalloc_wrapper` requested 24 bytes. `esf_buf_alloc_dynamic` requested 600. | `esf_buf_alloc_dynamic` requested 1,700 bytes. |
+| SDK event posting | `esp_event_post_to` copied a 16-byte Wi-Fi event payload. | No hit at the sampled payload-allocation site. |
+| MQTT TLS | TLS call sites were armed for reconnection. | The certificate allocator `c3peer_alloc` requested 433 bytes from the general TLS allocator. `mbedtls_mpi_grow` obtained 32 bytes for eight arithmetic limbs. |
+
+The ELF and both board snapshots identified the general TLS allocator as
+`esp_mbedtls_mem_calloc`, which calls `heap_caps_calloc`. The 433-byte
+request equals the demo trust certificate's DER length. The observation
+did not identify the contents of the allocated block. The Wi-Fi driver
+samples give concrete entries for its exception inventory. The SDK event
+and TLS allocations still require their own fixed-memory solutions.
+
+The original full 4 MiB flash, active and saved profile 943, and laptop
+network settings were restored and verified. The debugger changes timing,
+so the trial supplies allocation and functional evidence only.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
