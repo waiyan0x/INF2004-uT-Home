@@ -340,6 +340,55 @@ python -B -m tools.target.wifi_receive_probe --elf PATH_TO_ESP_ELF --gdb riscv32
 
 [Ownership and C review](../../../firmware/hal/ports/esp32c3/network/README.md#wi-fi-receive-records)
 
+#### Fixed TCP/IP message handoff
+
+The station's incoming frame references and the messages posted to the TCP/IP
+thread have independent ownership. The final image reserves eight messages for
+input frames and eight for API callbacks. Each native message takes 16 bytes
+plus a one-byte lease flag. This adds 272 bytes to the existing record module.
+The application uses 147,173 of 147,456 bytes. Total fixed DRAM is 276,166 of
+278,528 bytes. The existing group caps and every module limit passed. The
+application and transaction adapter reservations were tightened to 37,568 and
+864 bytes respectively to keep the sum of reservations inside the cap.
+
+Firmware `d4edb5d9`, ELF `4aaa0ddb`. The instruction replay queued eight
+input frames and eight callbacks together, filled both pools, dispatched the
+messages, refused a mailbox post and refused a frame at the downstream input.
+Across the receive and handoff tests all 23 driver buffers were returned once
+and no general heap calls occurred. The mailbox post, terminal Ethernet
+handler and driver return were simulated. The compiled station input, TCP/IP
+enqueue, dispatch and release paths ran. The full-window send regression
+preserved all 2,440 bytes on the same ELF.
+
+```powershell
+python -B -m tools.target.wifi_receive_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb --handoff
+```
+
+On the board, the normal profile answered authenticated MQTT status. One live
+switch saved and activated idle revision 944, but MQTT readiness then timed
+out. In a separate run the board booted from that saved idle profile. On one
+boot it completed chip ID, a 16-byte radar read, raw pressure and a 32-byte
+radar read both before and after a broker restart. All eight controller results
+matched their individual MQTT result frames. A debugger attached after the
+last read found three used receive slots over the boot lifetime and zero
+currently leased. The next MQTT reply had a new boot ID, so this first snapshot
+could not independently identify the boot whose slots it sampled. The trial
+restored and verified the full 4 MiB, both original profile revisions (943)
+and the laptop network settings.
+
+The driver is configured with six static RX buffers, up to eight dynamic RX
+buffers and up to eight dynamic TX buffers. The eight fixed frame references
+do not provide storage for the driver's variable-size payloads. In this ELF,
+`esf_buf_alloc_dynamic` calls offset 344 of the vendor OS table. The RV32
+debug type identifies this as `_malloc_internal`; the C3 adapter binds it to
+`esp_coex_common_malloc_internal_wrapper`, which calls `heap_caps_malloc`.
+This is one identifiable driver allocation site. Its live byte peak and the
+rest of the driver's allocation sites still need attribution. Outside the
+driver, the final ELF still calls the native packet allocator from
+`etharp_raw` and the native record allocator from `udp_new`. The native
+packet and record paths can reach libc allocation. TLS certificate verification
+also remains heap-backed. Whole-system static memory qualification is open.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

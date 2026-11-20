@@ -10,8 +10,9 @@ from .tls_fragment_probe import Probe, SSL, STOP
 from .tls_output_probe import OutputProbe
 
 
-def verify(elf, gdb):
-    layout = target_layout(elf, gdb, ("netif", "pbuf"), ())
+def verify(elf, gdb, handoff=False):
+    constants = ("MEMP_TCPIP_MSG_INPKT", "MEMP_TCPIP_MSG_API") if handoff else ()
+    layout = target_layout(elf, gdb, ("netif", "pbuf"), constants)
     cpu = Probe(elf)
     netif = SSL + 0x8000
     interface = SSL + 0x9000
@@ -67,11 +68,11 @@ def verify(elf, gdb):
     field("netif", netif, "state", interface)
     field("netif", netif, "input", input_callback)
 
-    def deliver(index, length=32):
+    def deliver(index, length=32, queued=False):
         payload = SSL + 0x10000 + index * 64
         token = SSL + 0x18000 + index * 8
         result = run("wlanif_input", netif, payload, length, token)
-        if result == 0:
+        if result == 0 and not queued:
             packet = accepted[-1]
             assert field("pbuf", packet, "payload") == payload
             assert field("pbuf", packet, "len") == field("pbuf", packet, "tot_len") == length
@@ -104,13 +105,77 @@ def verify(elf, gdb):
     status, final = deliver(12, 0)
     assert status == 0 and run("pbuf_free", accepted[-1]) == 1
     assert returned == [ninth, *leases, replacement, refused, oversize, final] and not depth
-    return dict(elf_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(), held_frames=len(leases),
-                distinct_driver_returns=len(set(returned)), general_heap_calls=0)
+    report = dict(elf_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(), held_frames=len(leases),
+                  distinct_driver_returns=len(set(returned)), general_heap_calls=0)
+    if handoff:
+        # Trip only the scheduler boundaries. Native enqueue and dispatch run in the ELF.
+        posted = []
+        callbacks = []
+        refuse_post = False
+        callback = STOP + 0x240
+        mailbox = cpu.symbols["tcpip_mbox"]
+        cpu.uc.mem_write(mailbox, (SSL + 0x19000).to_bytes(4, "little"))
+
+        def post(*_):
+            assert not depth and cpu.uc.reg_read(UC_RISCV_REG_A0) == mailbox
+            if not refuse_post:
+                posted.append(cpu.uc.reg_read(UC_RISCV_REG_A1))
+            cpu.finish(-1 if refuse_post else 0)
+
+        def dispatched(*_):
+            callbacks.append(cpu.uc.reg_read(UC_RISCV_REG_A0))
+            cpu.finish(0)
+
+        cpu.hook(cpu.symbols["sys_mbox_trypost"], post)
+        cpu.hook(cpu.symbols["ethernet_input"], upstream)
+        cpu.hook(callback, dispatched)
+        field("netif", netif, "flags", 0x11)  # UP and ETHERNET in this station.
+        field("netif", netif, "input", cpu.symbols["tcpip_input"])
+        for index in range(8):
+            assert run("tcpip_try_callback", callback, index) == 0
+        assert (run("tcpip_try_callback", callback, 8) & 255) == 255
+        frames = []
+        for index in range(8):
+            status, token = deliver(16 + index, queued=True)
+            assert status == 0
+            frames.append(token)
+        assert len(set(posted)) == 16
+        assert not run("c3lrec_alloc", layout["MEMP_TCPIP_MSG_INPKT"])
+        assert not run("c3lrec_alloc", layout["MEMP_TCPIP_MSG_API"])
+        for message in posted[:8]:
+            run("tcpip_thread_handle_msg", message)
+        assert callbacks == list(range(8))
+        previous = len(accepted)
+        for message in posted[8:]:
+            run("tcpip_thread_handle_msg", message)
+        assert len(accepted) == previous + 8
+        for packet, token in zip(accepted[previous:], frames, strict=True):
+            assert run("pbuf_free", packet) == 1 and returned[-1] == token
+        # A full mailbox must release both the TCP/IP message and the radio buffer.
+        refuse_post = True
+        status, token = deliver(24, queued=True)
+        assert status == -1 and returned[-1] == token and len(posted) == 16
+        refuse_post = False
+        refuse_input = True
+        status, token = deliver(25, queued=True)
+        assert status == 0
+        run("tcpip_thread_handle_msg", posted[-1])
+        assert returned[-1] == token
+        for kind in ("MEMP_TCPIP_MSG_INPKT", "MEMP_TCPIP_MSG_API"):
+            records = [run("c3lrec_alloc", layout[kind]) for _ in range(8)]
+            assert all(records) and len(set(records)) == 8 and not run("c3lrec_alloc", layout[kind])
+            for record in records:
+                run("c3lrec_free", layout[kind], record)
+        assert len(set(returned)) == len(returned) == 23 and not depth
+        report.update(queued_frames=len(frames), dispatched_callbacks=len(callbacks),
+                      distinct_driver_returns=len(returned))
+    return report
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--elf", required=True, type=Path)
     parser.add_argument("--gdb", default="riscv32-esp-elf-gdb")
+    parser.add_argument("--handoff", action="store_true", help="also exercise fixed TCP/IP message queues")
     arguments = parser.parse_args()
-    print(json.dumps(verify(arguments.elf, arguments.gdb), indent=2))
+    print(json.dumps(verify(arguments.elf, arguments.gdb, arguments.handoff), indent=2))

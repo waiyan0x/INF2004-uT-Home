@@ -8,6 +8,7 @@
 #include "lwip/api.h"
 #include "lwip/netbuf.h"
 #include "lwip/priv/tcp_priv.h"
+#include "lwip/priv/tcpip_priv.h"
 #include "lwip/stats.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -35,6 +36,11 @@ static bool                  gb_active[MEMP_NUM_TCP_PCB]           = {false};
 static bool                  gb_listeners[MEMP_NUM_TCP_PCB_LISTEN] = {false};
 static bool                  gb_segments[MEMP_NUM_TCP_SEG]         = {false};
 
+static struct tcpip_msg g_inputs[MEMP_NUM_TCPIP_MSG_INPKT]   = {0};
+static struct tcpip_msg g_callbacks[MEMP_NUM_TCPIP_MSG_API]  = {0};
+static bool             gb_inputs[MEMP_NUM_TCPIP_MSG_INPKT]  = {false};
+static bool             gb_callbacks[MEMP_NUM_TCPIP_MSG_API] = {false};
+
 /* Each base denotes the complete typed array, including all its elements. */
 static c3lrec_pool_t const g_pools[] = {
     {MEMP_NETCONN,
@@ -57,7 +63,17 @@ static c3lrec_pool_t const g_pools[] = {
      &g_segments,
      gb_segments,
      MEMP_NUM_TCP_SEG,
-     sizeof(g_segments[0])}};
+     sizeof(g_segments[0])},
+    {MEMP_TCPIP_MSG_INPKT,
+     &g_inputs,
+     gb_inputs,
+     MEMP_NUM_TCPIP_MSG_INPKT,
+     sizeof(g_inputs[0])},
+    {MEMP_TCPIP_MSG_API,
+     &g_callbacks,
+     gb_callbacks,
+     MEMP_NUM_TCPIP_MSG_API,
+     sizeof(g_callbacks[0])}};
 
 /** @brief Lease a zeroed, naturally aligned record of the requested SDK type.
  */

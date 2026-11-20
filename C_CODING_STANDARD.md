@@ -428,7 +428,7 @@ the remaining mbedTLS/lwIP allocations or combined hardware behavior.
 
 ## Fixed lwIP records
 
-`c3lrec` denotes typed lwIP socket, TCP connection, listener and segment records; `lrectest`
+`c3lrec` denotes typed lwIP socket, TCP and TCP/IP message records; `lrectest`
 is its host interrupt-mask double. Both use C99 and matching public prefixes.
 The SDK-only adapter reuses `c3bport` for native interrupt exclusion, with the
 existing SDK-header spelling adaptation and no owned assembly. The

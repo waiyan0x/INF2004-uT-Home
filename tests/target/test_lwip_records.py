@@ -20,6 +20,8 @@ HEADERS = {
 #define MEMP_NUM_TCP_PCB 3
 #define MEMP_NUM_TCP_PCB_LISTEN 1
 #define MEMP_NUM_TCP_SEG 16
+#define MEMP_NUM_TCPIP_MSG_INPKT 8
+#define MEMP_NUM_TCPIP_MSG_API 8
 typedef enum
 {
     MEMP_NETCONN = 0,
@@ -28,8 +30,26 @@ typedef enum
     MEMP_TCP_PCB,
     MEMP_TCP_PCB_LISTEN,
     MEMP_TCP_SEG,
+    MEMP_TCPIP_MSG_INPKT,
+    MEMP_TCPIP_MSG_API,
     MEMP_MAX
 } memp_t;
+#endif
+
+/* End of file. */
+
+""",
+    "priv/tcpip_priv.h": r"""/**
+ * @file tcpip_priv.h
+ * @brief Foreign type double for native input and callback messages.
+ */
+#ifndef UTHOME_TEST_TCPIP_PRIV_H
+#define UTHOME_TEST_TCPIP_PRIV_H
+#include <stdint.h>
+struct tcpip_msg
+{
+    uint64_t words[2];
+};
 #endif
 
 /* End of file. */
@@ -107,7 +127,7 @@ struct netbuf
 
 
 class LwipRecordTests(unittest.TestCase):
-    pools = ((0, 6, 128), (1, 2, 32), (3, 3, 168), (4, 1, 40), (5, 16, 16))
+    pools = ((0, 6, 128), (1, 2, 32), (3, 3, 168), (4, 1, 40), (5, 16, 16), (6, 8, 16), (7, 8, 16))
 
     @classmethod
     def setUpClass(cls):
@@ -210,12 +230,12 @@ class LwipRecordTests(unittest.TestCase):
         for nested in (False, True):
             saved = self.lib.lrectest_enter() if nested else 0
             before = self.lib.lrectest_calls()
-            for kind in (0, 1, 2, 3, 4, 5):
+            for kind in range(8):
                 record = self.lib.c3lrec_alloc(kind)
                 self.assertEqual(self.lib.lrectest_mask(), int(nested))
                 self.lib.c3lrec_free(kind, record)
                 self.assertEqual(self.lib.lrectest_mask(), int(nested))
-            self.assertEqual(self.lib.lrectest_calls() - before, 12)
+            self.assertEqual(self.lib.lrectest_calls() - before, 16)
             if nested:
                 self.lib.lrectest_leave(saved)
 
@@ -230,7 +250,7 @@ class LwipRecordTests(unittest.TestCase):
             self.assertEqual(leased, expected)
             self.assertFalse(self.lib.c3lrec_alloc(0))
             self.assertFalse(self.lib.c3lrec_alloc(1))
-            for kind in (3, 4, 5):
+            for kind in (3, 4, 5, 6, 7):
                 self.assertFalse(self.lib.c3lrec_alloc(kind))
             # The SDK returns a record after cleanup even if setup failed.
             for kind, pointer in reversed(leased):

@@ -41,12 +41,15 @@ contains the per-module table, board counters and remaining acceptance tests. Th
 reduced the measured lwIP peak from 3,496 to 1,884 bytes through reconnect
 and renegotiation. The ordinary image passed eight BMP388/radar reads.
 TCP connections, segments and outgoing TCP packets now use fixed slots.
-The Wi-Fi station now reserves eight records for incoming driver buffers.
-In the compiled receive test, filling the pool and releasing references
-returned each buffer exactly once. This image leaves 555 application bytes
-and 2,634 total fixed DRAM bytes. Incoming TCP/IP messages and TLS certificate
-verification still use the heap.
-[Wi-Fi receive checks](docs/reports/wifi-static-memory/README.md#fixed-wi-fi-receive-records)
+The Wi-Fi station has eight fixed references for incoming frames. The TCP/IP
+thread has eight fixed messages for those frames and eight for callbacks.
+The compiled receive and dispatch test returned all 23 driver buffers exactly
+once. Booting from saved idle, the board passed eight BMP388/radar reads
+across a broker restart. The image leaves 283 application bytes and 2,362
+total fixed DRAM bytes.
+ARP packets, UDP connection records and TLS certificate verification still
+use heap-backed paths.
+[Wi-Fi receive and dispatch checks](docs/reports/wifi-static-memory/README.md#fixed-tcpip-message-handoff)
 [Outgoing TCP packet checks](docs/reports/wifi-static-memory/README.md#fixed-outgoing-tcp-packets)
 
 **Demo-broker TLS acceptance passed on the physical ESP32-C3.** On 18 November, the user

@@ -11,7 +11,7 @@ resource limits, build instructions, manual reviews and qualification evidence.
 | `c3lbox` | lwIP mailbox identities bound to the existing fixed queue payloads |
 | `c3tls` | Fixed ESP-TLS contexts, error trackers and temporary hostname storage |
 | `c3tout` | Fixed MQTT buffers, hostname, outer TLS/certificate records and TLS 1.2 PRF inputs |
-| `c3lrec`, `c3pkt`, `c3rx` | Fixed socket and TCP records, outgoing TCP packets and Wi-Fi receive references |
+| `c3lrec`, `c3pkt`, `c3rx` | Fixed socket, TCP and TCP/IP message records, outgoing TCP packets and Wi-Fi receive references |
 | `c3nq`, `c3event` | Native queue/event synchronization and fixed resource bindings |
 | `c3ewait` | Stateless native notification, clock and context boundary for events |
 | `c3wifi` | Isolated Wi-Fi scan diagnostic |
@@ -445,7 +445,7 @@ See the [verification and build identity](../../../../../docs/reports/wifi-stati
 ## Fixed lwIP records
 
 The Wi-Fi station uses fixed arrays of native SDK objects. The build redirects
-both allocation and release in `api_lib.c`, `api_msg.c`, `netbuf.c`, `tcp.c`
+both allocation and release in `api_lib.c`, `api_msg.c`, `netbuf.c`, `tcpip.c`, `tcp.c`
 and `tcp_out.c`. Capacities come from the same lwIP settings used by their
 callers.
 
@@ -456,6 +456,8 @@ callers.
 | TCP_PCB | 3 | Active and closing TCP connections share these slots |
 | TCP_PCB_LISTEN | 1 | Native listener record |
 | TCP_SEG | 16 | Queued transmit and receive segment metadata |
+| TCPIP_MSG_INPKT | 8 | Input frames awaiting the TCP/IP thread |
+| TCPIP_MSG_API | 8 | Callback messages awaiting the same thread |
 
 One MQTT client can connect while earlier connections finish closing.
 The SDK retains its native TIME_WAIT reclamation on connection exhaustion.
@@ -481,12 +483,20 @@ the guard and clears at most one object. The implementation calls no blocking
 operation and creates no kernel object. The caller must exclude outstanding
 users before release. Interrupt latency remains unmeasured.
 
-The host suite fills all five pools, rejects exhaustion, checks alignment and
+The two message arrays use the native `struct tcpip_msg` layout. Each
+record uses 16 bytes on RV32 plus one byte of occupancy. A failed post
+returns the message to its own pool. For input frames and one-shot callbacks,
+the TCP/IP thread releases the message after dispatch. Reusable callback
+messages follow the SDK's explicit deletion rule. The caller remains
+responsible for the lifetime of callback arguments.
+
+The host suite fills all seven pools, rejects exhaustion, checks alignment and
 zeroing and repeats release and reuse 1,000 times with heap calls trapped.
 Run it with `python -B -m unittest discover -s tests/target -p test_lwip_records.py -v`.
-The target build checks the five source bindings. The linked-instruction
+The target build checks the six source bindings. The linked-instruction
 test exercises both immediate failure and partial-write rollback.
-[Target measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-tcp-records)
+[TCP record measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-tcp-records)
+[Receive and dispatch measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-tcpip-message-handoff)
 
 ## Outgoing TCP packets
 
