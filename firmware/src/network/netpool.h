@@ -55,7 +55,6 @@ typedef struct
 
 typedef struct
 {
-    netring_t      ring;
     void *         p_key;
     netpool_kind_t kind;
     uint32_t       count;
@@ -70,6 +69,7 @@ typedef struct
 {
     netpool_ops_t  ops;
     netpool_slot_t slots[NETPOOL_SLOTS];
+    netring_t      rings[NETPOOL_QUEUE_SLOTS];
     uint8_t        storage[NETPOOL_STORAGE_BYTES];
     uint32_t       tick_hz;
     bool           b_ready;

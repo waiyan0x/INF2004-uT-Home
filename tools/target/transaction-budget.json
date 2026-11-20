@@ -56,7 +56,7 @@
     "c3bind.c.obj": 16,
     "c3usb.c.obj": 16,
     "main.c.obj": 1040,
-    "c3nq.c.obj": 12096,
+    "c3nq.c.obj": 10944,
     "c3boot.c.obj": 12288,
     "c3event.c.obj": 450,
     "c3net.c.obj": 96,

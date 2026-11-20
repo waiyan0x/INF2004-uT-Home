@@ -250,13 +250,13 @@ class Ring(c.Structure):
 
 
 class Slot(c.Structure):
-    _fields_ = [('ring', Ring), ('key', c.c_void_p),
+    _fields_ = [('key', c.c_void_p),
                 ('kind', c.c_int), ('count', c.c_uint32), ('capacity', c.c_uint32),
                 ('users', c.c_uint32), ('owner', c.c_uint32), ('depth', c.c_uint32), ('live', c.c_bool)]
 
 
 class Pool(c.Structure):
-    _fields_ = [('ops', Ops), ('slots', Slot * 56), ('storage', c.c_uint8 * 8192), ('hz', c.c_uint32), ('ready', c.c_bool)]
+    _fields_ = [('ops', Ops), ('slots', Slot * 56), ('rings', Ring * 8), ('storage', c.c_uint8 * 8192), ('hz', c.c_uint32), ('ready', c.c_bool)]
 
 
 class NetworkQueueAdapterTests(unittest.TestCase):

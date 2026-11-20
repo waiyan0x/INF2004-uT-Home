@@ -110,7 +110,7 @@ void * netpool_create (netpool_t *    p_pool,
             break;
         }
         if ((NETPOOL_QUEUE == kind) &&
-            (0 != netring_init(&p_slot->ring,
+            (0 != netring_init(&p_pool->rings[index],
                                (NULL == p_storage)
                                    ? &p_pool->storage[queue_offset(index)]
                                    : p_storage,
@@ -187,7 +187,7 @@ int netpool_send (netpool_t *        p_pool,
             const uint32_t saved = p_pool->ops.p_enter(p_pool->ops.p_context);
             if (NETPOOL_QUEUE == p_slot->kind)
             {
-                result = netring_send(&p_slot->ring, p_item, position);
+                result = netring_send(&p_pool->rings[index], p_item, position);
             }
             else if ((NETPOOL_SEMAPHORE == p_slot->kind) &&
                      (p_slot->count < p_slot->capacity))
@@ -253,8 +253,9 @@ int netpool_receive (netpool_t * p_pool,
             const uint32_t saved = p_pool->ops.p_enter(p_pool->ops.p_context);
             if (NETPOOL_QUEUE == p_slot->kind)
             {
-                result = b_peek ? netring_peek(&p_slot->ring, p_item)
-                                : netring_receive(&p_slot->ring, p_item);
+                result = b_peek
+                             ? netring_peek(&p_pool->rings[index], p_item)
+                             : netring_receive(&p_pool->rings[index], p_item);
             }
             else if ((NETPOOL_SEMAPHORE == p_slot->kind) &&
                      (0U < p_slot->count))
@@ -323,8 +324,9 @@ int netpool_query (netpool_t *      p_pool,
             *p_kind                       = p_slot->kind;
             if (NETPOOL_QUEUE == p_slot->kind)
             {
-                *p_count = p_slot->ring.count;
-                *p_space = p_slot->ring.capacity - p_slot->ring.count;
+                *p_count = p_pool->rings[index].count;
+                *p_space =
+                    p_pool->rings[index].capacity - p_pool->rings[index].count;
             }
             else if (NETPOOL_SEMAPHORE == p_slot->kind)
             {
@@ -354,7 +356,7 @@ int netpool_reset (netpool_t * p_pool, void * p_key)
         if ((index < NETPOOL_SLOTS) &&
             (NETPOOL_QUEUE == p_pool->slots[index].kind))
         {
-            result = netring_reset(&p_pool->slots[index].ring);
+            result = netring_reset(&p_pool->rings[index]);
             if (0 == result)
             {
                 p_pool->ops.p_signal(p_pool->ops.p_context, index, true);

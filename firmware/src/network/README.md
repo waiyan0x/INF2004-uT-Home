@@ -499,3 +499,7 @@ qualify live radio, timing, heap use or physical ESP/Home Assistant integration.
 Use the [team implementation plan](../../../CONTRIBUTING.md) to coordinate these
 checks. Historical experiment records were removed from this checkout at the
 user's request; they must not be presented as evidence for the cleaned build.
+
+## Queue bookkeeping storage
+
+Only the eight queue slots own ring descriptors. All 16 semaphore and 32 mutex slots keep their original limits and identities. Each queue operation selects its ring by the same slot index while the lease is held. Interrupt exclusion, payload partitions, wait deadlines and startup object counts are unchanged. On RV32 this removes 48 unused 24-byte descriptors.
