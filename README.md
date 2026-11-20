@@ -199,9 +199,10 @@ folder. The fixture is stopped, so its six sensors are correctly unavailable.
 **The [power-bank demo rehearsal](tools/configurator/README.md#power-bank-demo-rehearsal) passed.**
 The Desk switched from BMP388 to LD2450 and back on one cold ESP boot while the
 laptop USB cable was disconnected. All five results matched Home Assistant.
-A [repeated switching test](tools/configurator/README.md#repeated-bmp388-and-radar-switching)
-matched eight physical reads and captured timing and memory counters. The
-64-read sustained run remains open. Visible OLED control remains optional. See the
+The [64-read switching test](tools/configurator/README.md#repeated-bmp388-and-radar-switching)
+passed 16 BMP388/radar cycles on one boot. Both displays matched all reads.
+Normal-mode allocations remain measurable. Complete the whole-system memory
+assessment and final demo materials. Visible OLED control remains optional. See the
 [completion plan](CONTRIBUTING.md#completion-plan). Dedicated delay
 investigation and its guarded idle-session check are last priority. The
 [timestamp recorder](tools/transaction/README.md#status-timestamp-capture) now

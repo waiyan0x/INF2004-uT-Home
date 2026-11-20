@@ -88,10 +88,12 @@ running ESP image. The [physical power-bank rehearsal](tools/configurator/README
 passed all five reads on a single cold boot over Wi-Fi/MQTT, including the
 switch back to BMP388, final result expiry and clean disconnect.
 
-Demo-broker TLS and the five physical restart checks have passed. Remaining
-submission work includes sustained combined load, target resource measurements
-and the final demo script, diagram and evidence. Keep visible OLED control for
-spare time. Dedicated intermittent MQTT-delay investigation remains last priority.
+Demo-broker TLS and the five physical restart checks have passed. The
+[64-read physical run](tools/configurator/README.md#repeated-bmp388-and-radar-switching)
+verified 16 alternating BMP388/radar cycles, end-to-end results, broker timing
+and target allocation and stack counters. Remaining submission work includes
+whole-system resource qualification and the final demo script, diagram and
+evidence. Keep visible OLED control for spare time. Dedicated intermittent MQTT-delay investigation remains last priority.
 
 The user lifted the earlier input deferral on 17 November. The
 [connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
@@ -124,13 +126,13 @@ rule must not require another build.
 
 | Area | Present implementation | Remaining gap |
 |---|---|---|
-| ESP decision program | `txjob` validates/stores a rule, chooses execution and preserves it on a rejected update; host journal recovers exact cached completions | Live combined-system acceptance |
+| ESP decision program | `txjob` validates and stores the active rule, preserves it on rejection and passed 64 physical BMP388/radar reads | Include the [decision vectors](firmware/src/services/transaction/README.md#decision-test-vectors-for-the-demo) and measured results in the submission |
 | Generic operations | `txport` reaches actual I2C, SPI-write and raw UART HALs through `c3tx` | Physical acceptance, initialization prerequisites and selected timing extensions |
-| Description compiler | `tools/transaction/description.py` compiles I2C register reads, SPI writes and raw UART chunks | OLED cold-start and sustained radar reception, SEN0390 review |
+| Description compiler | `tools/transaction/description.py` compiles I2C register reads, SPI writes and raw UART chunks | OLED cold-start, continuous radar streaming and SEN0390 review |
 | MQTT | Live BMP388 rule switching, target rejection, cached results and broker recovery verified on the earlier image; HTTPS now removed | Wider secure-connection load and network allocation blocker |
 | UI | Runtime transactions tab implements description selection, preview, load/execute and expiring results; physical BMP388/radar power-bank browser walkthrough passed | Final demonstration script |
-| Home Assistant | WSL2 container displayed physical BMP388 results and recovered across five separate restarts | Prolonged combined-system load |
-| Verification | 531 target-facing tests plus 59 affected tests rerun after SDK-binding corrections; full 337-file C gate, checked target image, SDK setup/free instruction probe and unchanged memory budgets | Current image on hardware, runtime SPI/UART, prolonged combined load and whole-system resource acceptance |
+| Home Assistant | WSL2 container displayed all 64 physical BMP388/radar reads and passed the five earlier restart checks | Final demo handoff |
+| Verification | 531 target-facing tests plus 59 affected tests rerun after SDK-binding corrections; full 337-file C gate, checked target image, SDK setup/free instruction probe and unchanged memory budgets | Whole-system resource acceptance, wider network reliability and optional visible OLED response |
 
 The [15 November hardware check](firmware/src/network/README.md#current-hardware-check)
 resolved the observed Wi-Fi join failure with an explicit startup-power setting.
@@ -268,7 +270,7 @@ encode device-name cases in the generic drivers.
 |---|---|
 | BMP388 | Preserve chip-ID and three-byte raw reads; make initialization and possible zero data explicit |
 | SPI OLED | Physical Desk and HA verified AE/AF writes. On idle the panel stayed blank after the normal setup bytes and all-pixels command. The normal profile restored content on the same boot. Isolate reset and SPI ownership before claiming visible idle control |
-| LD2450 | 16- and 32-byte raw chunks passed on the physical ESP, Desk and HA. Sustained reception remains open |
+| LD2450 | Sixteen reads at each chunk length passed on the physical ESP, Desk and HA under alternating I2C/UART load. Continuous UART streaming and report framing remain unqualified |
 | SEN0390, desired second I2C device | Resolve the source's register/timing ambiguity and EN handling; expose the HAL's existing read pause only through a reviewed rule extension; physically qualify before claiming device switching |
 
 The HAL already has `read_pause_ms`; `txport` currently sets it to zero. This is
@@ -335,8 +337,8 @@ discovery and ready-state messages, but completed no new rule execution. The
 [WSL2 HA container](tools/transaction/README.md#home-assistant-container-in-wsl2)
 subsequently passed simulated display and restart checks, including the rendered
 operator walkthrough. The old VM instability remains a separate unresolved issue.
-Physical combined acceptance remains open; the dedicated MQTT-delay investigation
-is deferred to last priority, not marked fixed.
+The physical BMP388/radar switching checks are recorded in the completion plan above.
+Wider reliability remains open. The dedicated MQTT-delay investigation is last priority.
 
 Physical BMP388 display, expiry and disconnect passed on 19 November.
 The [physical restart check](tools/configurator/README.md#physical-restart-recovery)

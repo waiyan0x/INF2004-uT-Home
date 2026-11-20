@@ -315,6 +315,45 @@ verified. Cleanup restored the laptop network settings and HA broker permissions
 
 ### Repeated BMP388 and radar switching
 
+The 64-read demo workload passed on 20 November 2026. A USB-powered ESP ran
+firmware `370d09e` (image SHA-256 prefix `4fd99ab2`) with Desk `36e82c8`.
+USB carried profile and diagnostics traffic. MQTT over TLS carried every rule
+and result. The Desk loaded and executed each of these four operations once
+per cycle for 16 cycles, in the order shown.
+
+| Execute operation | TX / RX bytes | Verified reads | Median broker round trip (ms) | Maximum (ms) |
+|---|---:|---:|---:|---:|
+| BMP388 chip ID | 1 / 1 | 16 | 47.86 | 57.11 |
+| LD2450 raw 16 | 0 / 16 | 16 | 77.69 | 149.52 |
+| BMP388 raw pressure | 1 / 3 | 16 | 45.07 | 59.08 |
+| LD2450 raw 32 | 0 / 32 | 16 | 154.39 | 214.91 |
+
+One broker clock measured 316.499 s from the first load to the final execute
+reply. Across all 64 executions, the median was 50.17 ms and the 95th
+percentile was 195.84 ms (nearest rank). These round trips include transport
+and ESP processing. The broker saw exactly 64 loads and 64 executions with
+consecutive command IDs 1 through 128 on one boot and generation. All
+transmitted rules matched the descriptions checked against the two source
+PDF hashes. Every chip ID was `50`. Pressure and radar results were raw bytes.
+Both displays matched the wire results, including revision, identity, byte
+counts and completion time. The last result expired after five seconds and
+all six HA sensors became unavailable after disconnect.
+
+Across the 329.163 s USB diagnostic window, the normal-mode audit counted
+11,478 allocations, 11,482 frees and 3,205,556 cumulative bytes requested.
+These counters do not measure live heap size. All audited kernel object-creation
+and kernel allocator call counts held steady. The controller and idle stack
+watermarks showed 5,088 and 896 bytes unused at both endpoints. Whole-system
+fixed-memory qualification remains open.
+
+The original 4 MiB flash, saved profile 943, broker permissions and laptop
+settings were restored and verified. Local evidence is in
+`build/switch-ready-load-20261120/verified-load.json`. The readiness check
+allows up to 15 seconds for fresh same-boot status between commands. All 64
+slots had fresh status at the check on this run.
+
+#### Earlier eight-read attempt
+
 On 20 November 2026 the USB-powered ESP ran the same demo firmware
 (`4fd99ab2`) with profile diagnostics over USB and rule traffic over TLS MQTT.
 The Desk at `36e82c8` loaded and executed BMP388 chip ID, LD2450 16-byte
@@ -342,8 +381,7 @@ size and allocation ownership are outside this measurement. All audited kernel
 object-creation and kernel allocator call counts held steady. The controller
 and idle stack watermarks showed 5,088 and 896 bytes unused at both snapshots.
 Original flash, saved profile 943, broker permissions and laptop settings
-were restored and verified. The local packet trace, display snapshots and
-counter deltas are under `build/member4-switch-load-20261120/`.
+were restored and verified.
 
 ## Configuration recipes
 
