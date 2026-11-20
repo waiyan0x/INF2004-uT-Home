@@ -45,7 +45,8 @@ The Wi-Fi station has eight fixed references for incoming frames. The TCP/IP
 thread has eight fixed messages for those frames and eight for callbacks.
 The compiled receive and dispatch test returned all 23 driver buffers exactly
 once. Booting from saved idle, the board passed eight BMP388/radar reads
-across a broker restart. The image leaves 283 application bytes and 2,362
+across a broker restart. The receive pool peaked at three of eight slots on
+that boot. The image leaves 283 application bytes and 2,362
 total fixed DRAM bytes.
 ARP packets, UDP connection records and TLS certificate verification still
 use heap-backed paths.

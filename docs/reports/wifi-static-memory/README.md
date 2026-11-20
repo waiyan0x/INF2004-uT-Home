@@ -376,6 +376,19 @@ could not independently identify the boot whose slots it sampled. The trial
 restored and verified the full 4 MiB, both original profile revisions (943)
 and the laptop network settings.
 
+A further run attached the USB debugger before booting the saved idle
+profile and repeated the four reads on each side of a broker restart.
+The receive records use first-fit allocation. The release callback remains
+set in every slot used on that boot, so its presence records the lifetime
+peak without changing the firmware. After the eighth read, a single halt
+captured three previously leased slots out of eight, zero live leases, the
+transaction boot ID and last completed ID 16. MQTT confirmed the same boot
+and request ID after resuming. This measures concurrent frame references in
+the tested workload. It does not measure driver payload bytes or peak use of
+the two TCP/IP message pools. All eight wire results matched. The full flash,
+active and saved profile 943, and original network settings were restored
+and verified after the measurement.
+
 The driver is configured with six static RX buffers, up to eight dynamic RX
 buffers and up to eight dynamic TX buffers. The eight fixed frame references
 do not provide storage for the driver's variable-size payloads. In this ELF,
