@@ -63,7 +63,10 @@ slot. Application headroom is 113 bytes and total fixed DRAM headroom is
 and answered two full-size pings. The debugger observed the echo handler
 calling the fixed allocator. Linked-firmware replay covered fragmentation,
 exhaustion and recovery with zero general heap calls in the tested paths.
-Next, trace which DNS and IGMP allocations the one-broker station uses.
+The linked firmware requests 308 heap bytes for a numeric broker address
+result and 16 for the station's all-systems multicast membership. The two
+records overlap during connection setup.
+[Resolver and multicast checks](docs/reports/wifi-static-memory/README.md#numeric-broker-lookup-and-multicast-membership)
 [IPv4 packet checks](docs/reports/wifi-static-memory/README.md#fixed-icmp-and-outbound-ipv4-fragments)
 [Frame copy checks](docs/reports/wifi-static-memory/README.md#fixed-arp-and-wi-fi-frame-copies)
 Certificate verification and the Wi-Fi driver allocation inventory remain open.

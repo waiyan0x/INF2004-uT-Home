@@ -651,6 +651,32 @@ netbuf and loopback output. Which of those run during the one-broker demo
 requires separate evidence. Certificate verification and Wi-Fi driver
 allocation attribution remain open.
 
+#### Numeric broker lookup and multicast membership
+
+On firmware `efd99e48` (ELF `561430ed`), the application passes a validated
+numeric IPv4 address to ESP-TLS. The certificate name is supplied separately.
+The linked ESP-TLS connection code calls `lwip_getaddrinfo` even for the
+numeric address. The IPv4 resolver parses the literal locally, then allocates
+one `MEMP_NETDB` result. The station's IGMP startup separately allocates a
+`MEMP_IGMP_GROUP` record for the all-systems address, `224.0.0.1`.
+
+| Linked-firmware replay | General heap request | Lifetime |
+|---|---:|---|
+| Numeric TCP endpoint lookup | 308 bytes | Released by `lwip_freeaddrinfo` after each lookup |
+| Station's all-systems group | 16 bytes | Held until `igmp_stop` removes the group |
+
+Both lookups returned the expected IPv4 address while the group remained
+live. The two records accounted for 324 live requested bytes during lookup.
+Neither DNS nor IGMP attempted to send a packet during these operations.
+Separate controls exercised each native sender. For `broker.example` the
+DNS packet requested 104 bytes. An IGMP membership report requested 80.
+The replay refused these two allocations before transmission. Sizes are
+requested payloads at `mem_malloc` and exclude heap bookkeeping.
+
+```powershell
+python -B -m tools.target.dns_igmp_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
+```
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
