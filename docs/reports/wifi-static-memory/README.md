@@ -796,6 +796,33 @@ host tests passed, as did the pinned BARR-C gate across 342 files. Remaining
 work includes attributing general allocations during Wi-Fi startup and
 reconnection, and bounding certificate verification.
 
+#### Wi-Fi startup and broker reconnect heap callers
+
+The station constructor in image `9c2f7f33` (ELF `8c05b218`) leaves seven
+general-heap blocks live after it returns. The compiled constructor ran in
+RV32 replay with the linked station defaults and a counting heap.
+
+| ESP-NETIF station storage | Requested bytes |
+|---|---:|
+| Parent interface object | 104 |
+| lwIP interface | 84 |
+| Current and previous IPv4 information | 12 each |
+| Global interface list entry | 8 |
+| Copies of the interface key and description, including terminators | 13 and 4 |
+| **Total payload** | **237** |
+
+The replay followed pointers from the returned interface and the SDK list
+to each distinct allocation. The lwIP interface pointed back to its parent.
+The four initial object allocations were refused one at a time. Each failure
+released all earlier blocks and left the interface list empty. A subsequent
+creation succeeded. These requests occur before the station driver attaches.
+The 237 bytes exclude allocator bookkeeping, event registration and driver
+buffers.
+
+```powershell
+python -B -m tools.target.netif_creation_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
+```
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
