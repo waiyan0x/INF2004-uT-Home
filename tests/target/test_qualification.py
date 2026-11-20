@@ -607,7 +607,7 @@ class QualificationTests(unittest.TestCase):
     def test_lwip_records_reject_missing_escaped_and_wrong_bindings(self):
         flags = ' -Dmemp_malloc=c3lrec_alloc -Dmemp_free=c3lrec_free'
         commands = [dict(file='/sdk/lwip/src/' + name, command='gcc' + flags)
-                    for name in ('api/api_lib.c', 'api/api_msg.c', 'api/netbuf.c', 'api/tcpip.c', 'core/tcp.c', 'core/tcp_out.c')]
+                    for name in ('core/timeouts.c', 'api/api_lib.c', 'api/api_msg.c', 'api/netbuf.c', 'api/tcpip.c', 'core/tcp.c', 'core/tcp_out.c')]
         commands[-2]['command'] += ' -Dtcp_split_unsent_seg=c3pkt_split'
         commands[-1]['command'] += ' -Dpbuf_alloc=c3pkt_alloc'
         commands.insert(0, dict(file='/sdk/lwip/src/core/udp.c', command='gcc' + flags))

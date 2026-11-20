@@ -506,6 +506,38 @@ were exercised in the RV32 replay. The original full 4 MiB flash verified
 against the fresh backup, and the original active/saved profile 943 and
 laptop network settings were restored.
 
+#### Fixed TCP/IP timeout records
+
+Firmware `13fe4407`, ELF `b1c5b5e6`. The station reserves twelve native
+16-byte timeout records and twelve occupancy flags. The existing lwIP record
+adapter grew by 204 bytes to 1,789 bytes. The scheduler's allocation, expiry
+and cancellation all use this pool.
+
+| Fixed RAM | Linked | Limit | Available |
+|---|---:|---:|---:|
+| Application | 146,383 | 147,456 | 1,073 |
+| Total DRAM | 275,382 | 278,528 | 3,146 |
+
+The linked image has two startup timers for periodic ARP and coarse DHCP.
+The remaining linked callers serve TCP, fine DHCP, DNS, IGMP, DHCP address
+conflict detection, gratuitous ARP and the lost-IP notification. The capacity
+allows one record for each of these nine uses and three additional records
+for the one-interface workload. A thirteenth simultaneous reservation fails.
+This build's native scheduler asserts if asked to schedule with no free slot.
+
+The RV32 execution filled all twelve slots. It checked FIFO order at equal
+deadlines, first-match cancellation, TCP timer shutdown after the last
+connection, and correct expiry across the 32-bit millisecond clock rollover.
+Both periodic callbacks rescheduled with the list full. All twelve records
+were recovered, and the tested scheduler made zero general heap calls. The
+previous ELF tripped the same allocator check during timer initialization.
+The DHCP replay also used the native scheduler for discovery, renewal,
+rebinding and cleanup. The list was empty after the last client stopped.
+
+```powershell
+python -B -m tools.target.timeout_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
+```
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

@@ -446,8 +446,8 @@ See the [verification and build identity](../../../../../docs/reports/wifi-stati
 
 The Wi-Fi station uses fixed arrays of native SDK objects. The build redirects
 both allocation and release in `api_lib.c`, `api_msg.c`, `netbuf.c`, `tcpip.c`,
-`tcp.c`, `tcp_out.c`, `udp.c` and `etharp.c`. The ARP queue is sized for two
-unresolved neighbours. The other capacities use the configured lwIP counts.
+`tcp.c`, `tcp_out.c`, `udp.c`, `etharp.c` and `timeouts.c`. The ARP queue is sized for two
+unresolved neighbours. The timeout count covers the single-station workload below. The other capacities use the configured lwIP counts.
 
 | Record | Slots | Use |
 |---|---:|---|
@@ -460,6 +460,7 @@ unresolved neighbours. The other capacities use the configured lwIP counts.
 | TCPIP_MSG_API | 8 | Callback messages awaiting the same thread |
 | UDP_PCB | 2 | DHCP client and one concurrent UDP endpoint |
 | ARP_QUEUE | 7 | Three waiting packets per neighbour and one temporary append |
+| SYS_TIMEOUT | 12 | Two cyclic timers, seven on-demand timer owners and three spare records |
 
 One MQTT client can connect while earlier connections finish closing.
 The SDK retains its native TIME_WAIT reclamation on connection exhaustion.
@@ -467,6 +468,16 @@ When segment allocation fails, lwIP returns `ERR_MEM` to the TCP writer
 and frees any packet buffers acquired for the unsuccessful write. The SDK
 owns the packet data, mailbox and protocol teardown. It must finish using a
 record before returning it to the adapter. A later lease can reuse its address.
+
+The pinned IPv4 image schedules ARP maintenance and coarse DHCP periodically.
+TCP, fine DHCP, DNS, IGMP, the DHCP address-conflict probe, gratuitous ARP and
+the lost-IP notification can also schedule callbacks. lwIP removes and frees
+an expired record before invoking its handler, allowing recurring callbacks to
+reschedule even with every slot occupied. Native scheduling asserts on
+exhaustion in this build. Changes to interfaces, protocols or timer owners
+require another capacity check.
+
+[Timer capacity and verification](../../../../../docs/reports/wifi-static-memory/README.md#fixed-tcpip-timeout-records)
 
 ### lwIP record C review
 

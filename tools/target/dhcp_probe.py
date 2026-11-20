@@ -56,8 +56,8 @@ def verify(elf, gdb):
     for name in ("malloc", "free", "mem_malloc", "mem_free"):
         cpu.hook(cpu.symbols[name], reject_heap)
     # The clock, RNG, interrupt guard, UDP transmission and address-change notifications
-    # are outside this state/message test. The DHCP code and pbuf operations run on RV32.
-    for name in ("sys_timeout", "sys_untimeout", "sys_arch_protect", "sys_arch_unprotect",
+    # are outside this state/message test. The DHCP, timeout-list and pbuf operations run on RV32.
+    for name in ("sys_now", "sys_arch_protect", "sys_arch_unprotect",
                  "c3bport_enter", "c3bport_leave", "netif_set_addr"):
         cpu.hook(cpu.symbols[name], lambda *_: cpu.finish(0))
     cpu.hook(cpu.symbols["esp_random"], lambda *_: cpu.finish(0x12345678))
@@ -104,6 +104,7 @@ def verify(elf, gdb):
     run("dhcp_release_and_stop", other)
     run("dhcp_cleanup", other)
     assert not client(other)
+    assert bytes(cpu.uc.mem_read(cpu.symbols["next_timeout"], 4)) == bytes(4)
     return dict(elf_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(), client_slots=1,
                 held_tcp_packets=len(tcp), held_dhcp_messages=2, messages=[f[2][242] for f in frames],
                 state_and_message_heap_calls=0)

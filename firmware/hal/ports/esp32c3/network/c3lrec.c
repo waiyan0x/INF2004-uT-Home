@@ -11,6 +11,7 @@
 #include "lwip/priv/tcp_priv.h"
 #include "lwip/priv/tcpip_priv.h"
 #include "lwip/stats.h"
+#include "lwip/timeouts.h"
 #include "lwip/udp.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -18,6 +19,9 @@
 
 /* Two unresolved neighbours plus one append during the queue-limit check. */
 #define C3LREC_ARP_SLOTS ((2U * ARP_QUEUE_LEN) + 1U)
+
+/* Two cyclic timers, seven on-demand owners and three spare records. */
+#define C3LREC_TIMER_SLOTS 12U
 
 typedef struct
 {
@@ -50,6 +54,9 @@ static struct udp_pcb        g_datagrams[MEMP_NUM_UDP_PCB]  = {0};
 static struct etharp_q_entry g_pending[C3LREC_ARP_SLOTS]    = {0};
 static bool                  gb_datagrams[MEMP_NUM_UDP_PCB] = {false};
 static bool                  gb_pending[C3LREC_ARP_SLOTS]   = {false};
+
+static struct sys_timeo g_timers[C3LREC_TIMER_SLOTS]  = {0};
+static bool             gb_timers[C3LREC_TIMER_SLOTS] = {false};
 
 /* Each base denotes the complete typed array, including all its elements. */
 static c3lrec_pool_t const g_pools[] = {
@@ -93,7 +100,12 @@ static c3lrec_pool_t const g_pools[] = {
      &g_pending,
      gb_pending,
      C3LREC_ARP_SLOTS,
-     sizeof(g_pending[0])}};
+     sizeof(g_pending[0])},
+    {MEMP_SYS_TIMEOUT,
+     &g_timers,
+     gb_timers,
+     C3LREC_TIMER_SLOTS,
+     sizeof(g_timers[0])}};
 
 /** @brief Lease a zeroed, naturally aligned record of the requested SDK type.
  */

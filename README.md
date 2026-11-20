@@ -49,13 +49,15 @@ across a broker restart. The receive pool peaked at three of eight slots on
 that boot.
 The station now reserves fixed storage for DHCP client state and outgoing
 messages, UDP endpoints, ARP requests and replies, and records for packets awaiting
-address resolution. Reusing the USB request buffer for replies leaves 1,277
-application bytes and 3,354 total fixed DRAM bytes available. Compiled DHCP
+address resolution. The USB request and reply share a buffer. Compiled DHCP
 renewal and rebinding passed with the ordinary TCP packet slots full.
 On the ESP32-C3, the active interface held a bound lease in the fixed client
 and all eight BMP388/radar reads passed across a broker restart.
-Next, qualify TCP/IP timer records. Packet-copy paths, certificate verification
-and the Wi-Fi driver allocation inventory also remain open.
+The TCP/IP scheduler now uses twelve fixed records. The current image leaves
+1,073 application bytes and 3,146 total fixed DRAM bytes available. Next,
+trace the packet copies made during ARP resolution and UDP transmission.
+Certificate verification and the Wi-Fi driver allocation inventory remain open.
+[Timer memory checks](docs/reports/wifi-static-memory/README.md#fixed-tcpip-timeout-records)
 [DHCP memory checks](docs/reports/wifi-static-memory/README.md#fixed-dhcp-client-and-messages)
 [ARP and UDP memory checks](docs/reports/wifi-static-memory/README.md#fixed-arp-and-udp-storage)
 [Wi-Fi receive and dispatch checks](docs/reports/wifi-static-memory/README.md#fixed-tcpip-message-handoff)
