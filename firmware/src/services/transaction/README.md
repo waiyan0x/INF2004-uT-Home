@@ -154,6 +154,21 @@ Status values: 0 OK, 1 invalid, 2 unconfigured, 3 mismatch, 4 timeout, 5 I/O,
 6 busy, 7 unsupported, 8 stale ID, 9 cancelled. A query with a nonzero wrong
 expected boot returns mismatch with current identity; discovery uses boot zero.
 
+## Decision test vectors for the demo
+
+A load validates and stores one rule. A separate execute request performs
+the operation named by the active device and revision. The firmware returns
+the raw bytes and accepted counts. The host supplies the register and transfer
+length when it compiles the selected [description](../../../../datasheets/README.md).
+
+| Test input | Expected decision | Where verified |
+|---|---|---|
+| Load BMP388 chip ID at `0x77`, then execute | I2C writes register `00` and reads one byte, `50` | [Power-bank rehearsal](../../../../tools/configurator/README.md#power-bank-demo-rehearsal) |
+| Switch to LD2450 `raw_32`, then execute | UART receives 32 raw bytes at 256000 baud and sends zero bytes | Same physical rehearsal |
+| With BMP388 pressure revision 2 active, request revision 3 with 33 RX bytes | Reject the update as invalid, keep revision 2 and perform no bus I/O on rejection. Executing revision 2 still reads three bytes | [Compiled C owner with simulated buses](../../../../tests/target/test_descriptions.py) |
+| Repeat the exact most recently completed execute in its original session | Return the cached result with the original completion time and one total driver start | [C decision tests](../../../../tests/target/test_txjob.py) |
+| Use the final request ID, then attempt to start again at ID 1 on the same boot | Reject the new command as stale. Read-only status remains available | [C decision tests](../../../../tests/target/test_txjob.py) |
+
 ## Verification and C review
 
 Run the [host workflow and tests](../../../../tools/transaction/README.md).
