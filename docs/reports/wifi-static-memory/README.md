@@ -169,6 +169,37 @@ live bytes to zero, retained the peak and allowed a new record. The allocator
 and critical sections were simulated. This verifies the measurement method.
 Board traffic is needed to size the pools.
 
+##### Physical one-broker baseline
+
+The ESP32-C3 ran the instrumented image on its normal profile. Seven
+authenticated 96-byte status replies identified the same boot across four
+additional status requests, one broker restart and a full TLS renegotiation.
+The table reports live bytes at each debugger stop and the highest simultaneous
+requested bytes since boot. Every reported allocation error counter was zero.
+
+| Stop | Live bytes | Peak bytes since boot |
+|---|---:|---:|
+| Wi-Fi address acquired, broker offline | 488 | 688 |
+| First authenticated status | 3,452 | 3,496 |
+| First status after broker restart | 1,924 | 3,496 |
+| First status after renegotiation | 1,924 | 3,496 |
+
+The highest record counts were one TCP connection, two TCP segments, one UDP
+connection, one API message, two input messages, one ARP queue entry, one IGMP
+group, six timers and one address-lookup record. This run exercised the
+normal profile and one reconnect. Additional connections in TIME_WAIT and
+peripheral traffic still need coverage when sizing a production pool. The
+full 4 MiB flash, saved and active profile, and laptop settings verified
+after restoration.
+
+In a separate instruction replay, a single 96-byte TCP write occupied 1,696
+bytes including its connection record, segment record and 1,512-byte packet
+buffer. Queueing the configured 5,760-byte send capacity occupied 6,280
+bytes even before adding receive traffic or TLS. These are controlled
+send-path cases. On the pinned ESP port, single-packet transmission reserves
+a full segment for each new packet. Segment and send-window sizing therefore
+affect the storage needed even for one small MQTT status reply.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
