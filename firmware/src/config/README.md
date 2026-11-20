@@ -214,6 +214,13 @@ does not extend with progress. Empty polls expire it; backwards time also reject
 the frame. Unread hardware bytes have no arrival timestamp guarantee. Noise is
 not acknowledged. A completed request remains retained until reset.
 
+The pump sends replies from its existing 8,192-byte request buffer. Apply
+consumes the request before the controller encodes its reply. Discovery keeps
+its 24 input bytes at the front while the observer writes up to 2,048 output
+bytes after them. The pump writes the frame header last and finishes or expires
+the reply before parsing another request. Any unread USB chunk stays separate.
+This releases 2,072 bytes of fixed application RAM.
+
 The pump processes at most 64 RX bytes, one request and bounded TX attempts
 (at most 48 bytes each), retaining partial work. Whole-reply deadline is 2 s
 starting on the next transmit step after controller work returns. Disconnect,

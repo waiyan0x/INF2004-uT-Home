@@ -39,7 +39,6 @@ typedef struct
     const cfgpump_ops_t * p_operations;
     void *                p_context;
     uint8_t               received[UTHOME_CFGPUMP_CHUNK];
-    uint8_t               reply[UTHOME_CFGWIRE_HEADER + UTHOME_CFGWIRE_PAYLOAD];
     size_t                reply_size;
     cfgpump_observe_t *   p_observe;
     void *                p_observer;

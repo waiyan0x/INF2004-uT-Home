@@ -47,12 +47,14 @@ The compiled receive and dispatch test returned all 23 driver buffers exactly
 once. Booting from saved idle, the board passed eight BMP388/radar reads
 across a broker restart. The receive pool peaked at three of eight slots on
 that boot.
-The current station image also fixes storage for UDP endpoints, ARP requests
-and replies, and records for packets awaiting address resolution. It leaves
-74 application bytes and 2,154 total fixed DRAM bytes. DHCP state and outgoing
-messages, some packet-copy paths and TLS certificate verification still use
-the heap. The board completed eight sensor reads across a broker restart; the
-DHCP client used one of the two fixed UDP slots.
+The station now reserves fixed storage for DHCP client state and outgoing
+messages, UDP endpoints, ARP requests and replies, and records for packets awaiting
+address resolution. Reusing the USB request buffer for replies leaves 1,277
+application bytes and 3,354 total fixed DRAM bytes available. Compiled DHCP
+renewal and rebinding passed with the ordinary TCP packet slots full.
+Next, qualify TCP/IP timer records. Packet-copy paths, certificate verification
+and the Wi-Fi driver allocation inventory also remain open.
+[DHCP memory checks](docs/reports/wifi-static-memory/README.md#fixed-dhcp-client-and-messages)
 [ARP and UDP memory checks](docs/reports/wifi-static-memory/README.md#fixed-arp-and-udp-storage)
 [Wi-Fi receive and dispatch checks](docs/reports/wifi-static-memory/README.md#fixed-tcpip-message-handoff)
 [Outgoing TCP packet checks](docs/reports/wifi-static-memory/README.md#fixed-outgoing-tcp-packets)

@@ -6,10 +6,11 @@
 #define UTHOME_CFGWIRE_H
 #include <stdbool.h>
 #include "cfgbytes.h"
-#define UTHOME_CFGWIRE_HEADER  24U
-#define UTHOME_CFGWIRE_REPLY   48U
-#define UTHOME_CFGWIRE_PAYLOAD 2048U
-#define UTHOME_CFGWIRE_TIMEOUT 2000U
+#define UTHOME_CFGWIRE_HEADER         24U
+#define UTHOME_CFGWIRE_DISCOVER_BYTES 24U
+#define UTHOME_CFGWIRE_REPLY          48U
+#define UTHOME_CFGWIRE_PAYLOAD        2048U
+#define UTHOME_CFGWIRE_TIMEOUT        2000U
 
 typedef enum
 {

@@ -457,6 +457,43 @@ ARP cloning of volatile packets, the optional UDP header allocation and TLS
 certificate verification also retain heap paths. The Wi-Fi driver allocation
 inventory and whole-system static-memory qualification remain open.
 
+#### Fixed DHCP client and messages
+
+Firmware `820fb4ed`, ELF `7df94a1c`. The one-station build reserves 869 bytes
+for its native 92-byte DHCP client, the client lease flag, and two 388-byte
+outgoing packet slots. Each slot can carry the full 309-byte DHCP message plus
+native transport headroom, alignment and a custom pbuf header. The USB
+configuration pump reclaimed 2,072 bytes by reusing its request storage for
+replies. On the host a discovery callback wrote the maximum 2,048-byte
+response and could still read all 24 original request bytes. The pump sent
+that response seven bytes at a time and handled the next queued request.
+
+| Fixed RAM | Linked | Limit | Available |
+|---|---:|---:|---:|
+| Application | 146,179 | 147,456 | 1,277 |
+| Total DRAM | 275,174 | 278,528 | 3,354 |
+
+All module and group limits passed. The application gained 1,203 bytes of
+headroom relative to image `89e3f994`. The linked RV32 test exercised native
+discovery, unicast renewal, broadcast rebinding, release and client cleanup.
+It verified both destination addresses and the encoded DHCP message types.
+Four occupied TCP send slots did not block those requests. Two retained DHCP
+packets kept their contents. A third renewal returned `ERR_MEM` until a
+reference was released. A second interface acquired the fixed client after
+the first interface released it. The old ELF triggered the same test's
+general-heap trap on its first DHCP start.
+
+The replay supplies a lease and models the clock, RNG, UDP transmission,
+interrupt guard and address-change notification. It checks the client and
+outgoing message lifetimes. The SDK still allocates TCP/IP timeout records
+through `memp_malloc(MEMP_SYS_TIMEOUT)` and the heap-backed pool allocator.
+Packet-copy paths, TLS certificate verification and the Wi-Fi driver inventory
+also remain open.
+
+```powershell
+python -B -m tools.target.dhcp_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
+```
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

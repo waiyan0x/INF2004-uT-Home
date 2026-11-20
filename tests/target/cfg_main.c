@@ -137,6 +137,7 @@ int main (int argc, char ** pp_argv)
     verify_observation(CFGWIRE_CAPABILITIES);
     verify_observation(CFGWIRE_WORKCOST);
     verify_observation(CFGWIRE_NETWORK);
+    verify_observation(CFGWIRE_DISCOVER);
     printf("Config framing, torn-save recovery and request retries passed. "
            "contexts=%zu,%zu,%zu\n",
            sizeof(cfgwire_t),
@@ -724,6 +725,7 @@ static void verify_observation (cfgwire_command_t command)
     assert(0 == cfgpump_observe(&g_pump, observe, &g_pump));
     assert(0 == cfgpump_capabilities(&g_pump, observe, &g_pump));
     assert(0 == cfgpump_diagnostics(&g_pump, diagnostic, &g_pump));
+    assert(0 == cfgpump_discovery(&g_pump, diagnostic, &g_pump));
     memset(g_input, 0, 24U);
     memcpy(g_input, "UTH1", 4U);
     g_input[4] = 1U;
@@ -731,8 +733,22 @@ static void verify_observation (cfgwire_command_t command)
         command; /* Two explicitly supplied read-only enum values fit. */
     cfgbytes_put(&g_input[8], UINT32_MAX);
     cfgbytes_put(&g_input[20], ~cfgbytes_crc(UINT32_MAX, g_input, 20U));
-    g_input_used             = 0U;
-    g_input_size             = 24U;
+    g_input_used = 0U;
+    g_input_size = 24U;
+    if (CFGWIRE_DISCOVER == command)
+    {
+        /* Retain the start of the following probe in the same USB read. */
+        memcpy(&g_input[48], g_input, 24U);
+        g_input[53] = CFGWIRE_PROBE;
+        cfgbytes_put(&g_input[56], 17U);
+        cfgbytes_put(&g_input[68],
+                     ~cfgbytes_crc(UINT32_MAX, &g_input[48], 20U));
+        memset(&g_input[24], 0x5A, 24U);
+        cfgbytes_put(&g_input[16], 24U);
+        uint32_t crc = cfgbytes_crc(UINT32_MAX, g_input, 20U);
+        cfgbytes_put(&g_input[20], ~cfgbytes_crc(crc, &g_input[24], 24U));
+        g_input_size = 72U;
+    }
     g_output_used            = 0U;
     g_write_limit            = 7U;
     const unsigned calls     = g_calls;
@@ -742,7 +758,15 @@ static void verify_observation (cfgwire_command_t command)
     {
         assert(0 == cfgpump_step(&g_pump, 13000U + step));
     }
-    assert(2072U == g_output_used);
+    if (CFGWIRE_DISCOVER == command)
+    {
+        assert(2120U == g_output_used);
+        assert(17U == cfgbytes_get(&g_output[2080]));
+    }
+    else
+    {
+        assert(2072U == g_output_used);
+    }
     assert(2048U == cfgbytes_get(&g_output[16]));
     uint32_t sum = cfgbytes_crc(UINT32_MAX, g_output, 20U);
     sum          = cfgbytes_crc(sum, &g_output[24], 2048U);
@@ -768,6 +792,13 @@ static int diagnostic (void *                    p_context,
                        size_t *                  p_size)
 {
     assert(NULL != p_request);
+    if (CFGWIRE_DISCOVER == p_request->command)
+    {
+        const int result = observe(p_context, p_data, capacity, p_size);
+        assert(24U == p_request->size);
+        assert(0 == memcmp(p_request->p_data, &g_input[24], 24U));
+        return result;
+    }
     assert((CFGWIRE_WORKCOST == p_request->command) ||
            (CFGWIRE_NETWORK == p_request->command));
     assert((0U == p_request->revision) && (0U == p_request->size));

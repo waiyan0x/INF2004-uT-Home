@@ -178,7 +178,8 @@ static int accept_header (cfgwire_t * p_receiver)
         ((CFGWIRE_APPLY == command) && ((0U == size) || (0U == revision))) ||
         ((CFGWIRE_APPLY != command) && (CFGWIRE_DISCOVER != command) &&
          (0U != size)) ||
-        ((CFGWIRE_DISCOVER == command) && (24U != size)) ||
+        ((CFGWIRE_DISCOVER == command) &&
+         (UTHOME_CFGWIRE_DISCOVER_BYTES != size)) ||
         (((CFGWIRE_QUERY == command) || (CFGWIRE_RECOVER == command) ||
           (CFGWIRE_PROBE == command) || (CFGWIRE_TELEMETRY == command) ||
           (CFGWIRE_CAPABILITIES == command) || (CFGWIRE_WORKCOST == command) ||

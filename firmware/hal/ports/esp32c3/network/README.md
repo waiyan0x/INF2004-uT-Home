@@ -11,7 +11,7 @@ resource limits, build instructions, manual reviews and qualification evidence.
 | `c3lbox` | lwIP mailbox identities bound to the existing fixed queue payloads |
 | `c3tls` | Fixed ESP-TLS contexts, error trackers and temporary hostname storage |
 | `c3tout` | Fixed MQTT buffers, hostname, outer TLS/certificate records and TLS 1.2 PRF inputs |
-| `c3lrec`, `c3pkt`, `c3rx` | Fixed socket, TCP, UDP, ARP and TCP/IP message storage and Wi-Fi receive references |
+| `c3lrec`, `c3pkt`, `c3rx`, `c3dhcp` | Fixed socket, TCP, UDP, ARP and TCP/IP message storage and Wi-Fi receive references |
 | `c3nq`, `c3event` | Native queue/event synchronization and fixed resource bindings |
 | `c3ewait` | Stateless native notification, clock and context boundary for events |
 | `c3wifi` | Isolated Wi-Fi scan diagnostic |
@@ -547,6 +547,18 @@ layer and the exact SDK frame size. Its 44-byte backing length fits the
 are unchanged. The two reviewed C99 adapters require no new deviation.
 
 [ARP and UDP measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-arp-and-udp-storage)
+
+## DHCP client and outgoing messages
+
+The one-station build reserves one native DHCP client and two outgoing
+datagrams with aligned transport headroom. DHCP start and cleanup own the
+client on the serialized lwIP core. A unicast renewal may remain queued for ARP
+while the station sends another request. Each datagram stays reserved until
+its final pbuf reference is released. A third simultaneous request receives
+the native allocation error and uses the client's retry schedule. Timer
+records and packets copied by other layers have separate ownership.
+
+[DHCP memory checks](../../../../../docs/reports/wifi-static-memory/README.md#fixed-dhcp-client-and-messages)
 
 ## Wi-Fi receive records
 

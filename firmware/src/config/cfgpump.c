@@ -3,6 +3,12 @@
  * @brief Preserve stream fragments and backpressure around one request.
  */
 #include "cfgpump.h"
+#if (UTHOME_CFGWIRE_HEADER + UTHOME_CFGWIRE_PAYLOAD > UTHOME_CONFIG_BYTES) ||  \
+    (UTHOME_CFGWIRE_DISCOVER_BYTES > UTHOME_CFGWIRE_HEADER) ||                 \
+    (UTHOME_CFGWIRE_REPLY > UTHOME_CONFIG_BYTES)
+#error                                                                         \
+    "USB replies must fit the receive workspace and preserve discovery input."
+#endif
 static int make_reply (cfgpump_t * p_pump, const cfgwire_request_t * p_request);
 static int receive_request (cfgpump_t * p_pump, uint64_t now_ms);
 static int transmit_reply (cfgpump_t * p_pump, uint64_t now_ms);
@@ -167,10 +173,11 @@ static int transmit_reply (cfgpump_t * p_pump, uint64_t now_ms)
     size_t       count     = 0U;
     const size_t unsent    = p_pump->reply_size - p_pump->sent;
     const size_t remaining = (unsent < 48U) ? unsent : 48U;
-    if ((0 != p_pump->p_operations->p_write(p_pump->p_context,
-                                            &p_pump->reply[p_pump->sent],
-                                            remaining,
-                                            &count)) ||
+    if ((0 !=
+         p_pump->p_operations->p_write(p_pump->p_context,
+                                       &p_pump->receiver.data[p_pump->sent],
+                                       remaining,
+                                       &count)) ||
         (count > remaining))
     {
         discard_transport(p_pump);
@@ -197,6 +204,10 @@ static void discard_transport (cfgpump_t * p_pump)
 /** @brief Observations never consume IDs, call storage or evict retry state. */
 static int make_reply (cfgpump_t * p_pump, const cfgwire_request_t * p_request)
 {
+    /* Discovery reads only the prefix. Its observer writes beyond that prefix.
+     * Ordinary replies are encoded after the controller consumes the request.
+     */
+    uint8_t * const p_reply = p_pump->receiver.data;
     if ((CFGWIRE_DISCOVER == p_request->command) ||
         (CFGWIRE_WORKCOST == p_request->command) ||
         (CFGWIRE_NETWORK == p_request->command))
@@ -210,11 +221,11 @@ static int make_reply (cfgpump_t * p_pump, const cfgwire_request_t * p_request)
         if ((NULL == p_observe) ||
             (0 != p_observe(p_context,
                             p_request,
-                            &p_pump->reply[UTHOME_CFGWIRE_HEADER],
+                            &p_reply[UTHOME_CFGWIRE_HEADER],
                             UTHOME_CFGWIRE_PAYLOAD,
                             &size)) ||
             (0 != cfgwire_observation(
-                      p_request, p_pump->reply, sizeof(p_pump->reply), size)))
+                      p_request, p_reply, sizeof(p_pump->receiver.data), size)))
         {
             return -1;
         }
@@ -232,11 +243,11 @@ static int make_reply (cfgpump_t * p_pump, const cfgwire_request_t * p_request)
         size_t size = 0U;
         if ((NULL == p_observe) ||
             (0 != p_observe(p_context,
-                            &p_pump->reply[UTHOME_CFGWIRE_HEADER],
+                            &p_reply[UTHOME_CFGWIRE_HEADER],
                             UTHOME_CFGWIRE_PAYLOAD,
                             &size)) ||
             (0 != cfgwire_observation(
-                      p_request, p_pump->reply, sizeof(p_pump->reply), size)))
+                      p_request, p_reply, sizeof(p_pump->receiver.data), size)))
         {
             return -1;
         }
@@ -249,7 +260,7 @@ static int make_reply (cfgpump_t * p_pump, const cfgwire_request_t * p_request)
     {
         return -1;
     }
-    return cfgwire_reply(p_request, fields, p_pump->reply);
+    return cfgwire_reply(p_request, fields, p_reply);
 }
 
 /* End of file. */
