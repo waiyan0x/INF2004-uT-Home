@@ -586,6 +586,19 @@ in the tested packet path. The test supplies the Wi-Fi driver handoff.
 python -B -m tools.target.frame_copy_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
 ```
 
+On the physical ESP32-C3, four BMP388/LD2450 reads before the broker
+restart and four after it matched their individual MQTT frames on the same
+saved-idle boot. Two ICMP echo requests with 1,472 data bytes and the
+Don't Fragment flag received full-size replies. The debugger found both copy
+slots free after the pings. MQTT then confirmed the same boot and completed
+request 16. The ping checks the physical MTU. The RV32 replay above covers
+volatile UDP buffers and contention for the copy slots.
+
+The original 4 MiB flash matched the fresh backup. The first USB status check
+timed out after restoration. A separate read-only query then confirmed active
+and saved revision 943 and both original CRCs. The laptop retained its
+original uplink, and hotspot settings and firewall cleanup verified.
+
 The linked ICMP input and IPv4 fragmentation functions still call the native
 packet allocator. Certificate verification and the Wi-Fi driver allocation
 inventory remain open.

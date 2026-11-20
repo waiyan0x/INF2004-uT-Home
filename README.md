@@ -58,8 +58,10 @@ completed all eight sensor reads across a broker restart. A snapshot found
 five live timers, each in its reserved pool.
 The station now reserves one full-size frame for ARP queue copies or Wi-Fi
 transmission of chained packets, and a separate UDP header. Application
-headroom is 113 bytes and total fixed DRAM headroom is 2,082 bytes. Next,
-qualify ICMP reply buffers and outgoing IPv4 fragmentation.
+headroom is 113 bytes and total fixed DRAM headroom is 2,082 bytes. The
+board completed eight sensor reads across a broker restart and answered two
+full-size IPv4 pings. Next, qualify ICMP reply buffers and outgoing IPv4
+fragmentation.
 [Frame copy checks](docs/reports/wifi-static-memory/README.md#fixed-arp-and-wi-fi-frame-copies)
 Certificate verification and the Wi-Fi driver allocation inventory remain open.
 [Timer memory checks](docs/reports/wifi-static-memory/README.md#fixed-tcpip-timeout-records)
