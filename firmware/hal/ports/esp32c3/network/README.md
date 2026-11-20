@@ -11,7 +11,7 @@ resource limits, build instructions, manual reviews and qualification evidence.
 | `c3lbox` | lwIP mailbox identities bound to the existing fixed queue payloads |
 | `c3tls` | Fixed ESP-TLS contexts, error trackers and temporary hostname storage |
 | `c3tout` | Fixed MQTT buffers, hostname, outer TLS/certificate records and TLS 1.2 PRF inputs |
-| `c3lrec`, `c3pkt` | Fixed socket and TCP records, outgoing TCP packets and control packets |
+| `c3lrec`, `c3pkt`, `c3rx` | Fixed socket and TCP records, outgoing TCP packets and Wi-Fi receive references |
 | `c3nq`, `c3event` | Native queue/event synchronization and fixed resource bindings |
 | `c3ewait` | Stateless native notification, clock and context boundary for events |
 | `c3wifi` | Isolated Wi-Fi scan diagnostic |
@@ -496,8 +496,7 @@ while splitting its unsent head to fit a smaller peer receive window. Two
 independent IP control slots can carry the TCP header, up to 40 option bytes
 and the one-byte zero-window probe while all transport slots are occupied.
 The native SDK still owns queuing, retransmission, reference counting and
-final release. Other protocols and incoming packet allocations retain their
-own allocation paths.
+final release. The receive path has a separate [frame pool](#wi-fi-receive-records).
 
 The pinned single-buffer build always copies TCP writes. The only redirected
 packet allocator is in `tcp_out.c`. Only the call in `tcp.c` to the native
@@ -511,3 +510,29 @@ the pbuf back to its enclosing custom header, whose first member is the pbuf.
 It marks the slot free only after the last reference. All array scans are
 bounded. Oversize requests and exhausted pools return NULL to lwIP. This
 C99 boundary adds no coding-standard deviation.
+
+## Wi-Fi receive records
+
+The zero-copy station build reserves one native custom pbuf record per
+configured dynamic Wi-Fi receive buffer. Eight records require 224 bytes on
+the ESP32-C3. A record points at the driver's payload and retains the network
+interface and the original buffer token. Only the station entry in
+`esp_netif/lwip/netif/wlanif.c` uses this allocator.
+
+The input caller owns the driver token until allocation succeeds. A full
+pool leaves the token with that caller, which returns it to the driver.
+After admission, lwIP owns the packet reference. If its input queue refuses
+the packet, normal pbuf cleanup releases it. Extra references delay the
+driver return until the last release.
+
+**C review.** The SDK boundary uses its C99 prototype and a typed, initially
+zeroed array. The bounded scan and ownership updates run under the port's
+interrupt guard. Each slot holds a real custom header whose first member
+is the native pbuf. These initial members permit the callback to recover
+the enclosing slot with its original alignment. It copies the interface and
+token and clears the lease before invoking the driver outside the guard.
+Lengths above the SDK's 16-bit field are refused before conversion. A raw
+pbuf adds zero header offset, preserving the driver's payload pointer.
+No new kernel object or coding-standard deviation is required.
+
+[Receive tests and measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-wi-fi-receive-records)

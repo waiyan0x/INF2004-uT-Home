@@ -93,6 +93,8 @@ RUNTIME_SOURCE_FILES = {
     'firmware/hal/ports/esp32c3/network/c3peer.h': 'hal/c3peer.h',
     'firmware/hal/ports/esp32c3/network/c3tout.c': 'hal/c3tout.c',
     'firmware/hal/ports/esp32c3/network/c3tout.h': 'hal/c3tout.h',
+    'firmware/hal/ports/esp32c3/network/c3rx.c': 'hal/c3rx.c',
+    'firmware/hal/ports/esp32c3/network/c3rx.h': 'hal/c3rx.h',
     'firmware/hal/ports/esp32c3/network/c3pkt.c': 'hal/c3pkt.c',
     'firmware/hal/ports/esp32c3/network/c3pkt.h': 'hal/c3pkt.h',
     'firmware/hal/ports/esp32c3/network/c3lrec.c': 'hal/c3lrec.c',
@@ -844,12 +846,19 @@ def check_lwip_records(commands, symbols, enabled):
     """Keep typed record allocation confined to the reviewed SDK API units."""
     sources = {"api_lib.c", "api_msg.c", "netbuf.c", "tcp.c", "tcp_out.c"}
     bindings = {"memp_malloc": "c3lrec_alloc", "memp_free": "c3lrec_free"}
-    packet_bindings = {"tcp.c": {"tcp_split_unsent_seg": "c3pkt_split"}, "tcp_out.c": {"pbuf_alloc": "c3pkt_alloc"}}
+    packet_bindings = {
+        "tcp.c": {"tcp_split_unsent_seg": "c3pkt_split"},
+        "tcp_out.c": {"pbuf_alloc": "c3pkt_alloc"},
+        "wlanif.c": {"esp_pbuf_allocate": "c3rx_alloc"},
+    }
+    required = {name: bindings for name in sources}
+    for name, values in packet_bindings.items():
+        required[name] = required.get(name, {}) | values
     observed = set()
     for entry in commands:
         name = Path(entry["file"]).name
-        found = re.findall(r'(?:^|\s)-D\s*"?(memp_malloc|memp_free|tcp_split_unsent_seg|pbuf_alloc)=([^\s"]+)"?', entry["command"])
-        expected = (bindings | packet_bindings.get(name, {})) if enabled and name in sources else {}
+        found = re.findall(r'(?:^|\s)-D\s*"?(memp_malloc|memp_free|tcp_split_unsent_seg|pbuf_alloc|esp_pbuf_allocate)=([^\s"]+)"?', entry["command"])
+        expected = required.get(name, {}) if enabled else {}
         if dict(found) != expected or len(found) != len(expected):
             raise QualificationError("lwIP record binding escaped its source: " + name)
         if expected:
@@ -857,19 +866,20 @@ def check_lwip_records(commands, symbols, enabled):
                 raise QualificationError("Duplicate lwIP record compiler input: " + name)
             observed.add(name)
     if not enabled:
-        if any(name in symbols for name in (*bindings.values(), "c3pkt_alloc", "c3pkt_split")):
+        if any(name in symbols for name in (*bindings.values(), "c3rx_alloc", "c3pkt_alloc", "c3pkt_split")):
             raise QualificationError("lwIP records escaped selected Wi-Fi services")
         return dict(enabled=False)
-    if observed != sources:
+    if observed != required.keys():
         raise QualificationError("Missing lwIP record compiler input")
-    for name in (*bindings.values(), "c3pkt_alloc", "c3pkt_split", "c3bport_enter", "c3bport_leave"):
+    for name in (*bindings.values(), "c3rx_alloc", "c3pkt_alloc", "c3pkt_split", "c3bport_enter", "c3bport_leave"):
         if not 0x42000000 <= symbols.get(name, 0) < 0x43000000:
             raise QualificationError("lwIP record helper absent or consumes RAM code: " + name)
-    for name in ("netconn_alloc", "netconn_free", "netbuf_delete", "memp_malloc", "memp_free", "tcp_split_unsent_seg", "pbuf_alloced_custom"):
+    for name in ("netconn_alloc", "netconn_free", "netbuf_delete", "memp_malloc", "memp_free", "tcp_split_unsent_seg", "pbuf_alloced_custom",
+                 "wlanif_input", "esp_netif_free_rx_buffer"):
         if name not in symbols:
             raise QualificationError("Selected SDK lwIP lifecycle missing: " + name)
     return dict(enabled=True, allocator_sources=sorted(sources), bindings=bindings, packet_bindings=packet_bindings,
-                qualification="Fixed NETCONN, NETBUF, TCP PCB/listener and segment records; fixed outgoing TCP packets; other lwIP storage and TLS still use the heap")
+                qualification="Fixed NETCONN, NETBUF, TCP PCB/listener and segment records; fixed outgoing TCP packets and Wi-Fi receive records; other lwIP storage and TLS still use the heap")
 
 
 def verify_lwip_records(work, enabled):
@@ -960,9 +970,9 @@ def verify_compile_profiles(work, startup_trace=False):
         profiles[source] = expected
     for path, command in commands.items():
         adapted = "-Dasm=__asm__" in command
-        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3peer.c", "c3lrec.c", "c3pkt.c")}):
+        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3peer.c", "c3lrec.c", "c3pkt.c", "c3rx.c")}):
             raise QualificationError("SDK assembly spelling adaptation escaped its adapter")
-    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3peer.c", "c3lrec.c", "c3pkt.c"):
+    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3peer.c", "c3lrec.c", "c3pkt.c", "c3rx.c"):
         owned_radio = (work / "project/hal" / name).read_text()
         if re.search(r"\b(?:asm|__asm__|typeof|__typeof__)\b", owned_radio):
             raise QualificationError("Owned radio adapter must remain C99: " + name)

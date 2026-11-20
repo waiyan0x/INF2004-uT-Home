@@ -467,3 +467,8 @@ the [manual review](tools/target/README.md#host-tls-fixture-c-review).
 boundary uses native custom pbufs and the existing interrupt guard. The
 [packet storage review](firmware/hal/ports/esp32c3/network/README.md#outgoing-tcp-packets)
 covers alignment, reference lifetime, split capacity and allocation bounds.
+
+`c3rx` owns fixed Wi-Fi receive references and uses the existing C99 SDK
+boundary. Its [manual review](firmware/hal/ports/esp32c3/network/README.md#wi-fi-receive-records)
+covers buffer ownership, native callback layout, interrupt exclusion and
+size conversion.

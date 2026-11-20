@@ -10,15 +10,15 @@ from .tls_fragment_probe import Probe, SSL
 from .tls_output_probe import OutputProbe
 
 
-def target_layout(elf, gdb):
+def target_layout(elf, gdb, structures=("tcp_pcb", "tcp_seg", "pbuf"),
+                  constants=("ESTABLISHED", "MEMP_TCP_PCB", "PBUF_IP", "PBUF_TRANSPORT", "PBUF_RAM", "ERR_MEM")):
     """Read the selected lwIP types and enum values from this ELF's DWARF."""
-    query = """
+    query = "names = " + repr(structures) + "\nconstants = " + repr(constants) + "\n" + """
 import json
-names = ("tcp_pcb", "tcp_seg", "pbuf")
 layout = {name: {field.name: [field.bitpos // 8, field.type.sizeof]
                  for field in gdb.lookup_type("struct " + name).fields() if field.name}
           for name in names}
-for name in ("ESTABLISHED", "MEMP_TCP_PCB", "PBUF_IP", "PBUF_TRANSPORT", "PBUF_RAM", "ERR_MEM"):
+for name in constants:
     layout[name] = int(gdb.parse_and_eval(name))
 print(json.dumps(layout))
 """

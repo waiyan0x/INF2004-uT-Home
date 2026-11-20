@@ -309,6 +309,37 @@ python -B -m tools.target.tcp_packet_probe --elf PATH_TO_ESP_ELF --gdb riscv32-e
 
 [Packet ownership and C review](../../../firmware/hal/ports/esp32c3/network/README.md#outgoing-tcp-packets)
 
+#### Fixed Wi-Fi receive records
+
+The station reserves eight 28-byte records for the configured eight dynamic
+radio receive buffers. The 224 bytes of metadata belong to the application.
+The driver retains ownership of the variable-size payload buffers until lwIP
+returns the corresponding tokens. Payload allocation in the radio driver
+still belongs in the Wi-Fi exception inventory.
+
+This image uses 146,901 of 147,456 application bytes and 275,894 of 278,528
+total fixed DRAM bytes. The source binding is confined to the station input
+function. The compiled ESP32-C3 replay exercised eight live packet leases,
+pool exhaustion, an extra reference, final release, input refusal, a reused
+slot and an oversized length. The simulated driver received 13 distinct
+tokens exactly once. No general heap call occurred in the tested path.
+The replay supplies the downstream input callback and the radio buffer-return
+callback. The existing full-window TCP send replay also passed on this ELF.
+
+The intermediate firmware `147011d2` answered authenticated MQTT status on
+the physical board. The idle-profile Apply timed out. The trial restored and
+verified the original flash and profile 943 before any sensor read or pool
+observation. This run establishes normal-profile connectivity only.
+
+Run the linked receive test with the ESP debugger and the same optional Python
+dependencies as the outgoing TCP test.
+
+```powershell
+python -B -m tools.target.wifi_receive_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
+```
+
+[Ownership and C review](../../../firmware/hal/ports/esp32c3/network/README.md#wi-fi-receive-records)
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
