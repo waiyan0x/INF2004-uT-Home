@@ -538,6 +538,18 @@ rebinding and cleanup. The list was empty after the last client stopped.
 python -B -m tools.target.timeout_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
 ```
 
+On the ESP32-C3, authenticated MQTT status confirmed the initial connection.
+After booting from the saved idle profile, the board read BMP388 chip ID and
+pressure bytes and two LD2450 samples (16 and 32 bytes) on each side of a
+broker restart. All eight payloads matched the individual MQTT wire results.
+At the final read the native timeout list contained five records for TCP, ARP
+maintenance, coarse DHCP, gratuitous ARP and the lost-IP notification. Every
+list address matched an occupied fixed slot, and all seven other slots were
+free at that instant. Peak physical occupancy over the run was not measured.
+After debugger resume MQTT confirmed the same boot and completed request 16.
+The full 4 MiB flash matched its fresh backup, the active and saved profiles
+returned to revision 943, and the laptop hotspot and firewall cleanup passed.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

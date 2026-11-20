@@ -53,7 +53,9 @@ address resolution. The USB request and reply share a buffer. Compiled DHCP
 renewal and rebinding passed with the ordinary TCP packet slots full.
 On the ESP32-C3, the active interface held a bound lease in the fixed client
 and all eight BMP388/radar reads passed across a broker restart.
-The TCP/IP scheduler now uses twelve fixed records. The current image leaves
+The TCP/IP scheduler now uses twelve fixed records. On this image, the board
+completed all eight sensor reads across a broker restart. A snapshot found
+five live timers, each in its reserved pool. The current image leaves
 1,073 application bytes and 3,146 total fixed DRAM bytes available. Next,
 trace the packet copies made during ARP resolution and UDP transmission.
 Certificate verification and the Wi-Fi driver allocation inventory remain open.
