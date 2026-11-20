@@ -65,7 +65,11 @@ calling the fixed allocator. Linked-firmware replay covered fragmentation,
 exhaustion and recovery with zero general heap calls in the tested paths.
 The linked firmware requests 308 heap bytes for a numeric broker address
 result and 16 for the station's all-systems multicast membership. The two
-records overlap during connection setup.
+records overlap during connection setup. On the ESP, the reconnect trace
+showed two address results allocated and freed, zero DNS or IGMP packet
+allocations, and one live station membership. Next, remove the temporary
+address-result heap allocation for the numeric broker and qualify the
+station membership storage.
 [Resolver and multicast checks](docs/reports/wifi-static-memory/README.md#numeric-broker-lookup-and-multicast-membership)
 [IPv4 packet checks](docs/reports/wifi-static-memory/README.md#fixed-icmp-and-outbound-ipv4-fragments)
 [Frame copy checks](docs/reports/wifi-static-memory/README.md#fixed-arp-and-wi-fi-frame-copies)

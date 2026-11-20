@@ -677,6 +677,30 @@ requested payloads at `mem_malloc` and exclude heap bookkeeping.
 python -B -m tools.target.dns_igmp_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
 ```
 
+The first physical trace reached the group allocator at startup. The
+Wi-Fi station held one membership for `224.0.0.1`, with one reference.
+The loopback interface had none. MQTT readiness timed out on this run, so
+the reconnect measurement used a separate backed-up trial.
+
+In the second trial the ESP completed four BMP388/LD2450 reads, then the
+debugger armed five hardware breakpoints before the broker restart. Four
+more sensor results matched their individual MQTT frames on the same boot.
+From arming through the final sensor result, two calls entered the native
+address allocator and two entered its matching release function. The DNS
+query and IGMP report packet allocation sites were never reached in that
+window. Two extra stops at the release instruction single-stepped into the
+interrupt vector. Counting entries into `memp_free` distinguished the two
+actual calls. The station still held only its all-systems group when sampled.
+MQTT confirmed completed request 16 after the debugger resumed the CPU.
+
+Both trials restored and independently verified the original 4 MiB flash,
+active and saved profile 943, laptop uplink and temporary host settings.
+The 308-byte address result exceeds the remaining 113 application bytes.
+The next change should remove that heap request for the validated numeric
+endpoint while preserving the separate TLS certificate name. The 16-byte
+station membership also needs fixed storage. Packet allocation for other
+DNS or multicast workloads remains outside this measurement.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
