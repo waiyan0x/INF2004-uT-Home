@@ -215,8 +215,8 @@ must check the following for each changed module and record the result in the PR
 
 | Rules | Review responsibility beyond the automated checks |
 |---|---|
-| 1.1, 1.5Ã¢â‚¬â€œ1.8 | Language/ABI profile; meaningful names; justified casts and ranges; const/static; concurrency and hardware qualifiers. |
-| 1.3Ã¢â‚¬â€œ1.4, 3 | Braces and expression grouping; spaces and alignment; switch indentation; one statement per line. |
+| 1.1, 1.5–1.8 | Language/ABI profile; meaningful names; justified casts and ranges; const/static; concurrency and hardware qualifiers. |
+| 1.3–1.4, 3 | Braces and expression grouping; spaces and alignment; switch indentation; one statement per line. |
 | 2 | Accurate complete comments, assumptions and useful interface contracts; no dead or misleading commented code. |
 | 4 | Cohesive modules, minimal includes, public/private boundaries and correct paired headers. |
 | 5 | Fixed-width decisions, signedness, promotions, unsigned bit operations/literals, Boolean conditions and external data layout. |
