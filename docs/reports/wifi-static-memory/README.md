@@ -603,6 +603,40 @@ The linked ICMP input and IPv4 fragmentation functions still call the native
 packet allocator. Certificate verification and the Wi-Fi driver allocation
 inventory remain open.
 
+#### Fixed ICMP and outbound IPv4 fragments
+
+Firmware `efd99e48`, ELF `561430ed`. The ICMP and IPv4 fragmentation
+translation units use the existing 1,536-byte frame slot. The map still
+reports 147,343 of 147,456 application bytes and 276,446 of 278,528 total
+fixed DRAM bytes. The 64-byte UDP header remains available independently.
+
+The RV32 replay fed valid IPv4 packets to the linked input function. It
+checked a 1,500-byte echo reply and a 56-byte port-unreachable reply,
+including the quoted IP header, addresses and checksums. Holding the frame
+suppressed both replies and returned each receive buffer. Releasing it
+allowed the next reply. On output, the native fragmenter split a 2,968-byte
+UDP datagram into IPv4 packets of 1,500, 1,500 and 28 bytes. Offsets, flags,
+checksums and the reconstructed payload matched. The replay held the first
+fragment at the interface. The native sender reported `ERR_MEM` and the
+retained bytes stayed intact. A fresh attempt succeeded after release. A
+caller can therefore see an error after one fragment has already gone out.
+
+Both replay cases trapped general allocation on the preceding image and
+completed with zero general heap calls on this image. These tests supply the
+network-interface output callback. Outbound fragmentation was checked in
+instruction replay. Incoming IPv4 fragment reassembly is disabled in this
+configuration.
+
+```powershell
+python -B -m tools.target.ipv4_packet_probe --case icmp --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
+python -B -m tools.target.ipv4_packet_probe --case fragment --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
+```
+
+The ELF still contains native packet allocations from DNS, IGMP, raw sockets,
+netbuf and loopback output. Which of those run during the one-broker demo
+requires separate evidence. Certificate verification and Wi-Fi driver
+allocation attribution remain open.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

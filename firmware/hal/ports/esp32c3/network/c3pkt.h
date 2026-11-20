@@ -12,6 +12,9 @@
 /** @brief Lease a copied TCP packet or an Ethernet ARP frame. */
 struct pbuf * c3pkt_alloc (pbuf_layer layer, uint16_t length, pbuf_type type);
 
+/** @brief Lease the station frame for one IPv4 reply, fragment or link copy. */
+struct pbuf * c3pkt_frame (pbuf_layer layer, uint16_t length, pbuf_type type);
+
 /** @brief Lease an independent UDP header or Ethernet frame copy. */
 struct pbuf * c3pkt_aux (pbuf_layer layer, uint16_t length, pbuf_type type);
 

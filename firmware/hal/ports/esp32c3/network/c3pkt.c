@@ -8,6 +8,7 @@
 #include "lwip/priv/tcp_priv.h"
 #include "lwip/prot/etharp.h"
 #include "lwip/prot/ethernet.h"
+#include "lwip/prot/ip4.h"
 #include "lwip/prot/udp.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -140,34 +141,44 @@ struct pbuf * c3pkt_alloc (pbuf_layer layer, uint16_t length, pbuf_type type)
     return p_packet;
 }
 
-/** @brief Select a UDP header or one contiguous station frame by native layer.
- */
+/** @brief Lease one frame with space for the headers added by lwIP. */
+struct pbuf * c3pkt_frame (pbuf_layer layer, uint16_t length, pbuf_type type)
+{
+    struct pbuf * p_packet = NULL;
+    if ((PBUF_RAM == type) &&
+        (((PBUF_IP == layer) && ((C3PKT_MTU - IP_HLEN) >= length)) ||
+         ((PBUF_LINK == layer) && (C3PKT_MTU >= length)) ||
+         ((PBUF_RAW_TX == layer) && ((C3PKT_MTU + SIZEOF_ETH_HDR) >= length))))
+    {
+        const uint32_t saved = c3bport_enter();
+        p_packet             = reserve(layer,
+                           length,
+                           &g_frame.header,
+                           g_frame.words,
+                           sizeof(g_frame.words));
+        c3bport_leave(saved);
+    }
+    return p_packet;
+}
+
+/** @brief Keep the separate UDP header available during full-frame output. */
 struct pbuf * c3pkt_aux (pbuf_layer layer, uint16_t length, pbuf_type type)
 {
     struct pbuf * p_packet = NULL;
-    if (PBUF_RAM == type)
+    if (PBUF_IP != layer)
+    {
+        p_packet = c3pkt_frame(layer, length, type);
+    }
+    else if ((PBUF_RAM == type) && (UDP_HLEN == length))
     {
         const uint32_t saved = c3bport_enter();
-        if ((PBUF_IP == layer) && (UDP_HLEN == length))
-        {
-            p_packet = reserve(
-                layer, length, &g_udp.header, g_udp.words, sizeof(g_udp.words));
-        }
-        else if (((PBUF_LINK == layer) && (C3PKT_MTU >= length)) ||
-                 ((PBUF_RAW_TX == layer) &&
-                  ((C3PKT_MTU + SIZEOF_ETH_HDR) >= length)))
-        {
-            p_packet = reserve(layer,
-                               length,
-                               &g_frame.header,
-                               g_frame.words,
-                               sizeof(g_frame.words));
-        }
-        else
-        {
-            /* Outside the station's reviewed packet shapes. */
-        }
+        p_packet             = reserve(
+            layer, length, &g_udp.header, g_udp.words, sizeof(g_udp.words));
         c3bport_leave(saved);
+    }
+    else
+    {
+        /* The UDP fallback header has exactly eight bytes. */
     }
     return p_packet;
 }

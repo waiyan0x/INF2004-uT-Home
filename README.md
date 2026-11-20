@@ -60,8 +60,11 @@ The station now reserves one full-size frame for ARP queue copies or Wi-Fi
 transmission of chained packets, and a separate UDP header. Application
 headroom is 113 bytes and total fixed DRAM headroom is 2,082 bytes. The
 board completed eight sensor reads across a broker restart and answered two
-full-size IPv4 pings. Next, qualify ICMP reply buffers and outgoing IPv4
-fragmentation.
+full-size IPv4 pings. ICMP replies and outgoing IPv4 fragments now share the
+same frame slot. The linked firmware passed the reply, fragmentation and
+slot-exhaustion tests with zero general heap calls in those paths. Next, trace
+which remaining DNS and IGMP allocations the one-broker station actually uses.
+[IPv4 packet checks](docs/reports/wifi-static-memory/README.md#fixed-icmp-and-outbound-ipv4-fragments)
 [Frame copy checks](docs/reports/wifi-static-memory/README.md#fixed-arp-and-wi-fi-frame-copies)
 Certificate verification and the Wi-Fi driver allocation inventory remain open.
 [Timer memory checks](docs/reports/wifi-static-memory/README.md#fixed-tcpip-timeout-records)

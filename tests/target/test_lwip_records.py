@@ -36,8 +36,25 @@ typedef enum
     MEMP_TCPIP_MSG_API,
     MEMP_UDP_PCB,
     MEMP_ARP_QUEUE,
+    MEMP_SYS_TIMEOUT,
     MEMP_MAX
 } memp_t;
+#endif
+
+/* End of file. */
+
+""",
+    "timeouts.h": r"""/**
+ * @file timeouts.h
+ * @brief Typed host record for the timeout adapter test.
+ */
+#ifndef UTHOME_TEST_TIMEOUTS_H
+#define UTHOME_TEST_TIMEOUTS_H
+#include <stdint.h>
+struct sys_timeo
+{
+    uint64_t words[2];
+};
 #endif
 
 /* End of file. */
@@ -164,7 +181,7 @@ struct netbuf
 
 class LwipRecordTests(unittest.TestCase):
     pools = ((0, 6, 128), (1, 2, 32), (3, 3, 168), (4, 1, 40), (5, 16, 16), (6, 8, 16), (7, 8, 16),
-             (8, 2, 40), (9, 7, 8))
+             (8, 2, 40), (9, 7, 8), (10, 12, 16))
 
     @classmethod
     def setUpClass(cls):
@@ -267,12 +284,12 @@ class LwipRecordTests(unittest.TestCase):
         for nested in (False, True):
             saved = self.lib.lrectest_enter() if nested else 0
             before = self.lib.lrectest_calls()
-            for kind in range(10):
+            for kind in range(11):
                 record = self.lib.c3lrec_alloc(kind)
                 self.assertEqual(self.lib.lrectest_mask(), int(nested))
                 self.lib.c3lrec_free(kind, record)
                 self.assertEqual(self.lib.lrectest_mask(), int(nested))
-            self.assertEqual(self.lib.lrectest_calls() - before, 20)
+            self.assertEqual(self.lib.lrectest_calls() - before, 22)
             if nested:
                 self.lib.lrectest_leave(saved)
 
@@ -287,7 +304,7 @@ class LwipRecordTests(unittest.TestCase):
             self.assertEqual(leased, expected)
             self.assertFalse(self.lib.c3lrec_alloc(0))
             self.assertFalse(self.lib.c3lrec_alloc(1))
-            for kind in (3, 4, 5, 6, 7, 8, 9):
+            for kind, _, _ in self.pools:
                 self.assertFalse(self.lib.c3lrec_alloc(kind))
             # The SDK returns a record after cleanup even if setup failed.
             for kind, pointer in reversed(leased):

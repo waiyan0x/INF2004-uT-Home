@@ -569,6 +569,21 @@ ARP clone already consists of one pbuf and can transmit from that slot.
 A second copy while the slot is held returns the native memory error.
 Ordinary single-buffer sends and ARP request/reply frames use separate storage.
 
+ICMP uses this frame to copy an echo request or build an error reply. IPv4
+fragmentation leases it once per outgoing fragment, including an eight-byte
+tail. The fragment payload limit is 1,480 bytes with room for the 20-byte
+IPv4 header and Ethernet header. A retained transmission holds the slot. If
+a later fragment cannot acquire it, lwIP returns `ERR_MEM` to its caller.
+An earlier fragment may already have been sent. ICMP drops a reply when the
+slot is occupied. The UDP header remains independent.
+
+**C review.** The packet adapter keeps the native C99 allocator signature,
+checked unsigned lengths and aligned static storage. It enters the existing
+interrupt guard only around reservation and restores the saved state on
+every exit from the guard. The native pbuf keeps its last-reference release
+callback. Both the callback's lifetime and the existing queue capacities are
+preserved. The change uses no additional RAM, casts or deviations.
+
 UDP can prepend its header to a datagram with headroom. For a borrowed
 payload it uses a separate 64-byte slot, including the eight UDP header bytes,
 native pbuf and network headroom. Each slot stays leased through the final

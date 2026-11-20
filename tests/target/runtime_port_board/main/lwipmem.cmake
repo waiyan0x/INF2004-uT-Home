@@ -14,6 +14,10 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
     set_property(SOURCE "${UTHOME_LWIP_DIR}/lwip/src/core/ipv4/etharp.c"
         TARGET_DIRECTORY ${UTHOME_LWIP_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
         pbuf_clone=c3pkt_clone)
+    set_property(SOURCE "${UTHOME_LWIP_DIR}/lwip/src/core/ipv4/icmp.c"
+                        "${UTHOME_LWIP_DIR}/lwip/src/core/ipv4/ip4_frag.c"
+        TARGET_DIRECTORY ${UTHOME_LWIP_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
+        pbuf_alloc=c3pkt_frame)
     set_property(SOURCE "${UTHOME_LWIP_DIR}/lwip/src/core/udp.c"
         TARGET_DIRECTORY ${UTHOME_LWIP_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
         pbuf_alloc=c3pkt_aux)
@@ -30,7 +34,7 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
         esp_pbuf_allocate=c3rx_alloc pbuf_alloc=c3pkt_aux)
     # SDK archives are scanned after the owned main/radio archives. Retain the
     # record adapter and its native exclusion boundary before that scan.
-    foreach(owned IN ITEMS c3lrec_alloc c3lrec_free c3pkt_alloc c3pkt_aux c3pkt_clone c3pkt_split c3rx_alloc c3dhcp_alloc c3dhcp_free c3dhcp_packet c3bport_enter c3bport_leave)
+    foreach(owned IN ITEMS c3lrec_alloc c3lrec_free c3pkt_alloc c3pkt_aux c3pkt_frame c3pkt_clone c3pkt_split c3rx_alloc c3dhcp_alloc c3dhcp_free c3dhcp_packet c3bport_enter c3bport_leave)
         target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--undefined=${owned}")
     endforeach()
 endif()
