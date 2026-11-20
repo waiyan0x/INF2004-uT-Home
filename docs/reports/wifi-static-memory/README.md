@@ -780,6 +780,17 @@ allocator on the previous firmware at the first start.
 python -B -m tools.target.dns_igmp_probe --fixed-membership --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
 ```
 
+On the ESP32-C3, each set of four reads covered BMP388 chip ID, 16 radar
+bytes, BMP388 pressure bytes and 32 radar bytes. All eight matched their
+individual MQTT replies on the same boot. Immediately before the broker
+restart (request 8) and after the second set (request 16), the debugger
+found the station's sole membership at the linked address of the reserved
+record. At both observations the occupancy flag was set, the group address
+was `224.0.0.1`, its reference count was one and loopback had no membership.
+The full 4 MiB flash and original active and saved profile 943 were restored
+and verified. The temporary hotspot and firewall rule were removed and the
+original laptop network settings verified.
+
 The fixed broker endpoint replay also passed on this ELF. The 116 affected
 host tests passed, as did the pinned BARR-C gate across 342 files. Remaining
 work includes attributing general allocations during Wi-Fi startup and

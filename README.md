@@ -73,8 +73,10 @@ The Wi-Fi station now holds its IPv4 all-systems multicast membership in a
 fixed 16-byte record. In the linked firmware, starting and stopping the
 station reused that record without calling the heap. One station membership
 fits the demo. A second simultaneous membership returns a capacity error.
-The current image has 110 bytes free in the application budget and 3,242
-bytes free in total fixed DRAM.
+On the ESP, all eight BMP388 and radar reads matched their MQTT replies
+across a broker restart. The station held the same fixed slot before and
+after that restart. The image has 110 application bytes and 3,242 total
+fixed DRAM bytes free.
 [Fixed station membership](docs/reports/wifi-static-memory/README.md#fixed-station-multicast-membership)
 [Fixed broker endpoint](docs/reports/wifi-static-memory/README.md#fixed-numeric-broker-endpoint)
 [Earlier resolver and multicast checks](docs/reports/wifi-static-memory/README.md#numeric-broker-lookup-and-multicast-membership)
