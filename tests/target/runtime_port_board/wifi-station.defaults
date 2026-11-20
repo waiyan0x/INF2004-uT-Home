@@ -6,3 +6,6 @@ CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT=n
 # Four IPv4 TCP segments can queue for the single MQTT broker.
 CONFIG_LWIP_TCP_MSS=610
 CONFIG_LWIP_TCP_SND_BUF_DEFAULT=2440
+# One broker plus closing connections, with one native listener record.
+CONFIG_LWIP_MAX_ACTIVE_TCP=3
+CONFIG_LWIP_MAX_LISTENING_TCP=1

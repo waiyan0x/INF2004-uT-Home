@@ -1,10 +1,9 @@
-# Only these pinned units allocate/free NETCONN and NETBUF records. Packet
-# payloads, PCBs and other lwIP pools remain separate allocation work.
+# Redirect both ends of each socket, TCP PCB and segment record lifetime.
 if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
     idf_component_get_property(UTHOME_LWIP_LIB lwip COMPONENT_LIB)
     idf_component_get_property(UTHOME_LWIP_DIR lwip COMPONENT_DIR)
-    foreach(source IN ITEMS api_lib.c api_msg.c netbuf.c)
-        set_property(SOURCE "${UTHOME_LWIP_DIR}/lwip/src/api/${source}"
+    foreach(source IN ITEMS api/api_lib.c api/api_msg.c api/netbuf.c core/tcp.c core/tcp_out.c)
+        set_property(SOURCE "${UTHOME_LWIP_DIR}/lwip/src/${source}"
             TARGET_DIRECTORY ${UTHOME_LWIP_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
             memp_malloc=c3lrec_alloc memp_free=c3lrec_free)
     endforeach()

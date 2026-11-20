@@ -1,4 +1,4 @@
-# μT-Home
+# Î¼T-Home
 
 A configurable embedded platform for INF2004, group AAI13. The project aims
 to let a user change how an ESP32-C3 communicates with peripherals at runtime,
@@ -40,8 +40,9 @@ contains the per-module table, board counters and remaining acceptance tests. Th
 [one-broker TCP settings](docs/reports/wifi-static-memory/README.md#one-broker-tcp-sizing)
 reduced the measured lwIP peak from 3,496 to 1,884 bytes through reconnect
 and renegotiation. The ordinary image passed eight BMP388/radar reads.
-The next allocation work is fixed storage for TCP/IP packets and records
-and for the remaining certificate-verification allocations.
+TCP connection and segment records now use fixed slots. Packet data, other
+lwIP records and certificate verification still need bounded storage.
+[Fixed TCP records](docs/reports/wifi-static-memory/README.md#fixed-tcp-records)
 
 **Demo-broker TLS acceptance passed on the physical ESP32-C3.** On 18 November, the user
 moved dedicated investigation of the intermittent MQTT delays to last priority.
@@ -150,7 +151,7 @@ discarded; partial packets and real outages still reconnect. The 158 affected
 tests, full 334-file C gate and fresh target build pass with unchanged fixed
 memory. The [backed-up laptop-hotspot trial](tools/transaction/README.md#plan-change-session-trial)
 returned 334/338 normal-profile replies within eight seconds. Four replies reached
-the broker after 11–33 seconds, so the idle Apply was skipped. A read-only repeat
+the broker after 11â€“33 seconds, so the idle Apply was skipped. A read-only repeat
 passed 295/295 queries with the same boot identity; the earlier USB-polling
 association did not recur. Captured TCP acknowledgements and return-data gaps
 show transport delays, but do not identify their cause. The original full flash,
@@ -193,7 +194,7 @@ The approved [HA Container in WSL2](tools/transaction/README.md#home-assistant-c
 is now running at `http://127.0.0.1:18123`. The isolated six-sensor check passed
 with simulated buses, including HA and MQTT restarts without extra operations.
 Both containers stopped cleanly, the WSL environment restarted successfully,
-and all 30 API probes over five minutes passed in 3–25 ms. The user confirmed
+and all 30 API probes over five minutes passed in 3â€“25 ms. The user confirmed
 that the dashboard loads normally. On 17 November, the user also verified all
 six rendered sensors through chip-ID / raw-pressure / chip-ID switching,
 result expiry and display disconnection using the simulated fixture. This is
@@ -303,7 +304,7 @@ host tests, target builds and physical acceptance.
    configuration or set of rules for the ESP.
 3. The host sends the configuration over Wi-Fi using MQTT. The intended ESP
    decision program validates and applies the rules while running, then decides
-   how the appropriate generic I²C, SPI or UART driver should communicate.
+   how the appropriate generic IÂ²C, SPI or UART driver should communicate.
 4. The generic driver performs the configured transaction. The ESP returns raw
    response bytes and status over MQTT. The host shows the result and publishes
    Home Assistant discovery and display messages; the user interprets the bytes.

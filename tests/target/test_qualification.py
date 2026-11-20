@@ -36,6 +36,10 @@ class QualificationTests(unittest.TestCase):
             "CONFIG_LWIP_DHCPS=n",
             "CONFIG_ESP_WIFI_SOFTAP_SUPPORT=n",
             "CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT=n",
+            "CONFIG_LWIP_TCP_MSS=610",
+            "CONFIG_LWIP_TCP_SND_BUF_DEFAULT=2440",
+            "CONFIG_LWIP_MAX_ACTIVE_TCP=3",
+            "CONFIG_LWIP_MAX_LISTENING_TCP=1",
         }
         self.assertEqual(
             required,
@@ -601,8 +605,8 @@ class QualificationTests(unittest.TestCase):
 
     def test_lwip_records_reject_missing_escaped_and_wrong_bindings(self):
         flags = ' -Dmemp_malloc=c3lrec_alloc -Dmemp_free=c3lrec_free'
-        commands = [dict(file='/sdk/lwip/src/api/' + name, command='gcc' + flags)
-                    for name in ('api_lib.c', 'api_msg.c', 'netbuf.c')]
+        commands = [dict(file='/sdk/lwip/src/' + name, command='gcc' + flags)
+                    for name in ('api/api_lib.c', 'api/api_msg.c', 'api/netbuf.c', 'core/tcp.c', 'core/tcp_out.c')]
         names = ('c3lrec_alloc', 'c3lrec_free', 'c3bport_enter', 'c3bport_leave', 'netconn_alloc', 'netconn_free',
                  'netbuf_delete', 'memp_malloc', 'memp_free')
         symbols = {name: 0x42001000 + index * 32 for index, name in enumerate(names)}
@@ -610,9 +614,9 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(qualification.check_lwip_records([], {}, False), {'enabled': False})
         for damaged in (commands[:2], commands + [commands[0]],
                         commands + [dict(file='/sdk/sockets.c', command='gcc' + flags)],
-                        [*commands[:2], dict(commands[2], command='gcc -Dmemp_malloc=c3lrec_alloc')],
-                        [*commands[:2], dict(commands[2], command='gcc' + flags + ' -Dmemp_free=c3lrec_free')],
-                        [*commands[:2], dict(commands[2], command=('gcc' + flags).replace('c3lrec_free', 'free'))]):
+                        [*commands[:-1], dict(commands[-1], command='gcc -Dmemp_malloc=c3lrec_alloc')],
+                        [*commands[:-1], dict(commands[-1], command='gcc' + flags + ' -Dmemp_free=c3lrec_free')],
+                        [*commands[:-1], dict(commands[-1], command=('gcc' + flags).replace('c3lrec_free', 'free'))]):
             with self.subTest(commands=damaged), self.assertRaises(qualification.QualificationError):
                 qualification.check_lwip_records(damaged, symbols, True)
         for missing in names:

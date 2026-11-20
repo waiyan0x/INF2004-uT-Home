@@ -1,17 +1,16 @@
 /**
  * @file c3lrec.h
- * @brief Fixed typed lwIP connection and datagram-envelope records.
+ * @brief Fixed typed lwIP socket, TCP connection and segment records.
  */
 #ifndef UTHOME_C3LREC_H
 #define UTHOME_C3LREC_H
 
 #include "lwip/memp.h"
 
-/* Task context with cache enabled on the single-core C3. Only NETCONN and
- * NETBUF records are supported; exhaustion returns NULL without heap fallback.
- * SDK callers must finish cleanup and exclude all record users before release.
- * Pointees (PCBs, packet buffers, mailboxes) remain owned by lwIP. A released
- * pointer is invalid and cannot identify a later lease at the same address. */
+/* Single-core task context, with cache enabled. Exhaustion returns NULL.
+ * Callers must finish SDK cleanup and exclude all users before release.
+ * Packet data and mailboxes have separate owners. A released pointer
+ * cannot identify a later lease at the same address. */
 void * c3lrec_alloc (memp_t kind);
 void c3lrec_free (memp_t kind, void * p_memory);
 

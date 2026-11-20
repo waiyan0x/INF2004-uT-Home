@@ -444,54 +444,46 @@ See the [verification and build identity](../../../../../docs/reports/wifi-stati
 
 ## Fixed lwIP records
 
-Selected Wi-Fi services with static network queues replace `memp_malloc` and
-`memp_free` only in the pinned lwIP `api_lib.c`, `api_msg.c` and `netbuf.c`.
-These are the complete allocation/free sites for `MEMP_NETCONN` and
-`MEMP_NETBUF` in the pinned SDK. `c3lrec` stores actual `struct netconn` and
-`struct netbuf` objects. Capacity follows `MEMP_NUM_NETCONN` and `MEMP_NUM_NETBUF`:
-six connection records and two datagram envelopes in the selected build.
+The Wi-Fi station uses fixed arrays of native SDK objects. The build redirects
+both allocation and release in `api_lib.c`, `api_msg.c`, `netbuf.c`, `tcp.c`
+and `tcp_out.c`. Capacities come from the same lwIP settings used by their
+callers.
 
-Those are shared limits, including listeners, accepted connections and UDP
-sockets; they do not promise six simultaneous TLS sessions. The old heap-backed
-SDK pools did not enforce these record counts. Exhaustion now returns NULL
-through the SDK's existing error/packet-drop paths. No heap fallback is allowed.
-One MQTT TLS session remains configured after HTTPS removal. Queue capacity,
-packet storage and TLS allocations can still independently limit operation.
+| Record | Slots | Use |
+|---|---:|---|
+| NETCONN | 6 | Socket connection handles |
+| NETBUF | 2 | Datagram envelopes |
+| TCP_PCB | 3 | Active and closing TCP connections share these slots |
+| TCP_PCB_LISTEN | 1 | Native listener record |
+| TCP_SEG | 16 | Queued transmit and receive segment metadata |
 
-SDK code retains initialization, protocol handling and cleanup. In particular,
-it must release PCBs, packet buffers and mailboxes and exclude all other users
-before returning a record. The adapter never frees pointees. A returned pointer
-expires on release; a stale pointer cannot identify a later lease at the same
-address. Unsupported kinds and NULL, foreign, interior or wrong-kind releases
-preserve active leases. Vendor sources, revisions and unrelated pool paths stay
-unchanged.
+One MQTT client can connect while earlier connections finish closing.
+The SDK retains its native TIME_WAIT reclamation on connection exhaustion.
+When segment allocation fails, lwIP returns `ERR_MEM` to the TCP writer
+and frees any packet buffers acquired for the unsuccessful write. The SDK
+owns the packet data, mailbox and protocol teardown. It must finish using a
+record before returning it to the adapter. A later lease can reuse its address.
 
 ### lwIP record C review
 
-Reviewed against the BARR-C checklist: C99, paired headers, minimal SDK includes,
-native `memp_t` ABI, actual typed/aligned objects, initialized state and bounded
-loops. No casts, pointer arithmetic, type punning or foreign-pointer dereferences
-are used. Zeroing matches the selected target's null/zero representations.
-Functions remain below 100 lines. Names, Boolean prefixes, const/static use,
-braces, equality order, integer ranges and deterministic errors were reviewed.
+Each array uses the actual SDK element type and alignment. Its layout entry
+holds the address of the complete array. Walking that object's byte
+representation by the element size yields a native element boundary at every
+index below the count. The immutable layout uses the same compile-time count
+as the array and lease flags. The offset fits `size_t`. Release compares exact
+addresses only within the requested pool. Zeroing matches the C3 SDK's null
+and zero representations. The C99 code uses paired headers, private state,
+bounded loops and the existing native `memp_t` ABI.
 
-The TCP/IP task and socket callers can share the pool. Each operation uses
-`c3bport_enter`/`leave` to preserve the exact previous native interrupt mask on
-the single-core C3. This covers selection, clearing and lease publication without
-adding a mutex, task or lazy kernel allocation. Calls require task context with
-cache enabled; the critical section contains no blocking SDK calls. It examines
-at most six or two entries and clears at most one typed record. These bounds
-are not measured interrupt latency, stack usage or hardware acceptance.
+Allocation, release and optional lwIP statistics updates preserve the previous
+interrupt mask on the single-core C3. The scan visits at most 16 slots under
+the guard and clears at most one object. The implementation calls no blocking
+operation and creates no kernel object. The caller must exclude outstanding
+users before release. Interrupt latency remains unmeasured.
 
-Host tests compile the actual adapter with typed SDK declarations doubled. They
-check independent exhaustion, alignment, zeroing, isolation, invalid releases,
-nested interrupt-mask restoration and 1,000 full reuse cycles with heap calls
-intercepted. Assertions and warnings-as-errors stay enabled. They do not simulate
-TCP/IP or prove multicore behavior. The real build uses pinned SDK types; its
-qualification checks all three source substitutions, helper placement and
-retention of SDK cleanup and unrelated `memp_malloc`/`memp_free` paths.
-
-Run `python -B -m unittest discover -s tests/target -p test_lwip_records.py -v`
-with GCC and objcopy available. See the resource assessment for the fresh target
-build and budget result. TLS, packet payloads, protocol control blocks and other
-lwIP pools still need bounded storage and live acceptance.
+The host suite fills all five pools, rejects exhaustion, checks alignment and
+zeroing and repeats release and reuse 1,000 times with heap calls trapped.
+Run it with `python -B -m unittest discover -s tests/target -p test_lwip_records.py -v`.
+The target build checks the five source bindings. The linked-instruction
+test exercises both immediate failure and partial-write rollback.
+[Target measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-tcp-records)

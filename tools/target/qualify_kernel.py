@@ -437,7 +437,7 @@ STARTUP_SYMBOLS = (
 
 
 def verify_startup_scope(commands, project, enabled):
-    """Confine startup tracing to the WiÃ¢â‚¬â€˜Fi diagnostic boundaries only."""
+    """Confine startup tracing to the WiÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“Fi diagnostic boundaries only."""
     selected = {}
     all_names = {symbol for renames in STARTUP_RENAMES.values() for symbol in renames}
     for suffix, renames in STARTUP_RENAMES.items():
@@ -453,7 +453,7 @@ def verify_startup_scope(commands, project, enabled):
                 raise QualificationError(f"Invalid startup trace scope: {path}: {symbol}")
     trace_present = (project / "hal/c3start.c").resolve() in commands
     if trace_present != enabled:
-        raise QualificationError("Startup trace source does not match WiÃ¢â‚¬â€˜Fi mode")
+        raise QualificationError("Startup trace source does not match WiÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“Fi mode")
     return {"enabled": enabled,
             "renames": {str(path): renames for path, renames in selected.items()} if enabled else {}}
 
@@ -489,7 +489,7 @@ def check_startup_symbols(symbols, enabled):
     if not enabled:
         leaked = sorted(name for name in names if name.startswith("c3start_") and name in symbols)
         if leaked:
-            raise QualificationError("Startup trace leaked outside WiÃ¢â‚¬â€˜Fi probe: " + ", ".join(leaked))
+            raise QualificationError("Startup trace leaked outside WiÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“Fi probe: " + ", ".join(leaked))
         return {"enabled": False}
     linked = {}
     for original, wrapper, native in pairs:
@@ -840,7 +840,7 @@ def verify_tls_output(work, enabled):
 
 def check_lwip_records(commands, symbols, enabled):
     """Keep typed record allocation confined to the reviewed SDK API units."""
-    sources = {"api_lib.c", "api_msg.c", "netbuf.c"}
+    sources = {"api_lib.c", "api_msg.c", "netbuf.c", "tcp.c", "tcp_out.c"}
     bindings = {"memp_malloc": "c3lrec_alloc", "memp_free": "c3lrec_free"}
     observed = set()
     for entry in commands:
@@ -866,7 +866,7 @@ def check_lwip_records(commands, symbols, enabled):
         if name not in symbols:
             raise QualificationError("Selected SDK lwIP lifecycle missing: " + name)
     return dict(enabled=True, allocator_sources=sorted(sources), bindings=bindings,
-                qualification="NETCONN/NETBUF records only; packet, PCB and TLS heap paths remain open")
+                qualification="Fixed NETCONN, NETBUF, TCP PCB/listener and segment records; packet data and TLS still use the heap")
 
 
 def verify_lwip_records(work, enabled):

@@ -215,8 +215,8 @@ must check the following for each changed module and record the result in the PR
 
 | Rules | Review responsibility beyond the automated checks |
 |---|---|
-| 1.1, 1.5–1.8 | Language/ABI profile; meaningful names; justified casts and ranges; const/static; concurrency and hardware qualifiers. |
-| 1.3–1.4, 3 | Braces and expression grouping; spaces and alignment; switch indentation; one statement per line. |
+| 1.1, 1.5â€“1.8 | Language/ABI profile; meaningful names; justified casts and ranges; const/static; concurrency and hardware qualifiers. |
+| 1.3â€“1.4, 3 | Braces and expression grouping; spaces and alignment; switch indentation; one statement per line. |
 | 2 | Accurate complete comments, assumptions and useful interface contracts; no dead or misleading commented code. |
 | 4 | Cohesive modules, minimal includes, public/private boundaries and correct paired headers. |
 | 5 | Fixed-width decisions, signedness, promotions, unsigned bit operations/literals, Boolean conditions and external data layout. |
@@ -428,7 +428,7 @@ the remaining mbedTLS/lwIP allocations or combined hardware behavior.
 
 ## Fixed lwIP records
 
-`c3lrec` denotes typed lwIP connection and datagram-envelope records; `lrectest`
+`c3lrec` denotes typed lwIP socket, TCP connection, listener and segment records; `lrectest`
 is its host interrupt-mask double. Both use C99 and matching public prefixes.
 The SDK-only adapter reuses `c3bport` for native interrupt exclusion, with the
 existing SDK-header spelling adaptation and no owned assembly. The

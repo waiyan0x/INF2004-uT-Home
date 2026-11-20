@@ -17,12 +17,55 @@ HEADERS = {
 #define UTHOME_TEST_MEMP_H
 #define MEMP_NUM_NETCONN 6
 #define MEMP_NUM_NETBUF  2
+#define MEMP_NUM_TCP_PCB 3
+#define MEMP_NUM_TCP_PCB_LISTEN 1
+#define MEMP_NUM_TCP_SEG 16
 typedef enum
 {
     MEMP_NETCONN = 0,
     MEMP_NETBUF,
+    MEMP_OTHER,
+    MEMP_TCP_PCB,
+    MEMP_TCP_PCB_LISTEN,
+    MEMP_TCP_SEG,
     MEMP_MAX
 } memp_t;
+#endif
+
+/* End of file. */
+
+""",
+    "priv/tcp_priv.h": r"""/**
+ * @file tcp_priv.h
+ * @brief Host doubles for naturally aligned native TCP records.
+ */
+#ifndef UTHOME_TEST_TCP_PRIV_H
+#define UTHOME_TEST_TCP_PRIV_H
+#include <stdint.h>
+struct tcp_pcb
+{
+    uint64_t words[21];
+};
+struct tcp_pcb_listen
+{
+    uint64_t words[5];
+};
+struct tcp_seg
+{
+    uint64_t words[2];
+};
+#endif
+
+/* End of file. */
+
+""",
+    "stats.h": r"""/**
+ * @file stats.h
+ * @brief Ordinary firmware omits native pool statistics.
+ */
+#ifndef UTHOME_TEST_STATS_H
+#define UTHOME_TEST_STATS_H
+#define MEMP_STATS 0
 #endif
 
 /* End of file. */
@@ -64,6 +107,8 @@ struct netbuf
 
 
 class LwipRecordTests(unittest.TestCase):
+    pools = ((0, 6, 128), (1, 2, 32), (3, 3, 168), (4, 1, 40), (5, 16, 16))
+
     @classmethod
     def setUpClass(cls):
         compiler = shutil.which("gcc")
@@ -73,7 +118,7 @@ class LwipRecordTests(unittest.TestCase):
         cls.temp = tempfile.TemporaryDirectory(prefix="uthome-lwip-records-")
         cls.addClassCleanup(cls.temp.cleanup)
         cls.directory = Path(cls.temp.name)
-        (cls.directory / "lwip").mkdir()
+        (cls.directory / "lwip/priv").mkdir(parents=True)
         for name, source in HEADERS.items():
             (cls.directory / "lwip" / name).write_text(source)
         port = ROOT / "firmware/hal/ports/esp32c3/network"
@@ -126,7 +171,7 @@ class LwipRecordTests(unittest.TestCase):
 
     def test_independent_capacity_alignment_zeroing_and_reuse(self):
         addresses = []
-        for kind, count, size in ((0, 6, 128), (1, 2, 32)):
+        for kind, count, size in self.pools:
             records = [self.lib.c3lrec_alloc(kind) for _ in range(count)]
             addresses += records
             for record in records:
@@ -138,9 +183,10 @@ class LwipRecordTests(unittest.TestCase):
             self.lib.c3lrec_free(kind, records[-1])
             self.assertEqual(self.lib.c3lrec_alloc(kind), records[-1])
             self.assertEqual(c.string_at(records[-1], size), bytes(size))
-            self.assertEqual(c.string_at(records[0], size), bytes([0xA5]) * size)
+            for other in records[:-1]:
+                self.assertEqual(c.string_at(other, size), bytes([0xA5]) * size)
             self.assertFalse(self.lib.c3lrec_alloc(kind))
-        self.assertEqual(len(set(addresses)), 8)
+        self.assertEqual(len(set(addresses)), sum(count for _, count, _ in self.pools))
 
     def test_invalid_kinds_and_releases_preserve_every_lease(self):
         records = [self.lib.c3lrec_alloc(0) for _ in range(6)]
@@ -164,12 +210,12 @@ class LwipRecordTests(unittest.TestCase):
         for nested in (False, True):
             saved = self.lib.lrectest_enter() if nested else 0
             before = self.lib.lrectest_calls()
-            for kind in (0, 1, 2):
+            for kind in (0, 1, 2, 3, 4, 5):
                 record = self.lib.c3lrec_alloc(kind)
                 self.assertEqual(self.lib.lrectest_mask(), int(nested))
                 self.lib.c3lrec_free(kind, record)
                 self.assertEqual(self.lib.lrectest_mask(), int(nested))
-            self.assertEqual(self.lib.lrectest_calls() - before, 6)
+            self.assertEqual(self.lib.lrectest_calls() - before, 12)
             if nested:
                 self.lib.lrectest_leave(saved)
 
@@ -177,13 +223,15 @@ class LwipRecordTests(unittest.TestCase):
         expected = None
         for _ in range(1000):
             leased = [(kind, self.lib.c3lrec_alloc(kind))
-                      for kind, count in ((0, 6), (1, 2)) for _ in range(count)]
+                      for kind, count, _ in self.pools for _ in range(count)]
             self.assertTrue(all(pointer for _, pointer in leased))
             if expected is None:
                 expected = leased
             self.assertEqual(leased, expected)
             self.assertFalse(self.lib.c3lrec_alloc(0))
             self.assertFalse(self.lib.c3lrec_alloc(1))
+            for kind in (3, 4, 5):
+                self.assertFalse(self.lib.c3lrec_alloc(kind))
             # The SDK returns a record after cleanup even if setup failed.
             for kind, pointer in reversed(leased):
                 self.lib.c3lrec_free(kind, pointer)

@@ -234,6 +234,39 @@ flash and profile 943 verified after restoration. This hardware check used
 the direct MQTT controller. The earlier power-bank, Desk and HA acceptance
 records identify their own images.
 
+#### Fixed TCP records
+
+The station reserves three active TCP control blocks, one listener and 16
+segment records. These pools are shared by all sockets. The two existing
+socket-handle and datagram pools remain independent. The TCP allocator can
+reclaim a closing connection when a new connection needs its slot.
+[Record ownership and C review](../../../firmware/hal/ports/esp32c3/network/README.md#fixed-lwip-records)
+
+The linked ESP32-C3 image uses **1,168 bytes** for all five record pools and
+their lease flags, up from 352 bytes. Application writable data is 144,148 of
+147,456 bytes. Total fixed DRAM is 273,298 of 278,528 bytes, leaving **5,230
+bytes**. The existing group caps all pass. The station reserves 816 additional
+application bytes for these records.
+
+In an instruction-level test, a 96-byte write with all 16 segment slots
+held returned `ERR_MEM`. A 2,440-byte write with only three slots available
+also returned `ERR_MEM`, released its temporary packets and segment records,
+and preserved the available send window and empty send queue. Releasing one
+slot allowed each original write to succeed. The recovered writes used one
+and four fixed segment records respectively. Packet payloads still requested
+684 and 2,736 heap bytes. The emulator supplied the underlying allocator,
+ROM helpers and critical sections.
+
+On the physical ESP32-C3, image
+`1143df5afe8e10f873ac921d50e43ba211c70f7655d02afb7d3650f5d01012dd`
+completed two cycles of BMP388 chip ID, 16 radar bytes, BMP388 raw pressure
+and 32 radar bytes on the idle profile. The broker restarted between cycles.
+The controller recovered the same ESP boot, generation and last completed
+request ID. All eight broker frames matched the command IDs, transmitted
+and received lengths, and returned bytes. Full flash and profile 943 verified
+after restoration. TLS allocations and other lwIP memory still need fixed
+storage for whole-system acceptance.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
