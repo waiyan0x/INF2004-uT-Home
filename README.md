@@ -33,6 +33,11 @@ changes are injected in C fixture tests. The live BMP388 MQTT check below now
 also covers rule switching, host reopen and broker recovery on the board.
 Generated verification is local-only under `build/controller/`.
 
+**Static-memory compliance is the first priority.** The tested image fits its
+fixed DRAM budget, but its TCP/IP and certificate verification paths still
+use the heap. The [tribunal memory check](docs/reports/wifi-static-memory/README.md#tribunal-static-memory-check-20-november-2026)
+contains the per-module table, board counters and remaining acceptance tests.
+
 **Demo-broker TLS acceptance passed on the physical ESP32-C3.** On 18 November, the user
 moved dedicated investigation of the intermittent MQTT delays to last priority.
 Continue bounded allocation work, reviewed peripheral descriptions, physical

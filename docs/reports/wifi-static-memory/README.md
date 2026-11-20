@@ -10,6 +10,126 @@ full-profile setup/recovery uses USB. The host Desk and Home Assistant web
 interfaces remain available. No Wi-Fi-driver exception automatically exempts
 TLS, TCP/IP or ESP-TLS contexts.
 
+### Tribunal static-memory check, 20 November 2026
+
+**The demo firmware fails the no-application-heap requirement.** The tribunal
+change request covers startup and normal operation, including network
+communication. It permits a justified Wi-Fi-driver exception. The MQTT client
+uses TLS certificate verification and TCP/IP on behalf of the application.
+Both have confirmed heap paths. The exception does not cover either path.
+
+The image under review is the tested ESP32-C3 application from `370d09e`,
+SHA-256 `4fd99ab283ee237084a1f1f83cc6b49849850973707867c9bb27ec19ab20d8d5`.
+The firmware and target-build inputs in the committed checkout at `b74f4db`
+match that revision. The archived sources and private provisioning inputs
+verified against their build manifest. Local, uncommitted edits require their
+own build before these results can be applied to them. The pinned C gate
+passed on 336 committed files. All 131 selected budget, lifecycle, storage,
+queue, parser, fault and exhaustion tests passed on that clean checkout.
+
+| Tribunal check | Result for the demo image |
+|---|---|
+| Fixed sub-module and total budgets | **Pass for linked writable data.** All 34 modules with writable state and every group fit the limits below. Stack-local temporaries use their owning task's stack. |
+| Fixed buffers, parsing, validation and exhaustion | **Verified for the tested core paths.** The C admission tests reject oversize input and recover from an exhausted parser pool with heap calls trapped. Queue and lwIP record tests fill the pools, reject the next request and reuse released records. |
+| Configuration changes, supervisor and inter-task communication | Fixed configuration stores, startup-created workers, queues and locks have lifecycle and fault tests. The board switched rules through 64 reads on one boot. |
+| Kernel objects created at startup only | **Pass in the measured workload.** Startup counters recorded 11 task, 41 mutex, 54 semaphore and one flag creation calls. All eleven normal-mode creation counters were zero before and after the 64 reads. The evidence covers this boot and workload. |
+| Heap-free application at startup and during normal operation | **Fail.** The exact ELF calls the general allocator from TCP/IP. Its certificate verifier made 492 allocation requests in the measured verification phase. Aggregate board counts lack caller attribution. |
+| Wi-Fi exception | The permitted scope is the Wi-Fi driver. A caller-level inventory and justification for any remaining driver allocations are outstanding. |
+
+For the overflow demonstration, run these commands from the repository root
+with GCC, objcopy and the project's pinned formatter available. The first
+suite proves the allocation trap detects a deliberate heap call, then checks
+the exact input limit, parser exhaustion and reuse. The second exercises a
+full queue and its recovery. The third fills the native record slots and
+checks that releasing one makes exactly that slot reusable.
+
+```powershell
+python -B -m unittest discover -s tests/target -p test_admission.py -v
+python -B -m unittest discover -s tests/target -p test_network_pool.py -v
+python -B -m unittest discover -s tests/target -p test_lwip_records.py -v
+```
+
+#### Fixed RAM in the tested image
+
+The map and ELF hashes were checked against the qualified build before
+recomputing these numbers. Each row uses bytes. Total DRAM includes the four
+preceding DRAM categories once. RTC is a separate region.
+
+| Region | Linked | Budget | Headroom |
+|---|---:|---:|---:|
+| Application writable data | 143,332 | 147,456 | 4,124 |
+| Wireless task pool | 18,499 | 18,560 | 61 |
+| SDK and kernel writable data | 54,257 | 55,296 | 1,039 |
+| RAM-resident code | 56,386 | 57,152 | 766 |
+| Total fixed DRAM | 272,474 | 278,528 | 6,054 |
+| RTC | 60 | 128 | 68 |
+
+The table below lists the fixed writable state attributed to each project
+module by the map. Code-only modules borrow caller storage or use the stack.
+`c3task` is charged to the wireless task pool. The other entries are charged
+to application writable data. [Build policy](../../../tools/target/transaction-budget.json)
+
+| Module | Linked bytes | Budget bytes | Module | Linked bytes | Budget bytes |
+|---|---:|---:|---|---:|---:|
+| `activate` | 3,955 | 3,955 | `c3task` | 18,499 | 18,504 |
+| `c3app` | 37,568 | 37,728 | `c3tls` | 3,168 | 3,200 |
+| `c3audit` | 184 | 184 | `c3tout` | 25,532 | 25,536 |
+| `c3bind` | 16 | 16 | `c3tx` | 813 | 880 |
+| `c3boot` | 12,288 | 12,288 | `c3uart` | 21 | 32 |
+| `c3event` | 450 | 450 | `c3ukern` | 8 | 8 |
+| `c3i2c` | 60 | 64 | `c3umem` | 1,280 | 1,280 |
+| `c3lrec` | 352 | 352 | `c3usb` | 1 | 16 |
+| `c3mqtt` | 1,816 | 1,824 | `c3wsta` | 51 | 64 |
+| `c3net` | 67 | 96 | `cfgjson` | 25 | 32 |
+| `c3nq` | 12,090 | 12,096 | `health` | 212 | 224 |
+| `c3peer` | 4,105 | 4,112 | `main` | 1,032 | 1,040 |
+| `c3pin` | 132 | 144 | `msgbus` | 2,240 | 2,240 |
+| `c3pulse` | 59 | 64 | `sampcache` | 1,440 | 1,440 |
+| `c3pwm` | 115 | 128 | `shared` | 68 | 80 |
+| `c3spi` | 60 | 64 | `tkport` | 33,428 | 33,428 |
+| `c3store` | 312 | 320 | `watchdog` | 384 | 384 |
+
+#### Why network memory fails
+
+* **Physical workload.** Two sealed snapshots on the same idle configuration
+  bracketed 329.163 s. The SDK heap hooks counted 11,478 allocations, 11,482
+  frees and 3,205,556 cumulative bytes requested in that window. The boot
+  also recorded 102 allocations after the application entry marker and before
+  sealing. These totals give neither the caller nor peak live RAM. The
+  controller and idle stacks retained measured low-water margins of 5,088
+  and 896 bytes. [Board results](../../../tools/configurator/README.md#repeated-bmp388-and-radar-switching)
+* **TLS.** Replaying the compiled verifier against the public demo certificate
+  reproduced a 5,946-byte peak in requested live payload during verification.
+  Two PSA table allocations of 1,408 and 704 bytes survived cleanup. The test
+  accepted the broker and rejected both the wrong hostname and an empty trust
+  list. This is an instruction-level measurement with simulated allocator and
+  hardware services. [Verifier scope](#physical-demo-broker-acceptance)
+* **TCP/IP.** Disassembly of the same ELF shows `memp_malloc` calling
+  `do_memp_malloc_pool`, then `mem_malloc` and libc `malloc`. The packet-buffer
+  allocator `pbuf_alloc` also calls `mem_malloc` directly. A fixed record pool
+  alone leaves this second path active.
+* **Sizing.** Compiling the pinned `memp.c` for RV32 with its recorded build
+  arguments and only `MEMP_MEM_MALLOC=0` after `lwip/opt.h` produced 30,425
+  bytes of pool backing symbols. `PBUF_POOL` accounts for 24,195 bytes.
+  Even omitting the two record pools already replaced by `c3lrec` leaves
+  30,075 bytes against 6,054 bytes of total fixed headroom. This is a layout
+  comparison of one object. Live occupancy, additional metadata, separate
+  variable packet payloads and simultaneous TLS demand need their own accounting.
+
+Reproduce the map check with `tools/target/memory_budget.py` in the pinned SDK
+Python using `--budget tools/target/transaction-budget.json`. For the pool
+comparison, compile an **isolated** `memp.c` object with that build's compiler
+command and an include that selects the static-pool mode after the original
+options. Sum only `memp_memory_*_base` sizes with `riscv32-esp-elf-nm -S`.
+The private reports for this check are under `build/static-requirement-20261120/`.
+
+The closure test is a complete cold boot, authenticated MQTT connection,
+normal traffic, broker restart and failure recovery with fixed TLS and TCP/IP
+storage. Exercise full pools, rejection and reuse during the same design
+qualification. Attribute any remaining heap traffic to the documented
+driver exception and verify all group limits on the resulting image.
+[Static design and recovery contracts](../../../firmware/README.md#mandatory-static-memory-change)
+
 ### Imported TLS derivation key
 
 The MQTT TLS 1.2 client reserves a separate 66-byte store for the volatile
