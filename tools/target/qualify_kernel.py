@@ -850,7 +850,7 @@ def verify_tls_output(work, enabled):
 
 def check_lwip_records(commands, symbols, enabled):
     """Keep typed record allocation confined to the reviewed SDK API units."""
-    sources = {"api_lib.c", "api_msg.c", "netbuf.c", "tcpip.c", "tcp.c", "tcp_out.c", "udp.c", "etharp.c", "timeouts.c"}
+    sources = {"api_lib.c", "api_msg.c", "netbuf.c", "tcpip.c", "tcp.c", "tcp_out.c", "udp.c", "etharp.c", "igmp.c", "timeouts.c"}
     bindings = {"memp_malloc": "c3lrec_alloc", "memp_free": "c3lrec_free"}
     packet_bindings = {
         "tcp.c": {"tcp_split_unsent_seg": "c3pkt_split"},
@@ -886,11 +886,11 @@ def check_lwip_records(commands, symbols, enabled):
         if not 0x42000000 <= symbols.get(name, 0) < 0x43000000:
             raise QualificationError("lwIP record helper absent or consumes RAM code: " + name)
     for name in ("netconn_alloc", "netconn_free", "netbuf_delete", "memp_malloc", "memp_free", "tcp_split_unsent_seg", "pbuf_alloced_custom",
-                 "wlanif_input", "esp_netif_free_rx_buffer", "udp_new", "udp_remove", "etharp_request"):
+                 "wlanif_input", "esp_netif_free_rx_buffer", "udp_new", "udp_remove", "etharp_request", "igmp_start", "igmp_stop"):
         if name not in symbols:
             raise QualificationError("Selected SDK lwIP lifecycle missing: " + name)
     return dict(enabled=True, allocator_sources=sorted(sources), bindings=bindings, packet_bindings=packet_bindings,
-                qualification="Fixed NETCONN, NETBUF, TCP PCB/listener and segment records; fixed outgoing TCP packets, Wi-Fi receive records and TCP/IP input and callback messages; fixed UDP records, ARP request/reply frame and unresolved-packet queue entries; fixed DHCP client, packets, TCP/IP timeouts, UDP headers, ARP clones and Wi-Fi chain copies; other lwIP storage and TLS still use the heap")
+                qualification="Fixed NETCONN, NETBUF, TCP PCB/listener and segment records; fixed outgoing TCP packets, Wi-Fi receive records and TCP/IP input and callback messages; fixed UDP records, ARP request/reply frame and unresolved-packet queue entries; fixed DHCP client, packets, station multicast membership, TCP/IP timeouts, UDP headers, ARP clones and Wi-Fi chain copies; other lwIP storage and TLS still use the heap")
 
 
 def verify_lwip_records(work, enabled):

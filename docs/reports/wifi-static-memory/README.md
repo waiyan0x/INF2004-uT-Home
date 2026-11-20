@@ -752,6 +752,39 @@ The station's 16-byte multicast membership at Wi-Fi startup remains the
 next allocation to qualify. Certificate verification and the Wi-Fi driver
 allocation inventory remain open.
 
+#### Fixed station multicast membership
+
+On image `9c2f7f33` (ELF `8c05b218`), the Wi-Fi station holds its
+`224.0.0.1` membership in one fixed 16-byte IGMP record with a one-byte
+occupancy flag. ESP-IDF's IGMP source uses the existing fixed record adapter
+for allocation and release. The SDK still owns the group list and reference
+count. The one-broker demo uses one station interface and no additional
+multicast subscriptions.
+
+| Linked memory | Used (bytes) | Limit (bytes) | Free (bytes) |
+|---|---:|---:|---:|
+| lwIP record adapter | 1,806 | 1,806 | 0 |
+| Application fixed storage | 147,346 | 147,456 | 110 |
+| Total fixed DRAM | 275,286 | 278,528 | 3,242 |
+
+The 17-byte increase in the adapter's reservation came from the existing
+application budget. All group and aggregate limits stayed the same.
+In the compiled SDK replay, three successful starts and stops reused the
+same slot. While the station held it, a join for a distinct group and
+startup on a second interface both returned `ERR_MEM`. The original entry
+retained its address and reference count. The test observed zero general
+allocator calls or packet sends. The same test detected the native group
+allocator on the previous firmware at the first start.
+
+```powershell
+python -B -m tools.target.dns_igmp_probe --fixed-membership --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
+```
+
+The fixed broker endpoint replay also passed on this ELF. The 116 affected
+host tests passed, as did the pinned BARR-C gate across 342 files. Remaining
+work includes attributing general allocations during Wi-Fi startup and
+reconnection, and bounding certificate verification.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

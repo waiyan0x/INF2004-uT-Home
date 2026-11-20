@@ -7,6 +7,7 @@
 #include "c3bport.h"
 #include "lwip/api.h"
 #include "lwip/etharp.h"
+#include "lwip/igmp.h"
 #include "lwip/netbuf.h"
 #include "lwip/priv/tcp_priv.h"
 #include "lwip/priv/tcpip_priv.h"
@@ -19,6 +20,9 @@
 
 /* Two unresolved neighbours plus one append during the queue-limit check. */
 #define C3LREC_ARP_SLOTS ((2U * ARP_QUEUE_LEN) + 1U)
+
+/* The one-broker station uses only the IPv4 all-systems membership. */
+#define C3LREC_GROUP_SLOTS 1U
 
 /* Two cyclic timers, seven on-demand owners and three spare records. */
 #define C3LREC_TIMER_SLOTS 12U
@@ -54,6 +58,9 @@ static struct udp_pcb        g_datagrams[MEMP_NUM_UDP_PCB]  = {0};
 static struct etharp_q_entry g_pending[C3LREC_ARP_SLOTS]    = {0};
 static bool                  gb_datagrams[MEMP_NUM_UDP_PCB] = {false};
 static bool                  gb_pending[C3LREC_ARP_SLOTS]   = {false};
+
+static struct igmp_group g_groups[C3LREC_GROUP_SLOTS]  = {0};
+static bool              gb_groups[C3LREC_GROUP_SLOTS] = {false};
 
 static struct sys_timeo g_timers[C3LREC_TIMER_SLOTS]  = {0};
 static bool             gb_timers[C3LREC_TIMER_SLOTS] = {false};
@@ -101,6 +108,11 @@ static c3lrec_pool_t const g_pools[] = {
      gb_pending,
      C3LREC_ARP_SLOTS,
      sizeof(g_pending[0])},
+    {MEMP_IGMP_GROUP,
+     &g_groups,
+     gb_groups,
+     C3LREC_GROUP_SLOTS,
+     sizeof(g_groups[0])},
     {MEMP_SYS_TIMEOUT,
      &g_timers,
      gb_timers,

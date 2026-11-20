@@ -614,7 +614,7 @@ class QualificationTests(unittest.TestCase):
     def test_lwip_records_reject_missing_escaped_and_wrong_bindings(self):
         flags = ' -Dmemp_malloc=c3lrec_alloc -Dmemp_free=c3lrec_free'
         commands = [dict(file='/sdk/lwip/src/' + name, command='gcc' + flags)
-                    for name in ('core/timeouts.c', 'api/api_lib.c', 'api/api_msg.c', 'api/netbuf.c', 'api/tcpip.c', 'core/tcp.c', 'core/tcp_out.c')]
+                    for name in ('core/ipv4/igmp.c', 'core/timeouts.c', 'api/api_lib.c', 'api/api_msg.c', 'api/netbuf.c', 'api/tcpip.c', 'core/tcp.c', 'core/tcp_out.c')]
         commands[-2]['command'] += ' -Dtcp_split_unsent_seg=c3pkt_split'
         commands[-1]['command'] += ' -Dpbuf_alloc=c3pkt_alloc'
         commands.insert(0, dict(file='/sdk/lwip/src/core/udp.c', command='gcc' + flags + ' -Dpbuf_alloc=c3pkt_aux'))
@@ -625,7 +625,7 @@ class QualificationTests(unittest.TestCase):
             commands.insert(0, dict(file='/sdk/lwip/src/core/ipv4/' + unit, command='gcc -Dpbuf_alloc=c3pkt_frame'))
         rx_flag = ' -Desp_pbuf_allocate=c3rx_alloc -Dpbuf_alloc=c3pkt_aux'
         commands.insert(0, dict(file='/sdk/esp_netif/lwip/netif/wlanif.c', command='gcc' + rx_flag))
-        names = ('c3dhcp_alloc', 'c3dhcp_free', 'c3dhcp_packet', 'udp_new', 'udp_remove', 'etharp_request', 'c3rx_alloc', 'wlanif_input', 'esp_netif_free_rx_buffer', 'c3pkt_alloc', 'c3pkt_aux', 'c3pkt_frame', 'c3pkt_clone', 'c3pkt_split', 'tcp_split_unsent_seg', 'pbuf_alloced_custom', 'c3lrec_alloc', 'c3lrec_free', 'c3bport_enter', 'c3bport_leave', 'netconn_alloc', 'netconn_free',
+        names = ('c3dhcp_alloc', 'c3dhcp_free', 'c3dhcp_packet', 'udp_new', 'udp_remove', 'etharp_request', 'igmp_start', 'igmp_stop', 'c3rx_alloc', 'wlanif_input', 'esp_netif_free_rx_buffer', 'c3pkt_alloc', 'c3pkt_aux', 'c3pkt_frame', 'c3pkt_clone', 'c3pkt_split', 'tcp_split_unsent_seg', 'pbuf_alloced_custom', 'c3lrec_alloc', 'c3lrec_free', 'c3bport_enter', 'c3bport_leave', 'netconn_alloc', 'netconn_free',
                  'netbuf_delete', 'memp_malloc', 'memp_free')
         symbols = {name: 0x42001000 + index * 32 for index, name in enumerate(names)}
         self.assertTrue(qualification.check_lwip_records(commands, symbols, True)['enabled'])
@@ -644,7 +644,7 @@ class QualificationTests(unittest.TestCase):
         for missing in names:
             with self.subTest(missing=missing), self.assertRaises(qualification.QualificationError):
                 qualification.check_lwip_records(commands, {k: v for k, v in symbols.items() if k != missing}, True)
-        for unit in ('icmp.c', 'ip4_frag.c'):
+        for unit in ('icmp.c', 'ip4_frag.c', 'igmp.c'):
             damaged = [entry for entry in commands if not entry['file'].endswith('/' + unit)]
             with self.subTest(unit=unit), self.assertRaises(qualification.QualificationError):
                 qualification.check_lwip_records(damaged, symbols, True)

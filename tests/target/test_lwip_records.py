@@ -37,6 +37,7 @@ typedef enum
     MEMP_UDP_PCB,
     MEMP_ARP_QUEUE,
     MEMP_SYS_TIMEOUT,
+    MEMP_IGMP_GROUP,
     MEMP_MAX
 } memp_t;
 #endif
@@ -52,6 +53,22 @@ typedef enum
 #define UTHOME_TEST_TIMEOUTS_H
 #include <stdint.h>
 struct sys_timeo
+{
+    uint64_t words[2];
+};
+#endif
+
+/* End of file. */
+
+""",
+    "igmp.h": r"""/**
+ * @file igmp.h
+ * @brief Typed host record for the multicast adapter test.
+ */
+#ifndef UTHOME_TEST_IGMP_H
+#define UTHOME_TEST_IGMP_H
+#include <stdint.h>
+struct igmp_group
 {
     uint64_t words[2];
 };
@@ -181,7 +198,7 @@ struct netbuf
 
 class LwipRecordTests(unittest.TestCase):
     pools = ((0, 6, 128), (1, 2, 32), (3, 3, 168), (4, 1, 40), (5, 16, 16), (6, 8, 16), (7, 8, 16),
-             (8, 2, 40), (9, 7, 8), (10, 12, 16))
+             (8, 2, 40), (9, 7, 8), (10, 12, 16), (11, 1, 16))
 
     @classmethod
     def setUpClass(cls):
@@ -284,12 +301,12 @@ class LwipRecordTests(unittest.TestCase):
         for nested in (False, True):
             saved = self.lib.lrectest_enter() if nested else 0
             before = self.lib.lrectest_calls()
-            for kind in range(11):
+            for kind in range(12):
                 record = self.lib.c3lrec_alloc(kind)
                 self.assertEqual(self.lib.lrectest_mask(), int(nested))
                 self.lib.c3lrec_free(kind, record)
                 self.assertEqual(self.lib.lrectest_mask(), int(nested))
-            self.assertEqual(self.lib.lrectest_calls() - before, 22)
+            self.assertEqual(self.lib.lrectest_calls() - before, 24)
             if nested:
                 self.lib.lrectest_leave(saved)
 

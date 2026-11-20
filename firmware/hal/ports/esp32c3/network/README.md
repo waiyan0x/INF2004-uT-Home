@@ -467,8 +467,10 @@ See the [verification and build identity](../../../../../docs/reports/wifi-stati
 
 The Wi-Fi station uses fixed arrays of native SDK objects. The build redirects
 both allocation and release in `api_lib.c`, `api_msg.c`, `netbuf.c`, `tcpip.c`,
-`tcp.c`, `tcp_out.c`, `udp.c`, `etharp.c` and `timeouts.c`. The ARP queue is sized for two
-unresolved neighbours. The timeout count covers the single-station workload below. The other capacities use the configured lwIP counts.
+`tcp.c`, `tcp_out.c`, `udp.c`, `etharp.c`, `igmp.c` and `timeouts.c`. The
+ARP queue covers two unresolved neighbours. Timer and multicast membership
+counts cover the single-station workload. The other capacities use the
+configured lwIP counts.
 
 | Record | Slots | Use |
 |---|---:|---|
@@ -481,6 +483,7 @@ unresolved neighbours. The timeout count covers the single-station workload belo
 | TCPIP_MSG_API | 8 | Callback messages awaiting the same thread |
 | UDP_PCB | 2 | DHCP client and one concurrent UDP endpoint |
 | ARP_QUEUE | 7 | Three waiting packets per neighbour and one temporary append |
+| IGMP_GROUP | 1 | All-systems membership on the station interface |
 | SYS_TIMEOUT | 12 | Two cyclic timers, seven on-demand timer owners and three spare records |
 
 One MQTT client can connect while earlier connections finish closing.
@@ -516,6 +519,15 @@ interrupt mask on the single-core C3. The scan visits at most 16 slots under
 the guard and clears at most one object. The implementation calls no blocking
 operation and creates no kernel object. The caller must exclude outstanding
 users before release. Interrupt latency remains unmeasured.
+
+The multicast pool uses one native `struct igmp_group` and a Boolean occupancy
+flag. Both follow the same alignment, zeroing, interrupt exclusion and exact
+pointer release rules as the other records. The SDK owns the list and the
+reference count. Its stop path unlinks the list and saves the next pointer
+before releasing each entry. A second interface or distinct group receives
+`ERR_MEM` while the station holds the slot. Home Assistant discovery runs
+on the MQTT host, so the demo requires no further group on the ESP.
+[Membership checks](../../../../../docs/reports/wifi-static-memory/README.md#fixed-station-multicast-membership)
 
 The two message arrays use the native `struct tcpip_msg` layout. Each
 record uses 16 bytes on RV32 plus one byte of occupancy. A failed post

@@ -66,11 +66,16 @@ those paths.
 The MQTT connection now uses one fixed IPv4 broker address record.
 The previous firmware requested 308 heap bytes per lookup. The new
 ESP-TLS socket replay used zero heap calls for address lookup, including
-failure and retry. The existing RAM limits leave 127 application bytes and
-3,258 total fixed DRAM bytes. The ESP completed eight BMP388 and LD2450
-reads on one boot across a broker restart. Two lookups reused the fixed
-record and both released it. The next target is the 16-byte station
-multicast membership allocated when Wi-Fi starts.
+failure and retry. The ESP completed eight BMP388 and LD2450 reads on one
+boot across a broker restart. Two lookups reused and released the fixed
+record.
+The Wi-Fi station now holds its IPv4 all-systems multicast membership in a
+fixed 16-byte record. In the linked firmware, starting and stopping the
+station reused that record without calling the heap. One station membership
+fits the demo. A second simultaneous membership returns a capacity error.
+The current image has 110 bytes free in the application budget and 3,242
+bytes free in total fixed DRAM.
+[Fixed station membership](docs/reports/wifi-static-memory/README.md#fixed-station-multicast-membership)
 [Fixed broker endpoint](docs/reports/wifi-static-memory/README.md#fixed-numeric-broker-endpoint)
 [Earlier resolver and multicast checks](docs/reports/wifi-static-memory/README.md#numeric-broker-lookup-and-multicast-membership)
 [IPv4 packet checks](docs/reports/wifi-static-memory/README.md#fixed-icmp-and-outbound-ipv4-fragments)

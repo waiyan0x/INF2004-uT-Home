@@ -189,11 +189,71 @@ def verify_endpoint(elf, gdb):
                 socket_attempts=len(sockets), general_lookup_calls=0, endpoint_heap_calls=0)
 
 
+def verify_membership(elf, gdb):
+    """Exercise the SDK station membership with the single reserved record."""
+    cpu = Probe(elf)
+    layout = target_layout(elf, gdb, ("netif", "igmp_group"),
+                           ("LWIP_NETIF_CLIENT_DATA_INDEX_IGMP", "ERR_MEM"))
+    station, other, address = (SSL + offset for offset in (0x8000, 0x9000, 0xa000))
+    member = layout["netif"]["client_data"][0] + 4 * layout["LWIP_NETIF_CLIENT_DATA_INDEX_IGMP"]
+    group = layout["igmp_group"]
+    expected = bytes([224, 0, 0, 1])
+    exhausted = layout["ERR_MEM"] & 255
+
+    def run(name, *args):
+        return OutputProbe.run(cpu, name, *args)
+
+    def word(ptr):
+        return int.from_bytes(cpu.uc.mem_read(ptr, 4), "little")
+
+    def reject(_uc, pc, *_):
+        raise AssertionError(f"Membership operation reached a general allocator or packet sender at {pc:#x}")
+
+    for name in ("memp_malloc", "memp_free", "mem_malloc", "mem_free", "pbuf_alloc", "igmp_send"):
+        cpu.hook(cpu.symbols[name], reject)
+    for name in ("c3bport_enter", "c3bport_leave"):
+        cpu.hook(cpu.symbols[name], lambda *_: cpu.finish(0))
+
+    run("igmp_init")
+    # The SDK's NETIF_FLAG_IGMP enables the station's public group-join API.
+    cpu.uc.mem_write(station + layout["netif"]["flags"][0], bytes([0x20]))
+    cpu.uc.mem_write(address, bytes([239, 1, 2, 3]))
+    assert run("igmp_start", station) == 0
+    slot = cpu.symbols["g_groups"]
+    flag = cpu.symbols["gb_groups"]
+
+    def check_owner(netif):
+        assert word(netif + member) == slot and cpu.uc.mem_read(flag, 1) == bytes([1])
+        assert bytes(cpu.uc.mem_read(slot + group["group_address"][0], 4)) == expected
+        assert cpu.uc.mem_read(slot + group["use"][0], 1) == bytes([1])
+        assert word(slot + group["next"][0]) == 0
+
+    check_owner(station)
+    assert run("igmp_joingroup_netif", station, address) & 255 == exhausted
+    assert run("igmp_start", other) & 255 == exhausted and word(other + member) == 0
+    check_owner(station)
+    for owner, following in ((station, other), (other, station)):
+        assert run("igmp_stop", owner) == 0 and word(owner + member) == 0
+        assert cpu.uc.mem_read(flag, 1) == bytes(1)
+        assert run("igmp_start", following) == 0
+        check_owner(following)
+    assert run("igmp_stop", station) == 0 and word(station + member) == 0
+    assert cpu.uc.mem_read(flag, 1) == bytes(1)
+    return dict(elf_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(),
+                successful_starts=3, exhausted_requests=2, releases=3, membership_heap_calls=0)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--elf", type=Path, required=True)
     parser.add_argument("--gdb", default="riscv32-esp-elf-gdb")
-    parser.add_argument("--fixed-endpoint", action="store_true", help="exercise the SDK socket path with the fixed numeric endpoint")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--fixed-membership", action="store_true", help="exercise SDK membership start, exhaustion and stop")
+    mode.add_argument("--fixed-endpoint", action="store_true", help="exercise the SDK socket path with the fixed numeric endpoint")
     args = parser.parse_args()
-    check = verify_endpoint if args.fixed_endpoint else verify
+    check = verify
+    if args.fixed_endpoint:
+        check = verify_endpoint
+    elif args.fixed_membership:
+        check = verify_membership
     print(json.dumps(check(args.elf, args.gdb), indent=2))
