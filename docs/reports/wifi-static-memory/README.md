@@ -494,6 +494,18 @@ also remain open.
 python -B -m tools.target.dhcp_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
 ```
 
+On the physical ESP32-C3, the normal profile acquired an address and answered
+authenticated MQTT status. After restarting into the saved idle profile, the
+board read the BMP388 chip ID and pressure bytes and two LD2450 UART samples
+(16 and 32 bytes). It repeated all four operations after a broker restart.
+Each result matched its MQTT frame. A debugger snapshot showed the active
+network interface pointing to the fixed client, its lease flag set and the
+native DHCP state `BOUND`. MQTT confirmed the same boot and completed request
+16 after resume. This trial observed lease acquisition. Renewal and rebinding
+were exercised in the RV32 replay. The original full 4 MiB flash verified
+against the fresh backup, and the original active/saved profile 943 and
+laptop network settings were restored.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

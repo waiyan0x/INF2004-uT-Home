@@ -52,6 +52,8 @@ messages, UDP endpoints, ARP requests and replies, and records for packets await
 address resolution. Reusing the USB request buffer for replies leaves 1,277
 application bytes and 3,354 total fixed DRAM bytes available. Compiled DHCP
 renewal and rebinding passed with the ordinary TCP packet slots full.
+On the ESP32-C3, the active interface held a bound lease in the fixed client
+and all eight BMP388/radar reads passed across a broker restart.
 Next, qualify TCP/IP timer records. Packet-copy paths, certificate verification
 and the Wi-Fi driver allocation inventory also remain open.
 [DHCP memory checks](docs/reports/wifi-static-memory/README.md#fixed-dhcp-client-and-messages)
