@@ -1023,9 +1023,31 @@ The cause of the timeout remains open. Each of the three trials ended with
 a verified full 4 MiB flash restoration, the original active and saved
 profile (revision 943), and the laptop network settings restored.
 
-The next measurement is the size and simultaneous count of queued event
-bodies during Wi-Fi startup and reconnect on the one-broker workload. The
-fixed record results above cover the registration tree only.
+#### Queued event bodies
+
+On 21 November 2026 a backed-up ESP32-C3 ran the same image (`d38adaf1`)
+on the normal profile. Hardware breakpoints followed each allocation return in
+`esp_event_post_to` and each release passed to libc by `c3ereg_free`, from
+reset through authenticated MQTT and one broker restart. The observer matched
+pointers on the host and read sizes and event IDs without recording payloads.
+
+| Normal-profile startup event | Body bytes |
+|---|---:|
+| Wi-Fi home channel changed | 16 |
+| Station connected | 48 |
+| Station obtained an IP address | 20 |
+
+Each body had been released before the next allocation. The observed peak
+was one live body, 48 bytes. Restarting the broker produced zero heap-backed
+event posts in the observed window. Three authenticated status replies
+confirmed the same ESP boot through recovery. The full original flash,
+saved and active profile 943, and host settings were verified after the trial.
+
+The pinned build stores up to four bytes inline and has a 32-entry event
+queue. Task-context posts allocate larger bodies before queue insertion, so
+a waiting producer can own a body outside the queue. The compiled eight-removal
+case above still requires 160 live bytes. The 48-byte startup observation
+alone cannot size a pool for all supported paths.
 
 #### Fixed-slot certificate verification experiment
 
