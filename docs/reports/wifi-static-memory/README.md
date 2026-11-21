@@ -1216,6 +1216,16 @@ tables. The pinned 347-file BARR-C gate, 47 qualification tests and ESP target
 build passed. The ELF SHA-256 is
 `431938823052aa85588841448e110219257884716aea97bc46047180ac7e05ba`.
 
+The ESP32-C3 on application image
+`731bfd45982f36a3dec2d9a5dc563762127409e7c2587bbd660b179d6c64a91d`
+returned three MQTT status replies with distinct matching request IDs on
+one boot. The first preceded a broker restart, the second followed reconnect
+and the third followed full server-requested TLS 1.2 renegotiation. The
+reconnected socket carried two server Certificate messages and two Finished
+messages in each direction. The peer observed 2.11 seconds from the
+renegotiation request to completion in this single trial. Full 4 MiB flash
+verification, saved and active profile 943, and host network cleanup passed.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

@@ -97,7 +97,9 @@ The Wi-Fi build uses a fixed 32-slot PSA key table and a smaller temporary
 elliptic-curve table. The demo broker's certificate verification now peaks
 at 2,114 requested heap bytes in the compiled replay, down from 3,834.
 Of that peak, 1,408 bytes are integer buffers. Fixed storage for these
-buffers and Wi-Fi driver allocations remain open.
+buffers and Wi-Fi driver allocations remain open. The physical ESP passed
+authenticated MQTT status across broker restart and TLS renegotiation on
+this image.
 [Certificate arithmetic measurements](docs/reports/wifi-static-memory/README.md#elliptic-curve-window-for-the-demo-broker)
 [Fixed key table and certificate memory](docs/reports/wifi-static-memory/README.md#fixed-key-table-in-the-wi-fi-build)
 [Fixed SDK event records](docs/reports/wifi-static-memory/README.md#fixed-sdk-event-records)
