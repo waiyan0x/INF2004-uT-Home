@@ -932,6 +932,27 @@ owner, bounded slot search, zeroing before insertion, and release after unlink.
 The SDK event loop, queued event data, TLS certificate verification and
 Wi-Fi driver inventory remain open.
 
+#### Default event-handler replacement
+
+The 27 live SDK event-loop records measured on the ESP totalled 316 bytes.
+Replaying registration with the same tree shape in the linked RV32 firmware
+showed that replacing one existing legacy handler temporarily needs **336
+bytes**. The SDK reserves a provisional 12-byte handler and an 8-byte
+context before updating the existing callback argument and releasing both.
+
+The replay supplied synthetic event IDs, callback identities and successful
+mutex operations. Refusing either provisional allocation preserved every
+byte of the registered tree. The 336 bytes include the 24-byte loop and
+exclude queued event data, mutex storage, allocator metadata and deferred
+removal. This is the peak for this replacement sequence. The current map
+has 344 application bytes free and 246 bytes unassigned in the module
+budgets. A direct reservation of 336 bytes therefore needs at least another
+90 bytes of module budget before accounting for slot occupancy.
+
+```powershell
+python -B -m tools.target.event_registration_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
+```
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
