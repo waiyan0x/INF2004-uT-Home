@@ -6,6 +6,7 @@ from pathlib import Path
 import ssl
 import struct
 
+from unicorn import UC_HOOK_CODE
 from unicorn.riscv_const import (
     UC_RISCV_REG_A0, UC_RISCV_REG_A1, UC_RISCV_REG_A2, UC_RISCV_REG_A3,
     UC_RISCV_REG_A4, UC_RISCV_REG_A5, UC_RISCV_REG_A6, UC_RISCV_REG_A7,
@@ -14,6 +15,66 @@ from unicorn.riscv_const import (
 
 from .tls_fragment_probe import SSL, STACK, STACK_SIZE, STOP
 from .tls_x509_parse_probe import ParserProbe
+
+
+def check_public_copy(probe, chain, source, size):
+    """Exercise native PSA slot creation and destruction under a real parser lease."""
+    cpu, run = probe.uc, probe.run
+    workspace = run('c3peer_views')
+    assert workspace
+    run('c3peer_close')
+    entry = probe.symbols['c3peer_import']
+    waiting = [True]
+
+    def stop_at_import(uc, address, length, user):
+        if waiting[0]:
+            waiting[0] = False
+            uc.emu_stop()
+
+    cpu.hook_add(UC_HOOK_CODE, stop_at_import, begin=entry, end=entry)
+    for reg, value in zip((UC_RISCV_REG_A0, UC_RISCV_REG_A1, UC_RISCV_REG_A2),
+                          (chain, source, size)):
+        cpu.reg_write(reg, value)
+    cpu.reg_write(UC_RISCV_REG_SP, STACK + STACK_SIZE - 16)
+    cpu.reg_write(UC_RISCV_REG_RA, STOP)
+    cpu.emu_start(probe.symbols['c3peer_der'], STOP, count=2000000)
+    assert cpu.reg_read(UC_RISCV_REG_PC) == entry
+    attrs, data = (cpu.reg_read(reg) for reg in (UC_RISCV_REG_A0, UC_RISCV_REG_A1))
+    assert cpu.reg_read(UC_RISCV_REG_A2) == 65
+    point = bytes(cpu.mem_read(data, 65))
+    assert point[0] == 4
+    saved = cpu.context_save()
+    stack = bytes(cpu.mem_read(STACK, STACK_SIZE))
+    handles = SSL + 0x80000
+    cpu.mem_map(handles, 4096)
+    live = dict(probe.live)
+    # Nested calls use a separate stack so the paused parser's attributes stay live.
+    def nested(name, *args):
+        for reg, arg in zip((UC_RISCV_REG_A0, UC_RISCV_REG_A1, UC_RISCV_REG_A2, UC_RISCV_REG_A3), args):
+            cpu.reg_write(reg, arg)
+        cpu.reg_write(UC_RISCV_REG_SP, STACK + STACK_SIZE // 2)
+        cpu.reg_write(UC_RISCV_REG_RA, STOP)
+        cpu.emu_start(probe.symbols[name], STOP, count=2000000)
+        assert cpu.reg_read(UC_RISCV_REG_PC) == STOP
+        return struct.unpack('<i', struct.pack('<I', cpu.reg_read(UC_RISCV_REG_A0)))[0]
+
+    def import_point(out):
+        return nested('c3peer_import', attrs, data, 65, out)
+
+    assert import_point(handles) == 0 and probe.live == live
+    offset = bytes(cpu.mem_read(workspace, 4096)).index(point)
+    assert import_point(handles + 4) < 0 and probe.live == live
+    probe.task_id = 2
+    assert import_point(handles + 4) == 0 and sum(probe.live.values()) == sum(live.values()) + 65
+    assert nested('psa_destroy_key', int.from_bytes(cpu.mem_read(handles + 4, 4), 'little')) == 0
+    probe.task_id = 1
+    assert cpu.mem_read(workspace + offset, 65) == point
+    assert nested('psa_destroy_key', int.from_bytes(cpu.mem_read(handles, 4), 'little')) == 0
+    assert not any(cpu.mem_read(workspace + offset, 65)) and probe.live == live
+    cpu.context_restore(saved)
+    cpu.mem_write(STACK, stack)
+    cpu.emu_start(entry, STOP, count=2000000)
+    assert cpu.reg_read(UC_RISCV_REG_PC) == STOP and cpu.reg_read(UC_RISCV_REG_A0) == 0
 
 
 def measure(elf, pem):
@@ -27,7 +88,10 @@ def measure(elf, pem):
     cpu.mem_map(source, (len(data) + 4095) & ~4095)
     cpu.mem_write(source, data)
     run('mbedtls_x509_crt_init', chain)
-    assert run('c3peer_der', chain, source, len(data)) == 0
+    if 'c3peer_import' in probe.symbols:
+        check_public_copy(probe, chain, source, len(data))
+    else:
+        assert run('c3peer_der', chain, source, len(data)) == 0
     retained = dict(probe.live)
     workspace = run('c3peer_views')
     assert workspace
@@ -138,7 +202,8 @@ def measure(elf, pem):
     run('mbedtls_x509_crt_free', chain)
     assert not probe.live
     return dict(elf_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(), slots=len(slots),
-                slot_bytes=96, inverse_bytes=160, key_bytes=key_bytes, exhaustion_verified=True, foreign_task_verified=True,
+                slot_bytes=96, inverse_bytes=160, key_bytes=key_bytes,
+                public_data_bytes=65 if 'c3peer_import' in probe.symbols else 0, exhaustion_verified=True, foreign_task_verified=True,
                 release_verified=True, simulated_verifier_return=-0x2700)
 
 

@@ -25,6 +25,13 @@ int c3peer_verify (mbedtls_x509_crt *               p_chain,
 int c3peer_leaf (mbedtls_x509_crt * p_chain,
                  const uint8_t *    p_data,
                  size_t             size);
+psa_status_t c3peer_import (const psa_key_attributes_t * p_attributes,
+                            const uint8_t *              p_data,
+                            size_t                       size,
+                            mbedtls_svc_key_id_t *       ph_key);
+void * c3peer_psa_alloc (size_t count, size_t size);
+void c3peer_psa_free (void * p_memory);
+void c3peer_psa_wipe (void * p_memory, size_t size);
 void * c3peer_key (size_t count, size_t size);
 void c3peer_key_free (void * p_memory);
 void * c3peer_limbs (size_t count, size_t size);

@@ -61,8 +61,13 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
         mbedtls_calloc=c3peer_alloc mbedtls_free=c3peer_free)
     set_property(SOURCE "${UTHOME_MBED_DIR}/mbedtls/tf-psa-crypto/core/psa_crypto.c"
         TARGET_DIRECTORY tfpsacrypto APPEND PROPERTY COMPILE_DEFINITIONS
-        mbedtls_calloc=c3tout_prf_alloc mbedtls_free=c3tout_free
-        mbedtls_zeroize_and_free=c3tout_wipe)
+        mbedtls_calloc=c3peer_psa_alloc mbedtls_free=c3peer_psa_free
+        mbedtls_zeroize_and_free=c3peer_psa_wipe)
+    foreach(source IN ITEMS pk_ecc.c pk_wrap.c)
+        set_property(SOURCE "${UTHOME_MBED_DIR}/mbedtls/tf-psa-crypto/extras/${source}"
+            TARGET_DIRECTORY extras APPEND PROPERTY COMPILE_DEFINITIONS
+            psa_import_key=c3peer_import)
+    endforeach()
     target_link_libraries(${COMPONENT_LIB} INTERFACE
         "-Wl,--undefined=c3tout_setup"
         "-Wl,--undefined=mbedtls_ssl_setup"

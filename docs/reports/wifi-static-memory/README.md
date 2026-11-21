@@ -1442,6 +1442,28 @@ The reconnected socket completed two handshakes. The fresh 4 MiB backup and
 restored flash matched. The active and saved profile were both 943, and
 the laptop uplink, saved hotspot settings and firewall cleanup verified.
 
+##### Fixed PSA public-key copy
+
+The demo CA and broker use P-256. During parsing and verification the SDK
+imports a temporary 65-byte public key and destroys it before returning.
+Those imports now share the existing certificate workspace. The RAM map
+remains at 147,432 of 147,456 application bytes and 276,422 of 278,528
+total DRAM bytes.
+
+| Compiled demo phase | Peak requested bytes, before / after | Heap requests, before / after |
+| --- | --- | --- |
+| Parse CA | 333 / 268 | 8 / 7 |
+| Parse peer | 333 / 268 | 10 / 9 |
+| Verify peer | 145 / 80 | 3 / 2 |
+
+Verification held 32 bytes on entry and requested 48 more twice, one at a
+time. The compiled ESP image rejected an occupied slot, preserved the active
+key while another task imported its own key, and cleared the slot on release.
+Certificate rejection, USB workspace contention, both PEM bundle signers,
+three- and seven-certificate RSA controls, and fixed TLS key derivation
+passed. The BARR-C gate and 225 host tests passed. The measurements cover
+the demo certificate path. General certificate support can still use the heap.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

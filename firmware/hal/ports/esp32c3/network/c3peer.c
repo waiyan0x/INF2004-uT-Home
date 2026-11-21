@@ -7,6 +7,7 @@
 #include "mbedtls/platform.h"
 #include "mbedtls/private/ecp.h"
 #include "c3bport.h"
+#include "c3tout.h"
 #include <string.h>
 #include "mbedtls/platform_util.h"
 #include "tf_psa_crypto_common.h"
@@ -27,6 +28,10 @@ typedef struct
     mbedtls_ecp_keypair key;
     bool                b_key_used;
     bool                b_verify;
+    /* SEC 1 uncompressed point: one format byte and two 256-bit coordinates. */
+    uint8_t public_data[1U + (2U * (C3PEER_P256_BITS / 8U))];
+    bool    b_import;
+    bool    b_data_used;
 } c3peer_math_t;
 
 typedef union
@@ -52,6 +57,7 @@ static bool borrow_crypto (bool b_verify);
 static void return_crypto (void);
 static bool owns_crypto (void);
 static bool release_limb (void * p_memory);
+static bool release_data (void * p_memory);
 
 /** @brief Lend all view records to the serialized configuration parser. */
 cfgjson_value_t * c3peer_views (void)
@@ -192,6 +198,76 @@ int c3peer_verify (mbedtls_x509_crt *               p_chain,
     return result;
 }
 
+/** @brief Select only the transient uncompressed P-256 public-key import. */
+psa_status_t c3peer_import (const psa_key_attributes_t * p_attributes,
+                            const uint8_t *              p_data,
+                            size_t                       size,
+                            mbedtls_svc_key_id_t *       ph_key)
+{
+    if ((sizeof(g_store.math.public_data) != size) || (NULL == p_data) ||
+        (0x04U != p_data[0]) ||
+        (PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1) !=
+         psa_get_key_type(p_attributes)) ||
+        (PSA_KEY_LIFETIME_VOLATILE != psa_get_key_lifetime(p_attributes)) ||
+        (!owns_crypto()))
+    {
+        return psa_import_key(p_attributes, p_data, size, ph_key);
+    }
+    g_store.math.b_import = true;
+    const psa_status_t result =
+        psa_import_key(p_attributes, p_data, size, ph_key);
+    g_store.math.b_import = false;
+    return result;
+}
+
+/** @brief Consume the selected import's single PSA slot-buffer request. */
+void * c3peer_psa_alloc (size_t count, size_t size)
+{
+    if ((1U != count) || (sizeof(g_store.math.public_data) != size) ||
+        (!owns_crypto()) || (!g_store.math.b_import))
+    {
+        return c3tout_prf_alloc(count, size);
+    }
+    g_store.math.b_import = false;
+    if (g_store.math.b_data_used)
+    {
+        return NULL;
+    }
+    g_store.math.b_data_used = true;
+    memset(g_store.math.public_data, 0, sizeof(g_store.math.public_data));
+    return g_store.math.public_data;
+}
+
+/** @brief Preserve native PSA and fixed PRF cleanup for other buffers. */
+void c3peer_psa_free (void * p_memory)
+{
+    if (!release_data(p_memory))
+    {
+        c3tout_free(p_memory);
+    }
+}
+
+/** @brief Clear the entire fixed copy on PSA's zeroizing release. */
+void c3peer_psa_wipe (void * p_memory, size_t size)
+{
+    if (!release_data(p_memory))
+    {
+        c3tout_wipe(p_memory, size);
+    }
+}
+
+/** @brief Release only the exact address issued to the selected import. */
+static bool release_data (void * p_memory)
+{
+    if (g_store.math.public_data != p_memory)
+    {
+        return false;
+    }
+    mbedtls_platform_zeroize(p_memory, sizeof(g_store.math.public_data));
+    g_store.math.b_data_used = false;
+    return true;
+}
+
 /** @brief Supply the synchronous certificate operation's temporary EC key. */
 void * c3peer_key (size_t count, size_t size)
 {
@@ -288,8 +364,10 @@ static bool borrow_crypto (bool b_verify)
         (0 < h_task) && (!gb_views) && (0U == g_live) && (0 == gh_crypto);
     if (b_available)
     {
-        g_store.math.b_key_used = false;
-        g_store.math.b_verify   = b_verify;
+        g_store.math.b_import    = false;
+        g_store.math.b_data_used = false;
+        g_store.math.b_key_used  = false;
+        g_store.math.b_verify    = b_verify;
         if (b_verify)
         {
             g_store.math.used           = 0U;

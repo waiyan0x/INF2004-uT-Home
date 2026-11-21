@@ -370,6 +370,18 @@ returning the outer object. Exact-pointer release clears its full size.
 The build checks the typed union fits the original 4 KiB. The task boundary,
 alignment, error cleanup and workspace lifetimes were reviewed for BARR-C.
 
+A separate 65-byte array inside the same union holds the serialized
+uncompressed P-256 public key during a temporary PSA import. The pinned
+public-key parser and signature verifier destroy this key before returning.
+Only their imports of volatile public keys of the reviewed family, format
+and length can select the array on the owning task. PSA validates the key,
+copies the bytes and owns the slot until destruction or failed-import cleanup.
+The one-shot allocation flag is consumed by one matching request. A second
+selected allocation while the copy is live returns NULL. Both release paths
+clear the full array. Other PSA operations retain their existing allocator,
+including TLS key derivation. The task, size, pointer identity and
+synchronous release boundaries form the manual C review for this change.
+
 The selected parser uses one actual `mbedtls_x509_crt` chain head (952 bytes)
 temporarily and retains one 32-byte peer-certificate digest. Both now belong to
 `c3tout`. The head and old digest can coexist while parsing a renegotiation
