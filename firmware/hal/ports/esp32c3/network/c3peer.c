@@ -116,9 +116,13 @@ int c3peer_der (struct mbedtls_x509_crt * p_chain,
     {
         return c3peer_leaf(p_chain, p_data, size);
     }
-    if ((NULL == p_chain) || (C3PEER_NODES == g_live))
+    if (NULL == p_chain)
     {
         return mbedtls_x509_crt_parse_der_nocopy(p_chain, p_data, size);
+    }
+    if (C3PEER_NODES == g_live)
+    {
+        return MBEDTLS_ERR_X509_ALLOC_FAILED;
     }
     const int      h_task = c3bport_task();
     const uint32_t saved  = c3bport_enter();

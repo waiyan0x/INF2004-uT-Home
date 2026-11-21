@@ -322,8 +322,8 @@ signature checks remain with mbedTLS. The DER bytes in flash remain valid until 
 The no-copy peer parser requests a node before parsing each additional
 certificate. Only its owning task can claim that allocation in `x509_crt.c`.
 The SDK links, verifies, zeroes and releases its own chain, including failed
-appends. Exact addresses identify shared nodes on release. Nodes beyond four
-use the SDK's existing allocation path. The application loop serializes USB
+appends. Exact addresses identify shared nodes on release. The fifth intermediate returns the SDK allocation error
+before allocating or modifying the chain. The application loop serializes USB
 parsing and MQTT, and certificate verification completes synchronously. The
 typed union preserves alignment, and the build checks its size against the
 original JSON workspace. These ownership, bounds, failure and task-context

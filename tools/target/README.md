@@ -487,8 +487,9 @@ ROM helpers, locking and the C3 integer multiplier. SDK limb allocation,
 curve checks, public-key parsing and chain cleanup execute from the ELF.
 For a shared-workspace image the probe calls the linked peer adapter. It checks
 both ownership directions with a real JSON document, retries a malformed
-intermediate, and extends a parser-only list through its fifth intermediate
-to check native allocation and cleanup. Certificate trust and handshake memory
+intermediate, and fills all four intermediate slots. A fifth request must return the SDK
+allocation error without making a heap request. The probe then frees the chain
+and parses another leaf and intermediate. Certificate trust and handshake memory
 are separate measurements.
 [Measured broker and chain](../../docs/reports/wifi-static-memory/README.md#broker-certificate-parser-heap)
 

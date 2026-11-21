@@ -229,11 +229,18 @@ def check_shared_views(probe, chain, source, der):
         probe.run('cfgjson_close')  # A failed open cannot release a TLS lease.
     check_root_with_busy_workspace()
     assert 952 not in probe.live.values()
-    assert append() == 0 and list(probe.live.values()).count(952) == 1
+    before = dict(probe.live)
+    requests = len(probe.allocations)
+    # The SDK maps X.509 allocation failure to PSA_ERROR_INSUFFICIENT_MEMORY.
+    assert append() == -141
+    assert probe.live == before and len(probe.allocations) == requests
     probe.run('mbedtls_x509_crt_free', chain)
     assert not probe.live and open_views() == views
     assert bytes(probe.uc.mem_read(views, 16)) == original
     probe.run('cfgjson_close')
+    assert append() == 0 and append() == 0
+    probe.run('mbedtls_x509_crt_free', chain)
+    assert not probe.live
 
 
 if __name__ == '__main__':
