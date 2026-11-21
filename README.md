@@ -96,7 +96,9 @@ storage. Authenticated MQTT recovered on the same boot.
 The Wi-Fi build now uses the SDK's fixed 32-slot PSA key table. Demo-broker
 certificate verification peaked at 3,834 heap bytes. The next TLS target is
 the 2,768 bytes of multiple-precision integer storage live at that peak.
-Wi-Fi driver allocations also remain open.
+The physical ESP recovered authenticated MQTT after a broker restart and a
+server-requested TLS renegotiation on the same boot. Wi-Fi driver allocations
+also remain open.
 [Fixed key table and certificate memory](docs/reports/wifi-static-memory/README.md#fixed-key-table-in-the-wi-fi-build)
 [Fixed SDK event records](docs/reports/wifi-static-memory/README.md#fixed-sdk-event-records)
 [Station interface storage and board results](docs/reports/wifi-static-memory/README.md#fixed-station-interface-and-identifiers)

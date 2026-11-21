@@ -1171,6 +1171,16 @@ in all 1,056 C and C++ compiler commands. Manual review checked configuration
 scope, include order, SDK type ownership and bounded exhaustion. The pinned
 347-file C gate and all 47 target qualification tests passed.
 
+On the ESP32-C3, application image
+`de14aef86673e5f1b9b7795641c41780bcb5bc0ba1368ba60a32c255b9a1c97e`
+joined Wi-Fi on the normal profile. The controller matched a fresh 96-byte
+authenticated MQTT status before the broker restart, after reconnect, and
+after server-requested TLS renegotiation. All three reported the same boot.
+On the reconnected socket the TLS peer recorded two server Certificate
+messages and two Finished messages in each direction. This trial did not
+exercise simultaneous Wi-Fi group-key renewal. Full 4 MiB flash verification,
+active and saved profile 943, and host network cleanup passed afterward.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
