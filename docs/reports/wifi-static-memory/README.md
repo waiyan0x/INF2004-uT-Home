@@ -1596,6 +1596,39 @@ reply. The full original flash, active and saved profile 943, laptop uplink,
 hotspot settings and firewall rule cleanup were independently verified. Wi-Fi
 group-key renewal overlap remains unmeasured.
 
+##### TLS worker heap across three handshakes
+
+On 21 November 2026 the ESP32-C3 returned three distinct authenticated
+96-byte MQTT status replies on the same boot. The broker transcript confirmed
+the initial handshake, reconnect after broker restart and full server-requested
+TLS 1.2 renegotiation. The [diagnostic](../../../tests/target/tls_heap/README.md)
+counted native mbedTLS calloc requests from the MQTT worker and tracked the
+returned blocks through free. The original application image `991202b6` and
+the instrumented image `aa3845da` each reproduced byte for byte.
+
+| Interval | Requests | Bytes requested over interval | Peak live bytes | Live bytes after reply |
+| --- | ---: | ---: | ---: | ---: |
+| First connection | 550 | 21,657 | 1,649 | 32 |
+| Broker restart and reconnect | 551 | 21,693 | 1,649 | 32 |
+| Full renegotiation | 550 | 21,653 | 1,681 | 32 |
+
+The TLS client state that processes the **server key exchange** made 445
+requests totalling 18,353 bytes in each interval and reached all three peaks.
+The client key exchange made 103, 104 and 103 requests respectively. The
+state labelled `MBEDTLS_SSL_CERTIFICATE_VERIFY` made the remaining two
+16-byte requests each time. State names identify where the requests occurred;
+the specific crypto routines, buffer owners and required lifetimes need a
+finer trace before assigning fixed storage.
+
+The pre-broker baseline had zero tracked blocks. Each post-reply snapshot
+held two 16-byte blocks. The request counts and requested bytes balanced
+against frees and retained blocks in every interval. The observer reported
+zero failures or dropped allocations. These figures exclude heap metadata,
+other tasks and allocation APIs outside the observed mbedTLS boundary.
+The diagnostic counters add RAM only to the test image. The trial restored
+and independently verified the original 4 MiB flash, saved and active profile
+943, laptop uplink, hotspot settings and firewall cleanup.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

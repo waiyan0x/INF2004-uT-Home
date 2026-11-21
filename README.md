@@ -103,7 +103,12 @@ also makes zero heap requests with the workspace available. The imported
 key remains usable after the workspace returns to USB. The fixed-key
 import image returned three authenticated MQTT replies on one ESP boot across
 broker restart and full TLS renegotiation.
-Whole-handshake and Wi-Fi heap qualification remain open.
+A board trace of the MQTT worker found 550 to 551 native mbedTLS heap
+requests per handshake. Processing the server key exchange made 445 of those
+requests and set the peak at 1,649 bytes on connection and reconnect and
+1,681 bytes during renegotiation. Trace the server key exchange before sizing
+fixed storage. Wi-Fi and whole-system static-memory qualification remain open.
+[TLS worker heap across three handshakes](docs/reports/wifi-static-memory/README.md#tls-worker-heap-across-three-handshakes)
 [Handshake public-key import](docs/reports/wifi-static-memory/README.md#handshake-public-key-import)
 [Fixed peer certificate names](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-names)
 [Fixed parser integers](docs/reports/wifi-static-memory/README.md#fixed-parser-integers)
