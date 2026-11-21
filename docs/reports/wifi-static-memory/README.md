@@ -1713,6 +1713,24 @@ preserved and the original allocation profile returned. The existing
 certificate tests retained their one-key limit. The target map measured
 147,432 fixed application bytes and 276,422 total DRAM bytes.
 
+On the ESP, diagnostic image `4f1950e9` returned three authenticated 96-byte
+MQTT replies on the same boot. Its control relink matched the production
+image `aa3546bb` byte for byte. The transcript confirmed X25519 on the
+initial connection, after broker restart and during full TLS renegotiation.
+
+| TLS worker interval | Previous requests | New requests | Previous peak bytes | New peak bytes |
+| --- | ---: | ---: | ---: | ---: |
+| First connection | 105 | 3 | 1,244 | 32 |
+| Broker restart and reconnect | 106 | 3 | 1,244 | 32 |
+| Full renegotiation | 105 | 3 | 1,276 | 64 |
+
+Each client exchange made one 32-byte request. The following TLS state
+made two 16-byte requests. Two 16-byte blocks remained live after each reply,
+and the observed counts and bytes reconciled without dropped allocations.
+These figures cover the MQTT worker's native mbedTLS requests with USB idle.
+The trial restored and verified the full original flash, active and saved
+profile 943, laptop uplink, hotspot settings and firewall cleanup.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

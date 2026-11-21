@@ -106,10 +106,14 @@ broker restart and full TLS renegotiation.
 The TLS 1.2 client also borrows that workspace to verify the server key
 exchange signature. On the ESP, this step went from 445 native mbedTLS heap
 requests to zero on first connection, broker reconnect and full renegotiation.
-All three authenticated MQTT replies arrived on one boot. The client key
-exchange now sets the measured worker peak, up to 1,276 live bytes. The compiled client now
-borrows the existing workspace during X25519. In replay, the exchange used
-one native 32-byte allocation for the ephemeral private key.
+All three authenticated MQTT replies arrived on one boot. The client now also borrows the existing workspace
+for X25519. On the ESP, each client exchange made one 32-byte heap request
+for the ephemeral private key. The full MQTT worker trace recorded three
+requests on first connection, reconnect and full renegotiation, with live
+peaks of 32, 32 and 64 bytes respectively. The remaining TLS measurements
+to settle are the ephemeral private key and the two 16-byte allocations in
+the following state.
+[X25519 client key exchange](docs/reports/wifi-static-memory/README.md#x25519-client-key-exchange)
 USB contention, Wi-Fi and whole-system static-memory qualification remain open.
 [TLS worker heap across three handshakes](docs/reports/wifi-static-memory/README.md#tls-worker-heap-across-three-handshakes)
 [Handshake public-key import](docs/reports/wifi-static-memory/README.md#handshake-public-key-import)
