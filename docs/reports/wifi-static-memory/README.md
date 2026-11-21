@@ -1181,6 +1181,41 @@ messages and two Finished messages in each direction. This trial did not
 exercise simultaneous Wi-Fi group-key renewal. Full 4 MiB flash verification,
 active and saved profile 943, and host network cleanup passed afterward.
 
+#### Elliptic-curve window for the demo broker
+
+The Wi-Fi crypto configuration sets the maximum temporary elliptic-curve
+multiplication window to two, the smallest value supported by the pinned
+SDK. This reduces the number of points calculated and kept in RAM at once.
+The SDK still uses its existing base-point tables where available.
+
+| Demo P-256 verification, compiled ESP32-C3 firmware | Window 4 | Window 2 |
+|---|---:|---:|
+| Peak live heap payload, including the parsed certificates | 3,834 bytes | 2,114 bytes |
+| Integer-buffer bytes at that peak | 2,768 in 48 buffers | 1,408 in 27 buffers |
+| Heap requests during successful verification | 492 | 444 |
+| Calls to the modeled hardware multiplier | 6,335 | 7,519 |
+
+Both images accepted the same demo certificate, rejected a wrong hostname,
+empty trust list and altered leaf signature, then accepted the original again.
+The window-two image passed the same controls on RSA chains with two and six
+intermediates, peaking at 5,090 and 6,978 bytes respectively. Each run freed
+all tracked allocations after peer-key and CA cleanup. These figures cover
+certificate processing with modeled hardware operations. Whole-handshake
+memory and execution time require separate measurements.
+
+Replaying the demo's integer-buffer allocations and releases fits 28
+four-byte-aligned slots totaling 1,484 payload bytes. This is a sizing result
+for the tested chain. The firmware still uses the heap for those buffers.
+A fixed implementation must also account for slot ownership, metadata and
+overlap with the USB parser, peer intermediates or other crypto callers.
+
+All fixed-memory groups passed, including 147,431 of 147,456 application
+bytes and 276,414 of 278,528 total DRAM bytes. Manual C review checked the
+station-only configuration, SDK bounds and the handling of static base-point
+tables. The pinned 347-file BARR-C gate, 47 qualification tests and ESP target
+build passed. The ELF SHA-256 is
+`431938823052aa85588841448e110219257884716aea97bc46047180ac7e05ba`.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
