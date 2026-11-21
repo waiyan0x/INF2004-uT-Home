@@ -929,6 +929,15 @@ owner, bounded slot search, zeroing before insertion, and release after unlink.
 | Application fixed RAM | 147,112 | 147,456 |
 | Total fixed DRAM | 275,022 | 278,528 |
 
+**Registry verification on the ESP.** Image
+`d3c29dad8e47bfec614a5d9eec75ff74393174d7b2d1384e6bbbc392ee1e42c1`
+completed eight BMP388 and LD2450 reads on one boot across a broker restart.
+Every result matched its MQTT reply. At completed requests 8 and 16 the
+debugger followed the SDK registry head to the fixed node and then to the
+station. Those two addresses and the five station member pointers matched
+the linked image at both stops. Full 4 MiB flash restoration, active and saved
+profile 943, hotspot cleanup and the original laptop uplink were verified.
+
 The SDK event loop, queued event data, TLS certificate verification and
 Wi-Fi driver inventory remain open.
 
