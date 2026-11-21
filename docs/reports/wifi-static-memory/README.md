@@ -1570,6 +1570,25 @@ last reply. Restoration checks covered the full 4 MiB flash, active and saved
 profile 943, original laptop uplink, hotspot settings and temporary firewall
 rule removal. Wi-Fi group-key overlap remains unmeasured.
 
+##### Handshake public-key import
+
+After verifying the chain, the TLS 1.2 client frees the peer certificate
+and imports its public key into the handshake context. In the compiled
+demo image, this import fell from nine heap requests and 461 peak requested
+bytes to zero. CA parsing, peer parsing and verification continued to make
+zero requests with the shared workspace available. The SDK returned the
+same key and consumed the same input bytes through both import paths.
+
+The compiled P-256 key still verified a certificate signature after the DER
+input was erased and USB reused all 4 KiB of workspace. Changing the signed
+digest caused rejection. With a USB tree already live the native import used
+nine heap requests and preserved every byte of the tree. Truncated input
+and an invalid point returned the same errors and cursor positions as the
+native parser. Valid retries succeeded. Both PEM bundle signers and the
+three- and seven-certificate RSA controls passed. Fixed RAM stayed at
+147,432 of 147,456 application bytes and 276,422 of 278,528 total DRAM bytes.
+The measurements cover four certificate-related phases of the demo handshake.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

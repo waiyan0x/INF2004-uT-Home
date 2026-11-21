@@ -17,9 +17,9 @@ from .tls_fragment_probe import SSL, CONFIG, WANT_READ
 from .tls_output_probe import OutputProbe
 
 
-def layouts(path):
+def layouts(path, additional=()):
     wanted = {'mbedtls_ssl_session', 'mbedtls_ssl_handshake_params',
-              'mbedtls_x509_crt', 'mbedtls_asn1_buf'}
+              'mbedtls_x509_crt', 'mbedtls_asn1_buf', *additional}
     result = {}
     with path.open('rb') as stream:
         elf = ELFFile(stream)

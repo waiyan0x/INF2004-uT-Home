@@ -2,10 +2,13 @@
  * @file c3peer.c
  * @brief Share typed storage between USB views and MQTT peer intermediates.
  */
+/* Use the pinned SDK declaration for the TLS peer-key parser. */
+#define MBEDTLS_ALLOW_PRIVATE_ACCESS
 #include "c3peer.h"
 #if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
 #include "mbedtls/platform.h"
 #include "mbedtls/private/ecp.h"
+#include "mbedtls/private/pk_private.h"
 #include "c3bport.h"
 #include "c3tout.h"
 #include <string.h>
@@ -133,6 +136,20 @@ int c3peer_leaf (mbedtls_x509_crt * p_chain,
         g_store.math.p_leaf = p_chain;
     }
     const int result = mbedtls_x509_crt_parse_der_nocopy(p_chain, p_data, size);
+    if (b_lend)
+    {
+        return_crypto();
+    }
+    return result;
+}
+
+/** @brief Lend temporary storage while TLS copies the verified peer key. */
+int c3peer_copy (unsigned char **      pp_data,
+                 const unsigned char * p_end,
+                 mbedtls_pk_context *  p_key)
+{
+    const bool b_lend = borrow_crypto(false);
+    const int  result = mbedtls_pk_parse_subpubkey(pp_data, p_end, p_key);
     if (b_lend)
     {
         return_crypto();
@@ -430,6 +447,7 @@ static bool borrow_crypto (bool b_verify)
         (0 < h_task) && (!gb_views) && (0U == g_live) && (0 == gh_crypto);
     if (b_available)
     {
+        g_store.math.p_leaf      = NULL;
         g_store.math.b_import    = false;
         g_store.math.b_data_used = false;
         g_store.math.b_key_used  = false;

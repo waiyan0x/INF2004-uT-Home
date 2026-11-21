@@ -13,6 +13,7 @@ from unicorn.riscv_const import (
     UC_RISCV_REG_PC, UC_RISCV_REG_RA, UC_RISCV_REG_SP,
 )
 
+from .tls_certificate_probe import layouts
 from .tls_fragment_probe import SSL, STACK, STACK_SIZE, STOP
 from .tls_x509_parse_probe import ParserProbe
 
@@ -110,6 +111,65 @@ def check_public_copy(probe, chain, source, size):
     return dict(heap_requests=heap_requests, limb_failures_retried=limb_requests)
 
 
+def check_handshake_copy(probe, elf, chain):
+    """Compare the native and scoped imports and reuse the workspace with the key live."""
+    cpu, run = probe.uc, probe.run
+    types = layouts(elf, ('mbedtls_pk_context',))
+    field = types['mbedtls_x509_crt']['fields']['pk_raw'] + chain
+    buf = types['mbedtls_asn1_buf']['fields']
+    word = lambda ptr: int.from_bytes(cpu.mem_read(ptr, 4), 'little')
+    encoded = bytes(cpu.mem_read(word(field + buf['p']), word(field + buf['len'])))
+    key = SSL + 0x90000
+    cpu.mem_map(key, 4096)
+    cursor, source = key + 1024, key + 2048
+    pk = types['mbedtls_pk_context']
+    assert pk['size'] <= cursor - key and len(encoded) <= 4096 - (source - key)
+    entry = probe.symbols.get('c3peer_copy')
+    owned = dict(probe.live)
+
+    def copy(name, data):
+        cpu.mem_write(source, data)
+        cpu.mem_write(cursor, struct.pack('<I', source))
+        run('mbedtls_pk_init', key)
+        before = len(probe.allocations)
+        result = run(name, cursor, source + len(data), key)
+        return result, word(cursor) - source, len(probe.allocations) - before
+
+    native = 'mbedtls_pk_parse_subpubkey'
+    selected = 'c3peer_copy' if entry else native
+    status, end, native_count = copy(native, encoded)
+    assert status == 0 and end == len(encoded) and native_count > 0
+    expected = bytes(cpu.mem_read(key, pk['size']))
+    run('mbedtls_pk_free', key)
+    status, end, count = copy(selected, encoded)
+    assert status == 0 and end == len(encoded) and count == (0 if entry else native_count)
+    cpu.mem_write(source, bytes(len(encoded)))
+    workspace = run('c3peer_views')
+    assert workspace
+    marker = bytes(range(256)) * 16
+    cpu.mem_write(workspace, marker)
+    assert run('mbedtls_pk_get_bitlen', key) == 256
+    assert bytes(cpu.mem_read(key, pk['size'])) == expected
+    run('mbedtls_pk_free', key)
+    assert copy(selected, encoded) == (0, len(encoded), native_count)
+    run('mbedtls_pk_free', key)
+    assert bytes(cpu.mem_read(workspace, 4096)) == marker and probe.live == owned
+    run('c3peer_close')
+
+    # Keep the uncompressed point prefix and replace both coordinates with zero.
+    invalid = encoded[:-64] + bytes(64)
+    for data in (encoded[:-1], invalid):
+        native_error = copy(native, data)[:2]
+        run('mbedtls_pk_free', key)
+        assert native_error[0] < 0 and copy(selected, data)[:2] == native_error
+        run('mbedtls_pk_free', key)
+        assert copy(selected, encoded) == (0, len(encoded), count)
+        run('mbedtls_pk_free', key)
+        assert probe.live == owned
+    return dict(native_requests=native_count, selected_requests=count,
+                usb_busy_requests=native_count, retained_key_verified=True)
+
+
 def measure(elf, pem):
     probe = ParserProbe(elf)
     run = probe.run
@@ -126,6 +186,7 @@ def measure(elf, pem):
         import_result = check_public_copy(probe, chain, source, len(data))
     else:
         assert run('c3peer_der', chain, source, len(data)) == 0
+    copy_result = check_handshake_copy(probe, elf, chain) if 'c3peer_import' in probe.symbols else None
     retained = dict(probe.live)
     workspace = run('c3peer_views')
     assert workspace
@@ -255,7 +316,7 @@ def measure(elf, pem):
     run('c3peer_close')
     run('mbedtls_x509_crt_free', chain)
     assert not probe.live
-    return dict(parser_key_import=import_result, elf_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(), slots=len(slots),
+    return dict(handshake_key_copy=copy_result, parser_key_import=import_result, elf_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(), slots=len(slots),
                 point_table_bytes=48 if 'c3peer_points' in probe.symbols else 0,
                 slot_bytes=96, inverse_bytes=160, key_bytes=key_bytes,
                 public_data_bytes=65 if 'c3peer_import' in probe.symbols else 0, exhaustion_verified=True, foreign_task_verified=True,

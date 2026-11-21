@@ -98,10 +98,12 @@ workspace for certificate parsing and verification. A temporary 65-byte
 P-256 public key now fits in that workspace alongside the typed EC keypair.
 On the compiled demo image, CA parsing, peer parsing and broker verification
 each make zero heap requests when the certificate workspace is available.
-Two extra peer names share the existing 32-byte digest store. The later
-peer public-key import still makes nine heap requests, peaking at 461 bytes.
-Wi-Fi and whole-image heap qualification also remain open. The fixed-name image returned three
-authenticated MQTT replies on one ESP boot across broker restart and full TLS renegotiation.
+The subsequent import of the broker public key into the handshake context
+also makes zero heap requests with the workspace available. The imported
+key remains usable after the workspace returns to USB. The preceding
+fixed-name image passed broker restart and TLS renegotiation on the ESP.
+Whole-handshake and Wi-Fi heap qualification remain open.
+[Handshake public-key import](docs/reports/wifi-static-memory/README.md#handshake-public-key-import)
 [Fixed peer certificate names](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-names)
 [Fixed parser integers](docs/reports/wifi-static-memory/README.md#fixed-parser-integers)
 [Fixed verifier point table](docs/reports/wifi-static-memory/README.md#fixed-verifier-point-table)

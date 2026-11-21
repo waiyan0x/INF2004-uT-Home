@@ -381,6 +381,17 @@ the chain destructor precedes the replacement digest. Manual C review covered
 those lifetimes, bounds, pointer identity, the unsigned mask and error cleanup.
 The existing RAM cap and C policy apply.
 
+After verification the TLS client saves the public key in the handshake.
+Only the `ssl_tls.c` call to `mbedtls_pk_parse_subpubkey` borrows the
+certificate workspace for this copy. On P-256 the SDK writes the encoded
+point into its own key context, validates it through a temporary PSA key and
+destroys the temporary key before returning. Releasing the workspace on
+success or failure leaves the handshake key usable. A live USB tree or
+intermediate chain keeps the existing native allocation path. Manual C
+review covered the SDK's cursor and end-pointer ABI, key lifetime,
+task ownership, error returns and return of the lease. No new static storage
+or coding-standard deviation was introduced.
+
 Only the pinned `ecp.c` receives the two-point table allocation and free
 bindings. The verifier owns an aligned array of two SDK point records.
 The compile-time guard requires window size two, disabled group caching
