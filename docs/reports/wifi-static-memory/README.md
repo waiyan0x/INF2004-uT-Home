@@ -1289,6 +1289,21 @@ test exercised a real JSON document and all four intermediate records. All
 build and source snapshot passed. The ELF SHA-256 is
 `9a27f05bdc5574025cfb066efaadb0113437a6f0e4686ab758f90d077ed3a622`.
 
+##### Demo trust-anchor storage experiment
+
+On the same linked image, the native no-copy parser borrowed the 433-byte
+DER encoding of the same trusted CA. Loading the CA peaked at 461 heap
+bytes and retained zero heap bytes, compared with a 1,327-byte peak and 433
+retained bytes when parsing PEM. Demo verification then peaked at 433 heap
+bytes and made the same 13 requests. The parser pointed directly at the
+supplied DER. Those bytes remained intact through verification, peer-key
+copy and cleanup. The wrong hostname, altered signature and empty trust
+controls failed, and the original certificate succeeded again.
+
+The firmware still provisions PEM. A production change needs a trust buffer
+whose lifetime covers every TLS use, plus the existing behavior for bundles
+containing multiple certificates. This experiment used one CA.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
