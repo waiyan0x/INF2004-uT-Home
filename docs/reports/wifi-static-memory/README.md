@@ -140,6 +140,28 @@ A matched hardware-provider control is needed to attribute the association
 result. The two-slot change remains a candidate pending station and broker
 acceptance.
 
+### WPA2 association with fixed AES contexts
+
+The matched hardware-crypto control obtained an IPv4 address with the same
+station settings. Its USB status recorded three failed connections to the
+deliberately closed loopback endpoint. The software-crypto candidate also
+obtained an address after the Wi-Fi component selected the pinned SDK's
+optimized WPA2 passphrase function. The MQTT crypto provider continued to use
+software SHA and AES. Image SHA-256 was
+`2933e5672650161ae89c8ecf02a2aae76e164d30de87635a6f9dc06efedd2ffb`.
+
+The debugger recorded two loopback connection attempts on the same boot. At
+both stops, the controller occupied 8,448 bytes in the 11,264-byte native
+reservation, with 2,768 free. The same thread-local lwIP semaphore was present
+at both stops. Its lifetime across these two calls does not establish a bound
+on concurrent callers. Both board runs used fresh full-flash backups and
+verified the original flash and profile after restoration.
+
+The ordinary and optimized WPA paths both produced the expected public
+passphrase test vector. The trials establish association with the optimized
+path. Its effect on handshake timing remains unmeasured. Authenticated MQTT,
+broker restart and TLS renegotiation on the fixed-AES image remain open.
+
 ### Tribunal static-memory check, 20 November 2026
 
 **The demo firmware fails the no-application-heap requirement.** The tribunal
