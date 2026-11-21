@@ -251,12 +251,20 @@ class Ring(c.Structure):
 
 class Slot(c.Structure):
     _fields_ = [('key', c.c_void_p),
-                ('kind', c.c_int), ('count', c.c_uint32), ('capacity', c.c_uint32),
-                ('users', c.c_uint32), ('owner', c.c_uint32), ('depth', c.c_uint32)]
+                ('kind', c.c_int), ('users', c.c_uint32)]
+
+
+class Semaphore(c.Structure):
+    _fields_ = [('count', c.c_uint32), ('capacity', c.c_uint32)]
+
+
+class Mutex(c.Structure):
+    _fields_ = [('owner', c.c_uint32), ('depth', c.c_uint32)]
 
 
 class Pool(c.Structure):
-    _fields_ = [('ops', Ops), ('slots', Slot * 56), ('rings', Ring * 8), ('storage', c.c_uint8 * 8192), ('hz', c.c_uint32), ('ready', c.c_bool)]
+    _fields_ = [('ops', Ops), ('slots', Slot * 56), ('semaphores', Semaphore * 16),
+                ('mutexes', Mutex * 32), ('rings', Ring * 8), ('storage', c.c_uint8 * 8192), ('hz', c.c_uint32), ('ready', c.c_bool)]
 
 
 class NetworkQueueAdapterTests(unittest.TestCase):
@@ -788,12 +796,12 @@ class NetworkPoolTests(unittest.TestCase):
         self.assertEqual(self.mutex(self.ptr, recursive, 0, True, False), -1)
         self.assertEqual(self.mutex(self.ptr, recursive, 0, True, True), 0)
         self.assertEqual(self.mutex(self.ptr, recursive, 0, True, True), 0)
-        self.assertEqual(self.pool.slots[25].depth, 2)
+        self.assertEqual(self.pool.mutexes[1].depth, 2)
         self.assertEqual(self.mutex(self.ptr, recursive, 0, False, True), 0)
         self.assertEqual(self.release(self.ptr, recursive), -1)
-        self.pool.slots[25].depth = 2**32-1
+        self.pool.mutexes[1].depth = 2**32-1
         self.assertEqual(self.mutex(self.ptr, recursive, 0, True, True), -1)
-        self.pool.slots[25].depth = 1
+        self.pool.mutexes[1].depth = 1
         self.assertEqual(self.mutex(self.ptr, recursive, 0, False, True), 0)
         self.assertEqual(self.release(self.ptr, recursive), 0)
         self.assertEqual(self.lock_calls, [(24, 50), (25, 0)])
@@ -812,10 +820,10 @@ class NetworkPoolTests(unittest.TestCase):
         self.assertEqual(self.send(self.ptr, normal, None, 0, 0, False), -1)
         for _ in range(3):
             self.assertEqual(self.mutex(self.ptr, recursive, 2**32-1, True, True), 0)
-        self.assertEqual(self.pool.slots[25].depth, 3)
+        self.assertEqual(self.pool.mutexes[1].depth, 3)
         for _ in range(3):
             self.assertEqual(self.mutex(self.ptr, recursive, 0, False, True), 0)
-        self.assertEqual(self.pool.slots[25].owner, 0)
+        self.assertEqual(self.pool.mutexes[1].owner, 0)
         self.assertEqual(self.lock_calls, [])
         self.assertEqual(self.waits, [])
         self.owner, self.allowed, self.clock_ok = 1, True, True
@@ -827,15 +835,15 @@ class NetworkPoolTests(unittest.TestCase):
         handle = self.new(kind=3, size=0)
         self.owner, self.allowed = 2**32-1, False
         self.assertEqual(self.mutex(self.ptr, handle, 0, True, True), 0)
-        self.pool.slots[24].depth = 2**32-1
+        self.pool.mutexes[0].depth = 2**32-1
         self.assertEqual(self.mutex(self.ptr, handle, 0, True, True), -1)
-        self.pool.slots[24].depth = 1
+        self.pool.mutexes[0].depth = 1
         self.owner, self.allowed = 1, True
         self.assertEqual(self.mutex(self.ptr, handle, 100, True, True), -1)
         self.assertEqual(self.mutex(self.ptr, handle, 0, False, True), -1)
         self.assertEqual(self.release(self.ptr, handle), -1)
-        self.assertEqual(self.pool.slots[24].owner, 2**32-1)
-        self.assertEqual(self.pool.slots[24].depth, 1)
+        self.assertEqual(self.pool.mutexes[0].owner, 2**32-1)
+        self.assertEqual(self.pool.mutexes[0].depth, 1)
         self.assertEqual(self.lock_calls, [])
         self.owner = 0
         self.assertEqual(self.mutex(self.ptr, handle, 0, False, True), -1)

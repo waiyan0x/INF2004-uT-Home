@@ -29,12 +29,15 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
         mem_malloc=c3dhcp_alloc mem_free=c3dhcp_free pbuf_alloc=c3dhcp_packet)
     idf_component_get_property(UTHOME_NETIF_LIB esp_netif COMPONENT_LIB)
     idf_component_get_property(UTHOME_NETIF_DIR esp_netif COMPONENT_DIR)
+    set_property(SOURCE "${UTHOME_NETIF_DIR}/lwip/esp_netif_lwip.c"
+        TARGET_DIRECTORY ${UTHOME_NETIF_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
+        calloc=c3iface_alloc free=c3iface_free strdup=c3iface_dup)
     set_property(SOURCE "${UTHOME_NETIF_DIR}/lwip/netif/wlanif.c"
         TARGET_DIRECTORY ${UTHOME_NETIF_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
         esp_pbuf_allocate=c3rx_alloc pbuf_alloc=c3pkt_aux)
     # SDK archives are scanned after the owned main/radio archives. Retain the
     # record adapter and its native exclusion boundary before that scan.
-    foreach(owned IN ITEMS c3lrec_alloc c3lrec_free c3pkt_alloc c3pkt_aux c3pkt_frame c3pkt_clone c3pkt_split c3rx_alloc c3dhcp_alloc c3dhcp_free c3dhcp_packet c3bport_enter c3bport_leave)
+    foreach(owned IN ITEMS c3lrec_alloc c3lrec_free c3pkt_alloc c3pkt_aux c3pkt_frame c3pkt_clone c3pkt_split c3rx_alloc c3dhcp_alloc c3dhcp_free c3dhcp_packet c3iface_alloc c3iface_free c3iface_dup c3bport_enter c3bport_leave)
         target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--undefined=${owned}")
     endforeach()
 endif()

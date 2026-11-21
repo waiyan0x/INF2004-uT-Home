@@ -75,14 +75,13 @@ station reused that record without calling the heap. One station membership
 fits the demo. A second simultaneous membership returns a capacity error.
 On the ESP, all eight BMP388 and radar reads matched their MQTT replies
 across a broker restart. The station held the same fixed slot before and
-after that restart. The image has 110 application bytes and 3,242 total
-fixed DRAM bytes free.
-The station interface retained 237 heap bytes and the SDK default event
-loop retained 316 more across a broker restart and eight verified sensor
-reads. A direct fixed-storage conversion of both layouts would require
-reclaiming at least 443 application bytes. Size those records before
-changing the allocator. The physical trace also identified separate
-Wi-Fi driver buffer and TLS certificate-path requests.
+after that restart.
+The default station constructor now uses fixed storage for the interface,
+both IP records, the lwIP interface, its key and its description. Replaying
+the compiled constructor reduced retained heap payload from 237 to 8 bytes.
+The application has 353 fixed bytes free. The registry list node, SDK event
+loop, event payloads, certificate allocations and driver inventory remain open.
+[Station interface storage and RAM budget](docs/reports/wifi-static-memory/README.md#fixed-station-interface-and-identifiers)
 [Wi-Fi startup and reconnect heap callers](docs/reports/wifi-static-memory/README.md#wi-fi-startup-and-broker-reconnect-heap-callers)
 [Fixed station membership](docs/reports/wifi-static-memory/README.md#fixed-station-multicast-membership)
 [Fixed broker endpoint](docs/reports/wifi-static-memory/README.md#fixed-numeric-broker-endpoint)

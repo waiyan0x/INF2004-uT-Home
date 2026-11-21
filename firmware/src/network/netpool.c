@@ -4,6 +4,8 @@
  */
 #include "netpool.h"
 
+#define NETPOOL_FIRST_MUTEX (NETPOOL_QUEUE_SLOTS + NETPOOL_SEMAPHORE_SLOTS)
+
 static uint32_t find_slot (netpool_t const * p_pool, void const * p_key);
 static uint32_t begin_use (netpool_t * p_pool, void * p_key);
 static void end_use (netpool_t * p_pool, uint32_t index);
@@ -18,10 +20,10 @@ static int mutex_change (netpool_t * p_pool,
                          uint32_t    ticks,
                          bool        b_take,
                          bool        b_recursive);
-static int boot_mutex (netpool_slot_t * p_slot,
-                       uint32_t         owner,
-                       bool             b_take,
-                       bool             b_recursive);
+static int boot_mutex (netpool_mutex_state_t * p_mutex,
+                       uint32_t                owner,
+                       bool                    b_take,
+                       bool                    b_recursive);
 static size_t queue_bytes (uint32_t index);
 static size_t queue_offset (uint32_t index);
 
@@ -84,7 +86,7 @@ void * netpool_create (netpool_t *    p_pool,
     }
     else if ((NETPOOL_MUTEX == kind) || (NETPOOL_RECURSIVE == kind))
     {
-        first = NETPOOL_QUEUE_SLOTS + NETPOOL_SEMAPHORE_SLOTS;
+        first = NETPOOL_FIRST_MUTEX;
         limit = NETPOOL_SLOTS;
     }
     else
@@ -122,14 +124,16 @@ void * netpool_create (netpool_t *    p_pool,
             /* Try the next fixed partition; no heap fallback. */
             continue;
         }
-        p_slot->p_key    = p_candidate_key;
-        p_slot->kind     = kind;
-        p_slot->capacity = capacity;
-        p_slot->count    = initial_count;
-        p_slot->users    = 0U;
-        p_slot->owner    = 0U;
-        p_slot->depth    = 0U;
-        p_key            = p_candidate_key;
+        p_slot->p_key = p_candidate_key;
+        p_slot->kind  = kind;
+        p_slot->users = 0U;
+        if (NETPOOL_SEMAPHORE == kind)
+        {
+            p_pool->semaphores[index - NETPOOL_QUEUE_SLOTS].capacity = capacity;
+            p_pool->semaphores[index - NETPOOL_QUEUE_SLOTS].count =
+                initial_count;
+        }
+        p_key = p_candidate_key;
         break;
     }
     p_pool->ops.p_leave(p_pool->ops.p_context, saved);
@@ -145,7 +149,8 @@ int netpool_release (netpool_t * p_pool, void * p_key)
         const uint32_t saved = p_pool->ops.p_enter(p_pool->ops.p_context);
         const uint32_t index = find_slot(p_pool, p_key);
         if ((index < NETPOOL_SLOTS) && (0U == p_pool->slots[index].users) &&
-            (0U == p_pool->slots[index].owner))
+            ((index < NETPOOL_FIRST_MUTEX) ||
+             (0U == p_pool->mutexes[index - NETPOOL_FIRST_MUTEX].owner)))
         {
             p_pool->slots[index].p_key = NULL;
             result                     = 0;
@@ -189,9 +194,10 @@ int netpool_send (netpool_t *        p_pool,
                 result = netring_send(&p_pool->rings[index], p_item, position);
             }
             else if ((NETPOOL_SEMAPHORE == p_slot->kind) &&
-                     (p_slot->count < p_slot->capacity))
+                     (p_pool->semaphores[index - NETPOOL_QUEUE_SLOTS].count <
+                      p_pool->semaphores[index - NETPOOL_QUEUE_SLOTS].capacity))
             {
-                ++p_slot->count;
+                ++p_pool->semaphores[index - NETPOOL_QUEUE_SLOTS].count;
                 result = 0;
             }
             else
@@ -257,9 +263,10 @@ int netpool_receive (netpool_t * p_pool,
                              : netring_receive(&p_pool->rings[index], p_item);
             }
             else if ((NETPOOL_SEMAPHORE == p_slot->kind) &&
-                     (0U < p_slot->count))
+                     (0U <
+                      p_pool->semaphores[index - NETPOOL_QUEUE_SLOTS].count))
             {
-                --p_slot->count;
+                --p_pool->semaphores[index - NETPOOL_QUEUE_SLOTS].count;
                 result = 0;
             }
             else
@@ -329,12 +336,18 @@ int netpool_query (netpool_t *      p_pool,
             }
             else if (NETPOOL_SEMAPHORE == p_slot->kind)
             {
-                *p_count = p_slot->count;
-                *p_space = p_slot->capacity - p_slot->count;
+                *p_count =
+                    p_pool->semaphores[index - NETPOOL_QUEUE_SLOTS].count;
+                *p_space =
+                    p_pool->semaphores[index - NETPOOL_QUEUE_SLOTS].capacity -
+                    p_pool->semaphores[index - NETPOOL_QUEUE_SLOTS].count;
             }
             else
             {
-                *p_count = (0U == p_slot->owner) ? 1U : 0U;
+                *p_count =
+                    (0U == p_pool->mutexes[index - NETPOOL_FIRST_MUTEX].owner)
+                        ? 1U
+                        : 0U;
                 *p_space = 0U;
             }
             result = 0;
@@ -474,15 +487,17 @@ static int mutex_change (netpool_t * p_pool,
     {
         return -1;
     }
+    netpool_mutex_state_t * const p_mutex =
+        &p_pool->mutexes[index - NETPOOL_FIRST_MUTEX];
     owner = p_pool->ops.p_owner(p_pool->ops.p_context);
     if (0U == owner)
     {
         return -1;
     }
     saved = p_pool->ops.p_enter(p_pool->ops.p_context);
-    if ((NETPOOL_BOOT_OWNER == owner) || (NETPOOL_BOOT_OWNER == p_slot->owner))
+    if ((NETPOOL_BOOT_OWNER == owner) || (NETPOOL_BOOT_OWNER == p_mutex->owner))
     {
-        result = boot_mutex(p_slot, owner, b_take, b_recursive);
+        result = boot_mutex(p_mutex, owner, b_take, b_recursive);
         p_pool->ops.p_leave(p_pool->ops.p_context, saved);
         return result;
     }
@@ -492,29 +507,29 @@ static int mutex_change (netpool_t * p_pool,
         return -1;
     }
     saved = p_pool->ops.p_enter(p_pool->ops.p_context);
-    if (owner == p_slot->owner)
+    if (owner == p_mutex->owner)
     {
-        if ((b_take) && (b_recursive) && (UINT32_MAX != p_slot->depth))
+        if ((b_take) && (b_recursive) && (UINT32_MAX != p_mutex->depth))
         {
-            ++p_slot->depth;
+            ++p_mutex->depth;
             result = 0;
         }
         else if (!b_take)
         {
-            if ((1U < p_slot->depth) && (!b_recursive))
+            if ((1U < p_mutex->depth) && (!b_recursive))
             {
                 /* A wrong-family give cannot consume nested SDK ownership. */
             }
-            else if (1U < p_slot->depth)
+            else if (1U < p_mutex->depth)
             {
-                --p_slot->depth;
+                --p_mutex->depth;
                 result = 0;
             }
             else if (0 == p_pool->ops.p_unlock(p_pool->ops.p_context, index))
             {
-                p_slot->owner = 0U;
-                p_slot->depth = 0U;
-                result        = 0;
+                p_mutex->owner = 0U;
+                p_mutex->depth = 0U;
+                result         = 0;
             }
             else
             {
@@ -543,9 +558,9 @@ static int mutex_change (netpool_t * p_pool,
                 p_pool->ops.p_lock(p_pool->ops.p_context, index, milliseconds);
             if (0 == locked)
             {
-                saved         = p_pool->ops.p_enter(p_pool->ops.p_context);
-                p_slot->owner = owner;
-                p_slot->depth = 1U;
+                saved          = p_pool->ops.p_enter(p_pool->ops.p_context);
+                p_mutex->owner = owner;
+                p_mutex->depth = 1U;
                 p_pool->ops.p_leave(p_pool->ops.p_context, saved);
                 result = 0;
             }
@@ -555,33 +570,33 @@ static int mutex_change (netpool_t * p_pool,
 }
 
 /** @brief Serialized startup owns logical locks without a native task ID. */
-static int boot_mutex (netpool_slot_t * p_slot,
-                       uint32_t         owner,
-                       bool             b_take,
-                       bool             b_recursive)
+static int boot_mutex (netpool_mutex_state_t * p_mutex,
+                       uint32_t                owner,
+                       bool                    b_take,
+                       bool                    b_recursive)
 {
     if ((NETPOOL_BOOT_OWNER != owner) ||
-        ((0U != p_slot->owner) && (NETPOOL_BOOT_OWNER != p_slot->owner)))
+        ((0U != p_mutex->owner) && (NETPOOL_BOOT_OWNER != p_mutex->owner)))
     {
         return -1;
     }
     if (b_take)
     {
-        if ((0U == p_slot->owner) ||
-            ((b_recursive) && (UINT32_MAX != p_slot->depth)))
+        if ((0U == p_mutex->owner) ||
+            ((b_recursive) && (UINT32_MAX != p_mutex->depth)))
         {
-            p_slot->owner = NETPOOL_BOOT_OWNER;
-            ++p_slot->depth;
+            p_mutex->owner = NETPOOL_BOOT_OWNER;
+            ++p_mutex->depth;
             return 0;
         }
     }
-    else if ((NETPOOL_BOOT_OWNER == p_slot->owner) && (0U < p_slot->depth) &&
-             ((b_recursive) || (1U == p_slot->depth)))
+    else if ((NETPOOL_BOOT_OWNER == p_mutex->owner) && (0U < p_mutex->depth) &&
+             ((b_recursive) || (1U == p_mutex->depth)))
     {
-        --p_slot->depth;
-        if (0U == p_slot->depth)
+        --p_mutex->depth;
+        if (0U == p_mutex->depth)
         {
-            p_slot->owner = 0U;
+            p_mutex->owner = 0U;
         }
         return 0;
     }

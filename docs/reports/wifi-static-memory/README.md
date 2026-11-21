@@ -866,6 +866,36 @@ The original full 4 MiB flash, active and saved profile 943, and laptop
 network settings were restored and verified. The debugger changes timing,
 so the trial supplies allocation and functional evidence only.
 
+#### Fixed station interface and identifiers
+
+The 21 November build reserves 269 application bytes for the default IPv4
+station. The constructor leases the typed ESP interface (104 bytes), lwIP
+interface (84 bytes), current and previous IP information (12 bytes each),
+station key (13 bytes) and description (4 bytes). A separate 33-byte buffer
+supports the SDK hostname limit, including the terminator. Seven occupancy
+flags account for the remaining bytes. These compiler bindings apply only to
+the pinned ESP-NETIF lwIP source in the fixed-queue Wi-Fi build.
+
+Only the 16 semaphore slots now store semaphore counts and limits. Only the
+32 mutex slots store owner and recursion depth. The 56 slot identities,
+pending-user counters, queue payloads and native object counts retain their
+previous capacities. This saves 512 bytes on RV32.
+
+| Linked measurement | Bytes | Limit |
+|---|---:|---:|
+| Application fixed RAM | 147,103 | 147,456 |
+| Queue adapter | 9,786 | 9,786 |
+| Station interface adapter | 269 | 269 |
+| Total fixed DRAM | 275,014 | 278,528 |
+
+The constructor replay followed all six pointers into their linked storage.
+The registry list node retained 8 heap bytes. The four early allocation
+failure paths unwound, a full-length hostname fit alongside both identifiers,
+and native destruction allowed another constructor to reuse the slots.
+The 19 queue/adapter tests and 47 qualification tests passed. Manual BARR-C
+review covered type alignment, pointer lifetime, queue index ranges, mutex
+handoff and interrupt exclusion. The project supports one default station.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

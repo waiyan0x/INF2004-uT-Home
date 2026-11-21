@@ -57,21 +57,31 @@ typedef struct
 {
     void *         p_key;
     netpool_kind_t kind;
-    uint32_t       count;
-    uint32_t       capacity;
     uint32_t       users;
-    uint32_t       owner;
-    uint32_t       depth;
 } netpool_slot_t;
 
 typedef struct
 {
-    netpool_ops_t  ops;
-    netpool_slot_t slots[NETPOOL_SLOTS];
-    netring_t      rings[NETPOOL_QUEUE_SLOTS];
-    uint8_t        storage[NETPOOL_STORAGE_BYTES];
-    uint32_t       tick_hz;
-    bool           b_ready;
+    uint32_t count;
+    uint32_t capacity;
+} netpool_semaphore_t;
+
+typedef struct
+{
+    uint32_t owner;
+    uint32_t depth;
+} netpool_mutex_state_t;
+
+typedef struct
+{
+    netpool_ops_t         ops;
+    netpool_slot_t        slots[NETPOOL_SLOTS];
+    netpool_semaphore_t   semaphores[NETPOOL_SEMAPHORE_SLOTS];
+    netpool_mutex_state_t mutexes[NETPOOL_MUTEX_SLOTS];
+    netring_t             rings[NETPOOL_QUEUE_SLOTS];
+    uint8_t               storage[NETPOOL_STORAGE_BYTES];
+    uint32_t              tick_hz;
+    bool                  b_ready;
 } netpool_t;
 
 /* Every public int-returning operation returns zero on success and -1 on

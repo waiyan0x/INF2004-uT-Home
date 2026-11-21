@@ -625,7 +625,9 @@ class QualificationTests(unittest.TestCase):
             commands.insert(0, dict(file='/sdk/lwip/src/core/ipv4/' + unit, command='gcc -Dpbuf_alloc=c3pkt_frame'))
         rx_flag = ' -Desp_pbuf_allocate=c3rx_alloc -Dpbuf_alloc=c3pkt_aux'
         commands.insert(0, dict(file='/sdk/esp_netif/lwip/netif/wlanif.c', command='gcc' + rx_flag))
-        names = ('c3dhcp_alloc', 'c3dhcp_free', 'c3dhcp_packet', 'udp_new', 'udp_remove', 'etharp_request', 'igmp_start', 'igmp_stop', 'c3rx_alloc', 'wlanif_input', 'esp_netif_free_rx_buffer', 'c3pkt_alloc', 'c3pkt_aux', 'c3pkt_frame', 'c3pkt_clone', 'c3pkt_split', 'tcp_split_unsent_seg', 'pbuf_alloced_custom', 'c3lrec_alloc', 'c3lrec_free', 'c3bport_enter', 'c3bport_leave', 'netconn_alloc', 'netconn_free',
+        commands.insert(0, dict(file='/sdk/esp_netif/lwip/esp_netif_lwip.c',
+                                command='gcc -Dcalloc=c3iface_alloc -Dfree=c3iface_free -Dstrdup=c3iface_dup'))
+        names = ('c3iface_alloc', 'c3iface_free', 'c3iface_dup', 'c3dhcp_alloc', 'c3dhcp_free', 'c3dhcp_packet', 'udp_new', 'udp_remove', 'etharp_request', 'igmp_start', 'igmp_stop', 'c3rx_alloc', 'wlanif_input', 'esp_netif_free_rx_buffer', 'c3pkt_alloc', 'c3pkt_aux', 'c3pkt_frame', 'c3pkt_clone', 'c3pkt_split', 'tcp_split_unsent_seg', 'pbuf_alloced_custom', 'c3lrec_alloc', 'c3lrec_free', 'c3bport_enter', 'c3bport_leave', 'netconn_alloc', 'netconn_free',
                  'netbuf_delete', 'memp_malloc', 'memp_free')
         symbols = {name: 0x42001000 + index * 32 for index, name in enumerate(names)}
         self.assertTrue(qualification.check_lwip_records(commands, symbols, True)['enabled'])
@@ -648,7 +650,7 @@ class QualificationTests(unittest.TestCase):
             damaged = [entry for entry in commands if not entry['file'].endswith('/' + unit)]
             with self.subTest(unit=unit), self.assertRaises(qualification.QualificationError):
                 qualification.check_lwip_records(damaged, symbols, True)
-        for name in ('c3dhcp_alloc', 'c3dhcp_free', 'c3dhcp_packet', 'c3rx_alloc', 'c3pkt_alloc', 'c3pkt_aux', 'c3pkt_frame', 'c3pkt_clone', 'c3pkt_split', 'c3lrec_alloc', 'c3lrec_free', 'c3bport_enter', 'c3bport_leave'):
+        for name in ('c3iface_alloc', 'c3iface_free', 'c3iface_dup', 'c3dhcp_alloc', 'c3dhcp_free', 'c3dhcp_packet', 'c3rx_alloc', 'c3pkt_alloc', 'c3pkt_aux', 'c3pkt_frame', 'c3pkt_clone', 'c3pkt_split', 'c3lrec_alloc', 'c3lrec_free', 'c3bport_enter', 'c3bport_leave'):
             for address in (0, 0x40380000):
                 with self.subTest(name=name, address=address), self.assertRaises(qualification.QualificationError):
                     qualification.check_lwip_records(commands, dict(symbols, **{name: address}), True)
