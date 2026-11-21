@@ -33,9 +33,10 @@ changes are injected in C fixture tests. The live BMP388 MQTT check below now
 also covers rule switching, host reopen and broker recovery on the board.
 Generated verification is local-only under `build/controller/`.
 
-**Static-memory compliance is the first priority.** The tested image fits its
-fixed DRAM budget, but its TCP/IP and certificate verification paths still
-use the heap. The [tribunal memory check](docs/reports/wifi-static-memory/README.md#tribunal-static-memory-check-20-november-2026)
+**Static-memory compliance is the first priority.** The demo image fits its
+fixed DRAM budget. With the USB parser idle, the MQTT worker made zero native
+mbedTLS heap requests on the ESP through connect, reconnect and renewal.
+USB contention, other certificate chains and broader network heap use remain open. The [tribunal memory check](docs/reports/wifi-static-memory/README.md#tribunal-static-memory-check-20-november-2026)
 contains the per-module table, board counters and remaining acceptance tests. The
 [one-broker TCP settings](docs/reports/wifi-static-memory/README.md#one-broker-tcp-sizing)
 reduced the measured lwIP peak from 3,496 to 1,884 bytes through reconnect
@@ -106,15 +107,13 @@ broker restart and full TLS renegotiation.
 The TLS 1.2 client also borrows that workspace to verify the server key
 exchange signature. On the ESP, this step went from 445 native mbedTLS heap
 requests to zero on first connection, broker reconnect and full renegotiation.
-All three authenticated MQTT replies arrived on one boot. The client now also borrows the existing workspace
-for X25519. On the ESP, each client exchange made one 32-byte heap request
-for the ephemeral private key. The full MQTT worker trace recorded three
-requests on first connection, reconnect and full renegotiation, with live
-peaks of 32, 32 and 64 bytes respectively. The compiled client retained one
-16-byte AES key per traffic direction. Full renewal briefly needs both pairs.
-The client now borrows slots in the temporary ESP-TLS hostname buffer for
-both AES keys and the X25519 private key. Compiled tests cover allocation
-failure, renewal, erasure and hostname exclusion.
+The client also borrows the existing workspace for X25519. The earlier board
+trace found three remaining native allocations per handshake, with peaks of
+32, 32 and 64 bytes. The client now holds the ephemeral X25519 key and both
+AES traffic keys in the temporary hostname buffer. The ESP returned three
+authenticated status replies on one boot with zero native mbedTLS heap
+requests in all three intervals. When USB holds the arithmetic workspace,
+the compiled X25519 replay still makes 102 native requests.
 [Traffic-key lifetimes](docs/reports/wifi-static-memory/README.md#traffic-key-lifetimes)
 [X25519 client key exchange](docs/reports/wifi-static-memory/README.md#x25519-client-key-exchange)
 USB contention, Wi-Fi and whole-system static-memory qualification remain open.

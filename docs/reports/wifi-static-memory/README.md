@@ -1766,6 +1766,29 @@ its unused allowance. Its linked data remain 869 bytes within the revised
 872-byte reservation. The qualified map used 147,440 of 147,456 application
 bytes and 276,430 of 278,528 total DRAM bytes.
 
+On 22 November the ESP ran diagnostic image `c847d905`. The observer-free
+control relink matched production image `3f8a7f9e` byte for byte. The trial
+used a fresh P-256 bench certificate after the previous leaf expired. The
+host accepted its configured name and CA and rejected the wrong name and CA.
+
+| ESP MQTT worker interval | Previous native heap requests | Fixed-key image | Live fixed key slots after reply |
+| --- | ---: | ---: | ---: |
+| First authenticated connection | 3 | 0 | 2 |
+| Reconnect after broker restart | 3 | 0 | 2 |
+| Full TLS 1.2 renegotiation | 3 | 0 | 2 |
+
+The pre-broker snapshot held no keys. After renewal the two live keys occupied
+the other two slots. All three fresh 96-byte status replies carried the same
+boot identity, and the wire transcript confirmed a second full handshake.
+The allocator observer reported zero errors and zero retained native bytes.
+The trial restored and independently verified the original 4 MiB flash, active
+and saved profile 943, laptop uplink and temporary hotspot/firewall cleanup.
+
+This measurement covers the MQTT worker's native mbedTLS allocator with
+USB idle. With USB holding the parser workspace, the offline X25519 replay
+still made 102 requests. Concurrent USB and TLS, different certificate chains,
+Wi-Fi group-key renewal overlap and other SDK allocators need separate evidence.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
