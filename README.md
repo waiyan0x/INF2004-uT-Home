@@ -99,8 +99,10 @@ from flash. CA loading peaks at 461 requested heap bytes and retains zero.
 Broker verification peaks at 433 bytes across 13 new requests. Both roots in
 a PEM bundle also passed verification using the SDK's ordinary parser.
 The remaining certificate heap, Wi-Fi driver allocations and whole-image
-heap trace are open. The preceding integer-workspace image passed the
-physical broker restart and TLS renegotiation checks.
+heap trace are open. The flash-backed CA image returned three authenticated
+MQTT status replies on one ESP boot across broker restart and full TLS
+renegotiation. Eight modular inversions each needed a 160-byte temporary.
+They ran sequentially, so one fixed buffer is the next candidate.
 [Flash-backed trust anchor and remaining allocations](docs/reports/wifi-static-memory/README.md#flash-backed-demo-trust-anchor)
 [Fixed integer buffers and compatibility tests](docs/reports/wifi-static-memory/README.md#fixed-integer-buffers-for-the-demo-broker)
 [Certificate arithmetic measurements](docs/reports/wifi-static-memory/README.md#elliptic-curve-window-for-the-demo-broker)

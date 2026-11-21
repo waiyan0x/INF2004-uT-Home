@@ -1349,6 +1349,20 @@ parser made nine temporary requests. These measurements count requested
 payload and exclude allocator overhead. The image (`be2aa3ef`) uses
 147,432 / 147,456 B of application fixed RAM and 276,422 / 278,528 B total.
 
+A replay of these 13 requests traced all eight 160 B allocations to
+`mbedtls_mpi_gcd_modinv_odd`. Each call requested 32 elements of 5 bytes.
+Only one of the eight allocations was live at a time. This is the next
+candidate for a fixed temporary in the verifier's existing workspace.
+
+On the ESP, the same image returned three distinct 96-byte authenticated
+MQTT status replies on one boot. The first preceded a broker restart, the
+second followed reconnection and the third followed server-requested TLS 1.2
+renegotiation. The reconnected socket carried two server Certificate messages
+and two Finished messages in each direction. The full 4 MiB flash backup was
+verified before installation and again after restoration. Active and saved
+profile 943, the laptop uplink, hotspot settings and firewall cleanup were
+verified. The board trial measured connection recovery. Heap counts above
+come from the compiled replay.
 
 #### Fixed-slot certificate verification experiment
 
