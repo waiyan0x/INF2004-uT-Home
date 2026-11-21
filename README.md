@@ -36,7 +36,8 @@ Generated verification is local-only under `build/controller/`.
 **Static-memory compliance is the first priority.** The demo image fits its
 fixed DRAM budget. With the USB parser idle, the MQTT worker made zero native
 mbedTLS heap requests on the ESP through connect, reconnect and renewal.
-USB contention, other certificate chains and broader network heap use remain open. The [tribunal memory check](docs/reports/wifi-static-memory/README.md#tribunal-static-memory-check-20-november-2026)
+USB validation between handshake steps also passed on the ESP. Other certificate
+chains and broader network heap use remain open. The [tribunal memory check](docs/reports/wifi-static-memory/README.md#tribunal-static-memory-check-20-november-2026)
 contains the per-module table, board counters and remaining acceptance tests. The
 [one-broker TCP settings](docs/reports/wifi-static-memory/README.md#one-broker-tcp-sizing)
 reduced the measured lwIP peak from 3,496 to 1,884 bytes through reconnect
@@ -112,11 +113,14 @@ trace found three remaining native allocations per handshake, with peaks of
 32, 32 and 64 bytes. The client now holds the ephemeral X25519 key and both
 AES traffic keys in the temporary hostname buffer. The ESP returned three
 authenticated status replies on one boot with zero native mbedTLS heap
-requests in all three intervals. When USB holds the arithmetic workspace,
-the compiled X25519 replay still makes 102 native requests.
+requests in all three intervals. The USB pump and MQTT run on one application
+task. During a second board trial, USB parsed and rejected a candidate while
+each handshake awaited ServerHello. The parser released the workspace before
+X25519 borrowed it, with zero native mbedTLS heap requests in every interval.
+[USB validation during MQTT TLS](docs/reports/wifi-static-memory/README.md#usb-validation-during-mqtt-tls)
 [Traffic-key lifetimes](docs/reports/wifi-static-memory/README.md#traffic-key-lifetimes)
 [X25519 client key exchange](docs/reports/wifi-static-memory/README.md#x25519-client-key-exchange)
-USB contention, Wi-Fi and whole-system static-memory qualification remain open.
+Wi-Fi driver allocations and whole-system static-memory qualification remain open.
 [TLS worker heap across three handshakes](docs/reports/wifi-static-memory/README.md#tls-worker-heap-across-three-handshakes)
 [Handshake public-key import](docs/reports/wifi-static-memory/README.md#handshake-public-key-import)
 [Fixed peer certificate names](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-names)

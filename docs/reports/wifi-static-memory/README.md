@@ -1789,6 +1789,41 @@ USB idle. With USB holding the parser workspace, the offline X25519 replay
 still made 102 requests. Concurrent USB and TLS, different certificate chains,
 Wi-Fi group-key renewal overlap and other SDK allocators need separate evidence.
 
+##### USB validation during MQTT TLS
+
+The production ESP application calls the USB pump and then the MQTT network
+step in the same task. Profile validation closes its JSON view tree before
+returning to that loop. The compiled X25519 replay can force a live parser
+lease across a direct TLS call and measures 102 native heap requests in that
+case. A real USB request can arrive during a handshake while the network is
+waiting for the peer.
+
+On 22 November the broker paused after the client handshake flight on first
+connect, reconnect after a broker restart and full TLS renewal. During each
+pause the host submitted one schema-incomplete candidate over USB. The ESP
+parsed it, rejected it before activation or saving, and kept the active and
+saved CRCs for revision 943. The debugger recorded the following on the
+previously qualified diagnostic image `c847d905`.
+
+| TLS interval | JSON view bytes at release | Task at USB release / X25519 generation | Native mbedTLS requests |
+| --- | ---: | --- | ---: |
+| First connection | 24 | 2 / 2 | 0 |
+| Broker reconnect | 32 | 2 / 2 | 0 |
+| Full TLS renewal | 40 | 2 / 2 | 0 |
+
+At each parser release, TLS was waiting for ServerHello and the crypto
+workspace had no owner. At private-key generation, USB had released its
+lease and the MQTT task owned the crypto workspace. Three fresh authenticated
+96-byte status replies arrived on one ESP boot. The observer retained zero
+native bytes after each reply. The full original flash, saved and active
+profile, and host network settings were restored and verified.
+
+This covers ordinary serialized USB profile validation against the demo
+broker. A future change that moves parsing or TLS to a different task or
+keeps a view across a network step must requalify the shared workspace.
+Broader certificate chains, Wi-Fi group-key renewal overlap and SDK allocation
+outside the MQTT worker remain separate.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
