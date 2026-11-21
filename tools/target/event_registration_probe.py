@@ -237,6 +237,20 @@ def verify_fixed(cpu, elf, gdb):
     assert register(0, 2) == 0 and snapshot() == pending
     cpu.uc.hook_del(observer)
     assert max(peaks) == 400
+    deferred_bytes = sum(payloads.values())
+    # Post a station-sized event while all eight cleanup bodies still own
+    # their payloads. Use a distinct event base with no registered handler.
+    body = bytes(range(48))
+    source = args + 256
+    cpu.uc.mem_write(source, body)
+    cpu.uc.reg_write(UC_RISCV_REG_A4, len(body))
+    cpu.uc.reg_write(UC_RISCV_REG_A5, 0)
+    assert call("esp_event_post_to", loop, args + 76, 4, source) == 0
+    cpu.uc.mem_write(source, bytes(len(body)))
+    station_copy, = [ptr for ptr, length in payloads.items() if length == len(body)]
+    assert bytes(cpu.uc.mem_read(station_copy, len(body))) == body
+    combined_bytes = sum(payloads.values())
+    assert len(queue) == len(payloads) == 9 and combined_bytes == 208
     assert call("esp_event_loop_run", loop, 1) == 0
     assert not queue and not payloads and snapshot().keys() == only_loop.keys()
     assert register_all().keys() == live.keys()
@@ -244,7 +258,8 @@ def verify_fixed(cpu, elf, gdb):
                 fixed_registration_records=27, fixed_live_bytes=316, general_record_requests=0,
                 replacement_failures_checked=2, simultaneous_deferred_removals=8,
                 fixed_bytes_pending_cleanup=380, peak_fixed_record_bytes=max(peaks),
-                deferred_payload_bytes=sum(sizes[1:]),
+                deferred_payload_bytes=deferred_bytes,
+                cleanup_plus_station_payload_bytes=combined_bytes,
                 failed_post_payload_returned=True,
                 cleanup_and_reuse_checked=True)
 

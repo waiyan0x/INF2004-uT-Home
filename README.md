@@ -90,6 +90,8 @@ reads passed on that boot. Two separate reboots into saved idle timed out
 before the first read. Application headroom is 99 bytes. On normal-profile startup,
 queued event bodies peaked at 48 bytes. A broker restart added none.
 A Wi-Fi disconnect and rejoin reached 64 bytes across two live messages.
+The compiled SDK held 208 bytes when a connection-sized post overlapped
+eight cleanup messages. A dedicated pool needs at least 109 more bytes.
 [Queued event measurements](docs/reports/wifi-static-memory/README.md#queued-event-bodies)
 TLS certificate work and Wi-Fi driver allocations also remain open.
 [Fixed SDK event records](docs/reports/wifi-static-memory/README.md#fixed-sdk-event-records)

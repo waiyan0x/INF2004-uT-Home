@@ -1058,8 +1058,17 @@ boot. Original flash, profile 943 and host settings were verified again.
 The pinned build stores up to four bytes inline and has a 32-entry event
 queue. Task-context posts allocate larger bodies before queue insertion, so
 a waiting producer can own a body outside the queue. The compiled eight-removal
-case above still requires 160 live bytes. The 48-byte startup observation
-alone cannot size a pool for all supported paths.
+case above still requires 160 live bytes. In a separate RV32 replay, the
+compiled SDK accepted a 48-byte post while those eight messages waited.
+The queue held nine independent bodies totalling **208 bytes**. Overwriting
+the caller's source buffer preserved the queued copy. Dispatch drained the
+queue, released all nine bodies, and permitted handler registration again.
+The queue transport and scheduling were simulated for this overlap test.
+
+A dedicated pool supporting this case needs at least 109 bytes reclaimed
+beyond the 99 free application bytes, before alignment or occupancy tracking.
+The next implementation step is to find storage for those simultaneous
+lifetimes, then test bounded exhaustion and recovery.
 
 #### Fixed-slot certificate verification experiment
 
