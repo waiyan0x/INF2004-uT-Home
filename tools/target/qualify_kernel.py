@@ -862,6 +862,7 @@ def check_lwip_records(commands, symbols, enabled):
         "ip4_frag.c": {"pbuf_alloc": "c3pkt_frame"},
         "udp.c": {"pbuf_alloc": "c3pkt_aux"},
         "dhcp.c": {"mem_malloc": "c3dhcp_alloc", "mem_free": "c3dhcp_free", "pbuf_alloc": "c3dhcp_packet"},
+        "esp_netif_objects.c": {"calloc": "c3iface_alloc", "free": "c3iface_free"},
         "esp_netif_lwip.c": {"calloc": "c3iface_alloc", "free": "c3iface_free", "strdup": "c3iface_dup"},
         "wlanif.c": {"esp_pbuf_allocate": "c3rx_alloc", "pbuf_alloc": "c3pkt_aux"},
     }

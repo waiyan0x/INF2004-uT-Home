@@ -18,6 +18,9 @@ def verify(elf, gdb):
     fixed = "c3iface_alloc" in cpu.symbols
     names = {"esp_netif": "g_station", "lwip_netif": "g_interface", "ip_info": "g_addresses[0]",
              "ip_info_old": "g_addresses[1]", "if_key": "g_key", "if_desc": "g_desc"}
+    registry_fixed = fixed and "g_registry" in cpu.symbols
+    if registry_fixed:
+        names["list_entry"] = "g_registry"
     addresses = {name: "(unsigned)&'c3iface.c'::" + symbol for name, symbol in names.items()} if fixed else {}
     layout = target_layout(elf, gdb, ("esp_netif_obj", "esp_netif_config", "esp_netif_api_msg_s",
                                      "slist_netifs_s", "netif"),
@@ -105,7 +108,18 @@ def verify(elf, gdb):
         assert bytes(cpu.uc.mem_read(nodes[name], len(value) + 1)) == value + bytes(1)
     if fixed:
         assert all(nodes[name] == layout[address] for name, address in addresses.items())
-        assert requests == 1 and allocations == {nodes["list_entry"]: 8}
+        expected_heap = {} if registry_fixed else {nodes["list_entry"]: 8}
+        assert requests == len(expected_heap) and allocations == expected_heap
+        if registry_fixed:
+            # The default station is the sole SDK registry user on this image.
+            # A refused insertion and removal of an unknown netif preserve it.
+            other = SSL + 0xc000
+            assert run("esp_netif_add_to_list_unsafe", other) != 0
+            assert run("esp_netif_remove_from_list_unsafe", other) != 0
+            assert run("esp_netif_get_nr_of_ifs") == 1
+            assert run("esp_netif_next_unsafe", 0) == obj and not run("esp_netif_next_unsafe", obj)
+            assert run("esp_netif_is_netif_listed", obj) and not run("esp_netif_is_netif_listed", other)
+            assert word(cpu.symbols["s_head"]) == nodes["list_entry"] and not requests
         assert not run("c3iface_alloc", 1, 12) and not run("c3iface_alloc", 0, 104)
         # Both identifiers remain live while a full-length hostname is replaced.
         scratch = SSL + 0xb000
@@ -121,9 +135,14 @@ def verify(elf, gdb):
         store(message + layout[output_offset], obj)
         assert run("esp_netif_destroy_api", message) == 0
         assert not allocations and not word(cpu.symbols["s_head"])
+        if registry_fixed:
+            assert not run("esp_netif_get_nr_of_ifs") and not run("esp_netif_next_unsafe", 0)
         store(message + layout[output_offset], output)
         store(output, 0)
-        assert run("esp_netif_new_api", message) == 0 and word(output) == obj and requests == 2
+        assert run("esp_netif_new_api", message) == 0 and word(output) == obj
+        assert requests == 2 * len(expected_heap)
+        if registry_fixed:
+            assert word(cpu.symbols["s_head"]) == nodes["list_entry"] and run("esp_netif_next_unsafe", 0) == obj
         assert run("c3iface_dup", scratch) == hostname
     else:
         assert set(nodes.values()) == allocations.keys()

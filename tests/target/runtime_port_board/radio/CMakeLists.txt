@@ -20,6 +20,20 @@ if(UTHOME_NETWORK_WIFI)
     idf_component_get_property(UTHOME_TLS_DIR esp-tls COMPONENT_DIR)
     target_include_directories(${COMPONENT_LIB} PRIVATE "${UTHOME_TLS_DIR}/private_include")
 endif()
+# The SDK declares its registry node in a C file, outside its public headers.
+# Import just that native type so the fixed slot and its user have the same ABI.
+if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
+    set(registry_source "${UTHOME_NETIF_DIR}/esp_netif_objects.c")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${registry_source}")
+    file(READ "${registry_source}" registry_source_text)
+    string(REGEX MATCH "struct slist_netifs_s [{][^}]+[}];" registry_type "${registry_source_text}")
+    if(NOT registry_type)
+        message(FATAL_ERROR "Pinned ESP-NETIF registry record definition missing")
+    endif()
+    file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/esp_netif_registry_type.h"
+        CONTENT "#include \"esp_netif_types.h\"\n#include <sys/queue.h>\n@registry_type@\n" @ONLY)
+    set_property(SOURCE "../../hal/c3iface.c" APPEND PROPERTY INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}")
+endif()
 set_source_files_properties("../../hal/c3ble.c" "../../hal/c3gatt.c" "../../hal/c3mqtt.c" "../../hal/c3lbox.c" "../../hal/c3tls.c" "../../hal/c3tout.c" "../../hal/c3peer.c" "../../hal/c3lrec.c" "../../hal/c3pkt.c" "../../hal/c3rx.c" "../../hal/c3dhcp.c" "../../hal/c3iface.c" "../../hal/c3wsta.c" "../../hal/c3gsvc.c" PROPERTIES COMPILE_OPTIONS
     "-std=c99;-Wall;-Wextra;-Werror;-Werror=extra;-Werror=unused-function;-Werror=unused-variable;-Werror=unused-but-set-variable;-Werror=deprecated-declarations")
 set_property(SOURCE "../../hal/c3ble.c" "../../hal/c3gatt.c" "../../hal/c3mqtt.c" "../../hal/c3lbox.c" "../../hal/c3tls.c" "../../hal/c3tout.c" "../../hal/c3peer.c" "../../hal/c3lrec.c" "../../hal/c3pkt.c" "../../hal/c3rx.c" "../../hal/c3dhcp.c" "../../hal/c3iface.c" "../../hal/c3wsta.c" "../../hal/c3gsvc.c" APPEND PROPERTY COMPILE_DEFINITIONS

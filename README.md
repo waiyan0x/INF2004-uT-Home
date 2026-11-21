@@ -81,8 +81,10 @@ both IP records, the lwIP interface, its key and its description. Replaying
 the compiled constructor reduced retained heap payload from 237 to 8 bytes.
 On the ESP, eight BMP388 and LD2450 results matched the MQTT replies across
 a broker restart. All six records stayed at their linked addresses on the
-same boot. The application has 353 fixed bytes free. The registry list node, SDK event
-loop, event payloads, certificate allocations and driver inventory remain open.
+same boot. The current build also reserves the registry node. Replaying its
+constructor, destruction and reuse produced zero general heap requests.
+Application headroom is 344 bytes. The SDK event loop, queued event data,
+TLS certificate allocations and the Wi-Fi driver inventory remain open.
 [Station interface storage and RAM budget](docs/reports/wifi-static-memory/README.md#fixed-station-interface-and-identifiers)
 [Wi-Fi startup and reconnect heap callers](docs/reports/wifi-static-memory/README.md#wi-fi-startup-and-broker-reconnect-heap-callers)
 [Fixed station membership](docs/reports/wifi-static-memory/README.md#fixed-station-multicast-membership)

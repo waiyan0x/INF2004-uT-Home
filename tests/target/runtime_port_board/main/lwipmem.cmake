@@ -29,6 +29,9 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
         mem_malloc=c3dhcp_alloc mem_free=c3dhcp_free pbuf_alloc=c3dhcp_packet)
     idf_component_get_property(UTHOME_NETIF_LIB esp_netif COMPONENT_LIB)
     idf_component_get_property(UTHOME_NETIF_DIR esp_netif COMPONENT_DIR)
+    set_property(SOURCE "${UTHOME_NETIF_DIR}/esp_netif_objects.c"
+        TARGET_DIRECTORY ${UTHOME_NETIF_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
+        calloc=c3iface_alloc free=c3iface_free)
     set_property(SOURCE "${UTHOME_NETIF_DIR}/lwip/esp_netif_lwip.c"
         TARGET_DIRECTORY ${UTHOME_NETIF_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
         calloc=c3iface_alloc free=c3iface_free strdup=c3iface_dup)

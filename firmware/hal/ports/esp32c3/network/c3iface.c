@@ -6,6 +6,7 @@
 #if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
 #include "c3bport.h"
 #include "esp_netif_lwip_internal.h"
+#include "esp_netif_registry_type.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -19,15 +20,17 @@ typedef struct
     size_t size;
 } c3iface_slot_t;
 
-static struct esp_netif_obj g_station                      = {0};
-static struct netif         g_interface                    = {0};
-static esp_netif_ip_info_t  g_addresses[2U]                = {0};
-static char                 g_desc[sizeof("sta")]          = {0};
-static char                 g_key[sizeof("WIFI_STA_DEF")]  = {0};
-static char                 g_hostname[C3IFACE_HOST_BYTES] = {0};
+static struct esp_netif_obj  g_station                      = {0};
+static struct slist_netifs_s g_registry                     = {0};
+static struct netif          g_interface                    = {0};
+static esp_netif_ip_info_t   g_addresses[2U]                = {0};
+static char                  g_desc[sizeof("sta")]          = {0};
+static char                  g_key[sizeof("WIFI_STA_DEF")]  = {0};
+static char                  g_hostname[C3IFACE_HOST_BYTES] = {0};
 
 static c3iface_slot_t const g_records[] = {
     {&g_station, sizeof(g_station)},
+    {&g_registry, sizeof(g_registry)},
     {&g_interface, sizeof(g_interface)},
     {&g_addresses[0U], sizeof(g_addresses[0U])},
     {&g_addresses[1U], sizeof(g_addresses[1U])}};

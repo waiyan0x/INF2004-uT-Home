@@ -907,11 +907,30 @@ station also held its fixed multicast membership. The original 4 MiB
 flash, active and saved profile 943 and host network settings verified
 after restoration.
 
-Next, account for the remaining 8-byte registry node and the 316 bytes
-previously measured in the default event loop. The map has 353 bytes of
-application headroom, of which 255 are available under the current module
-reservations. The event payload lifetime, TLS certificate path and Wi-Fi
-driver inventory still need separate verification.
+**Fixed registry node.** The follow-up build reserves an 8-byte native list
+node and one occupancy flag. The SDK only declares this type in its registry
+source file. The build imports its declaration from that pinned file. The SDK
+continues to own insertion, lookup, iteration and removal. This image has a
+single station constructor and that constructor is the only production caller
+inserting a node. Its fixed interface lease prevents a second live station.
+
+The RV32 constructor replay verified all seven addresses and counted zero
+general heap requests through construction, destruction and reuse. A second
+insertion failed while the original station remained enumerable. Removing
+an unknown station preserved the entry. Destruction emptied the registry and
+the next creation reused the slot. The earlier build retained 8 bytes when
+run through the same replay. The 344-file BARR-C check and 47 qualification
+tests passed. Manual review covered the native type and alignment, single
+owner, bounded slot search, zeroing before insertion, and release after unlink.
+
+| Linked measurement | Bytes | Limit |
+|---|---:|---:|
+| Station interface adapter | 278 | 278 |
+| Application fixed RAM | 147,112 | 147,456 |
+| Total fixed DRAM | 275,022 | 278,528 |
+
+The SDK event loop, queued event data, TLS certificate verification and
+Wi-Fi driver inventory remain open.
 
 #### Fixed-slot certificate verification experiment
 
