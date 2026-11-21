@@ -41,6 +41,12 @@ psa_status_t c3peer_import (const psa_key_attributes_t * p_attributes,
                             const uint8_t *              p_data,
                             size_t                       size,
                             mbedtls_svc_key_id_t *       ph_key);
+psa_status_t c3peer_tls_import (const psa_key_attributes_t * p_attributes,
+                                const uint8_t *              p_data,
+                                size_t                       size,
+                                mbedtls_svc_key_id_t *       ph_key);
+psa_status_t c3peer_generate (const psa_key_attributes_t * p_attributes,
+                              mbedtls_svc_key_id_t *       ph_key);
 void * c3peer_psa_alloc (size_t count, size_t size);
 void c3peer_psa_free (void * p_memory);
 void c3peer_psa_wipe (void * p_memory, size_t size);

@@ -515,7 +515,7 @@ class QualificationTests(unittest.TestCase):
         commands = [dict(file='/sdk/mbedtls/library/ssl_tls.c', command='gcc' + flags +
                          ' -Dpsa_key_derivation_input_bytes=c3tout_prf_input'
                          ' -Dpsa_key_derivation_input_key=c3tout_prf_key'
-                         ' -Dpsa_import_key=c3tout_prf_import'
+                         ' -Dpsa_import_key=c3peer_tls_import'
                          ' -Dmbedtls_x509_crt_parse_der_nocopy=c3peer_der'
                          ' -Dmbedtls_x509_crt_verify_restartable=c3peer_verify'
                          ' -Dmbedtls_pk_parse_subpubkey=c3peer_copy'
@@ -536,8 +536,8 @@ class QualificationTests(unittest.TestCase):
         commands.extend(dict(file='/sdk/tf-psa-crypto/extras/' + name, command='gcc -Dpsa_import_key=c3peer_import')
                         for name in ('pk_ecc.c', 'pk_wrap.c'))
         commands.append(dict(file='/sdk/mbedtls/library/ssl_tls12_client.c',
-                             command='gcc -Dmbedtls_pk_verify_restartable=c3peer_signature'))
-        names = ('c3peer_client_step', 'c3peer_signature', 'c3peer_copy', 'c3peer_name_alloc', 'c3tout_node_free', 'c3peer_points', 'c3peer_points_free', 'c3peer_import', 'c3peer_psa_alloc', 'c3peer_psa_free', 'c3peer_psa_wipe', 'c3peer_verify', 'c3peer_leaf', 'c3peer_key', 'c3peer_key_free', 'c3peer_limbs', 'c3peer_drop', 'c3peer_wipe', 'c3peer_der', 'c3peer_alloc', 'c3peer_free', 'c3peer_views', 'c3peer_close', 'c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe',
+                             command='gcc -Dmbedtls_pk_verify_restartable=c3peer_signature -Dpsa_generate_key=c3peer_generate'))
+        names = ('c3peer_tls_import', 'c3peer_generate', 'c3peer_client_step', 'c3peer_signature', 'c3peer_copy', 'c3peer_name_alloc', 'c3tout_node_free', 'c3peer_points', 'c3peer_points_free', 'c3peer_import', 'c3peer_psa_alloc', 'c3peer_psa_free', 'c3peer_psa_wipe', 'c3peer_verify', 'c3peer_leaf', 'c3peer_key', 'c3peer_key_free', 'c3peer_limbs', 'c3peer_drop', 'c3peer_wipe', 'c3peer_der', 'c3peer_alloc', 'c3peer_free', 'c3peer_views', 'c3peer_close', 'c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe',
                  'c3tout_certificate', 'mbedtls_ssl_parse_certificate',
                  'c3tout_start', 'c3tout_renegotiate',
                  'mbedtls_ssl_start_renegotiation', 'mbedtls_ssl_renegotiate',
@@ -579,7 +579,7 @@ class QualificationTests(unittest.TestCase):
                        'ESP_TLS_CLIENT_SESSION_TICKETS', 'ESP_TLS_SERVER_SESSION_TICKETS'):
             with self.subTest(ticket_option=option), self.assertRaises(qualification.QualificationError):
                 qualification.check_tls_output(commands, symbols, True, ['CONFIG_' + option + '=y'])
-        import_flag = ' -Dpsa_import_key=c3tout_prf_import'
+        import_flag = ' -Dpsa_import_key=c3peer_tls_import'
         missing_import = dict(commands[0], command=commands[0]['command'].replace(import_flag, ''))
         extra_import = dict(commands[2], command=commands[2]['command'] + import_flag)
         for damaged in ([], commands[:1], commands[1:], commands * 2,

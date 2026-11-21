@@ -1745,13 +1745,26 @@ key material, a simulated heap and a host HMAC primitive.
 
 The preceding ESP trace measured the same 64-byte peak at two different
 points. The old key pair was live first alongside the 32-byte X25519 private
-key and later alongside the replacement pair. The production client still
-allocates all three payloads on the heap. One candidate for fixed backing is
-the 254-byte temporary hostname buffer in `c3tls.c`. The pinned ESP-TLS SDK
-releases that buffer after address lookup and after copying the verification
-name, before record-key setup. Any implementation must exclude a hostname
-borrow for as long as even one key is live and preserve the independent
-hostname that mbedTLS retains for verification.
+key and later alongside the replacement pair. That image allocated all three key
+payloads on the heap.
+
+The fixed-key implementation borrows four 32-byte slots inside the existing
+254-byte ESP-TLS hostname buffer. The payload limit at renewal is 64 bytes
+across four keys. The four slots reserve 128 bytes inside that buffer to
+accommodate either supported key size. mbedTLS retains its separate
+verification hostname. A live temporary hostname excludes every key slot,
+and even one live key excludes a new hostname.
+
+The RV32 replay checked both AES suites against an independent key derivation,
+including a failed second import with the old keys live, successful retry and
+zeroization. The X25519 replay checked the public key, shared secret, rejection
+of an all-zero peer and private-key erasure. Both operations used zero native
+heap requests with the USB workspace available. USB contention can still
+send the arithmetic workspace to the heap. The new map adds eight bytes of
+allocation metadata. The DHCP reservation contributes those eight bytes from
+its unused allowance. Its linked data remain 869 bytes within the revised
+872-byte reservation. The qualified map used 147,440 of 147,456 application
+bytes and 276,430 of 278,528 total DRAM bytes.
 
 #### Fixed-slot certificate verification experiment
 

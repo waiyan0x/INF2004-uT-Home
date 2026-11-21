@@ -767,7 +767,8 @@ This remains manual/host verification, separate from physical acceptance.
 
 Run `python -m tools.target.tls_traffic_key_probe FIRMWARE_ELF --output NEW_REPORT`
 with the RV32 probe dependencies on the production ELF with fixed PRF storage
-and native traffic-key allocation. The replay checks both configured AES-128-GCM
+and native traffic-key allocation. Add `--fixed` for the image using the shared
+hostname buffer. The replay checks both configured AES-128-GCM
 suites, replacement while old keys are live, cleanup after a partial import and
 erasure at release. The inputs are synthetic. No board or broker is required.
 
@@ -775,7 +776,8 @@ erasure at release. The inputs are synthetic. No board or broker is required.
 
 Run `python -m tools.target.tls_exchange_probe FIRMWARE_ELF --expect workspace
 --output NEW_REPORT` on one line with the optional RV32 probe dependencies
-and Python cryptography. Use `--expect native` for the earlier firmware.
+and Python cryptography. Use `--expect fixed-key` when the ephemeral key also
+uses the fixed hostname buffer. Use `--expect native` for the earlier firmware.
 The probe runs the compiled TLS 1.2 client step with deterministic test
 entropy and a simulated record writer. It checks the emitted X25519 public
 key and shared secret against an independent implementation. It also checks

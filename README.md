@@ -112,8 +112,9 @@ for the ephemeral private key. The full MQTT worker trace recorded three
 requests on first connection, reconnect and full renegotiation, with live
 peaks of 32, 32 and 64 bytes respectively. The compiled client retained one
 16-byte AES key per traffic direction. Full renewal briefly needs both pairs.
-The next fixed-memory change must cover those keys and the temporary X25519
-private key within the current RAM limit.
+The client now borrows slots in the temporary ESP-TLS hostname buffer for
+both AES keys and the X25519 private key. Compiled tests cover allocation
+failure, renewal, erasure and hostname exclusion.
 [Traffic-key lifetimes](docs/reports/wifi-static-memory/README.md#traffic-key-lifetimes)
 [X25519 client key exchange](docs/reports/wifi-static-memory/README.md#x25519-client-key-exchange)
 USB contention, Wi-Fi and whole-system static-memory qualification remain open.

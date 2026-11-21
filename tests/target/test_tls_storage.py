@@ -76,6 +76,9 @@ class TlsStorageTests(unittest.TestCase):
         cls.directory = Path(cls.temp.name)
         (cls.directory / "esp_tls.h").write_text(HEADER)
         (cls.directory / "esp_tls_private.h").write_text(PRIVATE)
+        (cls.directory / "mbedtls").mkdir()
+        (cls.directory / "mbedtls/platform_util.h").write_text(
+            "#include <string.h>\n#define mbedtls_platform_zeroize(p, n) memset((p), 0, (n))\n")
         port = ROOT / "firmware/hal/ports/esp32c3/network"
         flags = ["-std=c99", "-Wall", "-Wextra", "-Werror", "-pedantic"]
         if sys.platform != "win32":
@@ -105,6 +108,8 @@ class TlsStorageTests(unittest.TestCase):
             self.addCleanup(_ctypes.FreeLibrary, self.lib._handle)
         signatures = {
             "c3tls_alloc": ([c.c_size_t, c.c_size_t], c.c_void_p),
+            "c3tls_take_key": ([], c.c_void_p),
+            "c3tls_drop_key": ([c.c_void_p], c.c_bool),
             "c3tls_free": ([c.c_void_p], None),
             "c3tls_dup": ([c.c_void_p, c.c_size_t], c.c_void_p),
             "c3tls_error_create": ([], c.c_void_p),
@@ -119,6 +124,31 @@ class TlsStorageTests(unittest.TestCase):
 
     def tearDown(self):
         self.assertEqual(self.lib.heaptrap_count(), 0)
+
+    def test_keys_exclude_hostname_until_last_release(self):
+        label = b"x" * 253
+        name = self.lib.c3tls_dup(label, len(label))
+        self.assertTrue(name)
+        self.assertFalse(self.lib.c3tls_take_key())
+        self.assertFalse(self.lib.c3tls_drop_key(name))
+        self.assertEqual(c.string_at(name), label)
+        self.lib.c3tls_free(name)
+        keys = [self.lib.c3tls_take_key() for _ in range(4)]
+        self.assertTrue(all(keys))
+        self.assertEqual(len(set(keys)), 4)
+        self.assertFalse(self.lib.c3tls_take_key())
+        for i, key in enumerate(keys):
+            self.assertEqual(c.string_at(key, 32), bytes(32))
+            c.memset(key, i + 1, 32)
+        self.lib.c3tls_free(name)
+        for i, key in enumerate(keys):
+            self.assertFalse(self.lib.c3tls_dup(label, len(label)))
+            self.assertFalse(self.lib.c3tls_drop_key(key + 1))
+            self.assertEqual(c.string_at(key, 32), bytes([i + 1]) * 32)
+            self.assertTrue(self.lib.c3tls_drop_key(key))
+            self.assertEqual(c.string_at(key, 32), bytes(32))
+        self.assertEqual(self.lib.c3tls_dup(label, len(label)), name)
+        self.lib.c3tls_free(name)
 
     def test_one_context_exhaust_reuse_and_zero_storage(self):
         contexts = [self.lib.c3tls_alloc(1, 128) for _ in range(1)]

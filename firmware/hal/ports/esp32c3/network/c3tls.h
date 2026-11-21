@@ -5,6 +5,7 @@
 #ifndef UTHOME_C3TLS_H
 #define UTHOME_C3TLS_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include "esp_tls.h"
@@ -19,6 +20,11 @@
 void * c3tls_alloc (size_t count, size_t size);
 void c3tls_free (void * p_memory);
 char * c3tls_dup (const char * p_text, size_t size);
+
+/* Same serialized MQTT owner as the temporary hostname. Four 32-byte
+ * slots cover old and new record keys. Release each through PSA cleanup. */
+void * c3tls_take_key (void);
+bool c3tls_drop_key (void * p_memory);
 
 /* SDK-compatible error tracker: independent fixed records, preserving the
  * public last-error fields and get-and-clear semantics. No native objects.

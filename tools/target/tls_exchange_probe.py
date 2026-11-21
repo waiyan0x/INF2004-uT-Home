@@ -89,6 +89,22 @@ def measure(elf, fields, ranges, *, busy=False, bad_peer=False):
         addr = probe.symbols[name]
         cpu.hook_add(UC_HOOK_CODE, lambda *_, n=name: boundary(n), begin=addr, end=addr)
 
+    saved_key = []
+    if 'c3peer_generate' in probe.symbols:
+        pool = [probe.run('c3tls_take_key') for _ in range(4)]
+        assert all(pool) and len(set(pool)) == 4
+        for slot in pool:
+            assert probe.run('c3tls_drop_key', slot) == 1
+
+        def key_release(*_):
+            pointer = cpu.reg_read(UC_RISCV_REG_A0)
+            if pointer in pool:
+                assert any(cpu.mem_read(pointer, 32))
+                saved_key.append(pointer)
+
+        addr = probe.symbols['c3tls_drop_key']
+        cpu.hook_add(UC_HOOK_CODE, key_release, begin=addr, end=addr)
+
     marker = bytes(range(256)) * 16
     if busy:
         scratch = probe.run('c3peer_views')
@@ -105,6 +121,9 @@ def measure(elf, fields, ranges, *, busy=False, bad_peer=False):
     assert cpu.reg_read(UC_RISCV_REG_PC) == STOP
     result = struct.unpack('<i', struct.pack('<I', cpu.reg_read(UC_RISCV_REG_A0)))[0]
     boundary('end')
+    if 'c3peer_generate' in probe.symbols:
+        address, = saved_key
+        assert not any(cpu.mem_read(address, 32))
     assert list(phases) == ['psa_generate_key', 'psa_export_public_key', 'psa_raw_key_agreement',
                             'psa_destroy_key', 'end']
     assert not probe.live and not word(base + offsets['xxdh_psa_privkey'])
@@ -134,21 +153,22 @@ def measure(elf, fields, ranges, *, busy=False, bad_peer=False):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('elf', type=Path)
-    parser.add_argument('--expect', choices=('native', 'workspace'), required=True)
+    parser.add_argument('--expect', choices=('native', 'workspace', 'fixed-key'), required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     if not __debug__ or args.output.exists():
         parser.error('enable assertions and choose a new output path')
     fields = layouts(args.elf)['mbedtls_ssl_handshake_params']
-    ranges = scratch_ranges(args.elf) if args.expect == 'workspace' else []
+    ranges = scratch_ranges(args.elf) if args.expect != 'native' else []
     cases = {name: measure(args.elf, fields, ranges, busy=busy, bad_peer=bad) for name, busy, bad in
              [('available', False, False), ('usb_busy', True, False), ('invalid_peer', False, True)]}
     assert cases['usb_busy']['requests'] > 1
     if args.expect == 'native':
         assert cases['available'] == cases['usb_busy']
     else:
-        assert cases['available']['requests'] == cases['invalid_peer']['requests'] == 1
-        assert cases['available']['peak'] == 32
+        requests = 0 if args.expect == 'fixed-key' else 1
+        assert cases['available']['requests'] == cases['invalid_peer']['requests'] == requests
+        assert cases['available']['peak'] == requests * 32
     report = dict(elf_sha256=hashlib.sha256(args.elf.read_bytes()).hexdigest(), cases=cases)
     with args.output.open('x', encoding='utf-8') as stream:
         json.dump(report, stream, indent=2)

@@ -5,11 +5,21 @@
 #include "c3tls.h"
 #if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
 #include "esp_tls_private.h"
+#include "mbedtls/platform_util.h"
 #include <stdbool.h>
 #include <string.h>
 
 #define UTHOME_TLS_CONNECTIONS 1U
 #define UTHOME_TLS_NAME_BYTES  254U
+#define C3TLS_KEY_SLOTS        4U
+#define C3TLS_KEY_BYTES        32U
+#define C3TLS_NAME_USED        (1U << C3TLS_KEY_SLOTS)
+
+enum
+{
+    C3TLS_SPACE_CHECK = 1 / (((C3TLS_KEY_SLOTS + 1U) * C3TLS_KEY_BYTES) <=
+                             UTHOME_TLS_NAME_BYTES)
+};
 
 typedef struct
 {
@@ -22,7 +32,7 @@ static esp_tls_t     g_contexts[UTHOME_TLS_CONNECTIONS] = {0};
 static bool          gb_used[UTHOME_TLS_CONNECTIONS]    = {false};
 static c3tls_error_t g_errors[UTHOME_TLS_CONNECTIONS]   = {0};
 static char          g_name[UTHOME_TLS_NAME_BYTES]      = {0};
-static bool          gb_name_used                       = false;
+static uint8_t       g_scratch_used                     = 0U;
 
 static int * error_field (esp_tls_error_handle_t h_error, uint32_t type);
 
@@ -50,10 +60,10 @@ void * c3tls_alloc (size_t count, size_t size)
  */
 void c3tls_free (void * p_memory)
 {
-    if (p_memory == g_name)
+    if ((p_memory == g_name) && (C3TLS_NAME_USED == g_scratch_used))
     {
         memset(g_name, 0, sizeof(g_name));
-        gb_name_used = false;
+        g_scratch_used = 0U;
         return;
     }
     for (size_t index = 0U; index < UTHOME_TLS_CONNECTIONS; ++index)
@@ -71,7 +81,7 @@ void c3tls_free (void * p_memory)
 /** @brief The SDK frees this scratch copy before returning to the owner. */
 char * c3tls_dup (const char * p_text, size_t size)
 {
-    if ((NULL == p_text) || (size >= sizeof(g_name)) || gb_name_used)
+    if ((NULL == p_text) || (size >= sizeof(g_name)) || (0U != g_scratch_used))
     {
         return NULL;
     }
@@ -82,8 +92,48 @@ char * c3tls_dup (const char * p_text, size_t size)
     }
     memcpy(g_name, p_text, length);
     g_name[length] = '\0';
-    gb_name_used   = true;
+    g_scratch_used = C3TLS_NAME_USED;
     return g_name;
+}
+
+/** @brief Lend one zeroed key slot after the temporary hostname is freed. */
+void * c3tls_take_key (void)
+{
+    if (C3TLS_NAME_USED == g_scratch_used)
+    {
+        return NULL;
+    }
+    for (size_t index = 0U; index < C3TLS_KEY_SLOTS; ++index)
+    {
+        const uint8_t mask = (uint8_t)(1U << index);
+        if (0U == (g_scratch_used & mask))
+        {
+            /* Leave offset zero exclusive to the SDK hostname free path. */
+            char * p_key = &g_name[(index + 1U) * C3TLS_KEY_BYTES];
+            memset(p_key, 0, C3TLS_KEY_BYTES);
+            g_scratch_used |= mask;
+            return p_key;
+        }
+    }
+    return NULL;
+}
+
+/** @brief Erase the complete lease before another key or hostname can use it.
+ */
+bool c3tls_drop_key (void * p_memory)
+{
+    for (size_t index = 0U; index < C3TLS_KEY_SLOTS; ++index)
+    {
+        const uint8_t mask = (uint8_t)(1U << index);
+        if ((p_memory == &g_name[(index + 1U) * C3TLS_KEY_BYTES]) &&
+            (0U != (g_scratch_used & mask)))
+        {
+            mbedtls_platform_zeroize(p_memory, C3TLS_KEY_BYTES);
+            g_scratch_used &= (uint8_t)(~mask);
+            return true;
+        }
+    }
+    return false;
 }
 
 /** @brief Keep the SDK's public error type as a real, aligned subobject. */

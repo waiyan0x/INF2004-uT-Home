@@ -9,7 +9,7 @@ resource limits, build instructions, manual reviews and qualification evidence.
 |---|---|
 | `c3boot` | Bounded native startup pool for selected static-network builds |
 | `c3lbox` | lwIP mailbox identities bound to the existing fixed queue payloads |
-| `c3tls` | Fixed ESP-TLS contexts, error trackers and temporary hostname storage |
+| `c3tls` | Fixed ESP-TLS context, error tracking and temporary hostname storage shared with TLS key payloads |
 | `c3tout` | Fixed MQTT buffers, hostname, outer TLS/certificate records and TLS 1.2 PRF inputs |
 | `c3lrec`, `c3pkt`, `c3rx`, `c3dhcp` | Fixed socket, TCP, UDP, ARP and TCP/IP message storage and Wi-Fi receive references |
 | `c3nq`, `c3event` | Native queue/event synchronization and fixed resource bindings |
@@ -405,10 +405,23 @@ Only the TLS 1.2 client in `ssl_tls.c` calls `c3peer_client_step`. Its
 X25519 loan requires the client-key-exchange state, ECDHE-ECDSA or ECDHE-RSA,
 and the negotiated 255-bit Montgomery keypair type. The synchronous SDK step
 generates the private key, exports the public key, calculates the premaster and
-destroys the key before sending the handshake record. The PSA private key uses
-SDK-owned storage. Only decoded key objects and arithmetic scratch borrow
+destroys the key before sending the handshake record. PSA owns the private key handle. Its 32-byte payload shares the
+temporary ESP-TLS hostname store with the AES-128-GCM traffic keys.
+Decoded key objects and arithmetic scratch borrow
 typed storage during the call. Shared-secret calculation needs two decoded
 objects simultaneously. Other workspace owners retain the one-key limit.
+
+The serialized client can borrow four 32-byte slots from the 254-byte temporary
+hostname. A slot can hold one AES key or one X25519 private key. A one-byte
+mask excludes key allocation while the hostname is live and excludes hostname
+allocation until the last key is destroyed. A full pool returns an allocation
+failure through PSA. Each exact-pointer release zeroes all 32 bytes. The SDK
+retains a separate hostname for broker identity verification.
+
+Manual C review checked the task-scoped PSA call bindings, native error paths,
+unsigned slot masks, bounded offsets and zeroization before reuse. The
+allocation scope is consumed once on the selecting task. A DER or unrelated
+PSA allocation retains its own owner. All calls run in task context.
 
 Manual C review checked the pinned client-step ABI and state preconditions,
 typed union capacity, task exclusion, native return and error propagation,

@@ -12,6 +12,7 @@
 #include "mbedtls/private/pk_private.h"
 #include "c3bport.h"
 #include "c3tout.h"
+#include "c3tls.h"
 #include <string.h>
 #include "mbedtls/platform_util.h"
 #include "tf_psa_crypto_common.h"
@@ -69,11 +70,13 @@ enum
     C3PEER_SIZE_CHECK = 1 / (sizeof(c3peer_store_t) <= UTHOME_JSON_BYTES)
 };
 
-static c3peer_store_t g_store   = {0};
-static bool           gb_views  = false;
-static uint8_t        g_live    = 0U;
-static int            gh_owner  = 0;
-static int            gh_crypto = 0;
+static c3peer_store_t g_store      = {0};
+static bool           gb_views     = false;
+static uint8_t        g_live       = 0U;
+static int            gh_owner     = 0;
+static int            gh_crypto    = 0;
+static int            gh_key_owner = 0;
+static size_t         g_key_size   = 0U;
 
 static bool borrow_crypto (bool b_verify);
 static void return_crypto (void);
@@ -338,9 +341,74 @@ psa_status_t c3peer_import (const psa_key_attributes_t * p_attributes,
     return result;
 }
 
+/** @brief Select one PSA payload request on the serialized MQTT task. */
+static void key_scope (int h_task, size_t size)
+{
+    const uint32_t saved = c3bport_enter();
+    gh_key_owner         = h_task;
+    g_key_size           = size;
+    c3bport_leave(saved);
+}
+
+/** @brief Keep each direction's record key until PSA destroys its handle. */
+psa_status_t c3peer_tls_import (const psa_key_attributes_t * p_attributes,
+                                const uint8_t *              p_data,
+                                size_t                       size,
+                                mbedtls_svc_key_id_t *       ph_key)
+{
+    const psa_key_usage_t usage = psa_get_key_usage_flags(p_attributes);
+    if ((PSA_KEY_TYPE_AES != psa_get_key_type(p_attributes)) ||
+        (PSA_ALG_GCM != psa_get_key_algorithm(p_attributes)) ||
+        ((PSA_KEY_USAGE_ENCRYPT != usage) &&
+         (PSA_KEY_USAGE_DECRYPT != usage)) ||
+        (PSA_KEY_LIFETIME_VOLATILE != psa_get_key_lifetime(p_attributes)) ||
+        (16U != size))
+    {
+        return c3tout_prf_import(p_attributes, p_data, size, ph_key);
+    }
+    key_scope(c3bport_task(), size);
+    const psa_status_t result =
+        psa_import_key(p_attributes, p_data, size, ph_key);
+    key_scope(0, 0U);
+    return result;
+}
+
+/** @brief Supply the temporary private key during native X25519 generation. */
+psa_status_t c3peer_generate (const psa_key_attributes_t * p_attributes,
+                              mbedtls_svc_key_id_t *       ph_key)
+{
+    if ((PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_MONTGOMERY) !=
+         psa_get_key_type(p_attributes)) ||
+        (C3PEER_X25519_BITS != psa_get_key_bits(p_attributes)) ||
+        (PSA_ALG_ECDH != psa_get_key_algorithm(p_attributes)) ||
+        (PSA_KEY_USAGE_DERIVE != psa_get_key_usage_flags(p_attributes)) ||
+        (PSA_KEY_LIFETIME_VOLATILE != psa_get_key_lifetime(p_attributes)))
+    {
+        return psa_generate_key(p_attributes, ph_key);
+    }
+    key_scope(c3bport_task(), 32U);
+    const psa_status_t result = psa_generate_key(p_attributes, ph_key);
+    key_scope(0, 0U);
+    return result;
+}
+
 /** @brief Consume the selected import's single PSA slot-buffer request. */
 void * c3peer_psa_alloc (size_t count, size_t size)
 {
+    const int      h_task = c3bport_task();
+    const uint32_t saved  = c3bport_enter();
+    const bool     b_key  = (0 < gh_key_owner) && (h_task == gh_key_owner) &&
+                       (1U == count) && (size == g_key_size);
+    if (b_key)
+    {
+        gh_key_owner = 0;
+        g_key_size   = 0U;
+    }
+    c3bport_leave(saved);
+    if (b_key)
+    {
+        return c3tls_take_key();
+    }
     if ((1U != count) || (sizeof(g_store.math.public_data) != size) ||
         (!owns_crypto()) || (!g_store.math.b_import))
     {
@@ -359,7 +427,7 @@ void * c3peer_psa_alloc (size_t count, size_t size)
 /** @brief Preserve native PSA and fixed PRF cleanup for other buffers. */
 void c3peer_psa_free (void * p_memory)
 {
-    if (!release_data(p_memory))
+    if ((!c3tls_drop_key(p_memory)) && (!release_data(p_memory)))
     {
         c3tout_free(p_memory);
     }
@@ -368,7 +436,7 @@ void c3peer_psa_free (void * p_memory)
 /** @brief Clear the entire fixed copy on PSA's zeroizing release. */
 void c3peer_psa_wipe (void * p_memory, size_t size)
 {
-    if (!release_data(p_memory))
+    if ((!c3tls_drop_key(p_memory)) && (!release_data(p_memory)))
     {
         c3tout_wipe(p_memory, size);
     }

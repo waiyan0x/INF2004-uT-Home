@@ -20,7 +20,7 @@ class TrafficProbe(KeyProbe):
         super().free(*args)
 
 
-def verify(elf, suite):
+def verify(elf, suite, fixed):
     probe = TrafficProbe(elf, fixed=True, require_import=True)
     probe.freed = []
     probe.destroying = None
@@ -30,6 +30,28 @@ def verify(elf, suite):
 
     pc = probe.symbols['psa_destroy_key']
     probe.uc.hook_add(UC_HOOK_CODE, destroying, begin=pc, end=pc)
+    slots = []
+    if fixed:
+        # Ask the compiled owner for every lease, then return them before TLS.
+        slots = [probe.run('c3tls_take_key') for _ in range(4)]
+        assert all(slots) and len(set(slots)) == 4 and probe.run('c3tls_take_key') == 0
+        for addr in slots:
+            assert probe.run('c3tls_drop_key', addr) == 1
+
+        def releasing(*_):
+            address = probe.args()[0]
+            if address in slots:
+                probe.freed.append((probe.destroying, address))
+
+        pc = probe.symbols['c3tls_drop_key']
+        probe.uc.hook_add(UC_HOOK_CODE, releasing, begin=pc, end=pc)
+
+    def live():
+        if not fixed:
+            return dict(probe.live)
+        assert not probe.live, 'Traffic-key path reached the native heap'
+        return {addr: 16 for addr in slots if any(probe.uc.mem_read(addr, 32))}
+
     types = layouts(elf, ('mbedtls_ssl_transform',))
     handshake = probe.symbols['g_handshakes']
     session = probe.symbols['g_sessions']
@@ -58,18 +80,18 @@ def verify(elf, suite):
         probe.uc.mem_write(handshake + hs['randbytes'], randoms)
         probe.write_field('transform_negotiate', target)
         before = len(probe.allocations)
-        held = dict(probe.live)
-        if fail_second:
+        held = live()
+        if fail_second and not fixed:
             probe.fail_call = before + 2
         result = probe.run('mbedtls_ssl_derive_keys', SSL)
         probe.fail_call = None
         assert (result < 0 if fail_second else result == 0)
-        assert probe.allocations[before:] == [16, 16]
-        assert all(probe.live.get(addr) == size for addr, size in held.items())
+        assert probe.allocations[before:] == ([] if fixed else [16, 16])
+        assert all(live().get(addr) == size for addr, size in held.items())
         # Compare the actual retained allocations to an independent TLS 1.2 PRF.
         master = expected('sha256', material, b'master secret', randoms, 48)
         keys = expected('sha256', master, b'key expansion', randoms[32:] + randoms[:32], 32)
-        new = list(probe.live.keys() - held.keys())
+        new = live().keys() - held.keys()
         handles = []
         for index, field in enumerate(('psa_key_enc', 'psa_key_dec')):
             handle = int.from_bytes(
@@ -79,7 +101,7 @@ def verify(elf, suite):
                 continue
             key = keys[index * 16:(index + 1) * 16]
             address, = [addr for addr in new if bytes(probe.uc.mem_read(addr, 16)) == key]
-            assert handle and probe.live[address] == 16
+            assert handle and live()[address] == 16
             handles.append((handle, address))
         assert len(new) == len(handles)
         return handles
@@ -90,40 +112,55 @@ def verify(elf, suite):
         before = len(probe.freed)
         probe.run('mbedtls_ssl_transform_free', target)
         assert probe.freed[before:] == owned
+        assert all(not any(probe.uc.mem_read(addr, 32 if fixed else 16)) for _, addr in owned)
         assert not any(probe.uc.mem_read(target, transform['size']))
 
     active = derive(first, 1)
     original = {addr: bytes(probe.uc.mem_read(addr, 16)) for _, addr in active}
 
     def check_original():
-        assert all(addr in probe.live and bytes(probe.uc.mem_read(addr, 16)) == key
+        assert all(addr in live() and bytes(probe.uc.mem_read(addr, 16)) == key
                    for addr, key in original.items())
 
+    if fixed:
+        name = SSL + 0xF00
+        probe.uc.mem_write(name, b'broker\0')
+        assert probe.run('c3tls_dup', name, 6) == 0
+        spare = probe.run('c3tls_take_key')
+        assert spare
     partial = derive(second, 2, fail_second=True)
     check_original()
     retire(second, partial)
     check_original()
+    if fixed:
+        assert probe.run('c3tls_drop_key', spare) == 1
     replacement = derive(second, 3)
     check_original()
-    peak = sum(probe.live.values())
+    peak = sum(live().values())
     assert peak == 64 and len({h for h, _ in active + replacement}) == 4
     retire(first, active)
-    assert probe.live == {addr: 16 for _, addr in replacement}
+    assert live() == {addr: 16 for _, addr in replacement}
     retire(second, replacement)
-    assert not probe.live
-    return dict(retained_bytes_per_transform=32, overlapping_key_bytes=peak,
+    assert not live()
+    if fixed:
+        hostname = probe.run('c3tls_dup', name, 6)
+        assert hostname and not probe.run('c3tls_take_key')
+        assert bytes(probe.uc.mem_read(hostname, 7)) == b'broker\0'
+        probe.run('c3tls_free', hostname)
+    return dict(native_requests_per_pair=0 if fixed else 2, retained_bytes_per_transform=32, overlapping_key_bytes=peak,
                 previous_keys_survived_failed_replacement=True, all_keys_wiped=True)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('elf', type=Path)
+    parser.add_argument('--fixed', action='store_true', help='Require fixed TLS key storage')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     if not __debug__ or args.output.exists():
         parser.error('Enable assertions and choose a new report path')
     report = dict(elf_sha256=hashlib.sha256(args.elf.read_bytes()).hexdigest(),
-                  suites={name: verify(args.elf, suite) for name, suite in
+                  suites={name: verify(args.elf, suite, args.fixed) for name, suite in
                           [('ECDHE-ECDSA-AES128-GCM-SHA256', 0xC02B),
                            ('ECDHE-RSA-AES128-GCM-SHA256', 0xC02F)]})
     with args.output.open('x', encoding='utf-8') as out:
