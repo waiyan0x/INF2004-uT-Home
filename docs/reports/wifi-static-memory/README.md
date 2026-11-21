@@ -962,6 +962,45 @@ budgets. A direct reservation of 336 bytes therefore needs at least another
 python -B -m tools.target.event_registration_probe --elf PATH_TO_ESP_ELF --gdb riscv32-esp-elf-gdb
 ```
 
+#### Fixed SDK event records
+
+The fixed-queue Wi-Fi image reserves one SDK event loop, three event bases,
+16 slots shared by the equally sized native loop nodes, event IDs and handler
+records, and 17 handler contexts. The union uses the native SDK types and
+alignment. This covers eight active handlers, eight pending legacy removals
+and one provisional handler/context pair. Exhausting a group returns an
+allocation failure. Only the pinned event translation unit uses the adapter.
+Posted event bodies larger than the inline capacity still use libc, including
+the separate 20-byte messages used for deferred cleanup.
+
+| Linked measurement | Bytes | Limit |
+|---|---:|---:|
+| Event adapter (400 record bytes and 37 occupancy flags) | 437 | 437 |
+| Network queue adapter | 9,594 | 9,594 |
+| Application fixed RAM | 147,357 | 147,456 |
+| Total fixed DRAM | 275,230 | 278,528 |
+
+The queue table recovers 192 RV32 bytes. Queue and semaphore slots have
+dedicated index ranges, so only the 32 mutexes need a flag to distinguish
+recursive leases. Slot counts, queue capacity and the width of the pending
+operation counts stay the same.
+
+The linked-image replay exercised loop creation, failed mutex creation,
+second-loop refusal, registration, two replacement failures, queued cleanup
+and reuse. The 27 steady records occupied 316 bytes with zero general record
+allocations. With eight pending removals, replacement briefly occupied all
+400 fixed record bytes. The eight separate event messages used 160 heap
+bytes and were released. When a simulated queue refused a 16-byte post,
+libc received that payload back and the live registration tree was intact.
+Native locks, queue delivery and task calls were simulated. The earlier
+image still reproduced the 316-byte retained and 336-byte replacement
+measurements.
+
+Manual BARR-C review covered native type layout and alignment, disjoint slot
+ranges, lease lifetime across operations, bounded loops, and restoring the
+interrupt state before forwarding a posted payload to libc. The full C gate
+checked 346 files. These bounds apply to the single demo loop.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

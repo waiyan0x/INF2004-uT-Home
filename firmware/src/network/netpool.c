@@ -6,6 +6,7 @@
 
 #define NETPOOL_FIRST_MUTEX (NETPOOL_QUEUE_SLOTS + NETPOOL_SEMAPHORE_SLOTS)
 
+static netpool_kind_t slot_kind (netpool_t const * p_pool, uint32_t index);
 static uint32_t find_slot (netpool_t const * p_pool, void const * p_key);
 static uint32_t begin_use (netpool_t * p_pool, void * p_key);
 static void end_use (netpool_t * p_pool, uint32_t index);
@@ -125,7 +126,11 @@ void * netpool_create (netpool_t *    p_pool,
             continue;
         }
         p_slot->p_key = p_candidate_key;
-        p_slot->kind  = kind;
+        if (index >= NETPOOL_FIRST_MUTEX)
+        {
+            p_pool->b_recursive[index - NETPOOL_FIRST_MUTEX] =
+                (NETPOOL_RECURSIVE == kind);
+        }
         p_slot->users = 0U;
         if (NETPOOL_SEMAPHORE == kind)
         {
@@ -176,8 +181,8 @@ int netpool_send (netpool_t *        p_pool,
     {
         return -1;
     }
-    netpool_slot_t * p_slot = &p_pool->slots[index];
-    if ((NETPOOL_MUTEX == p_slot->kind) || (NETPOOL_RECURSIVE == p_slot->kind))
+    const netpool_kind_t kind = slot_kind(p_pool, index);
+    if ((NETPOOL_MUTEX == kind) || (NETPOOL_RECURSIVE == kind))
     {
         if (!b_isr)
         {
@@ -189,11 +194,11 @@ int netpool_send (netpool_t *        p_pool,
         do
         {
             const uint32_t saved = p_pool->ops.p_enter(p_pool->ops.p_context);
-            if (NETPOOL_QUEUE == p_slot->kind)
+            if (NETPOOL_QUEUE == kind)
             {
                 result = netring_send(&p_pool->rings[index], p_item, position);
             }
-            else if ((NETPOOL_SEMAPHORE == p_slot->kind) &&
+            else if ((NETPOOL_SEMAPHORE == kind) &&
                      (p_pool->semaphores[index - NETPOOL_QUEUE_SLOTS].count <
                       p_pool->semaphores[index - NETPOOL_QUEUE_SLOTS].capacity))
             {
@@ -209,8 +214,8 @@ int netpool_send (netpool_t *        p_pool,
                 p_pool->ops.p_signal(p_pool->ops.p_context, index, false);
             }
             p_pool->ops.p_leave(p_pool->ops.p_context, saved);
-            if ((0 == result) || (NETPOOL_QUEUE != p_slot->kind) ||
-                (NULL == p_item) || (NETRING_REPLACE == position) ||
+            if ((0 == result) || (NETPOOL_QUEUE != kind) || (NULL == p_item) ||
+                (NETRING_REPLACE == position) ||
                 ((NETRING_BACK != position) && (NETRING_FRONT != position)))
             {
                 break;
@@ -241,28 +246,27 @@ int netpool_receive (netpool_t * p_pool,
     {
         return -1;
     }
-    netpool_slot_t * p_slot = &p_pool->slots[index];
-    if ((NETPOOL_MUTEX == p_slot->kind) || (NETPOOL_RECURSIVE == p_slot->kind))
+    const netpool_kind_t kind = slot_kind(p_pool, index);
+    if ((NETPOOL_MUTEX == kind) || (NETPOOL_RECURSIVE == kind))
     {
         if ((!b_isr) && (!b_peek))
         {
             result = mutex_change(p_pool, index, ticks, true, false);
         }
     }
-    else if (((!b_peek) ||
-              ((NETPOOL_QUEUE == p_slot->kind) && (NULL != p_item))) &&
+    else if (((!b_peek) || ((NETPOOL_QUEUE == kind) && (NULL != p_item))) &&
              (0 == make_wait(p_pool, ticks, b_isr, &wait)))
     {
         do
         {
             const uint32_t saved = p_pool->ops.p_enter(p_pool->ops.p_context);
-            if (NETPOOL_QUEUE == p_slot->kind)
+            if (NETPOOL_QUEUE == kind)
             {
                 result = b_peek
                              ? netring_peek(&p_pool->rings[index], p_item)
                              : netring_receive(&p_pool->rings[index], p_item);
             }
-            else if ((NETPOOL_SEMAPHORE == p_slot->kind) &&
+            else if ((NETPOOL_SEMAPHORE == kind) &&
                      (0U <
                       p_pool->semaphores[index - NETPOOL_QUEUE_SLOTS].count))
             {
@@ -273,7 +277,7 @@ int netpool_receive (netpool_t * p_pool,
             {
                 /* Empty semaphore: the remaining deadline governs retry. */
             }
-            if ((0 == result) && (NETPOOL_QUEUE == p_slot->kind))
+            if ((0 == result) && (NETPOOL_QUEUE == kind))
             {
                 p_pool->ops.p_signal(p_pool->ops.p_context, index, !b_peek);
             }
@@ -326,15 +330,15 @@ int netpool_query (netpool_t *      p_pool,
         const uint32_t index = find_slot(p_pool, p_key);
         if (index < NETPOOL_SLOTS)
         {
-            netpool_slot_t const * p_slot = &p_pool->slots[index];
-            *p_kind                       = p_slot->kind;
-            if (NETPOOL_QUEUE == p_slot->kind)
+            const netpool_kind_t kind = slot_kind(p_pool, index);
+            *p_kind                   = kind;
+            if (NETPOOL_QUEUE == kind)
             {
                 *p_count = p_pool->rings[index].count;
                 *p_space =
                     p_pool->rings[index].capacity - p_pool->rings[index].count;
             }
-            else if (NETPOOL_SEMAPHORE == p_slot->kind)
+            else if (NETPOOL_SEMAPHORE == kind)
             {
                 *p_count =
                     p_pool->semaphores[index - NETPOOL_QUEUE_SLOTS].count;
@@ -365,8 +369,7 @@ int netpool_reset (netpool_t * p_pool, void * p_key)
     {
         const uint32_t saved = p_pool->ops.p_enter(p_pool->ops.p_context);
         const uint32_t index = find_slot(p_pool, p_key);
-        if ((index < NETPOOL_SLOTS) &&
-            (NETPOOL_QUEUE == p_pool->slots[index].kind))
+        if ((index < NETPOOL_SLOTS) && (index < NETPOOL_QUEUE_SLOTS))
         {
             result = netring_reset(&p_pool->rings[index]);
             if (0 == result)
@@ -377,6 +380,21 @@ int netpool_reset (netpool_t * p_pool, void * p_key)
         p_pool->ops.p_leave(p_pool->ops.p_context, saved);
     }
     return result;
+}
+
+/** @brief Read the type of a valid slot while its lease or lock is held. */
+static netpool_kind_t slot_kind (netpool_t const * p_pool, uint32_t index)
+{
+    if (index < NETPOOL_QUEUE_SLOTS)
+    {
+        return NETPOOL_QUEUE;
+    }
+    if (index < NETPOOL_FIRST_MUTEX)
+    {
+        return NETPOOL_SEMAPHORE;
+    }
+    return p_pool->b_recursive[index - NETPOOL_FIRST_MUTEX] ? NETPOOL_RECURSIVE
+                                                            : NETPOOL_MUTEX;
 }
 
 /** @brief Match opaque keys without dereferencing caller-provided pointers. */
@@ -472,18 +490,18 @@ static int mutex_change (netpool_t * p_pool,
                          bool        b_take,
                          bool        b_recursive)
 {
-    netpool_slot_t * p_slot       = &p_pool->slots[index];
-    netwait_t        wait         = {0};
-    uint64_t         now_us       = 0U;
-    uint32_t         milliseconds = 0U;
-    uint32_t         saved        = 0U;
-    uint32_t         owner        = 0U;
-    int              result       = -1;
+    const netpool_kind_t kind         = slot_kind(p_pool, index);
+    netwait_t            wait         = {0};
+    uint64_t             now_us       = 0U;
+    uint32_t             milliseconds = 0U;
+    uint32_t             saved        = 0U;
+    uint32_t             owner        = 0U;
+    int                  result       = -1;
 
     /* The pinned ESP Wi-Fi adapter creates ordinary mutexes but uses the
      * recursive API pair for them. Keep ordinary API calls nonrecursive. */
-    if ((NETPOOL_MUTEX != p_slot->kind) &&
-        ((!b_recursive) || (NETPOOL_RECURSIVE != p_slot->kind)))
+    if ((NETPOOL_MUTEX != kind) &&
+        ((!b_recursive) || (NETPOOL_RECURSIVE != kind)))
     {
         return -1;
     }

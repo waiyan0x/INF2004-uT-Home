@@ -55,9 +55,8 @@ typedef struct
 
 typedef struct
 {
-    void *         p_key;
-    netpool_kind_t kind;
-    uint32_t       users;
+    void *   p_key;
+    uint32_t users;
 } netpool_slot_t;
 
 typedef struct
@@ -76,6 +75,7 @@ typedef struct
 {
     netpool_ops_t         ops;
     netpool_slot_t        slots[NETPOOL_SLOTS];
+    bool                  b_recursive[NETPOOL_MUTEX_SLOTS];
     netpool_semaphore_t   semaphores[NETPOOL_SEMAPHORE_SLOTS];
     netpool_mutex_state_t mutexes[NETPOOL_MUTEX_SLOTS];
     netring_t             rings[NETPOOL_QUEUE_SLOTS];

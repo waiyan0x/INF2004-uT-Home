@@ -80,10 +80,14 @@ The default Wi-Fi station constructor now uses fixed storage for all seven
 records, including its registry entry. The compiled constructor, destruction
 and reuse made zero general heap requests. All seven addresses matched on
 the ESP before and after a TLS broker restart, with eight BMP388 and LD2450
-results verified on one boot. Application headroom is 344 bytes. The next
-owner is the default event loop. An offline replay measured a 336-byte peak
-when replacing a handler. Queued event data, TLS certificates and the Wi-Fi
-driver inventory also remain open.
+results verified on one boot.
+The SDK default event loop and its registration tree now have fixed storage.
+The compiled firmware created all 27 records, replaced a handler and cleaned
+up eight simultaneous deferred removals without using the general heap for
+registration records. Queued event bodies still use the heap. Application
+headroom is 99 bytes. TLS certificate work and Wi-Fi driver allocations
+also remain open.
+[Fixed SDK event records](docs/reports/wifi-static-memory/README.md#fixed-sdk-event-records)
 [Station interface storage and board results](docs/reports/wifi-static-memory/README.md#fixed-station-interface-and-identifiers)
 [Default event-handler replacement](docs/reports/wifi-static-memory/README.md#default-event-handler-replacement)
 [Wi-Fi startup and reconnect heap callers](docs/reports/wifi-static-memory/README.md#wi-fi-startup-and-broker-reconnect-heap-callers)

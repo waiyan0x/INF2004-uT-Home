@@ -1,5 +1,10 @@
 # Redirect both ends of socket, TCP, UDP, message, ARP queue, multicast and timeout record lifetimes.
 if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
+    idf_component_get_property(UTHOME_EVENT_LIB esp_event COMPONENT_LIB)
+    idf_component_get_property(UTHOME_EVENT_DIR esp_event COMPONENT_DIR)
+    set_property(SOURCE "${UTHOME_EVENT_DIR}/esp_event.c"
+        TARGET_DIRECTORY ${UTHOME_EVENT_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
+        heap_caps_calloc=c3ereg_alloc free=c3ereg_free)
     idf_component_get_property(UTHOME_LWIP_LIB lwip COMPONENT_LIB)
     idf_component_get_property(UTHOME_LWIP_DIR lwip COMPONENT_DIR)
     foreach(source IN ITEMS api/api_lib.c api/api_msg.c api/netbuf.c api/tcpip.c core/udp.c core/ipv4/etharp.c core/ipv4/igmp.c core/tcp.c core/tcp_out.c core/timeouts.c)
@@ -40,7 +45,7 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
         esp_pbuf_allocate=c3rx_alloc pbuf_alloc=c3pkt_aux)
     # SDK archives are scanned after the owned main/radio archives. Retain the
     # record adapter and its native exclusion boundary before that scan.
-    foreach(owned IN ITEMS c3lrec_alloc c3lrec_free c3pkt_alloc c3pkt_aux c3pkt_frame c3pkt_clone c3pkt_split c3rx_alloc c3dhcp_alloc c3dhcp_free c3dhcp_packet c3iface_alloc c3iface_free c3iface_dup c3bport_enter c3bport_leave)
+    foreach(owned IN ITEMS c3lrec_alloc c3lrec_free c3pkt_alloc c3pkt_aux c3pkt_frame c3pkt_clone c3pkt_split c3rx_alloc c3dhcp_alloc c3dhcp_free c3dhcp_packet c3iface_alloc c3iface_free c3iface_dup c3ereg_alloc c3ereg_free c3bport_enter c3bport_leave)
         target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--undefined=${owned}")
     endforeach()
 endif()

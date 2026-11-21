@@ -93,6 +93,8 @@ RUNTIME_SOURCE_FILES = {
     'firmware/hal/ports/esp32c3/network/c3peer.h': 'hal/c3peer.h',
     'firmware/hal/ports/esp32c3/network/c3tout.c': 'hal/c3tout.c',
     'firmware/hal/ports/esp32c3/network/c3tout.h': 'hal/c3tout.h',
+    'firmware/hal/ports/esp32c3/network/c3ereg.c': 'hal/c3ereg.c',
+    'firmware/hal/ports/esp32c3/network/c3ereg.h': 'hal/c3ereg.h',
     'firmware/hal/ports/esp32c3/network/c3iface.c': 'hal/c3iface.c',
     'firmware/hal/ports/esp32c3/network/c3iface.h': 'hal/c3iface.h',
     'firmware/hal/ports/esp32c3/network/c3rx.c': 'hal/c3rx.c',
@@ -862,6 +864,7 @@ def check_lwip_records(commands, symbols, enabled):
         "ip4_frag.c": {"pbuf_alloc": "c3pkt_frame"},
         "udp.c": {"pbuf_alloc": "c3pkt_aux"},
         "dhcp.c": {"mem_malloc": "c3dhcp_alloc", "mem_free": "c3dhcp_free", "pbuf_alloc": "c3dhcp_packet"},
+        "esp_event.c": {"heap_caps_calloc": "c3ereg_alloc", "free": "c3ereg_free"},
         "esp_netif_objects.c": {"calloc": "c3iface_alloc", "free": "c3iface_free"},
         "esp_netif_lwip.c": {"calloc": "c3iface_alloc", "free": "c3iface_free", "strdup": "c3iface_dup"},
         "wlanif.c": {"esp_pbuf_allocate": "c3rx_alloc", "pbuf_alloc": "c3pkt_aux"},
@@ -874,6 +877,7 @@ def check_lwip_records(commands, symbols, enabled):
         name = Path(entry["file"]).name
         found = re.findall(r'(?:^|\s)-D\s*"?(memp_malloc|memp_free|mem_malloc|mem_free|tcp_split_unsent_seg|pbuf_alloc|pbuf_clone|esp_pbuf_allocate)=([^\s"]+)"?', entry["command"])
         found += re.findall(r'(?:^|\s)-D\s*"?(calloc|free|strdup)=(c3iface_\w+)"?', entry["command"])
+        found += re.findall(r'(?:^|\s)-D\s*"?(heap_caps_calloc|free)=(c3ereg_\w+)"?', entry["command"])
         expected = required.get(name, {}) if enabled else {}
         if dict(found) != expected or len(found) != len(expected):
             raise QualificationError("lwIP record binding escaped its source: " + name)
@@ -882,12 +886,12 @@ def check_lwip_records(commands, symbols, enabled):
                 raise QualificationError("Duplicate lwIP record compiler input: " + name)
             observed.add(name)
     if not enabled:
-        if any(name in symbols for name in (*bindings.values(), "c3iface_alloc", "c3iface_free", "c3iface_dup", "c3dhcp_alloc", "c3dhcp_free", "c3dhcp_packet", "c3rx_alloc", "c3pkt_alloc", "c3pkt_aux", "c3pkt_frame", "c3pkt_clone", "c3pkt_split")):
+        if any(name in symbols for name in (*bindings.values(), "c3ereg_alloc", "c3ereg_free", "c3iface_alloc", "c3iface_free", "c3iface_dup", "c3dhcp_alloc", "c3dhcp_free", "c3dhcp_packet", "c3rx_alloc", "c3pkt_alloc", "c3pkt_aux", "c3pkt_frame", "c3pkt_clone", "c3pkt_split")):
             raise QualificationError("lwIP records escaped selected Wi-Fi services")
         return dict(enabled=False)
     if observed != required.keys():
         raise QualificationError("Missing lwIP record compiler input")
-    for name in (*bindings.values(), "c3iface_alloc", "c3iface_free", "c3iface_dup", "c3dhcp_alloc", "c3dhcp_free", "c3dhcp_packet", "c3rx_alloc", "c3pkt_alloc", "c3pkt_aux", "c3pkt_frame", "c3pkt_clone", "c3pkt_split", "c3bport_enter", "c3bport_leave"):
+    for name in (*bindings.values(), "c3ereg_alloc", "c3ereg_free", "c3iface_alloc", "c3iface_free", "c3iface_dup", "c3dhcp_alloc", "c3dhcp_free", "c3dhcp_packet", "c3rx_alloc", "c3pkt_alloc", "c3pkt_aux", "c3pkt_frame", "c3pkt_clone", "c3pkt_split", "c3bport_enter", "c3bport_leave"):
         if not 0x42000000 <= symbols.get(name, 0) < 0x43000000:
             raise QualificationError("lwIP record helper absent or consumes RAM code: " + name)
     for name in ("netconn_alloc", "netconn_free", "netbuf_delete", "memp_malloc", "memp_free", "tcp_split_unsent_seg", "pbuf_alloced_custom",
@@ -986,9 +990,9 @@ def verify_compile_profiles(work, startup_trace=False):
         profiles[source] = expected
     for path, command in commands.items():
         adapted = "-Dasm=__asm__" in command
-        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3peer.c", "c3lrec.c", "c3pkt.c", "c3rx.c", "c3dhcp.c", "c3iface.c")}):
+        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3peer.c", "c3lrec.c", "c3pkt.c", "c3rx.c", "c3dhcp.c", "c3iface.c", "c3ereg.c")}):
             raise QualificationError("SDK assembly spelling adaptation escaped its adapter")
-    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3peer.c", "c3lrec.c", "c3pkt.c", "c3rx.c", "c3dhcp.c", "c3iface.c"):
+    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3tls.c", "c3tout.c", "c3peer.c", "c3lrec.c", "c3pkt.c", "c3rx.c", "c3dhcp.c", "c3iface.c", "c3ereg.c"):
         owned_radio = (work / "project/hal" / name).read_text()
         if re.search(r"\b(?:asm|__asm__|typeof|__typeof__)\b", owned_radio):
             raise QualificationError("Owned radio adapter must remain C99: " + name)

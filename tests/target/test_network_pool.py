@@ -251,7 +251,7 @@ class Ring(c.Structure):
 
 class Slot(c.Structure):
     _fields_ = [('key', c.c_void_p),
-                ('kind', c.c_int), ('users', c.c_uint32)]
+                ('users', c.c_uint32)]
 
 
 class Semaphore(c.Structure):
@@ -263,7 +263,7 @@ class Mutex(c.Structure):
 
 
 class Pool(c.Structure):
-    _fields_ = [('ops', Ops), ('slots', Slot * 56), ('semaphores', Semaphore * 16),
+    _fields_ = [('ops', Ops), ('slots', Slot * 56), ('recursive', c.c_bool * 32), ('semaphores', Semaphore * 16),
                 ('mutexes', Mutex * 32), ('rings', Ring * 8), ('storage', c.c_uint8 * 8192), ('hz', c.c_uint32), ('ready', c.c_bool)]
 
 
@@ -779,6 +779,16 @@ class NetworkPoolTests(unittest.TestCase):
         self.assertEqual(self.reset(self.ptr, handle), -1)
         self.assertEqual(self.mutex(self.ptr, handle, 0, True, False), -1)
         self.assertEqual(self.waits, [])
+
+    def test_released_mutex_reports_new_recursion_mode_on_reuse(self):
+        original = self.new(kind=3, size=0)
+        self.assertTrue(original)
+        self.assertEqual(self.status(original), (1, 0, 3))
+        for kind in (2, 3):
+            self.assertEqual(self.release(self.ptr, original), 0)
+            self.assertEqual(self.new(kind=kind, size=0), original)
+            self.assertEqual(self.status(original), (1, 0, kind))
+        self.assertEqual(self.release(self.ptr, original), 0)
 
     def test_mutex_ownership_recursion_overflow_and_release_guards(self):
         normal = self.new(kind=2, size=0)
