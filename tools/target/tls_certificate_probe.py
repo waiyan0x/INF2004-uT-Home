@@ -47,6 +47,8 @@ def fixed_storage(path):
     result = {}
     with path.open('rb') as stream:
         elf = ELFFile(stream)
+        if elf.get_section_by_name('.symtab').get_symbol_by_name('g_peer_used'):
+            expected['g_peer_used'] = expected.pop('gb_digest_used')
         for unit in elf.get_dwarf_info().iter_CUs():
             source = unit.get_top_DIE().attributes['DW_AT_name'].value.decode()
             if Path(source.replace('\\', '/')).name != 'c3tout.c':
@@ -67,6 +69,13 @@ def fixed_storage(path):
                     assert kind.attributes['DW_AT_name'].value == b'mbedtls_x509_crt'
                     assert kind.attributes['DW_AT_byte_size'].value == 952 and address % 4 == 0
                 elif name == 'g_peer_digest':
+                    if 'g_peer_used' in expected:
+                        assert kind.tag == 'DW_TAG_union_type' and kind.attributes['DW_AT_byte_size'].value == 32
+                        members = {m.attributes['DW_AT_name'].value: m for m in kind.iter_children()}
+                        nodes = members[b'names'].get_DIE_from_attribute('DW_AT_type')
+                        count = next(c for c in nodes.iter_children() if c.tag == 'DW_TAG_subrange_type')
+                        assert count.attributes['DW_AT_upper_bound'].value + 1 == 2 and address % 4 == 0
+                        kind = members[b'bytes'].get_DIE_from_attribute('DW_AT_type')
                     assert kind.tag == 'DW_TAG_array_type'
                     bound = next(c for c in kind.iter_children() if c.tag == 'DW_TAG_subrange_type')
                     assert bound.attributes['DW_AT_upper_bound'].value + 1 == 32
@@ -285,6 +294,8 @@ def verify(path, fixed):
         if fixed:
             name = 'g_certificate' if kind == 'certificate' else 'g_peer_digest'
             lease = 'gb_certificate_used' if kind == 'certificate' else 'gb_digest_used'
+            if kind == 'digest' and 'g_peer_used' in probe.storage:
+                lease = 'g_peer_used'
             item = probe.storage[name]
             probe.uc.mem_write(item['address'], b'\xa5' * item['size'])
             probe.uc.mem_write(probe.storage[lease]['address'], b'\1')

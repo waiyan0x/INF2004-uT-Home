@@ -27,8 +27,9 @@
 
 typedef struct
 {
-    uint32_t words[C3PEER_SLOTS][C3PEER_WORDS];
-    uint32_t used;
+    uint32_t                 words[C3PEER_SLOTS][C3PEER_WORDS];
+    uint32_t                 used;
+    const mbedtls_x509_crt * p_leaf;
     /* The SDK uses five 256-bit vectors for one P-256 modular inverse. */
     uint32_t inverse[C3PEER_INVERSE_FACTOR * (C3PEER_P256_BITS / 32U)];
     bool     b_inverse_used;
@@ -54,6 +55,9 @@ typedef union
 /* Reject SDK changes that would grow the original 4 KiB workspace. */
 enum
 {
+    /* The other x509.c allocator constructs a distinct SDK name type. */
+    C3PEER_NAME_CHECK =
+        1 / (sizeof(mbedtls_x509_name) != sizeof(mbedtls_asn1_sequence)),
     C3PEER_SIZE_CHECK = 1 / (sizeof(c3peer_store_t) <= UTHOME_JSON_BYTES)
 };
 
@@ -124,12 +128,31 @@ int c3peer_leaf (mbedtls_x509_crt * p_chain,
 {
     const bool b_lend =
         (NULL != p_chain) && (0 == p_chain->version) && (borrow_crypto(false));
+    if (b_lend)
+    {
+        g_store.math.p_leaf = p_chain;
+    }
     const int result = mbedtls_x509_crt_parse_der_nocopy(p_chain, p_data, size);
     if (b_lend)
     {
         return_crypto();
     }
     return result;
+}
+
+/** @brief Keep additional names and independent parses on the SDK path. */
+void * c3peer_name_alloc (size_t count, size_t size)
+{
+    if ((1U == count) && (sizeof(mbedtls_asn1_sequence) == size) &&
+        (owns_crypto()) && (!g_store.math.b_verify))
+    {
+        void * p_node = c3tout_name_node(g_store.math.p_leaf);
+        if (NULL != p_node)
+        {
+            return p_node;
+        }
+    }
+    return mbedtls_calloc(count, size);
 }
 
 /** @brief Serve only the scoped peer parser's next typed node request. */

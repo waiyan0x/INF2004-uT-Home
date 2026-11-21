@@ -50,6 +50,7 @@ void c3peer_close (void);
 int c3peer_der (struct mbedtls_x509_crt * p_chain,
                 const unsigned char *     p_data,
                 size_t                    size);
+void * c3peer_name_alloc (size_t count, size_t size);
 void * c3peer_alloc (size_t count, size_t size);
 void c3peer_free (void * p_memory);
 #endif

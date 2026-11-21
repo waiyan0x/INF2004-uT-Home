@@ -106,6 +106,7 @@ class TlsOutputTests(unittest.TestCase):
                  '-Dmbedtls_ssl_session=touttest_session_t',
                  '-Dmbedtls_ssl_handshake_params=touttest_handshake_t',
                  '-Dmbedtls_x509_crt=touttest_certificate_t',
+                 '-Dmbedtls_asn1_sequence=touttest_sequence_t',
                  '-Dpeer_cert_digest=p_digest',
                  '-Din_buf=p_in_buf', '-Dout_buf=p_out_buf', '-Dhostname=p_hostname',
                  '-Dconf=p_config', '-Dtransform_negotiate=p_transform_new',

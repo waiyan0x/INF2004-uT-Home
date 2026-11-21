@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "mbedtls/ssl.h"
+#include "mbedtls/x509_crt.h"
 #include "psa/crypto.h"
 
 /* One application owner, task context and cache enabled. Each initialized TLS
@@ -36,6 +37,8 @@ int c3tout_native_renegotiate (mbedtls_ssl_context * p_ssl);
  * native semantics. Inner certificates/keys still use SDK allocation. Parsing
  * is synchronous and must not reenter this wrapper through callbacks.
  */
+void * c3tout_name_node (const mbedtls_x509_crt * p_chain);
+void c3tout_node_free (void * p_memory);
 int c3tout_certificate (mbedtls_ssl_context * p_ssl);
 int c3tout_native_certificate (mbedtls_ssl_context * p_ssl);
 

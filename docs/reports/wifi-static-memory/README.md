@@ -1538,6 +1538,31 @@ profile 943, laptop uplink and hotspot settings were verified after restoration.
 The temporary firewall rule was removed. Wi-Fi group-key renewal overlap
 remains unmeasured.
 
+##### Fixed peer certificate names
+
+The demo certificate lists a DNS name and two IP addresses. The peer parser
+holds the first name in the certificate and borrows two 16-byte records from
+the existing digest store. The SDK compares any existing digest during
+renegotiation and releases the parsed certificate before writing the new
+digest. Each fixed node stays valid through hostname verification and is
+cleared as the SDK frees the list.
+
+| Demo certificate phase | Previous peak | New peak | New heap requests |
+| --- | ---: | ---: | ---: |
+| Parse trusted CA | 0 B | 0 B | 0 |
+| Parse broker peer | 32 B | 0 B | 0 |
+| Verify broker peer | 32 B | 0 B | 0 |
+| Import peer public key after verification | 461 B | 461 B | 9 |
+
+In the target replay all three broker names verified and a wrong hostname
+was rejected. A five-name certificate used two native 16-byte records after
+filling the fixed pair. Both native allocation failures were retried. A
+malformed certificate that failed after parsing the names released its
+records. An occupied digest retained its contents while the same leaf used
+the native allocator. USB contention, PEM signers, three- and seven-certificate
+RSA fixtures and TLS key derivation passed. Fixed application RAM stayed at
+147,432 of 147,456 bytes and total DRAM at 276,422 of 278,528 bytes.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

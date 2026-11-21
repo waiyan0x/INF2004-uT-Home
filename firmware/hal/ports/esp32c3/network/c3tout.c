@@ -33,6 +33,8 @@
 #define C3TOUT_SLOTS       1U
 #define C3TOUT_NAME_BYTES  254U
 #define C3TOUT_STATES      2U
+#define C3TOUT_NAMES       2U
+#define C3TOUT_DIGEST      1U
 #define C3TOUT_SEED_BYTES  64U
 #define C3TOUT_LABEL_BYTES 22U
 /* A key import has an active owner and size, but no PSA derivation step. */
@@ -64,6 +66,19 @@ typedef union
     uint8_t premaster[MBEDTLS_PREMASTER_SIZE];
 } c3tout_secret_t;
 
+/* The TLS 1.2 client releases peer names before writing the new digest. */
+typedef union
+{
+    uint8_t               bytes[MBEDTLS_SSL_PEER_CERT_DIGEST_DFL_LEN];
+    mbedtls_asn1_sequence names[C3TOUT_NAMES];
+} c3tout_peer_t;
+
+enum
+{
+    C3TOUT_PEER_SIZE_CHECK =
+        1 / (MBEDTLS_SSL_PEER_CERT_DIGEST_DFL_LEN == sizeof(c3tout_peer_t))
+};
+
 static c3tout_buffer_t              g_buffers[C3TOUT_SLOTS]          = {0};
 static bool                         gb_used[C3TOUT_SLOTS]            = {false};
 static c3tout_input_t               g_inputs[C3TOUT_SLOTS]           = {0};
@@ -83,21 +98,22 @@ static mbedtls_ssl_context *        gp_state                         = NULL;
 static uint32_t                     g_state_pending                  = 0U;
 static mbedtls_x509_crt             g_certificate                    = {0};
 static bool                         gb_certificate_used              = false;
-static uint8_t g_peer_digest[MBEDTLS_SSL_PEER_CERT_DIGEST_DFL_LEN]   = {0};
-static bool    gb_digest_used                                        = false;
-static mbedtls_ssl_context *     gp_certificate                      = NULL;
-static uint32_t                  g_cert_phase                        = 0U;
-static uint8_t                   g_prf_seed[C3TOUT_SEED_BYTES]       = {0};
-static uint8_t                   g_prf_label[C3TOUT_LABEL_BYTES]     = {0};
-static c3tout_secret_t           g_prf_secret                        = {0};
-static c3tout_secret_t           g_import_key                        = {0};
-static bool                      gb_import_used                      = false;
-static bool                      gb_secret_used                      = false;
-static bool                      gb_seed_used                        = false;
-static bool                      gb_label_used                       = false;
-static psa_key_derivation_step_t g_prf_step                          = 0U;
-static size_t                    g_prf_size                          = 0U;
-static int                       gh_prf_owner                        = 0;
+static c3tout_peer_t                g_peer_digest                    = {0};
+/* Bit zero leases the digest. Bits one and two lease individual name nodes. */
+static uint8_t                   g_peer_used                     = 0U;
+static mbedtls_ssl_context *     gp_certificate                  = NULL;
+static uint32_t                  g_cert_phase                    = 0U;
+static uint8_t                   g_prf_seed[C3TOUT_SEED_BYTES]   = {0};
+static uint8_t                   g_prf_label[C3TOUT_LABEL_BYTES] = {0};
+static c3tout_secret_t           g_prf_secret                    = {0};
+static c3tout_secret_t           g_import_key                    = {0};
+static bool                      gb_import_used                  = false;
+static bool                      gb_secret_used                  = false;
+static bool                      gb_seed_used                    = false;
+static bool                      gb_label_used                   = false;
+static psa_key_derivation_step_t g_prf_step                      = 0U;
+static size_t                    g_prf_size                      = 0U;
+static int                       gh_prf_owner                    = 0;
 static void begin_state (mbedtls_ssl_context * p_ssl);
 static bool select_certificate (size_t count, size_t size, void ** pp_memory);
 static bool select_state (size_t count, size_t size, void ** pp_memory);
@@ -265,6 +281,43 @@ int c3tout_renegotiate (mbedtls_ssl_context * p_ssl)
     return result;
 }
 
+/** @brief Lend a name record only to the single TLS peer certificate. */
+void * c3tout_name_node (const mbedtls_x509_crt * p_chain)
+{
+    if ((p_chain == &g_certificate) && (C3TOUT_DIGEST != g_peer_used))
+    {
+        for (size_t index = 0U; index < C3TOUT_NAMES; ++index)
+        {
+            const uint8_t bit = (uint8_t)(2U << index);
+            if (0U == (g_peer_used & bit))
+            {
+                g_peer_used |= bit;
+                memset(&g_peer_digest.names[index],
+                       0,
+                       sizeof(mbedtls_asn1_sequence));
+                return &g_peer_digest.names[index];
+            }
+        }
+    }
+    return NULL;
+}
+
+/** @brief Release fixed nodes as the native ASN.1 destructor walks its list. */
+void c3tout_node_free (void * p_memory)
+{
+    for (size_t index = 0U; index < C3TOUT_NAMES; ++index)
+    {
+        if (p_memory == &g_peer_digest.names[index])
+        {
+            const uint8_t bit = (uint8_t)(2U << index);
+            mbedtls_platform_zeroize(p_memory, sizeof(mbedtls_asn1_sequence));
+            g_peer_used &= (uint8_t)(~bit);
+            return;
+        }
+    }
+    mbedtls_free(p_memory);
+}
+
 /** @brief Scope native parsing without changing verification or failure state.
  */
 int c3tout_certificate (mbedtls_ssl_context * p_ssl)
@@ -414,10 +467,11 @@ static bool release (void * p_memory)
         }
         return true;
     }
-    if (p_memory == g_peer_digest)
+    if ((p_memory == g_peer_digest.bytes) && (C3TOUT_DIGEST == g_peer_used))
     {
-        mbedtls_platform_zeroize(g_peer_digest, sizeof(g_peer_digest));
-        gb_digest_used = false;
+        mbedtls_platform_zeroize(g_peer_digest.bytes,
+                                 sizeof(g_peer_digest.bytes));
+        g_peer_used = 0U;
         return true;
     }
     if (release_state(p_memory))
@@ -472,17 +526,17 @@ static bool select_certificate (size_t count, size_t size, void ** pp_memory)
         }
         return true;
     }
-    if ((3U == g_cert_phase) && (sizeof(g_peer_digest) == size) &&
+    if ((3U == g_cert_phase) && (sizeof(g_peer_digest.bytes) == size) &&
         (NULL != gp_certificate->MBEDTLS_PRIVATE(session_negotiate)) &&
         (NULL == gp_certificate->MBEDTLS_PRIVATE(session_negotiate)
                      ->MBEDTLS_PRIVATE(peer_cert_digest)))
     {
         g_cert_phase = 0U;
-        if (!gb_digest_used)
+        if (0U == g_peer_used)
         {
-            memset(g_peer_digest, 0, sizeof(g_peer_digest));
-            gb_digest_used = true;
-            *pp_memory     = g_peer_digest;
+            memset(g_peer_digest.bytes, 0, sizeof(g_peer_digest.bytes));
+            g_peer_used = C3TOUT_DIGEST;
+            *pp_memory  = g_peer_digest.bytes;
         }
         return true;
     }

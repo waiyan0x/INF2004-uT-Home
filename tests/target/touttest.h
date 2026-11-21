@@ -20,6 +20,11 @@ typedef struct
 
 typedef struct
 {
+    uint32_t words[4];
+} touttest_sequence_t;
+
+typedef struct
+{
     uint32_t words[238];
 } touttest_certificate_t;
 

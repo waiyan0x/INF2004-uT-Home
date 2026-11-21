@@ -59,6 +59,12 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
     set_property(SOURCE "${UTHOME_MBED_DIR}/mbedtls/tf-psa-crypto/drivers/builtin/src/psa_crypto_ecp.c"
         TARGET_DIRECTORY builtin APPEND PROPERTY COMPILE_DEFINITIONS
         mbedtls_calloc=c3peer_key mbedtls_free=c3peer_key_free)
+    set_property(SOURCE "${UTHOME_MBED_DIR}/mbedtls/library/x509.c"
+        TARGET_DIRECTORY mbedx509 APPEND PROPERTY COMPILE_DEFINITIONS
+        mbedtls_calloc=c3peer_name_alloc)
+    set_property(SOURCE "${UTHOME_MBED_DIR}/mbedtls/tf-psa-crypto/utilities/asn1parse.c"
+        TARGET_DIRECTORY utilities APPEND PROPERTY COMPILE_DEFINITIONS
+        mbedtls_free=c3tout_node_free)
     set_property(SOURCE "${UTHOME_MBED_DIR}/mbedtls/library/x509_crt.c"
         TARGET_DIRECTORY mbedx509 APPEND PROPERTY COMPILE_DEFINITIONS
         mbedtls_calloc=c3peer_alloc mbedtls_free=c3peer_free)

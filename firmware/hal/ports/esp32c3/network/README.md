@@ -361,12 +361,25 @@ While parsing, the owning task borrows integer slots only inside the selected
 uncompressed P-256 public-key import. The SDK releases the temporary keypair
 and its coordinates before returning on success or failure. Each lease starts
 with an empty slot bitmap. The import restores the verifier's previous access
-on return. Modular inversion and point tables remain verifier-only. The parser
-keeps ordinary SDK ownership for subject alternative names until certificate
+on return. Modular inversion and point tables remain verifier-only. The SDK retains subject alternative names until certificate
 cleanup. Manual review covered scope, integer sizes, task isolation, bounded
 slot reuse, zeroization and cleanup on error. A busy workspace keeps the
 existing trust-parser and verifier behavior. A live USB tree still rejects a
 peer parse, as required by its existing contract.
+
+For the fixed peer head, the first two extra ASN.1 sequence records from
+`x509.c` share the retained peer digest's 32 bytes. The first name is already
+embedded in the certificate. The synchronous leaf parser selects the single
+owning task and certificate. Other callers, a live digest and further names
+keep the SDK allocator. Each node has its own lease bit and native alignment.
+A compile-time size check distinguishes the other name type allocated in
+`x509.c`. Native ASN.1 traversal reads the next link before releasing each
+node. The release adapter clears fixed nodes and forwards every other pointer.
+A live node prevents the digest allocator from claiming the union. On the
+pinned TLS 1.2 client the old digest comparison precedes peer parsing, and
+the chain destructor precedes the replacement digest. Manual C review covered
+those lifetimes, bounds, pointer identity, the unsigned mask and error cleanup.
+The existing RAM cap and C policy apply.
 
 Only the pinned `ecp.c` receives the two-point table allocation and free
 bindings. The verifier owns an aligned array of two SDK point records.
@@ -421,8 +434,8 @@ callback contract remain required; this is not general size-based allocation.
 The SDK still performs certificate validation and identity comparison. This
 change does not alter trust roots, server-name checks, TLS record limits or
 ticket behavior. The DER input remains borrowed from the existing receive buffer.
-Additional chain nodes, parsed names, sequences and keys still allocate through
-their original SDK units. The build rejects full peer-certificate retention,
+Additional names beyond the two fixed records and other unhandled SDK
+allocations retain their native lifetime. The build rejects full peer-certificate retention,
 restartable ECP and a different default digest length. It also rejects linked
 session copy/get/set/load or context-load APIs: those require separate lifetimes.
 

@@ -127,9 +127,59 @@ def measure(elf, pem):
         assert parse() == (0, baseline), 'Successful retry must match the original trace'
     if probe.entry == 'c3peer_der':
         check_shared_views(probe, chain, *inputs[0])
+    if 'g_peer_used' in probe.symbols:
+        from .tls_certificate_probe import layouts
+        baseline['fixed_name_records'] = check_name_storage(probe, chain, *inputs[0], layouts(elf))
     peak = max(record['peak_requested_bytes'] for record in baseline['certificates'])
     return dict(**baseline, peak_requested_bytes=peak, after_free_bytes=0,
                 allocation_failures_retried=len(baseline['requests']))
+
+
+def check_name_storage(probe, chain, source, der, types):
+    """Compare the same leaf with the digest store free and already occupied."""
+    used = probe.symbols['g_peer_used']
+    store = probe.symbols['g_peer_digest']
+    cpu = probe.uc
+
+    def parse():
+        probe.run('mbedtls_x509_crt_init', chain)
+        assert probe.run('c3peer_der', chain, source, len(der)) == 0
+        return sorted(probe.live.values())
+
+    def release():
+        probe.run('mbedtls_x509_crt_free', chain)
+        assert not probe.live
+
+    ordinary = parse()
+    mask = cpu.mem_read(used, 1)[0]
+    assert mask in (0, 2, 6)
+    count = mask.bit_count()
+    sig = chain + types['mbedtls_x509_crt']['fields']['sig']
+    pointer = sig + types['mbedtls_asn1_buf']['fields']['p']
+    unused_bits = int.from_bytes(cpu.mem_read(pointer, 4), 'little') - 1
+    assert source <= unused_bits < source + len(der) and cpu.mem_read(unused_bits, 1) == bytes(1)
+    release()
+    # The signature BIT STRING follows the extensions. Its nonzero unused-bit
+    # count must reject the certificate and clean up already constructed names.
+    cpu.mem_write(unused_bits, bytes([8]))
+    assert probe.run('c3peer_der', chain, source, len(der)) < 0
+    release()
+    cpu.mem_write(unused_bits, bytes(1))
+    assert cpu.mem_read(used, 1) == bytes(1) and not any(cpu.mem_read(store, 32))
+
+    # Simulate a digest still held by an existing session. Parsing and freeing
+    # this leaf must leave its bytes untouched.
+    digest = bytes(range(32))
+    cpu.mem_write(store, digest)
+    cpu.mem_write(used, bytes([1]))
+    assert parse() == sorted(ordinary + [16] * count)
+    release()
+    assert cpu.mem_read(store, 32) == digest and cpu.mem_read(used, 1) == bytes([1])
+    probe.run('c3tout_free', store)
+    assert not any(cpu.mem_read(store, 32)) and cpu.mem_read(used, 1) == bytes(1)
+    assert parse() == ordinary
+    release()
+    return count
 
 
 def check_shared_views(probe, chain, source, der):

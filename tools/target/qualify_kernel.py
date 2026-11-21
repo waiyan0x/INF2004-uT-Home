@@ -774,6 +774,8 @@ def check_tls_output(commands, symbols, enabled, config_lines):
                                  'mbedtls_zeroize_and_free': 'c3peer_wipe'},
         'builtin/src/ecp.c': {'mbedtls_calloc': 'c3peer_points', 'mbedtls_free': 'c3peer_points_free'},
         'builtin/src/psa_crypto_ecp.c': {'mbedtls_calloc': 'c3peer_key', 'mbedtls_free': 'c3peer_key_free'},
+        'x509.c': {'mbedtls_calloc': 'c3peer_name_alloc'},
+        'asn1parse.c': {'mbedtls_free': 'c3tout_node_free'},
         'x509_crt.c': {'mbedtls_calloc': 'c3peer_alloc', 'mbedtls_free': 'c3peer_free'},
         'psa_crypto.c': {'mbedtls_calloc': 'c3peer_psa_alloc', 'mbedtls_free': 'c3peer_psa_free',
                          'mbedtls_zeroize_and_free': 'c3peer_psa_wipe'},
@@ -794,7 +796,7 @@ def check_tls_output(commands, symbols, enabled, config_lines):
             raise QualificationError('TLS output binding escaped its source: ' + name)
         if expected:
             observed.append(name)
-    owned = (*bindings.values(), 'c3peer_points', 'c3peer_points_free', 'c3peer_psa_alloc', 'c3peer_psa_free', 'c3peer_psa_wipe', 'c3peer_import', 'c3peer_verify', 'c3peer_leaf', 'c3peer_key', 'c3peer_key_free', 'c3peer_limbs', 'c3peer_drop', 'c3peer_wipe', 'c3peer_der', 'c3peer_alloc', 'c3peer_free', 'c3peer_views', 'c3peer_close', 'c3tout_setup', 'c3tout_native_setup',
+    owned = (*bindings.values(), 'c3peer_name_alloc', 'c3tout_node_free', 'c3peer_points', 'c3peer_points_free', 'c3peer_psa_alloc', 'c3peer_psa_free', 'c3peer_psa_wipe', 'c3peer_import', 'c3peer_verify', 'c3peer_leaf', 'c3peer_key', 'c3peer_key_free', 'c3peer_limbs', 'c3peer_drop', 'c3peer_wipe', 'c3peer_der', 'c3peer_alloc', 'c3peer_free', 'c3peer_views', 'c3peer_close', 'c3tout_setup', 'c3tout_native_setup',
              'c3tout_set_name', 'c3tout_native_name', 'c3tout_start',
              'c3tout_native_start', 'c3tout_renegotiate', 'c3tout_native_renegotiate',
              'c3tout_certificate', 'c3tout_native_certificate',
