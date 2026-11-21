@@ -1067,8 +1067,49 @@ The queue transport and scheduling were simulated for this overlap test.
 
 A dedicated pool supporting this case needs at least 109 bytes reclaimed
 beyond the 99 free application bytes, before alignment or occupancy tracking.
-The next implementation step is to find storage for those simultaneous
-lifetimes, then test bounded exhaustion and recovery.
+The implementation below covers this overlap and verifies exhaustion and reuse.
+
+#### Fixed queued event bodies
+
+The Wi-Fi demo uses two aligned 48-byte slots for ordinary posted data and
+eight native 20-byte slots for deferred handler removal. Posts up to four
+bytes stay inline. Each larger post owns its slot until the SDK dispatches
+or discards the message. The default event queue still has 32 entries.
+An ordinary post larger than 48 bytes or a third simultaneous ordinary
+body returns the SDK's out-of-memory error before insertion. This is the
+bounded workload supported by the one-station demo.
+
+Both an IP event and a deferred removal can request 20 bytes. A size-only
+allocator could let IP traffic exhaust the cleanup reserve after the SDK
+had already marked a handler for removal. The target build verifies the
+pinned SDK source digest and adapts its one posted-body allocation in a
+build-local copy. It passes the SDK's private cleanup-base comparison to
+the allocator. Registration storage and the queue keep their original
+ownership rules.
+
+| Linker measurement | Bytes |
+|---|---:|
+| Posted bodies and their ten occupancy flags | 266 |
+| Event adapter including registration storage | 703 |
+| Reclaimed from the native queue adapter | 192 |
+| Application fixed RAM | 147,431 of 147,456 |
+| Total fixed DRAM | 275,310 of 278,528 |
+
+The native adapter stores 64 positive semaphore and mutex IDs in one byte
+each. The pinned kernel permits up to 128 semaphore IDs and 64 mutex IDs.
+Startup checks each signed result before narrowing it. The per-module
+reservations for MQTT, PWM, shared state, pin control, health and UART now
+match their measured linked sizes. All group limits and queue capacities
+are unchanged.
+
+The RV32 replay held both ordinary slots, refused a third ordinary post and
+still enqueued all eight handler removals. It also checked oversize refusal,
+queue-send failure, copy lifetime, nine simultaneous bodies carrying 208
+bytes, dispatch, zeroed slot reuse and registration after draining the queue.
+The manual C review covered native layout and alignment, separate ownership
+for equal-sized events, bounded slot scans, exact-pointer release, signed
+ID conversion, and interrupt exclusion for occupancy and zeroing. The
+346-file BARR-C gate and all 47 target qualification tests passed.
 
 #### Fixed-slot certificate verification experiment
 

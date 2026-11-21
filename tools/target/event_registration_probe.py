@@ -111,6 +111,11 @@ def verify_fixed(cpu, elf, gdb):
 
     post_size = "sizeof(esp_event_post_instance_t)"
     fields = [symbol(prefix + name) for name in pools for prefix in ("g_", "gb_")]
+    fixed_bodies = "c3ereg_body" in cpu.symbols
+    if fixed_bodies:
+        for name in ("cleanup", "messages"):
+            fields.extend((symbol("g_" + name), symbol("gb_" + name),
+                           "sizeof('c3ereg.c'::g_" + name + "[0])"))
     layout = target_layout(elf, gdb, ("esp_event_handler_context",), (post_size, *fields))
     def call(name, *args):
         return OutputProbe.run(cpu, name, *args)
@@ -179,7 +184,7 @@ def verify_fixed(cpu, elf, gdb):
     assert len(live[changed]) == 8 and int.from_bytes(replaced[changed][offset:offset+width], "little") == 2
 
     # Defer all eight removals, then drive the real SDK loop. Only the queued
-    # event bodies are supplied by libc. Native queue and mutex calls are simulated.
+    # event bodies on the older image use libc. Native queues and locks are simulated.
     queue, payloads, sizes = [], {}, []
     def payload(*_):
         size = cpu.uc.reg_read(UC_RISCV_REG_A1)
@@ -197,7 +202,19 @@ def verify_fixed(cpu, elf, gdb):
         cpu.finish(0)
 
     accept_send = False
+    def body_slots(name, count):
+        stride = layout["sizeof('c3ereg.c'::g_" + name + "[0])"]
+        flags = cpu.uc.mem_read(layout[symbol("gb_" + name)], count)
+        return {layout[symbol("g_" + name)] + i * stride for i, flag in enumerate(flags) if flag}
+
     def send(*_):
+        if fixed_bodies:
+            # In the pinned RV32 event envelope the union ends in a four-byte pointer.
+            post = cpu.uc.mem_read(cpu.uc.reg_read(UC_RISCV_REG_A1), layout[post_size])
+            ptr = int.from_bytes(post[-4:], "little")
+            assert ptr in body_slots("cleanup", 8) | body_slots("messages", 2)
+            assert ptr not in payloads
+            payloads[ptr] = sizes[-1]
         if not accept_send:
             cpu.finish(0)
             return
@@ -211,8 +228,18 @@ def verify_fixed(cpu, elf, gdb):
         else:
             cpu.finish(0)
 
-    cpu.hook(cpu.symbols["calloc"], payload)
-    cpu.hook(cpu.symbols["free"], release)
+    if fixed_bodies:
+        cpu.hook(cpu.symbols["calloc"], reject)
+        cpu.hook(cpu.symbols["free"], reject)
+        body_entry = cpu.symbols["c3ereg_body"]
+        cpu.uc.hook_add(UC_HOOK_CODE, lambda *_: sizes.append(cpu.uc.reg_read(UC_RISCV_REG_A0)),
+                        begin=body_entry, end=body_entry)
+        release_entry = cpu.symbols["c3ereg_free"]
+        cpu.uc.hook_add(UC_HOOK_CODE, lambda *_: payloads.pop(cpu.uc.reg_read(UC_RISCV_REG_A0), None),
+                        begin=release_entry, end=release_entry)
+    else:
+        cpu.hook(cpu.symbols["calloc"], payload)
+        cpu.hook(cpu.symbols["free"], release)
     cpu.hook(cpu.symbols["c3nq_send"], send)
     cpu.hook(cpu.symbols["c3nq_receive"], receive)
     # A 16-byte posted body is the same size as a base record. A failed
@@ -221,12 +248,29 @@ def verify_fixed(cpu, elf, gdb):
     cpu.uc.reg_write(UC_RISCV_REG_A5, 0)
     assert call("esp_event_post_to", loop, handlers[0][0], 0, args) != 0
     assert sizes == [16] and not payloads and snapshot() == replaced
+    held_messages = []
+    if fixed_bodies:
+        assert not body_slots("messages", 2)
+        assert not call("c3ereg_body", 49, 0) and not call("c3ereg_body", 19, 1)
+        held_messages = [call("c3ereg_body", size, 0) for size in (41, 48)]
+        assert set(held_messages) == body_slots("messages", 2) and len(set(held_messages)) == 2
+        cpu.uc.reg_write(UC_RISCV_REG_A4, 20)
+        cpu.uc.reg_write(UC_RISCV_REG_A5, 0)
+        assert call("esp_event_post_to", loop, args + 76, 0, args) == 0x101
+        assert not queue and snapshot() == replaced
+    cleanup_start = len(sizes)
     accept_send = True
     constant("c3nq_take", 0)
     for index, (base, event_id) in enumerate(handlers):
         assert call("esp_event_handler_unregister_with", loop, base, event_id, 0x1000 + index) == 0
     pending = snapshot()
-    assert sizes == [16] + [20] * 8 and len(payloads) == len(queue) == 8
+    assert sizes[cleanup_start:] == [20] * 8 and len(payloads) == len(queue) == 8
+    if fixed_bodies:
+        assert set(payloads) == body_slots("cleanup", 8)
+        assert not call("c3ereg_body", 20, 1)
+        for ptr in held_messages:
+            call("c3ereg_free", ptr)
+        assert not body_slots("messages", 2)
     assert len(pending) == 35 and sum(map(len, pending.values())) == 380
     # Even with all eight removals pending, an update can still obtain
     # its provisional handler and context and release both.
@@ -253,6 +297,11 @@ def verify_fixed(cpu, elf, gdb):
     assert len(queue) == len(payloads) == 9 and combined_bytes == 208
     assert call("esp_event_loop_run", loop, 1) == 0
     assert not queue and not payloads and snapshot().keys() == only_loop.keys()
+    if fixed_bodies:
+        assert not body_slots("cleanup", 8) and not body_slots("messages", 2)
+        recycled = call("c3ereg_body", 48, 0)
+        assert recycled == station_copy and not any(cpu.uc.mem_read(recycled, 48))
+        call("c3ereg_free", recycled)
     assert register_all().keys() == live.keys()
     return dict(elf_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(),
                 fixed_registration_records=27, fixed_live_bytes=316, general_record_requests=0,
@@ -260,6 +309,7 @@ def verify_fixed(cpu, elf, gdb):
                 fixed_bytes_pending_cleanup=380, peak_fixed_record_bytes=max(peaks),
                 deferred_payload_bytes=deferred_bytes,
                 cleanup_plus_station_payload_bytes=combined_bytes,
+                fixed_event_bodies=fixed_bodies,
                 failed_post_payload_returned=True,
                 cleanup_and_reuse_checked=True)
 

@@ -2,7 +2,24 @@
 if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
     idf_component_get_property(UTHOME_EVENT_LIB esp_event COMPONENT_LIB)
     idf_component_get_property(UTHOME_EVENT_DIR esp_event COMPONENT_DIR)
-    set_property(SOURCE "${UTHOME_EVENT_DIR}/esp_event.c"
+    # The private cleanup event shares its byte count with ordinary IP events.
+    # Only this SDK call site has the event base needed to reserve cleanup slots.
+    set(event_source "${UTHOME_EVENT_DIR}/esp_event.c")
+    set(event_copy "${CMAKE_CURRENT_BINARY_DIR}/event/esp_event.c")
+    file(READ "${event_source}" event_text)
+    set(old_body "post.data.ptr = calloc(1, event_data_size)")
+    string(SHA256 event_hash "${event_text}")
+    if(NOT event_hash STREQUAL "0a31dfec97db91b3d8fbc5780998533715cbe255b59bff6b8f32df2218133936")
+        message(FATAL_ERROR "SDK event body allocation changed")
+    endif()
+    string(REPLACE "${old_body}" "post.data.ptr = c3ereg_body(event_data_size, event_base == esp_event_handler_cleanup)" event_text "${event_text}")
+    file(CONFIGURE OUTPUT "${event_copy}" CONTENT "${event_text}" @ONLY)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${event_source}")
+    get_target_property(event_sources ${UTHOME_EVENT_LIB} SOURCES)
+    list(FILTER event_sources EXCLUDE REGEX "(^|/)esp_event[.]c$")
+    set_property(TARGET ${UTHOME_EVENT_LIB} PROPERTY SOURCES "${event_sources};${event_copy}")
+    set_property(SOURCE "${event_copy}" TARGET_DIRECTORY ${UTHOME_EVENT_LIB} APPEND PROPERTY COMPILE_OPTIONS "-include" "${CMAKE_CURRENT_LIST_DIR}/../hal/c3ereg.h")
+    set_property(SOURCE "${event_copy}"
         TARGET_DIRECTORY ${UTHOME_EVENT_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
         heap_caps_calloc=c3ereg_alloc free=c3ereg_free)
     idf_component_get_property(UTHOME_LWIP_LIB lwip COMPONENT_LIB)
@@ -45,7 +62,7 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
         esp_pbuf_allocate=c3rx_alloc pbuf_alloc=c3pkt_aux)
     # SDK archives are scanned after the owned main/radio archives. Retain the
     # record adapter and its native exclusion boundary before that scan.
-    foreach(owned IN ITEMS c3lrec_alloc c3lrec_free c3pkt_alloc c3pkt_aux c3pkt_frame c3pkt_clone c3pkt_split c3rx_alloc c3dhcp_alloc c3dhcp_free c3dhcp_packet c3iface_alloc c3iface_free c3iface_dup c3ereg_alloc c3ereg_free c3bport_enter c3bport_leave)
+    foreach(owned IN ITEMS c3lrec_alloc c3lrec_free c3pkt_alloc c3pkt_aux c3pkt_frame c3pkt_clone c3pkt_split c3rx_alloc c3dhcp_alloc c3dhcp_free c3dhcp_packet c3iface_alloc c3iface_free c3iface_dup c3ereg_alloc c3ereg_body c3ereg_free c3bport_enter c3bport_leave)
         target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--undefined=${owned}")
     endforeach()
 endif()

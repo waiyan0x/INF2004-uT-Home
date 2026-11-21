@@ -5,14 +5,13 @@
 #ifndef UTHOME_C3EREG_H
 #define UTHOME_C3EREG_H
 
-#if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 void * c3ereg_alloc (size_t count, size_t size, uint32_t caps);
+void * c3ereg_body (size_t size, bool b_cleanup);
 void c3ereg_free (void * p_memory);
-#endif
-
 #endif
 
 /* End of file. */

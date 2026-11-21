@@ -12,10 +12,14 @@
 #include <tk/tkernel.h>
 #include <tk/syslib.h>
 
+#if (CNF_MAX_SEMID > UINT8_MAX) || (CNF_MAX_MTXID > UINT8_MAX)
+#error "Network notification IDs exceed the stored width"
+#endif
+
 /* Each slot owns one readable semaphore or mutex. Only queues also write. */
 static netpool_t g_pool                           = {0};
-static ID        gh_objects[NETPOOL_SLOTS]        = {0};
-static ID        gh_writable[NETPOOL_QUEUE_SLOTS] = {0};
+static uint8_t   gh_objects[NETPOOL_SLOTS]        = {0};
+static uint8_t   gh_writable[NETPOOL_QUEUE_SLOTS] = {0};
 static bool      gb_attempted                     = false;
 static bool      gb_task_started                  = false;
 
@@ -67,27 +71,23 @@ int c3nq_init (void)
     gb_attempted = true;
     for (uint32_t index = 0U; index < NETPOOL_SLOTS; ++index)
     {
-        bool b_failed = false;
+        const ID h_object =
+            (index < (NETPOOL_QUEUE_SLOTS + NETPOOL_SEMAPHORE_SLOTS))
+                ? tk_cre_sem(&semaphore)
+                : tk_cre_mtx(&mutex);
+        if ((h_object <= 0) || (h_object > (ID)UINT8_MAX))
+        {
+            return -1;
+        }
+        gh_objects[index] = (uint8_t)h_object;
         if (index < NETPOOL_QUEUE_SLOTS)
         {
-            gh_objects[index]  = tk_cre_sem(&semaphore);
-            gh_writable[index] = tk_cre_sem(&semaphore);
-            b_failed = ((gh_objects[index] <= 0) || (gh_writable[index] <= 0));
-        }
-        else if (index < (NETPOOL_QUEUE_SLOTS + NETPOOL_SEMAPHORE_SLOTS))
-        {
-            gh_objects[index] = tk_cre_sem(&semaphore);
-            b_failed          = (gh_objects[index] <= 0);
-        }
-        else
-        {
-            gh_objects[index] = tk_cre_mtx(&mutex);
-            b_failed          = (gh_objects[index] <= 0);
-        }
-        if (b_failed)
-        {
-            /* Startup fails; partial permanent resources are retained. */
-            return -1;
+            const ID h_writable = tk_cre_sem(&semaphore);
+            if ((h_writable <= 0) || (h_writable > (ID)UINT8_MAX))
+            {
+                return -1;
+            }
+            gh_writable[index] = (uint8_t)h_writable;
         }
     }
     return netpool_init(&g_pool, &ops, CONFIG_FREERTOS_HZ);

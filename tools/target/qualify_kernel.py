@@ -886,12 +886,12 @@ def check_lwip_records(commands, symbols, enabled):
                 raise QualificationError("Duplicate lwIP record compiler input: " + name)
             observed.add(name)
     if not enabled:
-        if any(name in symbols for name in (*bindings.values(), "c3ereg_alloc", "c3ereg_free", "c3iface_alloc", "c3iface_free", "c3iface_dup", "c3dhcp_alloc", "c3dhcp_free", "c3dhcp_packet", "c3rx_alloc", "c3pkt_alloc", "c3pkt_aux", "c3pkt_frame", "c3pkt_clone", "c3pkt_split")):
+        if any(name in symbols for name in (*bindings.values(), "c3ereg_alloc", "c3ereg_body", "c3ereg_free", "c3iface_alloc", "c3iface_free", "c3iface_dup", "c3dhcp_alloc", "c3dhcp_free", "c3dhcp_packet", "c3rx_alloc", "c3pkt_alloc", "c3pkt_aux", "c3pkt_frame", "c3pkt_clone", "c3pkt_split")):
             raise QualificationError("lwIP records escaped selected Wi-Fi services")
         return dict(enabled=False)
     if observed != required.keys():
         raise QualificationError("Missing lwIP record compiler input")
-    for name in (*bindings.values(), "c3ereg_alloc", "c3ereg_free", "c3iface_alloc", "c3iface_free", "c3iface_dup", "c3dhcp_alloc", "c3dhcp_free", "c3dhcp_packet", "c3rx_alloc", "c3pkt_alloc", "c3pkt_aux", "c3pkt_frame", "c3pkt_clone", "c3pkt_split", "c3bport_enter", "c3bport_leave"):
+    for name in (*bindings.values(), "c3ereg_alloc", "c3ereg_body", "c3ereg_free", "c3iface_alloc", "c3iface_free", "c3iface_dup", "c3dhcp_alloc", "c3dhcp_free", "c3dhcp_packet", "c3rx_alloc", "c3pkt_alloc", "c3pkt_aux", "c3pkt_frame", "c3pkt_clone", "c3pkt_split", "c3bport_enter", "c3bport_leave"):
         if not 0x42000000 <= symbols.get(name, 0) < 0x43000000:
             raise QualificationError("lwIP record helper absent or consumes RAM code: " + name)
     for name in ("netconn_alloc", "netconn_free", "netbuf_delete", "memp_malloc", "memp_free", "tcp_split_unsent_seg", "pbuf_alloced_custom",
