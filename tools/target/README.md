@@ -763,6 +763,14 @@ client verifies server trust/name; no verification bypass is added. Current
 checks and fresh target evidence are in the [network guide](../../firmware/src/network/README.md#esp-https-removal).
 This remains manual/host verification, separate from physical acceptance.
 
+### TLS record-key lifetimes
+
+Run `python -m tools.target.tls_traffic_key_probe FIRMWARE_ELF --output NEW_REPORT`
+with the RV32 probe dependencies on the production ELF with fixed PRF storage
+and native traffic-key allocation. The replay checks both configured AES-128-GCM
+suites, replacement while old keys are live, cleanup after a partial import and
+erasure at release. The inputs are synthetic. No board or broker is required.
+
 ### X25519 client key exchange
 
 Run `python -m tools.target.tls_exchange_probe FIRMWARE_ELF --expect workspace

@@ -1731,6 +1731,28 @@ These figures cover the MQTT worker's native mbedTLS requests with USB idle.
 The trial restored and verified the full original flash, active and saved
 profile 943, laptop uplink, hotspot settings and firewall cleanup.
 
+##### Traffic-key lifetimes
+
+A replay of production ELF `138c10a3` traced both configured TLS 1.2
+AES-128-GCM suites through the SDK's key derivation, PSA import and transform
+destruction. The two 16-byte allocations matched independently derived client
+write and server write keys. Each handle released its own zeroed allocation.
+With the old session keys live, deriving the replacement pair required four
+distinct handles and 64 live bytes. When the second replacement allocation
+failed, teardown wiped the first replacement and preserved both old keys.
+The next derivation then succeeded. This was an offline replay with synthetic
+key material, a simulated heap and a host HMAC primitive.
+
+The preceding ESP trace measured the same 64-byte peak at two different
+points. The old key pair was live first alongside the 32-byte X25519 private
+key and later alongside the replacement pair. The production client still
+allocates all three payloads on the heap. One candidate for fixed backing is
+the 254-byte temporary hostname buffer in `c3tls.c`. The pinned ESP-TLS SDK
+releases that buffer after address lookup and after copying the verification
+name, before record-key setup. Any implementation must exclude a hostname
+borrow for as long as even one key is live and preserve the independent
+hostname that mbedTLS retains for verification.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

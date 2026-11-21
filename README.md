@@ -110,9 +110,11 @@ All three authenticated MQTT replies arrived on one boot. The client now also bo
 for X25519. On the ESP, each client exchange made one 32-byte heap request
 for the ephemeral private key. The full MQTT worker trace recorded three
 requests on first connection, reconnect and full renegotiation, with live
-peaks of 32, 32 and 64 bytes respectively. The remaining TLS measurements
-to settle are the ephemeral private key and the two 16-byte allocations in
-the following state.
+peaks of 32, 32 and 64 bytes respectively. The compiled client retained one
+16-byte AES key per traffic direction. Full renewal briefly needs both pairs.
+The next fixed-memory change must cover those keys and the temporary X25519
+private key within the current RAM limit.
+[Traffic-key lifetimes](docs/reports/wifi-static-memory/README.md#traffic-key-lifetimes)
 [X25519 client key exchange](docs/reports/wifi-static-memory/README.md#x25519-client-key-exchange)
 USB contention, Wi-Fi and whole-system static-memory qualification remain open.
 [TLS worker heap across three handshakes](docs/reports/wifi-static-memory/README.md#tls-worker-heap-across-three-handshakes)
