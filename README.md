@@ -103,13 +103,13 @@ also makes zero heap requests with the workspace available. The imported
 key remains usable after the workspace returns to USB. The fixed-key
 import image returned three authenticated MQTT replies on one ESP boot across
 broker restart and full TLS renegotiation.
-A board trace of the MQTT worker found 550 to 551 native mbedTLS heap
-requests per handshake. Processing the server key exchange made 445 of those
-requests and set the peak at 1,649 bytes on connection and reconnect and
-1,681 bytes during renegotiation. Replaying all three signed exchanges attributes the 445
-requests to ECDSA verification. The TLS client now lends its existing workspace during
-that signature check. All three captured signatures verified in the linked
-firmware with zero heap requests while the workspace was available. Wi-Fi and whole-system static-memory qualification remain open.
+The TLS 1.2 client also borrows that workspace to verify the server key
+exchange signature. On the ESP, this step went from 445 native mbedTLS heap
+requests to zero on first connection, broker reconnect and full renegotiation.
+All three authenticated MQTT replies arrived on one boot. The client key
+exchange now sets the measured worker peak, up to 1,276 live bytes. Measure
+its key generation, public-key export and shared-secret calculation next.
+USB contention, Wi-Fi and whole-system static-memory qualification remain open.
 [TLS worker heap across three handshakes](docs/reports/wifi-static-memory/README.md#tls-worker-heap-across-three-handshakes)
 [Handshake public-key import](docs/reports/wifi-static-memory/README.md#handshake-public-key-import)
 [Fixed peer certificate names](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-names)

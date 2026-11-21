@@ -1663,6 +1663,24 @@ restart context or a digest outside the selected pair. Fixed application RAM
 remains 147,432 bytes out of 147,456. Total DRAM remains 276,422 out of
 278,528 bytes.
 
+On the ESP, the instrumented signature fix `bd8ab14e` (production control
+`5e19394d`) returned three authenticated 96-byte replies on one boot. The
+server-key-exchange state made zero observed native heap requests in all three
+intervals. The broker selected X25519 and ECDSA/SHA-512 again.
+
+| Interval | Baseline requests | New requests | Baseline peak bytes | New peak bytes |
+| --- | ---: | ---: | ---: | ---: |
+| First connection | 550 | 105 | 1,649 | 1,244 |
+| Broker restart and reconnect | 551 | 106 | 1,649 | 1,244 |
+| Full renegotiation | 550 | 105 | 1,681 | 1,276 |
+
+Client key exchange now sets each peak. The TLS certificate-verify state
+also made two 16-byte requests per interval. Each post-reply snapshot held
+two 16-byte blocks. All counts and sizes reconciled with zero observer errors.
+This comparison covers the MQTT worker's native mbedTLS allocator with USB
+idle during TLS. The full original flash, active and saved profile 943 and
+host cleanup were verified after the trial.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
