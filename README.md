@@ -93,7 +93,11 @@ the 208-byte overlap case with 25 application bytes left under the RAM cap.
 On the ESP, all nine observed startup and Wi-Fi rejoin messages used fixed
 storage. Authenticated MQTT recovered on the same boot.
 [Fixed queued event bodies](docs/reports/wifi-static-memory/README.md#fixed-queued-event-bodies)
-TLS certificate work and Wi-Fi driver allocations also remain open.
+The Wi-Fi build now uses the SDK's fixed 32-slot PSA key table. Demo-broker
+certificate verification peaked at 3,834 heap bytes. The next TLS target is
+the 2,768 bytes of multiple-precision integer storage live at that peak.
+Wi-Fi driver allocations also remain open.
+[Fixed key table and certificate memory](docs/reports/wifi-static-memory/README.md#fixed-key-table-in-the-wi-fi-build)
 [Fixed SDK event records](docs/reports/wifi-static-memory/README.md#fixed-sdk-event-records)
 [Station interface storage and board results](docs/reports/wifi-static-memory/README.md#fixed-station-interface-and-identifiers)
 [Default event-handler replacement](docs/reports/wifi-static-memory/README.md#default-event-handler-replacement)
@@ -128,8 +132,8 @@ peer fingerprint; see the
 TLS 1.2 key derivation reserves its 64-byte seed, 22-byte label and two
 66-byte stores for the imported key and secret copy. After the key store
 warms up, the compiled client derives the expected SHA-256 and SHA-384 outputs
-with zero heap requests in the tested import and derivation path. The shared
-PSA key tables in the compiled probe allocated 1,408 bytes at startup and
+with zero heap requests in the tested import and derivation path. The earlier dynamic
+PSA key tables allocated 1,408 bytes at startup and
 704 on first use.
 The ESP32-C3 used at most one slot while joining Wi-Fi with the broker offline
 and three during each verified MQTT TLS connection, including after a broker

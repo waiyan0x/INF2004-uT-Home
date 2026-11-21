@@ -524,7 +524,7 @@ stores. Use `--expect fixed` to require a reserved secret copy and
 `--expect fixed-import` to require the separate imported-key store as well.
 
 ```powershell
-python -B -m tools.target.tls_prf_key_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --expect fixed-import --output build/tls-prf/new-key-report.json
+python -B -m tools.target.tls_prf_key_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --expect fixed-import --fixed-slot-count 32 --output build/tls-prf/new-key-report.json
 ```
 
 The probe checks SHA-256 and SHA-384 known answers, master-secret derivation,
@@ -538,7 +538,7 @@ compiled SDK assembles each output block. The host supplies HMAC, the simulated
 heap, ROM byte routines and task/mutex services. Physical handshakes and runtime
 memory measurements remain separate acceptance steps.
 
-For an ELF built with a fixed shared PSA table, add `--fixed-slot-count 30`
+For an earlier 30-slot diagnostic ELF, use `--fixed-slot-count 30`
 to the `--expect fixed-import` command above, substituting the compiled
 count. This mode checks for zero table allocations at startup and on first
 use. It fills the table with distinct native keys and checks the next import

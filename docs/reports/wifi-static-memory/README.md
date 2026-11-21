@@ -1125,6 +1125,52 @@ checks verified the original 4 MiB flash, active and saved profile 943,
 laptop uplink, hotspot settings and firewall cleanup. The eight-removal
 stress case was exercised in the compiled replay.
 
+#### Fixed key table in the Wi-Fi build
+
+The one-station MQTT firmware now uses the SDK's native 32-slot PSA key
+table. Wi-Fi and TLS share that capacity. The previous image retained
+1,408 heap bytes at key-store initialization and another 704 on first use.
+The fixed build removed both requests. Its SDK/kernel static RAM increased by
+1,104 bytes. Key material and certificate arithmetic have separate lifetimes.
+
+| Linked region | Used | Limit | Free under limit |
+|---|---:|---:|---:|
+| Application | 147,431 | 147,456 | 25 |
+| SDK/kernel | 54,230 | 55,296 | 1,066 |
+| Total fixed DRAM | 276,414 | 278,528 | 2,114 |
+
+RV32 instruction replay on the preceding and new images used the same demo
+broker, root and configured hostname. The SDK performed signature and
+hostname verification with modeled hardware math, hashing and interrupts.
+Both images accepted the broker, rejected a wrong hostname and an empty
+trust list, then accepted the broker again. Calendar-date policy was unchanged.
+
+| Concurrent heap bytes in the replay | Previous | Fixed table |
+|---|---:|---:|
+| Peak while loading the configured CA | 3,439 | 1,327 |
+| Peak during peer-chain parsing | 3,006 | 894 |
+| Peak during trust verification | 5,946 | 3,834 |
+| Still live after certificate and peer-key cleanup | 2,112 | 0 |
+
+Both verifiers still made 492 requests during the verification phase. At the
+new peak, 48 live allocations from `mbedtls_mpi_grow` accounted for 2,768
+bytes. These multiple-precision integer buffers are the next TLS memory
+target. The 3,834 bytes are live requested payload in this replay and exclude
+allocator metadata and simultaneous network activity.
+
+A separate compiled key-store replay filled all 32 slots and checked that
+the next import failed with an empty handle. Releasing one slot allowed
+SHA-256 and SHA-384 derivations to succeed while the other 31 keys retained
+their contents. All 80 reference derivations and two known answers passed.
+The production ELF SHA-256 is
+`6ece6b3f77fcae976054d80cdeda20f0690a29f6ef8cf0f5f71f00253debe621`.
+
+The station-only configuration includes the pinned base crypto profile and
+selects its fixed table. Qualification checked the same configuration header
+in all 1,056 C and C++ compiler commands. Manual review checked configuration
+scope, include order, SDK type ownership and bounded exhaustion. The pinned
+347-file C gate and all 47 target qualification tests passed.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

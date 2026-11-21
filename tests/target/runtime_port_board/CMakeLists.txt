@@ -41,6 +41,7 @@ if(UTHOME_NETWORK_WIFI OR UTHOME_NETWORK_BLE)
     endif()
     if(UTHOME_NETWORK_WIFI)
         list(APPEND SDKCONFIG_DEFAULTS "wifi.defaults" "wifi-station.defaults")
+        add_compile_definitions(TF_PSA_CRYPTO_CONFIG_FILE="${CMAKE_CURRENT_LIST_DIR}/hal/psaconf.h")
         if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/app/netsetup.h" OR
            NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/network-power.defaults")
             message(FATAL_ERROR "Wi-Fi services require explicitly staged private network settings")

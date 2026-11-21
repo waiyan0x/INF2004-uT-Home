@@ -95,6 +95,7 @@ RUNTIME_SOURCE_FILES = {
     'firmware/hal/ports/esp32c3/network/c3tout.h': 'hal/c3tout.h',
     'firmware/hal/ports/esp32c3/network/c3ereg.c': 'hal/c3ereg.c',
     'firmware/hal/ports/esp32c3/network/c3ereg.h': 'hal/c3ereg.h',
+    'firmware/hal/ports/esp32c3/network/psaconf.h': 'hal/psaconf.h',
     'firmware/hal/ports/esp32c3/network/c3iface.c': 'hal/c3iface.c',
     'firmware/hal/ports/esp32c3/network/c3iface.h': 'hal/c3iface.h',
     'firmware/hal/ports/esp32c3/network/c3rx.c': 'hal/c3rx.c',
@@ -849,7 +850,24 @@ def verify_tls_output(work, enabled):
     symbols = {name: int(address, 16) for address, _, name in
                re.findall(r'^([0-9a-fA-F]+)\s+(\w)\s+(\S+)$', output, re.MULTILINE)}
     config_lines = (work / 'sdkconfig').read_text(encoding='utf-8').splitlines()
-    return check_tls_output(commands, symbols, enabled, config_lines)
+    result = check_tls_output(commands, symbols, enabled, config_lines)
+    header = (work / 'project/hal/psaconf.h').as_posix()
+    selected = 0
+    for entry in commands:
+        if Path(entry['file']).suffix.lower() not in ('.c', '.cc', '.cxx', '.cpp'):
+            continue
+        command = entry['command'].replace(chr(92) + '"', '"')
+        definitions = re.findall(r'-DTF_PSA_CRYPTO_CONFIG_FILE="([^"]*)"', command)
+        if enabled:
+            if definitions != [header]:
+                raise QualificationError("Inconsistent PSA configuration: " + entry['file'])
+            selected += 1
+        elif header in definitions:
+            raise QualificationError("Station PSA configuration outside Wi-Fi build")
+    if enabled and not selected:
+        raise QualificationError("Missing PSA compile inputs")
+    result['fixed_psa_compile_units'] = selected
+    return result
 
 
 def check_lwip_records(commands, symbols, enabled):
