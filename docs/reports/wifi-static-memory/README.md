@@ -1497,6 +1497,16 @@ two PEM bundle signers, three- and seven-certificate RSA fixtures, and TLS
 key derivation passed. The counts apply to this demo chain with the workspace
 available. Other chains and contention can use native storage.
 
+On the ESP, image `0fdf7177` returned three distinct 96-byte MQTT replies
+on one boot, after initial connection, broker restart and full TLS 1.2
+renegotiation. The broker transcript confirmed that both peers finished
+the handshake before the third reply. Full flash and USB profile 943 were
+restored and verified. The first USB read timed out after flashing. A read-only
+retry confirmed both profile revisions and checksums. The temporary hotspot
+and firewall rule were removed and the laptop retained its original uplink.
+Wi-Fi rekey overlap remains
+unmeasured.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
