@@ -96,13 +96,15 @@ storage. Authenticated MQTT recovered on the same boot.
 The Wi-Fi build uses a fixed 32-slot PSA key table and borrows the USB workspace
 for certificate arithmetic. The MQTT client reads its single demo CA directly
 from flash. CA loading peaks at 461 requested heap bytes and retains zero.
-Broker verification peaks at 433 bytes across 13 new requests. Both roots in
+A shared 160-byte modular-inverse buffer brings broker verification down to
+273 requested heap bytes at peak and five new requests. Both roots in
 a PEM bundle also passed verification using the SDK's ordinary parser.
 The remaining certificate heap, Wi-Fi driver allocations and whole-image
-heap trace are open. The flash-backed CA image returned three authenticated
+heap trace are open. The preceding flash-backed CA image returned three authenticated
 MQTT status replies on one ESP boot across broker restart and full TLS
-renegotiation. Eight modular inversions each needed a 160-byte temporary.
-They ran sequentially, so one fixed buffer is the next candidate.
+renegotiation. The largest remaining verifier requests are two 128-byte key
+objects with disjoint lifetimes.
+[Fixed modular-inverse buffer and measurements](docs/reports/wifi-static-memory/README.md#fixed-modular-inverse-buffer)
 [Flash-backed trust anchor and remaining allocations](docs/reports/wifi-static-memory/README.md#flash-backed-demo-trust-anchor)
 [Fixed integer buffers and compatibility tests](docs/reports/wifi-static-memory/README.md#fixed-integer-buffers-for-the-demo-broker)
 [Certificate arithmetic measurements](docs/reports/wifi-static-memory/README.md#elliptic-curve-window-for-the-demo-broker)

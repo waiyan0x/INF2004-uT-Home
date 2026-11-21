@@ -10,15 +10,19 @@
 #include "mbedtls/platform_util.h"
 #include "tf_psa_crypto_common.h"
 
-#define C3PEER_NODES     4U
-#define C3PEER_SLOTS     32U
-#define C3PEER_WORDS     24U
-#define C3PEER_P256_BITS 256U
+#define C3PEER_NODES          4U
+#define C3PEER_SLOTS          32U
+#define C3PEER_WORDS          24U
+#define C3PEER_P256_BITS      256U
+#define C3PEER_INVERSE_FACTOR 5U
 
 typedef struct
 {
     uint32_t words[C3PEER_SLOTS][C3PEER_WORDS];
     uint32_t used;
+    /* The SDK uses five 256-bit vectors for one P-256 modular inverse. */
+    uint32_t inverse[C3PEER_INVERSE_FACTOR * (C3PEER_P256_BITS / 32U)];
+    bool     b_inverse_used;
 } c3peer_math_t;
 
 typedef union
@@ -150,9 +154,10 @@ int c3peer_verify (mbedtls_x509_crt *               p_chain,
         (C3PEER_P256_BITS == mbedtls_pk_get_bitlen(&p_ca->pk));
     if (b_lend)
     {
-        const uint32_t saved = c3bport_enter();
-        g_store.math.used    = 0U;
-        gh_verifier          = h_task;
+        const uint32_t saved        = c3bport_enter();
+        g_store.math.used           = 0U;
+        g_store.math.b_inverse_used = false;
+        gh_verifier                 = h_task;
         c3bport_leave(saved);
     }
     const int result = mbedtls_x509_crt_verify_restartable(p_chain,
@@ -173,10 +178,24 @@ int c3peer_verify (mbedtls_x509_crt *               p_chain,
     return result;
 }
 
-/** @brief Supply zeroed RV32 integer limbs only to the verifying task. */
+/** @brief Supply zeroed integer storage only to the verifying task. */
 void * c3peer_limbs (size_t count, size_t size)
 {
-    if ((sizeof(uint32_t) != size) || (!owns_math()))
+    if (!owns_math())
+    {
+        return mbedtls_calloc(count, size);
+    }
+    if (((C3PEER_P256_BITS / 8U) == count) && (C3PEER_INVERSE_FACTOR == size))
+    {
+        if (g_store.math.b_inverse_used)
+        {
+            return NULL;
+        }
+        g_store.math.b_inverse_used = true;
+        memset(g_store.math.inverse, 0, sizeof(g_store.math.inverse));
+        return g_store.math.inverse;
+    }
+    if (sizeof(uint32_t) != size)
     {
         return mbedtls_calloc(count, size);
     }
@@ -232,6 +251,12 @@ static bool release_limb (void * p_memory)
 {
     if ((NULL != p_memory) && (owns_math()))
     {
+        if (p_memory == g_store.math.inverse)
+        {
+            mbedtls_platform_zeroize(p_memory, sizeof(g_store.math.inverse));
+            g_store.math.b_inverse_used = false;
+            return true;
+        }
         for (size_t index = 0U; index < C3PEER_SLOTS; ++index)
         {
             if (p_memory == g_store.math.words[index])

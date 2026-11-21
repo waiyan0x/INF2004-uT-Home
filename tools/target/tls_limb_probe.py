@@ -31,6 +31,7 @@ def measure(elf, pem):
     retained = dict(probe.live)
     workspace = run('c3peer_views')
     assert workspace
+    cpu.mem_write(workspace, bytes([0xa5]) * 4096)
     run('c3peer_close')
 
     # Stop at entry to the SDK verifier with the real wrapper's lease active.
@@ -63,12 +64,36 @@ def measure(elf, pem):
     assert len(set(slots)) == 32 and probe.live == retained
     assert run('c3peer_limbs', 1, 4) == 0
 
+    # The inverse scratch can coexist with all 32 regular limb slots.
+    inverse = run('c3peer_limbs', 32, 5)
+    assert workspace <= inverse <= workspace + 4096 - 160 and inverse % 4 == 0
+    assert all(pointer + 96 <= inverse or inverse + 160 <= pointer for pointer in slots)
+    assert not any(cpu.mem_read(inverse, 160))
+    marker_bytes = bytes(range(160))
+    cpu.mem_write(inverse, marker_bytes)
+    assert run('c3peer_limbs', 32, 5) == 0 and probe.live == retained
+
+    # A different factor uses the SDK even if the product is also 160 bytes.
+    other = run('c3peer_limbs', 16, 10)
+    assert other != inverse and probe.live[other] == 160
+    run('c3peer_drop', other)
+
     # A different native task still owns its own allocations during verification.
     probe.task_id = 2
     foreign = run('c3peer_limbs', 24, 4)
     assert probe.live[foreign] == 96 and foreign not in slots
     run('c3peer_wipe', foreign, 96)
+    other = run('c3peer_limbs', 32, 5)
+    assert other != inverse and probe.live[other] == 160
+    run('c3peer_wipe', other, 160)
     probe.task_id = 1
+    assert cpu.mem_read(inverse, 160) == marker_bytes
+    run('c3peer_drop', inverse)
+    assert not any(cpu.mem_read(inverse, 160))
+    assert run('c3peer_limbs', 32, 5) == inverse
+    cpu.mem_write(inverse, marker_bytes)
+    run('c3peer_wipe', inverse, 160)
+    assert not any(cpu.mem_read(inverse, 160))
     for marker, pointer in enumerate(slots, 1):
         assert cpu.mem_read(pointer, 96) == bytes([marker]) * 96
     run('c3peer_drop', slots[0])
@@ -90,7 +115,7 @@ def measure(elf, pem):
     run('mbedtls_x509_crt_free', chain)
     assert not probe.live
     return dict(elf_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(), slots=len(slots),
-                slot_bytes=96, exhaustion_verified=True, foreign_task_verified=True,
+                slot_bytes=96, inverse_bytes=160, exhaustion_verified=True, foreign_task_verified=True,
                 release_verified=True, simulated_verifier_return=-0x2700)
 
 

@@ -341,7 +341,12 @@ uses native allocation. The SDK decides trust and checks the hostname.
 Only the verifier's native task uses the slots in the pinned crypto
 `bignum.c`. Each slot is aligned for the SDK's 32-bit limb type. A count
 above 24 or a full bitmap returns NULL. Both SDK release paths clear the
-entire slot before reuse. Other allocation shapes and other tasks retain
+entire slot before reuse. The SDK's modular inverse asks for five vectors
+of 32 bytes for the P-256 issuer. A separate 40-word aligned array in the
+same union supplies this exact request. The verifier resets its occupancy
+flag when it acquires the union from USB or the certificate parser. Both
+release paths clear all 160 bytes. A second concurrent inverse request
+returns NULL. Other allocation shapes and other tasks retain
 their SDK allocator and matching release. The native P-256 verification
 cleans up its temporary limbs synchronously before the wrapper returns.
 The parser's bounded four-node count fits in one byte. The build checks

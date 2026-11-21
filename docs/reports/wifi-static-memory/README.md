@@ -1351,8 +1351,7 @@ payload and exclude allocator overhead. The image (`be2aa3ef`) uses
 
 A replay of these 13 requests traced all eight 160 B allocations to
 `mbedtls_mpi_gcd_modinv_odd`. Each call requested 32 elements of 5 bytes.
-Only one of the eight allocations was live at a time. This is the next
-candidate for a fixed temporary in the verifier's existing workspace.
+Only one of the eight allocations was live at a time.
 
 On the ESP, the same image returned three distinct 96-byte authenticated
 MQTT status replies on one boot. The first preceded a broker restart, the
@@ -1363,6 +1362,33 @@ verified before installation and again after restoration. Active and saved
 profile 943, the laptop uplink, hotspot settings and firewall cleanup were
 verified. The board trial measured connection recovery. Heap counts above
 come from the compiled replay.
+
+##### Fixed modular-inverse buffer
+
+The pinned P-256 verifier now borrows 160 bytes inside its existing 4 KiB
+USB workspace for modular inversion. In the linked firmware test, all 32
+ordinary limb slots and this buffer could be occupied at once. Reuse, full
+clearing, a different task requesting the same shape, and a different shape
+with the same total size all passed. Holding the inverse buffer caused the
+actual verifier to reject the certificate. The next verification succeeded.
+
+| Demo certificate verification | Flash-backed CA | With fixed inverse buffer |
+|---|---:|---:|
+| Peak live heap payload | 433 B | 273 B |
+| New heap requests | 13 | 5 |
+
+The five remaining requests were two 128 B elliptic-curve keypair objects,
+two 48 B multiplication workspaces and one 65 B key allocation. The two
+keypair objects were live at different times. An additional 32 B of peer
+certificate data was already live on entry. In its separate phase, CA loading
+still peaked at 461 B across nine temporary requests and retained zero bytes.
+
+On ELF `45331915`, wrong hostname, damaged signature, empty trust, retry
+and cleanup passed. Both independently signed peers verified using the
+two-root PEM bundle. With the USB parser holding the workspace, verification
+succeeded and its 4 KiB contents were preserved. That path peaked at 1,681 B.
+The image (`89af55cb`) used 147,432 / 147,456 B application fixed RAM
+and 276,422 / 278,528 B total fixed DRAM.
 
 #### Fixed-slot certificate verification experiment
 
