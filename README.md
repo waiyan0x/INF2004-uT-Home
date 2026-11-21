@@ -100,10 +100,11 @@ A shared 160-byte modular-inverse buffer brings broker verification down to
 273 requested heap bytes at peak and five new requests. Both roots in
 a PEM bundle also passed verification using the SDK's ordinary parser.
 The remaining certificate heap, Wi-Fi driver allocations and whole-image
-heap trace are open. The preceding flash-backed CA image returned three authenticated
+heap trace are open. The fixed inverse-buffer image returned three authenticated
 MQTT status replies on one ESP boot across broker restart and full TLS
 renegotiation. The largest remaining verifier requests are two 128-byte key
-objects with disjoint lifetimes.
+objects with disjoint lifetimes. The same key type also appears during CA and
+peer parsing.
 [Fixed modular-inverse buffer and measurements](docs/reports/wifi-static-memory/README.md#fixed-modular-inverse-buffer)
 [Flash-backed trust anchor and remaining allocations](docs/reports/wifi-static-memory/README.md#flash-backed-demo-trust-anchor)
 [Fixed integer buffers and compatibility tests](docs/reports/wifi-static-memory/README.md#fixed-integer-buffers-for-the-demo-broker)

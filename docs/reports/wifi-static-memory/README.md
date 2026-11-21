@@ -1390,6 +1390,18 @@ succeeded and its 4 KiB contents were preserved. That path peaked at 1,681 B.
 The image (`89af55cb`) used 147,432 / 147,456 B application fixed RAM
 and 276,422 / 278,528 B total fixed DRAM.
 
+A separate replay traced one 128 B keypair object in each of CA parsing and
+peer parsing. It was live at the 461 B peak in both phases. These allocations
+occur outside the verifier's workspace lease. A fixed keypair design must
+account for the parser's USB and peer-chain ownership as well as verification.
+
+On the USB-connected ESP, image `89af55cb` returned three distinct 96-byte
+authenticated status replies on the same boot, before the broker restart,
+after reconnection and after full server-requested TLS 1.2 renegotiation.
+The reconnected socket completed two full handshakes. The original 4 MiB
+flash, active and saved profile 943, laptop uplink, saved hotspot settings
+and removal of the temporary firewall rule were independently verified.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
