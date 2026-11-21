@@ -100,8 +100,9 @@ On the compiled demo image, CA parsing, peer parsing and broker verification
 each make zero heap requests when the certificate workspace is available.
 The subsequent import of the broker public key into the handshake context
 also makes zero heap requests with the workspace available. The imported
-key remains usable after the workspace returns to USB. The preceding
-fixed-name image passed broker restart and TLS renegotiation on the ESP.
+key remains usable after the workspace returns to USB. The fixed-key
+import image returned three authenticated MQTT replies on one ESP boot across
+broker restart and full TLS renegotiation.
 Whole-handshake and Wi-Fi heap qualification remain open.
 [Handshake public-key import](docs/reports/wifi-static-memory/README.md#handshake-public-key-import)
 [Fixed peer certificate names](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-names)

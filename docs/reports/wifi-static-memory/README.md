@@ -1589,6 +1589,13 @@ three- and seven-certificate RSA controls passed. Fixed RAM stayed at
 147,432 of 147,456 application bytes and 276,422 of 278,528 total DRAM bytes.
 The measurements cover four certificate-related phases of the demo handshake.
 
+On the ESP, image `991202b6` returned three distinct authenticated 96-byte MQTT
+replies on one boot. The broker transcript confirmed a reconnect after broker
+restart and a full server-requested TLS 1.2 renegotiation before the third
+reply. The full original flash, active and saved profile 943, laptop uplink,
+hotspot settings and firewall rule cleanup were independently verified. Wi-Fi
+group-key renewal overlap remains unmeasured.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
