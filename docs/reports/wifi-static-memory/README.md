@@ -896,6 +896,23 @@ The 19 queue/adapter tests and 47 qualification tests passed. Manual BARR-C
 review covered type alignment, pointer lifetime, queue index ranges, mutex
 handoff and interrupt exclusion. The project supports one default station.
 
+**Physical verification on 21 November.** The USB-connected ESP32-C3 ran
+image `9fa302b58ebaaee68ce3d9d1ffe063befed75c3fc69b3c7b90abfdb5c218898c`.
+The BMP388 chip ID and pressure read and the LD2450 16- and 32-byte reads
+each ran before and after a TLS broker restart. All eight results matched
+their MQTT replies on the same boot. At completed requests 8 and 16,
+the debugger followed the registry to the station and read its five member
+pointers. All six addresses matched the ELF at both stops. The active
+station also held its fixed multicast membership. The original 4 MiB
+flash, active and saved profile 943 and host network settings verified
+after restoration.
+
+Next, account for the remaining 8-byte registry node and the 316 bytes
+previously measured in the default event loop. The map has 353 bytes of
+application headroom, of which 255 are available under the current module
+reservations. The event payload lifetime, TLS certificate path and Wi-Fi
+driver inventory still need separate verification.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

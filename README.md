@@ -79,7 +79,9 @@ after that restart.
 The default station constructor now uses fixed storage for the interface,
 both IP records, the lwIP interface, its key and its description. Replaying
 the compiled constructor reduced retained heap payload from 237 to 8 bytes.
-The application has 353 fixed bytes free. The registry list node, SDK event
+On the ESP, eight BMP388 and LD2450 results matched the MQTT replies across
+a broker restart. All six records stayed at their linked addresses on the
+same boot. The application has 353 fixed bytes free. The registry list node, SDK event
 loop, event payloads, certificate allocations and driver inventory remain open.
 [Station interface storage and RAM budget](docs/reports/wifi-static-memory/README.md#fixed-station-interface-and-identifiers)
 [Wi-Fi startup and reconnect heap callers](docs/reports/wifi-static-memory/README.md#wi-fi-startup-and-broker-reconnect-heap-callers)
