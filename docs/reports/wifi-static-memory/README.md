@@ -1001,6 +1001,32 @@ ranges, lease lifetime across operations, bounded loops, and restoring the
 interrupt state before forwarding a posted payload to libc. The full C gate
 checked 346 files. These bounds apply to the single demo loop.
 
+On 21 November 2026 the ESP32-C3 ran image
+`d38adaf1dd5212fd41e6ecba4f101d585e39c9bb1020051a075dfd2786cc218c`.
+The board connected to the authenticated MQTT broker on the normal profile,
+reconnected after the first broker restart, then switched to idle on the same
+boot. It completed one BMP388 chip-ID read, one 16-byte radar read, one BMP388
+raw-pressure read and one 32-byte radar read. After a second broker restart
+it completed the same four reads again. All eight results matched their MQTT
+wire replies. Four debugger snapshots, one on each side of each restart,
+showed the same 27 event records and parent links. Every address matched an
+occupied slot in the linked image. MQTT status confirmed the boot identity
+throughout and the final completed request ID was 16.
+
+Two separate trials with the same image connected on the normal profile and
+confirmed the idle profile was saved. Both timed out waiting for MQTT status
+after rebooting into saved idle, before any sensor read. During the second
+timeout the board reported Wi-Fi authentication expiry (reason 2), no IP
+address and MQTT off. All 27 records occupied their expected slots and the
+debugger observed no event-record allocation refusal during that interval.
+The cause of the timeout remains open. Each of the three trials ended with
+a verified full 4 MiB flash restoration, the original active and saved
+profile (revision 943), and the laptop network settings restored.
+
+The next measurement is the size and simultaneous count of queued event
+bodies during Wi-Fi startup and reconnect on the one-broker workload. The
+fixed record results above cover the registration tree only.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

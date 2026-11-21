@@ -84,9 +84,12 @@ results verified on one boot.
 The SDK default event loop and its registration tree now have fixed storage.
 The compiled firmware created all 27 records, replaced a handler and cleaned
 up eight simultaneous deferred removals without using the general heap for
-registration records. Queued event bodies still use the heap. Application
-headroom is 99 bytes. TLS certificate work and Wi-Fi driver allocations
-also remain open.
+registration records. On the ESP, all 27 records kept their fixed addresses
+across two broker restarts and a live switch to idle. Eight BMP388 and radar
+reads passed on that boot. Two separate reboots into saved idle timed out
+before the first read. Application headroom is 99 bytes. Next, measure the
+size and number of queued Wi-Fi event bodies that are live at the same time.
+TLS certificate work and Wi-Fi driver allocations also remain open.
 [Fixed SDK event records](docs/reports/wifi-static-memory/README.md#fixed-sdk-event-records)
 [Station interface storage and board results](docs/reports/wifi-static-memory/README.md#fixed-station-interface-and-identifiers)
 [Default event-handler replacement](docs/reports/wifi-static-memory/README.md#default-event-handler-replacement)
