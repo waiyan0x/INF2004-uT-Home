@@ -160,6 +160,26 @@ def measure(elf, pem):
         assert run('c3peer_key', 1, key_bytes) == key
         run('c3peer_key_free', key)
 
+    if 'c3peer_points' in probe.symbols:
+        table = run('c3peer_points', 2, 24)
+        assert workspace <= table <= workspace + 4096 - 48 and table not in probe.live
+        assert not any(cpu.mem_read(table, 48)) and not run('c3peer_points', 2, 24)
+        marker_bytes_table = bytes(range(48))
+        cpu.mem_write(table, marker_bytes_table)
+        other = run('c3peer_points', 1, 48)
+        assert other != table and probe.live[other] == 48
+        run('c3peer_points_free', other)
+        probe.task_id = 2
+        other = run('c3peer_points', 2, 24)
+        assert other != table and probe.live[other] == 48
+        run('c3peer_points_free', other)
+        probe.task_id = 1
+        assert cpu.mem_read(table, 48) == marker_bytes_table
+        run('c3peer_points_free', table)
+        assert not any(cpu.mem_read(table, 48))
+        assert run('c3peer_points', 2, 24) == table
+        run('c3peer_points_free', table)
+
     # A different factor uses the SDK even if the product is also 160 bytes.
     other = run('c3peer_limbs', 16, 10)
     assert other != inverse and probe.live[other] == 160
@@ -202,6 +222,7 @@ def measure(elf, pem):
     run('mbedtls_x509_crt_free', chain)
     assert not probe.live
     return dict(elf_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(), slots=len(slots),
+                point_table_bytes=48 if 'c3peer_points' in probe.symbols else 0,
                 slot_bytes=96, inverse_bytes=160, key_bytes=key_bytes,
                 public_data_bytes=65 if 'c3peer_import' in probe.symbols else 0, exhaustion_verified=True, foreign_task_verified=True,
                 release_verified=True, simulated_verifier_return=-0x2700)

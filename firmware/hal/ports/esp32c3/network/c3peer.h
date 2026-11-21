@@ -34,6 +34,8 @@ void c3peer_psa_free (void * p_memory);
 void c3peer_psa_wipe (void * p_memory, size_t size);
 void * c3peer_key (size_t count, size_t size);
 void c3peer_key_free (void * p_memory);
+void * c3peer_points (size_t count, size_t size);
+void c3peer_points_free (void * p_memory);
 void * c3peer_limbs (size_t count, size_t size);
 void c3peer_drop (void * p_memory);
 void c3peer_wipe (void * p_memory, size_t size);

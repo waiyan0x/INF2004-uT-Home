@@ -12,6 +12,13 @@
 #include "mbedtls/platform_util.h"
 #include "tf_psa_crypto_common.h"
 
+/* The table must be local to one synchronous multiplication. */
+#if (MBEDTLS_ECP_FIXED_POINT_OPTIM != 0) ||                                    \
+    defined(MBEDTLS_ECP_RESTARTABLE) || (MBEDTLS_ECP_WINDOW_SIZE != 2)
+#error "Review certificate point-table ownership for this EC configuration."
+#endif
+
+#define C3PEER_POINTS         2U
 #define C3PEER_NODES          4U
 #define C3PEER_SLOTS          32U
 #define C3PEER_WORDS          24U
@@ -29,9 +36,11 @@ typedef struct
     bool                b_key_used;
     bool                b_verify;
     /* SEC 1 uncompressed point: one format byte and two 256-bit coordinates. */
-    uint8_t public_data[1U + (2U * (C3PEER_P256_BITS / 8U))];
-    bool    b_import;
-    bool    b_data_used;
+    uint8_t           public_data[1U + (2U * (C3PEER_P256_BITS / 8U))];
+    bool              b_import;
+    bool              b_data_used;
+    mbedtls_ecp_point points[C3PEER_POINTS];
+    bool              b_points_used;
 } c3peer_math_t;
 
 typedef union
@@ -296,6 +305,35 @@ void c3peer_key_free (void * p_memory)
     mbedtls_free(p_memory);
 }
 
+/** @brief Lend the synchronous verifier its two-point multiplication table. */
+void * c3peer_points (size_t count, size_t size)
+{
+    if ((C3PEER_POINTS != count) || (sizeof(mbedtls_ecp_point) != size) ||
+        (!owns_crypto()) || (!g_store.math.b_verify))
+    {
+        return mbedtls_calloc(count, size);
+    }
+    if (g_store.math.b_points_used)
+    {
+        return NULL;
+    }
+    g_store.math.b_points_used = true;
+    memset(g_store.math.points, 0, sizeof(g_store.math.points));
+    return g_store.math.points;
+}
+
+/** @brief Release the table after the SDK frees each point's coordinates. */
+void c3peer_points_free (void * p_memory)
+{
+    if (p_memory == g_store.math.points)
+    {
+        mbedtls_platform_zeroize(p_memory, sizeof(g_store.math.points));
+        g_store.math.b_points_used = false;
+        return;
+    }
+    mbedtls_free(p_memory);
+}
+
 /** @brief Supply zeroed integer storage only to the verifying task. */
 void * c3peer_limbs (size_t count, size_t size)
 {
@@ -370,6 +408,7 @@ static bool borrow_crypto (bool b_verify)
         g_store.math.b_verify    = b_verify;
         if (b_verify)
         {
+            g_store.math.b_points_used  = false;
             g_store.math.used           = 0U;
             g_store.math.b_inverse_used = false;
         }

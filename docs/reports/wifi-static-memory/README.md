@@ -1478,6 +1478,25 @@ elliptic-curve point table in the pinned SDK's `ecp.c` at line 2234. Its
 general path can transfer table ownership to the group or restart context.
 A fixed slot for the demo needs to preserve those lifetimes.
 
+##### Fixed verifier point table
+
+On the compiled demo image, broker certificate verification made zero new
+heap requests. Its peak dropped from 80 to 32 requested bytes. Both 16-byte
+subject alternative name records allocated by the peer parser were still
+live at entry. The verifier performed the same 7,519 hardware multiply
+operations in the target replay. Each parser still peaks at 268 bytes.
+The peer parser made seven temporary integer allocations and kept the two
+name records until certificate cleanup. Each of its nine allocation failures
+was tested independently and the parser recovered.
+
+The two-point table fits in the existing USB workspace. Application fixed
+RAM remains 147,432 of 147,456 bytes and total DRAM remains 276,422 of
+278,528 bytes. An occupied table rejected verification, then a fresh attempt
+passed. Foreign-task isolation, USB contention, certificate rejection,
+two PEM bundle signers, three- and seven-certificate RSA fixtures, and TLS
+key derivation passed. The counts apply to this demo chain with the workspace
+available. Other chains and contention can use native storage.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

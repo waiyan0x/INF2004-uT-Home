@@ -362,6 +362,17 @@ Parsing leaves integer allocations with the SDK. A busy workspace keeps the
 existing trust-parser and verifier behavior. A live USB tree still rejects a
 peer parse, as required by its existing contract.
 
+Only the pinned `ecp.c` receives the two-point table allocation and free
+bindings. The verifier owns an aligned array of two SDK point records.
+The compile-time guard requires window size two, disabled group caching
+and synchronous arithmetic. In this configuration the SDK frees both
+points and their coordinates before releasing the table. The exact-pointer
+release clears the array. A second simultaneous loan fails and other
+tasks, sizes and certificate paths retain the SDK allocator. The union
+size check covers the typed array. Manual C review checked allocation factors,
+alignment, ownership, error cleanup and interrupt scope. No kernel object
+or coding-standard deviation was added.
+
 Only the pinned `psa_crypto_ecp.c` gets the key allocation and release
 bindings. The owner can request one exact SDK keypair. A second simultaneous
 request returns NULL. Other tasks and allocation shapes use the native heap.
