@@ -1226,6 +1226,31 @@ messages in each direction. The peer observed 2.11 seconds from the
 renegotiation request to completion in this single trial. Full 4 MiB flash
 verification, saved and active profile 943, and host network cleanup passed.
 
+##### Fixed integer-buffer experiment
+
+A separate RV32 trial intercepted only integer-buffer allocations during
+the compiled trust verifier call. It lent the verifier the last 1,484 bytes
+of the existing 4,096-byte USB workspace and checked that the first 2,612
+bytes retained their guard pattern. In the emulator, the slots had these
+four-byte-aligned payload sizes.
+
+| Bytes per slot | 4 | 32 | 64 | 68 | 72 |
+|---|---:|---:|---:|---:|---:|
+| Slots | 2 | 8 | 3 | 13 | 2 |
+
+On the valid P-256 demo certificate, the verifier used the slots for 431
+of its 444 requests. The 13 remaining heap requests took the total live
+heap payload to 866 bytes, including the already parsed CA and peer chain.
+Refusing integer storage caused verification to fail and preserved the
+pre-call live allocations. Restoring the slots allowed the same verifier
+to succeed. Wrong hostname, empty trust and altered signature also failed,
+and all slots were free and zeroed after release.
+
+This experiment modeled allocation, release and slot bookkeeping outside
+the firmware. On the board, verification still uses the SDK heap. A firmware
+implementation must coordinate USB and intermediate-certificate ownership
+and isolate allocations made by other crypto callers.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
