@@ -82,7 +82,10 @@ class ConnectProbe(OutputProbe):
         assert self.tls['wset'] - self.tls['rset'] == 8
         assert self.tls['is_tls'] - self.tls['wset'] == 8
         self.socket_bit = 1 << 54
-        self.hook(self.symbols['select'], self.select)
+        self.readiness = {self.symbols[name]: name for name in ('select', 'lwip_select')
+                          if name in self.symbols}
+        for address in self.readiness:
+            self.hook(address, self.select)
         self.hook(self.symbols['lwip_getsockopt'], self.socket_error)
         self.hook(self.symbols['esp_create_mbedtls_handle'], self.create)
         self.hook(self.symbols['esp_mbedtls_handshake'], self.handshake)
@@ -111,7 +114,8 @@ class ConnectProbe(OutputProbe):
         pointers = [self.uc.reg_read(reg) for reg in (UC_RISCV_REG_A1, UC_RISCV_REG_A2)]
         inputs = [int.from_bytes(self.uc.mem_read(pointer, 8), 'little') for pointer in pointers]
         ready = self.remaining == 0
-        self.polls.append({'ready': ready, 'read_set': hex(inputs[0]), 'write_set': hex(inputs[1])})
+        self.polls.append({'target': self.readiness[self.uc.reg_read(UC_RISCV_REG_PC)],
+                           'ready': ready, 'read_set': hex(inputs[0]), 'write_set': hex(inputs[1])})
         if self.remaining:
             self.remaining -= 1
         result = ready and bool(inputs[self.ready_set] & self.socket_bit)

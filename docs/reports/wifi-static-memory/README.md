@@ -38,6 +38,26 @@ aggregate headroom by 7,598 bytes. This evidence justifies identifying the
 vendor receive ring under the driver exception. The TCP/IP stack, socket
 dispatch, event system and cryptographic services require independent evidence.
 
+### Socket readiness during MQTT TLS connection
+
+The MQTT client gives ESP-TLS a single lwIP socket. The pinned VFS
+`select` implementation requests an array of descriptor sets and an
+array of driver arguments on each valid call. The fixed Wi-Fi build now
+calls `lwip_select` directly from `esp_tls.c`. lwIP receives the same
+socket descriptor, read/write sets and timeout. Other translation units
+retain their existing dispatch.
+
+Both readiness call sites in the ESP-TLS object resolve to `lwip_select`.
+Twelve RV32 emulation cases on each ELF covered immediate readiness and
+one or three timeouts followed by read or write readiness through the SDK
+and the application adapter. All outcomes and descriptor sets matched.
+The readiness result and TLS handshake were test doubles. The candidate
+image SHA-256 is `db389843c32ccc9777086b22e58e18797a1888ccb990625bce96f62ab43a2d16`. All fixed RAM
+groups matched the control, including 147,440 bytes of application data
+and 276,430 bytes of total DRAM. On-board connection and restart acceptance
+for this image is pending. Per-thread socket semaphores and hardware
+cryptography have separate allocation paths.
+
 ### Tribunal static-memory check, 20 November 2026
 
 **The demo firmware fails the no-application-heap requirement.** The tribunal

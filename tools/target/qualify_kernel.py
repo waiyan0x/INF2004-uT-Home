@@ -704,10 +704,10 @@ def check_tls_storage(commands, symbols, enabled):
     for entry in commands:
         name = Path(entry["file"]).name
         found = re.findall(r'(?:^|\s)-D\s*"?(calloc|free|strndup)=(c3tls_\w+)"?', entry["command"])
-        found += re.findall(r'(?:^|\s)-D\s*"?(lwip_getaddrinfo|lwip_freeaddrinfo|mbedtls_x509_crt_parse)=([^\s"]+)"?', entry["command"])
+        found += re.findall(r'(?:^|\s)-D\s*"?(lwip_getaddrinfo|lwip_freeaddrinfo|mbedtls_x509_crt_parse|select)=([^\s"]+)"?', entry["command"])
         expected = bindings if enabled and name in sources else {}
         if enabled and name == "esp_tls.c":
-            expected = bindings | endpoint
+            expected = bindings | endpoint | {"select": "lwip_select"}
         if enabled and name == "esp_tls_mbedtls.c":
             expected = bindings | trust
         if dict(found) != expected or len(found) != len(expected):

@@ -472,7 +472,7 @@ class QualificationTests(unittest.TestCase):
             'esp_tls_internal_event_tracker_capture': 'c3tls_error_capture',
             'esp_tls_get_and_clear_error_type': 'c3tls_error_get',
         }
-        endpoint = ' -Dlwip_getaddrinfo=c3mqtt_resolve -Dlwip_freeaddrinfo=c3mqtt_release'
+        endpoint = ' -Dlwip_getaddrinfo=c3mqtt_resolve -Dlwip_freeaddrinfo=c3mqtt_release -Dselect=lwip_select'
         commands[0]['command'] += endpoint
         trust = ' -Dmbedtls_x509_crt_parse=c3mqtt_trust'
         commands[1]['command'] += trust
