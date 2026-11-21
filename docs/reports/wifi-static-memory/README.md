@@ -1563,6 +1563,13 @@ the native allocator. USB contention, PEM signers, three- and seven-certificate
 RSA fixtures and TLS key derivation passed. Fixed application RAM stayed at
 147,432 of 147,456 bytes and total DRAM at 276,422 of 278,528 bytes.
 
+Image `6dd4ac65` returned three authenticated 96-byte MQTT replies on one ESP
+boot across initial connection, broker restart and full TLS 1.2 renegotiation.
+The broker transcript confirmed both peers finished the handshake before the
+last reply. Restoration checks covered the full 4 MiB flash, active and saved
+profile 943, original laptop uplink, hotspot settings and temporary firewall
+rule removal. Wi-Fi group-key overlap remains unmeasured.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
