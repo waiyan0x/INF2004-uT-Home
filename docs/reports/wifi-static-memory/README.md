@@ -10,6 +10,43 @@ full-profile setup/recovery uses USB. The host Desk and Home Assistant web
 interfaces remain available. No Wi-Fi-driver exception automatically exempts
 TLS, TCP/IP or ESP-TLS contexts.
 
+### Controller semaphore and demo-broker certificate measurements, 22 November 2026
+
+On the ESP32-C3, station startup reserved the controller's lwIP semaphore
+before network initialization. The 84-byte record, handle and owner used 92
+bytes. Firmware `c41198a8` from source `a007e97` obtained a DHCP address and
+made two connection attempts to a closed endpoint. Three USB samples showed
+zero kernel allocator calls at startup and during service, and zero kernel
+objects created after startup. Normal SDK allocation counts rose from 133 to
+182. The debugger failed to attach before reading the live semaphore address.
+The original 4 MiB flash and both profile CRCs verified after restoration.
+
+A separate broker-configured candidate combined that semaphore with two fixed
+AES contexts and software SHA. The linked image used 274,676 of 278,528 DRAM
+bytes and 146,974 of 147,456 application bytes. The binary SHA-256 was
+`a63c89cfe9bbee8b210584928ff52aef7c283089a752924d33b5e68130ca647d`.
+The compiled certificate replay used the provisioned P-256 broker and trust
+anchor. It executed software SHA and the SDK signature verifier, with the RSA
+peripheral's integer products, completion interrupt and ROM primitives modeled.
+
+| Replay operation | Peak tracked heap payload | Requests |
+|---|---:|---:|
+| Load anchor, parse leaf, verify with workspace available | 0 bytes | 0 |
+| Verify while USB holds the 4,096-byte parser workspace | 1,649 bytes | 444 |
+| Copy the public key through the SDK parser directly | 461 bytes | 9 |
+
+The verifier rejected a wrong hostname, a corrupted signature, an empty trust
+list and exhausted fixed integer slots. The forced USB overlap preserved all
+4,096 USB bytes on two consecutive verifications. Releasing the workspace
+restored zero-request verification. All tracked allocations were released.
+The direct key-copy measurement exercises a separate SDK entry point. The
+ordinary USB/MQTT scheduling evidence is documented under
+[USB validation during MQTT TLS](#usb-validation-during-mqtt-tls).
+
+The emulator measures the instrumented certificate allocator. Physical
+authentication, broker restart, TLS renegotiation and attribution of the
+remaining SDK calls on this combined image are still open.
+
 ### Wi-Fi receive ring on the demo image, 22 November 2026
 
 The tribunal change request permits a justified Wi-Fi-driver exemption. The
