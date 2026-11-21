@@ -311,6 +311,15 @@ whole workspace from open through close. A live view tree rejects a peer parse,
 and a live intermediate rejects a new tree. USB transport buffers and the
 configured trust anchor have separate lifetimes.
 
+The boot configuration identifies a single provisioned DER trust anchor by its
+encoding, pointer and full length. ESP-TLS borrows that exact flash object
+through cleanup and reconnect. The format flag occupies padding after the
+broker port. The generator sets it only for a single decoded certificate.
+Other inputs, including a complete PEM bundle or a different caller's DER,
+use the native copying parser. Peer-chain handling, hostname verification and
+signature checks remain with mbedTLS. The wrapper introduces no writable
+buffer, allocation, cast, synchronization or new SDK exception.
+
 The no-copy peer parser requests a node before parsing each additional
 certificate. Only its owning task can claim that allocation in `x509_crt.c`.
 The SDK links, verifies, zeroes and releases its own chain, including failed

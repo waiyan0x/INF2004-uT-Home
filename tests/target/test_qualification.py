@@ -474,7 +474,9 @@ class QualificationTests(unittest.TestCase):
         }
         endpoint = ' -Dlwip_getaddrinfo=c3mqtt_resolve -Dlwip_freeaddrinfo=c3mqtt_release'
         commands[0]['command'] += endpoint
-        names = ['c3tls_alloc', 'c3tls_free', 'c3tls_dup', 'c3mqtt_resolve', 'c3mqtt_release', *aliases.values(),
+        trust = ' -Dmbedtls_x509_crt_parse=c3mqtt_trust'
+        commands[1]['command'] += trust
+        names = ['c3tls_alloc', 'c3tls_free', 'c3tls_dup', 'c3mqtt_resolve', 'c3mqtt_release', 'c3mqtt_trust', *aliases.values(),
                  'esp_tls_init', 'esp_tls_conn_destroy', 'esp_mbedtls_cleanup']
         symbols = {name: 0x42001000 + index * 32 for index, name in enumerate(names)}
         symbols.update({'__wrap_' + original: symbols[owned] for original, owned in aliases.items()})
@@ -486,7 +488,9 @@ class QualificationTests(unittest.TestCase):
                         [commands[0], dict(commands[1], command='gcc' + flags + ' -Dfree=c3tls_free')]):
             with self.subTest(commands=damaged), self.assertRaises(qualification.QualificationError):
                 qualification.check_tls_storage(damaged, symbols, True)
-        for damaged in ([dict(commands[0], command='gcc' + flags), commands[1]],
+        for damaged in ([commands[0], dict(commands[1], command='gcc' + flags)],
+                        commands + [dict(file='other.c', command='gcc' + trust)],
+                        [dict(commands[0], command='gcc' + flags), commands[1]],
                         [dict(commands[0], command=commands[0]['command'] + ' -Dlwip_getaddrinfo=other'), commands[1]],
                         [commands[0], dict(commands[1], command=commands[1]['command'] + endpoint)]):
             with self.assertRaises(qualification.QualificationError):

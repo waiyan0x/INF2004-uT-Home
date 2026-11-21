@@ -145,6 +145,7 @@ def build_status_check(folder: Path, source: Path, *, mqtt: bool) -> Path:
                  f'#define UTHOME_SETUP_MQTT      {int(mqtt)}\n'
                  '#define UTHOME_SETUP_TX_POWER  0U\n'
                  '#define UTHOME_SETUP_MQTT_PORT 8883U\n'
+                 '#define UTHOME_SETUP_MQTT_CA_DER 0U\n'
                  'extern const char    g_setup_ssid[];\n'
                  'extern const char    g_setup_password[];\n'
                  'extern const char    g_setup_mqtt_address[];\n'

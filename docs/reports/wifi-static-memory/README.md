@@ -1317,9 +1317,38 @@ supplied DER. Those bytes remained intact through verification, peer-key
 copy and cleanup. The wrong hostname, altered signature and empty trust
 controls failed, and the original certificate succeeded again.
 
-The firmware still provisions PEM. A production change needs a trust buffer
-whose lifetime covers every TLS use, plus the existing behavior for bundles
-containing multiple certificates. This experiment used one CA.
+That experiment used one CA and supplied its backing bytes in the replay.
+
+##### Flash-backed demo trust anchor
+
+The provisioner now embeds the single demo CA in flash as DER. A two-CA PEM
+bundle keeps its source encoding and uses the native parser. The ESP-TLS
+binding is scoped to its mbedTLS backend. Only the boot-configured DER
+pointer and exact byte count select borrowed storage.
+
+| Requested heap payload on the compiled demo path | Previous PEM image | Flash-backed CA image |
+|---|---:|---:|
+| Peak while loading the CA | 1,327 B | 461 B |
+| Retained by the CA after loading | 433 B | 0 B |
+| Peak during broker certificate verification | 866 B | 433 B |
+| New requests during verification | 13 | 13 |
+
+On ELF `61bbd4ef`, the verifier accepted the demo peer, rejected a damaged
+signature, wrong hostname and empty trust, then accepted the peer again. The
+parsed CA referenced the original 433 flash bytes through cleanup. The SDK
+copied identical DER from a different address and rejected a truncated input
+at the configured address. A two-root PEM bundle verified independently
+signed peers under each root. Both chains cleaned up fully. The bundle load
+peaked at 2,536 B and retained 1,730 B.
+
+The remaining 13 demo verification requests comprised eight 160 B integer
+buffers, two 128 B elliptic-curve key allocations, two 48 B multiplication
+workspaces and one 65 B key allocation. Their lifetimes overlap only partly.
+Two 16 B subject-alternative-name records were already live at peak. The CA
+parser made nine temporary requests. These measurements count requested
+payload and exclude allocator overhead. The image (`be2aa3ef`) uses
+147,432 / 147,456 B of application fixed RAM and 276,422 / 278,528 B total.
+
 
 #### Fixed-slot certificate verification experiment
 

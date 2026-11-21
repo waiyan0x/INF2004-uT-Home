@@ -4,6 +4,7 @@ No credentials are printed or placed in command arguments. The generated header,
 ELF and flash image contain secrets and must stay private. This is immutable
 development provisioning, not a second runtime configuration or save mechanism.
 """
+import base64
 import ipaddress
 import hashlib
 import json
@@ -24,6 +25,22 @@ def unique(pairs):
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def mqtt_ca_blob(pem):
+    """Embed a single PEM certificate as DER; preserve native PEM bundle parsing."""
+    single = re.fullmatch(rb'-----BEGIN CERTIFICATE-----\r?\n'
+                          rb'((?:[A-Za-z0-9+/=]+\r?\n)+)'
+                          rb'-----END CERTIFICATE-----(?:\r?\n)?', pem)
+    if single:
+        try:
+            der = base64.b64decode(b''.join(single[1].splitlines()), validate=True)
+        except ValueError:
+            pass
+        else:
+            if der.startswith(b'\x30'):
+                return der, True
+    return pem + b'\0', False
 
 
 def generate(source):
@@ -76,7 +93,7 @@ def generate(source):
         ca=(source.parent/mqtt['ca_file']).resolve().read_bytes()
         if not 1<=len(ca)<=8191 or b'\0' in ca or b'-----BEGIN CERTIFICATE-----' not in ca:
             raise ValueError('invalid MQTT CA PEM')
-        blobs['mqtt_ca']=ca+b'\0'
+        blobs['mqtt_ca'],ca_der=mqtt_ca_blob(ca)
     lines=['/** @file netsetup.h',
            ' * @brief Private generated development setup; never publish. */',
            '#ifndef UTHOME_NETSETUP_H','#define UTHOME_NETSETUP_H',
@@ -84,6 +101,7 @@ def generate(source):
     lines.append(f'#define UTHOME_SETUP_MQTT ({int(mqtt is not None)}U)')
     lines.append(f'#define UTHOME_SETUP_TX_POWER ({tx_power}U)')
     if mqtt is not None:
+        lines.append(f'#define UTHOME_SETUP_MQTT_CA_DER ({int(ca_der)}U)')
         lines.append(f'#define UTHOME_SETUP_MQTT_PORT ({mqtt["port"]}U)')
     # String-literal escapes preserve UTF-8 bytes in char storage regardless
     # of compiler char signedness. Adjacent chunks bound generated line length.
@@ -110,7 +128,7 @@ def generate(source):
                 generated_sha256=digest(header),
                 phy_max_wifi_tx_power=20 if tx_power==0 else max(10,min(20,tx_power//4)))
     if mqtt is not None:
-        record['mqtt_ca_sha256']=digest(blobs['mqtt_ca'])
+        record['mqtt_ca_sha256']=digest(ca+b'\0')
     return header,record
 
 

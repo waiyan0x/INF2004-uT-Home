@@ -66,7 +66,10 @@ compatibility/resource patches, the task-observer patch, and
 The settings parser requires `ssid` and `password`; optional fields are
 `tx_power_quarter_dbm` and `mqtt`. MQTT fields are exactly `address` (numeric
 IPv4), `server_name`, `port`, `user`, `password`, `ca_file`. The broker CA path
-resolves relative to the settings file. HTTPS `token`, `certificate_file`,
+resolves relative to the settings file and accepts up to 8,191 PEM bytes.
+The provisioner embeds a single standard PEM certificate as binary DER. PEM
+bundles and other previously accepted input layouts go to the SDK unchanged.
+The build manifest still identifies the original PEM file. HTTPS `token`, `certificate_file`,
 `key_file` and top-level `port` are rejected. Remove them in a new private settings
 copy before rebuilding; retain the original inputs with the old image/backup.
 The new image needs no device server certificate, private key or bearer token.

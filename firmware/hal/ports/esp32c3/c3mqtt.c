@@ -11,6 +11,7 @@
 #include "lwip/inet.h"
 #if UTHOME_STATIC_NET_QUEUES
 #include "lwip/netdb.h"
+#include "mbedtls/x509_crt.h"
 #endif
 #include "lwip/sockets.h"
 #include <stdio.h>
@@ -56,6 +57,19 @@ static union
     struct sockaddr_in ipv4;
 } g_endpoint                    = {0};
 static struct addrinfo g_lookup = {0};
+
+/** @brief Borrow the immutable configured DER anchor during SDK parsing. */
+int c3mqtt_trust (struct mbedtls_x509_crt * p_chain,
+                  const uint8_t *           p_data,
+                  size_t                    size)
+{
+    if ((g_config.b_ca_der) && (g_config.p_ca == p_data) &&
+        (g_config.ca_size == size))
+    {
+        return mbedtls_x509_crt_parse_der_nocopy(p_chain, p_data, size);
+    }
+    return mbedtls_x509_crt_parse(p_chain, p_data, size);
+}
 
 /** @brief Match the pinned ESP-TLS call for the configured numeric broker. */
 int c3mqtt_resolve (const char *            p_host,
@@ -116,7 +130,8 @@ int c3mqtt_start (const c3mqtt_config_t * p_config, const char * p_node)
         (NULL == p_config->p_address) || (NULL == p_config->p_server_name) ||
         (!server_name(p_config->p_server_name)) || (NULL == p_config->p_ca) ||
         (2U > p_config->ca_size) || (8192U < p_config->ca_size) ||
-        ('\0' != p_config->p_ca[p_config->ca_size - 1U]) ||
+        ((!p_config->b_ca_der) &&
+         ('\0' != p_config->p_ca[p_config->ca_size - 1U])) ||
         (0U == p_config->port) ||
         (1 != inet_pton(AF_INET, p_config->p_address, &address)) ||
         (NULL == memchr(p_node, '\0', sizeof(g_node))))

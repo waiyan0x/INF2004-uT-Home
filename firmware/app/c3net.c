@@ -78,7 +78,9 @@ int c3net_start (const cfgctrl_t * p_control)
                                     .p_password    = g_setup_mqtt_password,
                                     .p_ca          = g_setup_mqtt_ca,
                                     .ca_size       = sizeof(g_setup_mqtt_ca),
-                                    .port          = UTHOME_SETUP_MQTT_PORT};
+                                    .port          = UTHOME_SETUP_MQTT_PORT,
+                                    .b_ca_der =
+                                        (0U != UTHOME_SETUP_MQTT_CA_DER)};
     gb_mqtt                      = 0 == c3mqtt_start(&broker, g_info.node_id);
     if (gb_mqtt)
     {

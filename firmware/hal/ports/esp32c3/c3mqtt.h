@@ -16,10 +16,17 @@ typedef struct
     const uint8_t * p_ca;
     size_t          ca_size;
     uint16_t        port;
+    bool            b_ca_der;
 } c3mqtt_config_t;
 
 #if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
 struct addrinfo;
+struct mbedtls_x509_crt;
+
+/** @brief Borrow the immutable configured DER anchor during SDK parsing. */
+int c3mqtt_trust (struct mbedtls_x509_crt * p_chain,
+                  const uint8_t *           p_data,
+                  size_t                    size);
 
 /** @brief Lease the numeric IPv4 stream endpoint to the single ESP-TLS caller.
  */

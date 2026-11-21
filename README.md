@@ -93,14 +93,15 @@ the 208-byte overlap case with 25 application bytes left under the RAM cap.
 On the ESP, all nine observed startup and Wi-Fi rejoin messages used fixed
 storage. Authenticated MQTT recovered on the same boot.
 [Fixed queued event bodies](docs/reports/wifi-static-memory/README.md#fixed-queued-event-bodies)
-The Wi-Fi build uses a fixed 32-slot PSA key table. During demo-broker
-certificate verification, the integer buffers now borrow the existing USB
-workspace. The compiled verifier peaked at 866 requested heap bytes, down
-from 2,114, and made 13 heap requests instead of 444. Loading the PEM trust
-anchor still peaked at 1,327 bytes. Wi-Fi driver allocations and the
-whole-image heap trace remain open. The ESP on this image returned three
-matching MQTT status replies on one boot across broker restart and full TLS
-renegotiation.
+The Wi-Fi build uses a fixed 32-slot PSA key table and borrows the USB workspace
+for certificate arithmetic. The MQTT client reads its single demo CA directly
+from flash. CA loading peaks at 461 requested heap bytes and retains zero.
+Broker verification peaks at 433 bytes across 13 new requests. Both roots in
+a PEM bundle also passed verification using the SDK's ordinary parser.
+The remaining certificate heap, Wi-Fi driver allocations and whole-image
+heap trace are open. The preceding integer-workspace image passed the
+physical broker restart and TLS renegotiation checks.
+[Flash-backed trust anchor and remaining allocations](docs/reports/wifi-static-memory/README.md#flash-backed-demo-trust-anchor)
 [Fixed integer buffers and compatibility tests](docs/reports/wifi-static-memory/README.md#fixed-integer-buffers-for-the-demo-broker)
 [Certificate arithmetic measurements](docs/reports/wifi-static-memory/README.md#elliptic-curve-window-for-the-demo-broker)
 [Fixed key table and certificate memory](docs/reports/wifi-static-memory/README.md#fixed-key-table-in-the-wi-fi-build)

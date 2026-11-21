@@ -699,14 +699,17 @@ def check_tls_storage(commands, symbols, enabled):
     sources = {"esp_tls.c", "esp_tls_mbedtls.c"}
     bindings = {"calloc": "c3tls_alloc", "free": "c3tls_free", "strndup": "c3tls_dup"}
     endpoint = {"lwip_getaddrinfo": "c3mqtt_resolve", "lwip_freeaddrinfo": "c3mqtt_release"}
+    trust = {"mbedtls_x509_crt_parse": "c3mqtt_trust"}
     observed = set()
     for entry in commands:
         name = Path(entry["file"]).name
         found = re.findall(r'(?:^|\s)-D\s*"?(calloc|free|strndup)=(c3tls_\w+)"?', entry["command"])
-        found += re.findall(r'(?:^|\s)-D\s*"?(lwip_getaddrinfo|lwip_freeaddrinfo)=([^\s"]+)"?', entry["command"])
+        found += re.findall(r'(?:^|\s)-D\s*"?(lwip_getaddrinfo|lwip_freeaddrinfo|mbedtls_x509_crt_parse)=([^\s"]+)"?', entry["command"])
         expected = bindings if enabled and name in sources else {}
         if enabled and name == "esp_tls.c":
             expected = bindings | endpoint
+        if enabled and name == "esp_tls_mbedtls.c":
+            expected = bindings | trust
         if dict(found) != expected or len(found) != len(expected):
             raise QualificationError("ESP-TLS allocator binding escaped its source: " + name)
         if expected:
@@ -721,7 +724,7 @@ def check_tls_storage(commands, symbols, enabled):
         "esp_tls_internal_event_tracker_capture": "c3tls_error_capture",
         "esp_tls_get_and_clear_error_type": "c3tls_error_get",
     }
-    owned = set(bindings.values()) | set(aliases.values()) | set(endpoint.values())
+    owned = set(bindings.values()) | set(aliases.values()) | set(endpoint.values()) | set(trust.values())
     if not enabled:
         if any(name in symbols for name in owned):
             raise QualificationError("ESP-TLS storage escaped selected Wi-Fi services")
@@ -743,7 +746,7 @@ def check_tls_storage(commands, symbols, enabled):
         if name in symbols:
             raise QualificationError("Removed HTTPS server remains linked: " + name)
     return dict(enabled=True, allocator_sources=sorted(sources), bindings=bindings,
-                endpoint_bindings=endpoint, error_aliases=aliases, context_slots=1, error_slots=1, hostname_bytes=254,
+                endpoint_bindings=endpoint, trust_binding=trust, error_aliases=aliases, context_slots=1, error_slots=1, hostname_bytes=254,
                 qualification="ESP-TLS records only; mbedTLS and lwIP heap paths remain open")
 
 

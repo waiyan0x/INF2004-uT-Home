@@ -36,6 +36,31 @@ class NetworkSetupPowerTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'invalid setup fields'):
                     network_setup.generate(path)
 
+    def test_single_ca_encoding_preserves_bundle_and_input_identity(self):
+        pem = b'-----BEGIN CERTIFICATE-----\nMAIBAA==\n-----END CERTIFICATE-----\n'
+        rewrapped = pem.replace(b'MAIBAA==', b'MAIB\nAA==').replace(b'\n', b'\r\n')
+        for single in (pem, rewrapped):
+            self.assertEqual(network_setup.mqtt_ca_blob(single), (b'\x30\x02\x01\x00', True))
+        for other in (pem + pem, b'0 prefaced bundle\n' + pem + pem, pem + b'extra', pem.replace(b'AA==', b'!')):
+            self.assertEqual(network_setup.mqtt_ca_blob(other), (other + b'\0', False))
+        with tempfile.TemporaryDirectory() as name:
+            folder = Path(name)
+            source, values = configuration(folder)
+            ca = folder / 'broker-ca.pem'
+            ca.write_bytes(pem)
+            values['mqtt'] = dict(address='127.0.0.1', server_name='broker.test', port=8883,
+                                  user='device', password='password', ca_file=ca.name)
+            source.write_text(json.dumps(values))
+            (folder / 'app').mkdir()
+            (folder / 'source-manifest.json').write_text('{"sources":{}}')
+            network_setup.stage(folder, source)
+            record = json.loads((folder / 'source-manifest.json').read_text())['network_setup']
+            self.assertEqual(record['mqtt_ca_sha256'], network_setup.digest(pem + b'\0'))
+            ca.write_bytes(rewrapped)
+            self.assertEqual(network_setup.generate(source)[1]['generated_sha256'], record['generated_sha256'])
+            with self.assertRaisesRegex(ValueError, 'private inputs changed'):
+                network_setup.verify(folder, record)
+
     def test_omission_preserves_default_and_explicit_integer_caps(self):
         with tempfile.TemporaryDirectory() as name:
             path, values = configuration(Path(name))
