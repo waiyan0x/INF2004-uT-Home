@@ -41,6 +41,7 @@ class QualificationTests(unittest.TestCase):
             "CONFIG_LWIP_MAX_ACTIVE_TCP=3",
             "CONFIG_LWIP_MAX_UDP_PCBS=2",
             "CONFIG_LWIP_MAX_LISTENING_TCP=1",
+            "CONFIG_VFS_SUPPORT_IO=n",
         }
         self.assertEqual(
             required,

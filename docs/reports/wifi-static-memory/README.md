@@ -58,6 +58,33 @@ and 276,430 bytes of total DRAM. On-board connection and restart acceptance
 for this image is pending. Per-thread socket semaphores and hardware
 cryptography have separate allocation paths.
 
+### Station console and socket dispatch
+
+The Wi-Fi transaction build uses the SDK console and lwIP socket dispatch
+with `CONFIG_VFS_SUPPORT_IO=n`. USB profile transfers use the serial/JTAG
+FIFO directly. Configuration storage uses partition APIs. The station image
+does not provide path-based filesystem services.
+
+Socket registration compiles to a return. The socket VFS registration and
+select table are absent from the ELF. On the hardware-crypto image the change
+reduced fixed DRAM from 276,430 to 276,094 of 278,528 bytes. SDK/kernel data
+fell by 336 bytes to 53,901. Application data stayed at 147,440 of 147,456.
+All 47 qualification tests, the source snapshot and all RAM caps passed.
+
+Run `python -m tools.target.station_socket_probe <elf> --output socket.json`
+to exercise the compiled console/socket descriptor boundary, close and fcntl.
+The probe replaces the I/O endpoints with recording functions. The software
+and hardware crypto builds both passed.
+
+On the physical ESP the hardware-crypto candidate answered a USB profile
+query, obtained IPv4 from the phone hotspot and reached the configured
+ESP-loopback destination twice from controller task 2 on the same boot.
+That destination exercises connection failure and retry. The 8,448-byte
+controller stack and 3,792-byte free kernel block were stable at both stops.
+The full original 4 MiB flash and profile verified after restoration. Image
+SHA-256 `b01328db07e1c3758b08cef031be921a42711bedd8b7453d872a37e3c2fb064f`.
+Authenticated MQTT acceptance with this configuration remains outstanding.
+
 ### Native startup pool and software crypto capacity
 
 On image `db389843c32ccc9777086b22e58e18797a1888ccb990625bce96f62ab43a2d16`,
