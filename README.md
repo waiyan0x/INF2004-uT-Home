@@ -98,9 +98,8 @@ workspace for certificate parsing and verification. A temporary 65-byte
 P-256 public key now fits in that workspace alongside the typed EC keypair.
 On the compiled demo image, parsing the trusted CA makes zero heap requests.
 Peer parsing allocates two 16-byte subject alternative name records. Broker
-verification makes zero additional requests. The preceding point-table image
-returned three authenticated MQTT replies on one boot across broker restart
-and full TLS renegotiation. The name records, Wi-Fi and whole-image heap
+verification makes zero additional requests. The fixed parser image returned three authenticated MQTT
+replies on one ESP boot across broker restart and full TLS renegotiation. The name records, Wi-Fi and whole-image heap
 trace remain open.
 [Fixed parser integers](docs/reports/wifi-static-memory/README.md#fixed-parser-integers)
 [Fixed verifier point table](docs/reports/wifi-static-memory/README.md#fixed-verifier-point-table)

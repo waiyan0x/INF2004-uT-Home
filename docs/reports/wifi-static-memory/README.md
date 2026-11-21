@@ -1530,6 +1530,14 @@ and fixed TLS key derivation passed their controls. The full transaction
 image still uses 147,432 of 147,456 fixed application bytes and 276,422 of
 278,528 total DRAM bytes.
 
+Physical image `55926809` returned three distinct authenticated 96-byte MQTT
+status replies on one boot. The second followed a broker restart and the third
+followed full server-requested TLS 1.2 renegotiation. Broker transcripts and
+request IDs confirmed the sequence. The original 4 MiB flash, saved and active
+profile 943, laptop uplink and hotspot settings were verified after restoration.
+The temporary firewall rule was removed. Wi-Fi group-key renewal overlap
+remains unmeasured.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
