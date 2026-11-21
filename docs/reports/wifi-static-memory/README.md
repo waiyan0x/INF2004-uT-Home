@@ -1043,6 +1043,18 @@ event posts in the observed window. Three authenticated status replies
 confirmed the same ESP boot through recovery. The full original flash,
 saved and active profile 943, and host settings were verified after the trial.
 
+A second backed-up trial interrupted only the temporary 2.4 GHz access point
+for ten seconds while the broker stayed up. Startup repeated the three sizes
+above. During loss and rejoin, the SDK posted four 41-byte station-disconnected
+messages, one 16-byte channel change, one 48-byte station-connected message,
+and one 20-byte IP message. Two distinct pointers were live at once for the
+channel change and station connection, totalling **64 bytes**. All seven
+allocations succeeded and were released. Interrupts could return to the same
+hardware breakpoint before its instruction ran. The trace counted an allocation
+once on return from calloc and kept a release pending until the debugger
+stepped past its call setup. The ESP recovered authenticated MQTT on the same
+boot. Original flash, profile 943 and host settings were verified again.
+
 The pinned build stores up to four bytes inline and has a 32-entry event
 queue. Task-context posts allocate larger bodies before queue insertion, so
 a waiting producer can own a body outside the queue. The compiled eight-removal
