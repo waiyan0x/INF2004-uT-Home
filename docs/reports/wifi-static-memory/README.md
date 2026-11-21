@@ -10,6 +10,34 @@ full-profile setup/recovery uses USB. The host Desk and Home Assistant web
 interfaces remain available. No Wi-Fi-driver exception automatically exempts
 TLS, TCP/IP or ESP-TLS contexts.
 
+### Wi-Fi receive ring on the demo image, 22 November 2026
+
+The tribunal change request permits a justified Wi-Fi-driver exemption. The
+ESP32-C3 radio driver allocates its DMA receive ring during initialization.
+The board reported six successful requests of 1,604 bytes each. Each live
+descriptor advertised 1,600 bytes. The driver also requested a table of six
+12-byte descriptors. These seven disjoint regions occupied **9,696 bytes of
+requested storage** before allocator overhead. This is a lower bound for the
+driver. It excludes dynamic RX/TX frames, event payloads and TLS.
+
+Two separately backed-up starts used the instrumented image from production
+source `d006f2b7442877dff5f8eadbc130f97b313cacca`. Application image SHA-256
+`c847d90501252603975896e314eb94cca7f14cb25e116b53187ba96af4008ec9`.
+The debugger sampled successful returns inside the linked vendor function
+`wDev_Rxbuf_Init` and matched them to the table referenced by `wDevCtrl`.
+The same six addresses and sizes were present after Wi-Fi association, the
+first authenticated MQTT reply, broker restart and TLS renegotiation on one
+boot. The native mbedTLS observer on the MQTT task counted zero requests in
+these intervals. The restored 4 MiB flash and active/saved profile verified
+after both runs.
+
+The radio owns these buffers while the network is online. They cannot share
+a TLS buffer needed during the same interval. Replacing this ring with a new
+fixed reservation alone would exceed the production image's 2,098-byte
+aggregate headroom by 7,598 bytes. This evidence justifies identifying the
+vendor receive ring under the driver exception. The TCP/IP stack, socket
+dispatch, event system and cryptographic services require independent evidence.
+
 ### Tribunal static-memory check, 20 November 2026
 
 **The demo firmware fails the no-application-heap requirement.** The tribunal
