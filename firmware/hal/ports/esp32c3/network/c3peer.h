@@ -7,6 +7,7 @@
 #include "cfgjson.h"
 #if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
 #include "mbedtls/x509_crt.h"
+#include "mbedtls/ssl.h"
 
 typedef int c3peer_check_t (void *             p_context,
                             mbedtls_x509_crt * p_cert,
@@ -22,6 +23,7 @@ int c3peer_verify (mbedtls_x509_crt *               p_chain,
                    c3peer_check_t *                 p_check,
                    void *                           p_context,
                    mbedtls_x509_crt_restart_ctx *   p_restart);
+int c3peer_client_step (mbedtls_ssl_context * p_ssl);
 int c3peer_signature (mbedtls_pk_context *     p_key,
                       mbedtls_md_type_t        digest,
                       const unsigned char *    p_hash,

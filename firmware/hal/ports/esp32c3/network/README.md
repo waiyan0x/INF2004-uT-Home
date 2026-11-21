@@ -401,6 +401,20 @@ task ownership and release on both success and failure. The native verifier
 owns the result and all signature checks. A busy workspace takes the SDK
 allocation path. There is no added permanent buffer or change to the SDK.
 
+Only the TLS 1.2 client in `ssl_tls.c` calls `c3peer_client_step`. Its
+X25519 loan requires the client-key-exchange state, ECDHE-ECDSA or ECDHE-RSA,
+and the negotiated 255-bit Montgomery keypair type. The synchronous SDK step
+generates the private key, exports the public key, calculates the premaster and
+destroys the key before sending the handshake record. The PSA private key uses
+SDK-owned storage. Only decoded key objects and arithmetic scratch borrow
+typed storage during the call. Shared-secret calculation needs two decoded
+objects simultaneously. Other workspace owners retain the one-key limit.
+
+Manual C review checked the pinned client-step ABI and state preconditions,
+typed union capacity, task exclusion, native return and error propagation,
+and zeroization before the workspace is released. The compiled replay covers
+a valid exchange, rejection of an all-zero peer and USB contention.
+
 Only the pinned `ecp.c` receives the two-point table allocation and free
 bindings. The verifier owns an aligned array of two SDK point records.
 The compile-time guard requires window size two, disabled group caching

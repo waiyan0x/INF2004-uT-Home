@@ -1701,6 +1701,18 @@ objects were live together. The 103 requests and 1,244-byte peak matched the
 first connection in the preceding board trial. The deterministic replay
 measures one set of inputs. The board also recorded a 104-request exchange.
 
+The TLS client now lends its existing USB/certificate workspace to the X25519
+step. Two typed key records fit within the existing 4 KiB union. The PSA
+private key keeps its native lifetime. In the candidate ELF, generation made
+one 32-byte heap request. Export, shared-secret calculation and destruction
+made zero. Both the public key and shared secret matched the reference.
+An all-zero peer failed with the native error, and the private key was
+destroyed. The integer scratch and both decoded key records were zero after
+success and rejection. With USB holding the workspace, its contents were
+preserved and the original allocation profile returned. The existing
+certificate tests retained their one-key limit. The target map measured
+147,432 fixed application bytes and 276,422 total DRAM bytes.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

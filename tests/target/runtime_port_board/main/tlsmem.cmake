@@ -49,7 +49,8 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
         psa_import_key=c3tout_prf_import
         mbedtls_x509_crt_parse_der_nocopy=c3peer_der
         mbedtls_x509_crt_verify_restartable=c3peer_verify
-        mbedtls_pk_parse_subpubkey=c3peer_copy)
+        mbedtls_pk_parse_subpubkey=c3peer_copy
+        mbedtls_ssl_handshake_client_step=c3peer_client_step)
     set_property(SOURCE "${UTHOME_MBED_DIR}/mbedtls/library/ssl_tls12_client.c"
         TARGET_DIRECTORY mbedtls APPEND PROPERTY COMPILE_DEFINITIONS
         mbedtls_pk_verify_restartable=c3peer_signature)

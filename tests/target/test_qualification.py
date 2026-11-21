@@ -518,7 +518,8 @@ class QualificationTests(unittest.TestCase):
                          ' -Dpsa_import_key=c3tout_prf_import'
                          ' -Dmbedtls_x509_crt_parse_der_nocopy=c3peer_der'
                          ' -Dmbedtls_x509_crt_verify_restartable=c3peer_verify'
-                         ' -Dmbedtls_pk_parse_subpubkey=c3peer_copy'),
+                         ' -Dmbedtls_pk_parse_subpubkey=c3peer_copy'
+                         ' -Dmbedtls_ssl_handshake_client_step=c3peer_client_step'),
                     dict(file='/sdk/mbedtls/library/x509_crt.c', command='gcc -Dmbedtls_calloc=c3peer_alloc -Dmbedtls_free=c3peer_free'),
                     dict(file='/sdk/mbedtls/tf-psa-crypto/core/psa_crypto.c',
                          command='gcc -Dmbedtls_calloc=c3peer_psa_alloc -Dmbedtls_free=c3peer_psa_free'
@@ -536,7 +537,7 @@ class QualificationTests(unittest.TestCase):
                         for name in ('pk_ecc.c', 'pk_wrap.c'))
         commands.append(dict(file='/sdk/mbedtls/library/ssl_tls12_client.c',
                              command='gcc -Dmbedtls_pk_verify_restartable=c3peer_signature'))
-        names = ('c3peer_signature', 'c3peer_copy', 'c3peer_name_alloc', 'c3tout_node_free', 'c3peer_points', 'c3peer_points_free', 'c3peer_import', 'c3peer_psa_alloc', 'c3peer_psa_free', 'c3peer_psa_wipe', 'c3peer_verify', 'c3peer_leaf', 'c3peer_key', 'c3peer_key_free', 'c3peer_limbs', 'c3peer_drop', 'c3peer_wipe', 'c3peer_der', 'c3peer_alloc', 'c3peer_free', 'c3peer_views', 'c3peer_close', 'c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe',
+        names = ('c3peer_client_step', 'c3peer_signature', 'c3peer_copy', 'c3peer_name_alloc', 'c3tout_node_free', 'c3peer_points', 'c3peer_points_free', 'c3peer_import', 'c3peer_psa_alloc', 'c3peer_psa_free', 'c3peer_psa_wipe', 'c3peer_verify', 'c3peer_leaf', 'c3peer_key', 'c3peer_key_free', 'c3peer_limbs', 'c3peer_drop', 'c3peer_wipe', 'c3peer_der', 'c3peer_alloc', 'c3peer_free', 'c3peer_views', 'c3peer_close', 'c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe',
                  'c3tout_certificate', 'mbedtls_ssl_parse_certificate',
                  'c3tout_start', 'c3tout_renegotiate',
                  'mbedtls_ssl_start_renegotiation', 'mbedtls_ssl_renegotiate',

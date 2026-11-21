@@ -7,6 +7,7 @@
 #include "c3peer.h"
 #if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
 #include "mbedtls/platform.h"
+#include "ssl_misc.h"
 #include "mbedtls/private/ecp.h"
 #include "mbedtls/private/pk_private.h"
 #include "c3bport.h"
@@ -25,6 +26,7 @@
 #define C3PEER_NODES          4U
 #define C3PEER_SLOTS          32U
 #define C3PEER_WORDS          24U
+#define C3PEER_X25519_BITS    255U
 #define C3PEER_P256_BITS      256U
 #define C3PEER_INVERSE_FACTOR 5U
 
@@ -36,6 +38,9 @@ typedef struct
     /* The SDK uses five 256-bit vectors for one P-256 modular inverse. */
     uint32_t inverse[C3PEER_INVERSE_FACTOR * (C3PEER_P256_BITS / 32U)];
     bool     b_inverse_used;
+    /* X25519 agreement temporarily decodes both parties' keys. */
+    mbedtls_ecp_keypair exchange_key;
+    bool                b_exchange_key_free;
     mbedtls_ecp_keypair key;
     bool                b_key_used;
     bool                b_verify;
@@ -136,6 +141,35 @@ int c3peer_leaf (mbedtls_x509_crt * p_chain,
         g_store.math.p_leaf = p_chain;
     }
     const int result = mbedtls_x509_crt_parse_der_nocopy(p_chain, p_data, size);
+    if (b_lend)
+    {
+        return_crypto();
+    }
+    return result;
+}
+
+/** @brief Lend integer and key scratch during a negotiated X25519 step. */
+int c3peer_client_step (mbedtls_ssl_context * p_ssl)
+{
+    bool b_lend = false;
+    if (MBEDTLS_SSL_CLIENT_KEY_EXCHANGE == p_ssl->MBEDTLS_PRIVATE(state))
+    {
+        const mbedtls_ssl_handshake_params * p_handshake =
+            p_ssl->MBEDTLS_PRIVATE(handshake);
+        const mbedtls_key_exchange_type_t exchange =
+            p_handshake->ciphersuite_info->MBEDTLS_PRIVATE(key_exchange);
+        b_lend = ((MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA == exchange) ||
+                  (MBEDTLS_KEY_EXCHANGE_ECDHE_RSA == exchange)) &&
+                 (PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_MONTGOMERY) ==
+                  p_handshake->xxdh_psa_type) &&
+                 (C3PEER_X25519_BITS == p_handshake->xxdh_psa_bits) &&
+                 (borrow_crypto(true));
+        if (b_lend)
+        {
+            g_store.math.b_exchange_key_free = true;
+        }
+    }
+    const int result = mbedtls_ssl_handshake_client_step(p_ssl);
     if (b_lend)
     {
         return_crypto();
@@ -361,6 +395,14 @@ void * c3peer_key (size_t count, size_t size)
     }
     if (g_store.math.b_key_used)
     {
+        if (g_store.math.b_exchange_key_free)
+        {
+            g_store.math.b_exchange_key_free = false;
+            memset(&g_store.math.exchange_key,
+                   0,
+                   sizeof(g_store.math.exchange_key));
+            return &g_store.math.exchange_key;
+        }
         return NULL;
     }
     g_store.math.b_key_used = true;
@@ -375,6 +417,12 @@ void c3peer_key_free (void * p_memory)
     {
         mbedtls_platform_zeroize(p_memory, sizeof(g_store.math.key));
         g_store.math.b_key_used = false;
+        return;
+    }
+    if (p_memory == &g_store.math.exchange_key)
+    {
+        mbedtls_platform_zeroize(p_memory, sizeof(g_store.math.exchange_key));
+        g_store.math.b_exchange_key_free = true;
         return;
     }
     mbedtls_free(p_memory);
@@ -478,13 +526,14 @@ static bool borrow_crypto (bool b_verify)
         (0 < h_task) && (!gb_views) && (0U == g_live) && (0 == gh_crypto);
     if (b_available)
     {
-        g_store.math.p_leaf      = NULL;
-        g_store.math.b_import    = false;
-        g_store.math.b_data_used = false;
-        g_store.math.b_key_used  = false;
-        g_store.math.b_verify    = b_verify;
-        g_store.math.b_limbs     = b_verify;
-        g_store.math.used        = 0U;
+        g_store.math.p_leaf              = NULL;
+        g_store.math.b_import            = false;
+        g_store.math.b_data_used         = false;
+        g_store.math.b_exchange_key_free = false;
+        g_store.math.b_key_used          = false;
+        g_store.math.b_verify            = b_verify;
+        g_store.math.b_limbs             = b_verify;
+        g_store.math.used                = 0U;
         if (b_verify)
         {
             g_store.math.b_points_used  = false;
