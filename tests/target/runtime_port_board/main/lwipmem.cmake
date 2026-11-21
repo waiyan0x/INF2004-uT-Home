@@ -24,6 +24,15 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
         heap_caps_calloc=c3ereg_alloc free=c3ereg_free)
     idf_component_get_property(UTHOME_LWIP_LIB lwip COMPONENT_LIB)
     idf_component_get_property(UTHOME_LWIP_DIR lwip COMPONENT_DIR)
+    set_property(SOURCE "${UTHOME_LWIP_DIR}/port/freertos/sys_arch.c"
+        TARGET_DIRECTORY ${UTHOME_LWIP_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
+        sys_thread_sem_get=c3lsem_native_get sys_thread_sem_init=c3lsem_native_init
+        sys_thread_sem_deinit=c3lsem_native_deinit)
+    foreach(operation IN ITEMS get init deinit)
+        target_link_libraries(${COMPONENT_LIB} INTERFACE
+            "-Wl,--undefined=c3lsem_${operation}"
+            "-Wl,--defsym=sys_thread_sem_${operation}=c3lsem_${operation}")
+    endforeach()
     foreach(source IN ITEMS api/api_lib.c api/api_msg.c api/netbuf.c api/tcpip.c core/udp.c core/ipv4/etharp.c core/ipv4/igmp.c core/tcp.c core/tcp_out.c core/timeouts.c)
         set_property(SOURCE "${UTHOME_LWIP_DIR}/lwip/src/${source}"
             TARGET_DIRECTORY ${UTHOME_LWIP_LIB} APPEND PROPERTY COMPILE_DEFINITIONS

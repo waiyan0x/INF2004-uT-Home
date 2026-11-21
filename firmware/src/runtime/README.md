@@ -354,8 +354,9 @@ pre-application allocation and its size matches. Both paths check the live
 task's stack top and size before scanning. Painting precedes native context
 construction. A duplicate creation cannot repaint the live stack.
 
-For the station, the 8,448-byte stack and the remaining 3,840-byte native
-pool divide the original 12,288-byte reservation. The initial task descriptor
+For the station, the 8,448-byte stack and the remaining 3,744-byte native
+pool occupy 12,192 bytes. The controller socket semaphore has a separate
+96-byte budget from the original reservation. The initial task descriptor
 is copied before setting the kernel user-buffer attribute. The public kernel
 ABI and the original descriptor remain intact. The single startup caller
 owns the stack until native task creation succeeds. A failed create can be

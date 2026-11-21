@@ -1,7 +1,7 @@
 # NimBLE requires the SDK/toolchain BSD sys/queue.h. Do not add mtkernel here.
 # The owned c3bport interface crosses into the main component at link time.
 idf_component_register(SRCS "../../hal/c3ble.c" "../../hal/c3gatt.c"
-    "../../hal/c3mqtt.c" "../../hal/c3lbox.c" "../../hal/c3tls.c" "../../hal/c3tout.c" "../../hal/c3peer.c" "../../hal/c3lrec.c" "../../hal/c3pkt.c" "../../hal/c3rx.c" "../../hal/c3dhcp.c" "../../hal/c3iface.c" "../../hal/c3ereg.c" "../../hal/c3wsta.c" "../../hal/c3gsvc.c"
+    "../../hal/c3mqtt.c" "../../hal/c3lbox.c" "../../hal/c3lsem.c" "../../hal/c3tls.c" "../../hal/c3tout.c" "../../hal/c3peer.c" "../../hal/c3lrec.c" "../../hal/c3pkt.c" "../../hal/c3rx.c" "../../hal/c3dhcp.c" "../../hal/c3iface.c" "../../hal/c3ereg.c" "../../hal/c3wsta.c" "../../hal/c3gsvc.c"
     "../../network/netbroker.c" "../../network/netmqtt.c" "../../network/netretry.c"
     "../../network/netble.c"
     INCLUDE_DIRS "../../config" "../../hal" "../../runtime" "../../network" "../../services" "../../include"
@@ -36,9 +36,9 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
         CONTENT "#include \"esp_netif_types.h\"\n#include <sys/queue.h>\n@registry_type@\n" @ONLY)
     set_property(SOURCE "../../hal/c3iface.c" APPEND PROPERTY INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}")
 endif()
-set_source_files_properties("../../hal/c3ble.c" "../../hal/c3gatt.c" "../../hal/c3mqtt.c" "../../hal/c3lbox.c" "../../hal/c3tls.c" "../../hal/c3tout.c" "../../hal/c3peer.c" "../../hal/c3lrec.c" "../../hal/c3pkt.c" "../../hal/c3rx.c" "../../hal/c3dhcp.c" "../../hal/c3iface.c" "../../hal/c3ereg.c" "../../hal/c3wsta.c" "../../hal/c3gsvc.c" PROPERTIES COMPILE_OPTIONS
+set_source_files_properties("../../hal/c3ble.c" "../../hal/c3gatt.c" "../../hal/c3mqtt.c" "../../hal/c3lbox.c" "../../hal/c3lsem.c" "../../hal/c3tls.c" "../../hal/c3tout.c" "../../hal/c3peer.c" "../../hal/c3lrec.c" "../../hal/c3pkt.c" "../../hal/c3rx.c" "../../hal/c3dhcp.c" "../../hal/c3iface.c" "../../hal/c3ereg.c" "../../hal/c3wsta.c" "../../hal/c3gsvc.c" PROPERTIES COMPILE_OPTIONS
     "-std=c99;-Wall;-Wextra;-Werror;-Werror=extra;-Werror=unused-function;-Werror=unused-variable;-Werror=unused-but-set-variable;-Werror=deprecated-declarations")
-set_property(SOURCE "../../hal/c3ble.c" "../../hal/c3gatt.c" "../../hal/c3mqtt.c" "../../hal/c3lbox.c" "../../hal/c3tls.c" "../../hal/c3tout.c" "../../hal/c3peer.c" "../../hal/c3lrec.c" "../../hal/c3pkt.c" "../../hal/c3rx.c" "../../hal/c3dhcp.c" "../../hal/c3iface.c" "../../hal/c3ereg.c" "../../hal/c3wsta.c" "../../hal/c3gsvc.c" APPEND PROPERTY COMPILE_DEFINITIONS
+set_property(SOURCE "../../hal/c3ble.c" "../../hal/c3gatt.c" "../../hal/c3mqtt.c" "../../hal/c3lbox.c" "../../hal/c3lsem.c" "../../hal/c3tls.c" "../../hal/c3tout.c" "../../hal/c3peer.c" "../../hal/c3lrec.c" "../../hal/c3pkt.c" "../../hal/c3rx.c" "../../hal/c3dhcp.c" "../../hal/c3iface.c" "../../hal/c3ereg.c" "../../hal/c3wsta.c" "../../hal/c3gsvc.c" APPEND PROPERTY COMPILE_DEFINITIONS
     asm=__asm__)
 
 # Keep portable transport codecs with their SDK callers. A later archive must

@@ -785,3 +785,9 @@ key and shared secret against an independent implementation. It also checks
 USB contention, rejection of an all-zero peer and cleanup of key storage.
 The [memory report](../../docs/reports/wifi-static-memory/README.md#x25519-client-key-exchange)
 compares the replay and physical MQTT measurements.
+
+Run `python -B -m tools.target.station_sem_probe FIRMWARE.elf --output NEW.json`
+to exercise controller semaphore creation, startup exhaustion, repeated use,
+foreign-task delegation and zero-wait cleanup in the compiled station image.
+The replay supplies a native task ID and doubles the underlying queue and
+foreign SDK calls.

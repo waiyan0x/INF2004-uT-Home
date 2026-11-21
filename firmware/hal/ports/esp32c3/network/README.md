@@ -51,6 +51,24 @@ Startup before pool initialization, invalid sizes and pool exhaustion fail
 without allocating. Reuse is bounded by eight identity attempts, each using the
 existing fixed-slot search; this is an operation bound, not an ESP timing result.
 
+### Controller socket semaphore
+
+The station reserves one 84-byte lwIP completion record before calling
+`esp_netif_init`. A failed reservation reports the network-interface memory
+error before socket work begins. The permanent controller keeps its binary
+semaphore until reset. Thread cleanup takes any remaining signal with zero
+wait. Other tasks use the pinned SDK's thread-local initialization, access
+and cleanup functions.
+
+The record uses the SDK's native static semaphore type. The queue adapter
+returns the address supplied during initialization. Only the startup owner
+publishes the handle and task ID, before the station starts other socket
+users. The task ID remains valid throughout controller callbacks. The
+completion signal can cross tasks using the existing queue synchronization.
+The control record remains allocated while any sender can reference it.
+Thread cleanup requires completed socket operations. These checks cover the
+type, lifetime, concurrency and failure paths for the C review.
+
 ### Manual C review
 
 Reviewed `c3lbox.c/.h` and the two new `c3nq` entry points against the project's

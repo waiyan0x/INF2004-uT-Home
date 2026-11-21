@@ -9,6 +9,9 @@
 #include "esp_wifi.h"
 #include "esp_random.h"
 #include "c3bport.h"
+#if UTHOME_STATIC_NET_QUEUES
+#include "c3lsem.h"
+#endif
 #include "netretry.h"
 #include <string.h>
 
@@ -58,6 +61,12 @@ int c3wsta_start (const char * p_ssid,
     g_tx_power         = (int8_t)tx_power_quarter_dbm;
     gb_attempted       = true;
     initial.nvs_enable = false;
+#if UTHOME_STATIC_NET_QUEUES
+    if (0 != c3lsem_start())
+    {
+        return operation(C3WSTA_STAGE_NETIF, ESP_ERR_NO_MEM);
+    }
+#endif
     /* The pinned SDK permits null instance outputs. These permanent handlers
      * are never unregistered; retaining three unused handles wastes RAM. */
     if ((0 != operation(C3WSTA_STAGE_NETIF, esp_netif_init())) ||
