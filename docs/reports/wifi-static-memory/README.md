@@ -1402,6 +1402,33 @@ The reconnected socket completed two full handshakes. The original 4 MiB
 flash, active and saved profile 943, laptop uplink, saved hotspot settings
 and removal of the temporary firewall rule were independently verified.
 
+##### Fixed EC keypair
+
+The first DER certificate parser and the synchronous demo verifier can each
+borrow one typed 128-byte keypair inside the existing USB workspace. Only the
+verifier borrows integer slots. A CA parse with a live USB tree or intermediate
+nodes uses native storage. The ordinary PEM bundle path retains both roots.
+
+| Demo phase on the linked ESP image | Previous peak | New peak | Heap requests (previous to new) |
+|---|---:|---:|---:|
+| CA parsing | 461 B | 333 B | 9 to 8 |
+| Peer parsing | 461 B | 333 B | 11 to 10 |
+| Broker verification | 273 B | 145 B | 5 to 3 |
+
+The CA retained zero heap bytes after parsing. The peer retained 32 B for its
+subject alternative names. One 65 B allocation occurred in all three phases.
+The other two verifier requests were each 48 B. These values count live
+requested payload and exclude allocator overhead.
+
+On ELF `c7c1fc12`, exhausting the fixed key slot rejected the CA parse and
+broker verification. Retry, cleanup, wrong hostname, damaged signature and
+empty trust checks passed. The peer parser recovered after each of its ten
+heap requests was failed in turn. A live USB tree and four shared chain nodes
+each kept their data intact while an independent root was parsed. The
+two-root PEM bundle and three- and seven-certificate RSA fixtures verified.
+Image `dc0057fc` uses 147,432 / 147,456 B of fixed application RAM and
+276,422 / 278,528 B of total fixed DRAM.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

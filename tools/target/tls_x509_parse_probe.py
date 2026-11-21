@@ -153,8 +153,19 @@ def check_shared_views(probe, chain, source, der):
     def append(size=len(der)):
         return probe.run('c3peer_der', chain, source, size)
 
+    def check_root_with_busy_workspace():
+        if 'c3peer_leaf' in probe.symbols:
+            root = document + 1024
+            contents = bytes(probe.uc.mem_read(views, 4096))
+            live = dict(probe.live)
+            probe.run('mbedtls_x509_crt_init', root)
+            assert probe.run('c3peer_leaf', root, source, len(der)) == 0
+            probe.run('mbedtls_x509_crt_free', root)
+            assert bytes(probe.uc.mem_read(views, 4096)) == contents and probe.live == live
+
     views = open_views()
     assert views
+    check_root_with_busy_workspace()
     original = bytes(probe.uc.mem_read(views, 16))
     assert append() < 0 and not probe.live
     assert open_views() == 0 and bytes(probe.uc.mem_read(views, 16)) == original
@@ -166,6 +177,7 @@ def check_shared_views(probe, chain, source, der):
         assert append() == 0
         assert open_views() == 0
         probe.run('cfgjson_close')  # A failed open cannot release a TLS lease.
+    check_root_with_busy_workspace()
     assert 952 not in probe.live.values()
     assert append() == 0 and list(probe.live.values()).count(952) == 1
     probe.run('mbedtls_x509_crt_free', chain)

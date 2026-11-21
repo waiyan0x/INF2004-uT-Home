@@ -22,6 +22,11 @@ int c3peer_verify (mbedtls_x509_crt *               p_chain,
                    c3peer_check_t *                 p_check,
                    void *                           p_context,
                    mbedtls_x509_crt_restart_ctx *   p_restart);
+int c3peer_leaf (mbedtls_x509_crt * p_chain,
+                 const uint8_t *    p_data,
+                 size_t             size);
+void * c3peer_key (size_t count, size_t size);
+void c3peer_key_free (void * p_memory);
 void * c3peer_limbs (size_t count, size_t size);
 void c3peer_drop (void * p_memory);
 void c3peer_wipe (void * p_memory, size_t size);

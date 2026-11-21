@@ -772,20 +772,23 @@ def check_tls_output(commands, symbols, enabled, config_lines):
         'builtin/src/bignum.c': {'mbedtls_calloc': 'c3peer_limbs',
                                  'mbedtls_free': 'c3peer_drop',
                                  'mbedtls_zeroize_and_free': 'c3peer_wipe'},
+        'builtin/src/psa_crypto_ecp.c': {'mbedtls_calloc': 'c3peer_key', 'mbedtls_free': 'c3peer_key_free'},
         'x509_crt.c': {'mbedtls_calloc': 'c3peer_alloc', 'mbedtls_free': 'c3peer_free'},
         'psa_crypto.c': {**bindings, 'mbedtls_calloc': 'c3tout_prf_alloc'},
     }
     observed = []
     for entry in commands:
         path = Path(entry['file'])
-        name = 'builtin/src/bignum.c' if path.as_posix().endswith('/tf-psa-crypto/drivers/builtin/src/bignum.c') else path.name
+        name = path.name
+        if path.parent.as_posix().endswith('/tf-psa-crypto/drivers/builtin/src'):
+            name = 'builtin/src/' + name
         found = re.findall(r'(?:^|\s)-D\s*"?(mbedtls_calloc|mbedtls_free|mbedtls_zeroize_and_free|psa_key_derivation_input_bytes|psa_key_derivation_input_key|psa_import_key|mbedtls_x509_crt_parse_der_nocopy|mbedtls_x509_crt_verify_restartable)=([^\s"]+)"?', entry['command'])
         expected = source_bindings.get(name, {}) if enabled else {}
         if dict(found) != expected or len(found) != len(expected):
             raise QualificationError('TLS output binding escaped its source: ' + name)
         if expected:
             observed.append(name)
-    owned = (*bindings.values(), 'c3peer_verify', 'c3peer_limbs', 'c3peer_drop', 'c3peer_wipe', 'c3peer_der', 'c3peer_alloc', 'c3peer_free', 'c3peer_views', 'c3peer_close', 'c3tout_setup', 'c3tout_native_setup',
+    owned = (*bindings.values(), 'c3peer_verify', 'c3peer_leaf', 'c3peer_key', 'c3peer_key_free', 'c3peer_limbs', 'c3peer_drop', 'c3peer_wipe', 'c3peer_der', 'c3peer_alloc', 'c3peer_free', 'c3peer_views', 'c3peer_close', 'c3tout_setup', 'c3tout_native_setup',
              'c3tout_set_name', 'c3tout_native_name', 'c3tout_start',
              'c3tout_native_start', 'c3tout_renegotiate', 'c3tout_native_renegotiate',
              'c3tout_certificate', 'c3tout_native_certificate',

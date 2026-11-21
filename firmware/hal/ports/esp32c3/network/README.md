@@ -317,8 +317,7 @@ through cleanup and reconnect. The format flag occupies padding after the
 broker port. The generator sets it only for a single decoded certificate.
 Other inputs, including a complete PEM bundle or a different caller's DER,
 use the native copying parser. Peer-chain handling, hostname verification and
-signature checks remain with mbedTLS. The wrapper introduces no writable
-buffer, allocation, cast, synchronization or new SDK exception.
+signature checks remain with mbedTLS. The DER bytes in flash remain valid until the end of the boot.
 
 The no-copy peer parser requests a node before parsing each additional
 certificate. Only its owning task can claim that allocation in `x509_crt.c`.
@@ -353,6 +352,23 @@ The parser's bounded four-node count fits in one byte. The build checks
 the allocator bindings on the crypto source and excludes the Wi-Fi
 supplicant's separate file of the same name. These bounds, exact-pointer
 releases, task exclusion and callback signatures were reviewed for BARR-C.
+
+The first DER certificate can also borrow one typed `mbedtls_ecp_keypair`
+inside the workspace. The configured DER trust anchor and first peer use this
+path when USB views, intermediate nodes and other crypto operations are clear.
+The single-leaf verifier uses the same object alongside its integer slots.
+The lease records the native task and whether it permits integer operations.
+Parsing leaves integer allocations with the SDK. A busy workspace keeps the
+existing trust-parser and verifier behavior. A live USB tree still rejects a
+peer parse, as required by its existing contract.
+
+Only the pinned `psa_crypto_ecp.c` gets the key allocation and release
+bindings. The owner can request one exact SDK keypair. A second simultaneous
+request returns NULL. Other tasks and allocation shapes use the native heap.
+The synchronous SDK import and verify paths release the key's members before
+returning the outer object. Exact-pointer release clears its full size.
+The build checks the typed union fits the original 4 KiB. The task boundary,
+alignment, error cleanup and workspace lifetimes were reviewed for BARR-C.
 
 The selected parser uses one actual `mbedtls_x509_crt` chain head (952 bytes)
 temporarily and retains one 32-byte peer-certificate digest. Both now belong to

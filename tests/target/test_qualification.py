@@ -523,8 +523,10 @@ class QualificationTests(unittest.TestCase):
                          command='gcc' + flags.replace('c3tout_alloc', 'c3tout_prf_alloc')),
                     dict(file='/sdk/tf-psa-crypto/drivers/builtin/src/bignum.c',
                          command='gcc -Dmbedtls_calloc=c3peer_limbs -Dmbedtls_free=c3peer_drop'
-                                 ' -Dmbedtls_zeroize_and_free=c3peer_wipe')]
-        names = ('c3peer_verify', 'c3peer_limbs', 'c3peer_drop', 'c3peer_wipe', 'c3peer_der', 'c3peer_alloc', 'c3peer_free', 'c3peer_views', 'c3peer_close', 'c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe',
+                                 ' -Dmbedtls_zeroize_and_free=c3peer_wipe'),
+                    dict(file='/sdk/tf-psa-crypto/drivers/builtin/src/psa_crypto_ecp.c',
+                         command='gcc -Dmbedtls_calloc=c3peer_key -Dmbedtls_free=c3peer_key_free')]
+        names = ('c3peer_verify', 'c3peer_leaf', 'c3peer_key', 'c3peer_key_free', 'c3peer_limbs', 'c3peer_drop', 'c3peer_wipe', 'c3peer_der', 'c3peer_alloc', 'c3peer_free', 'c3peer_views', 'c3peer_close', 'c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe',
                  'c3tout_certificate', 'mbedtls_ssl_parse_certificate',
                  'c3tout_start', 'c3tout_renegotiate',
                  'mbedtls_ssl_start_renegotiation', 'mbedtls_ssl_renegotiate',
@@ -571,6 +573,8 @@ class QualificationTests(unittest.TestCase):
         extra_import = dict(commands[2], command=commands[2]['command'] + import_flag)
         for damaged in ([], commands[:1], commands[1:], commands * 2,
                         [*commands, dict(commands[3], file='/sdk/wpa_supplicant/src/tls/bignum.c')],
+                        commands[:-1], [*commands[:-1], dict(commands[-1], command='gcc -Dmbedtls_calloc=c3peer_key')],
+                        [*commands, dict(commands[-1], file='/sdk/another.c')],
                         commands[:1] * 2, commands[1:] * 2,
                         [missing_import, *commands[1:]], [*commands[:2], extra_import],
                         [commands[0], commands[2]], [*commands, commands[1]],

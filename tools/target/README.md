@@ -500,10 +500,10 @@ python -B -m tools.target.tls_limb_probe FIRMWARE.elf BROKER.pem --output build/
 ```
 
 The test pauses the synchronous wrapper at the SDK verifier, fills all 32
-limb slots and the distinct 160-byte modular-inverse buffer simultaneously.
-It checks exhaustion, a same-size request with different factors and allocation
-by a different task while the verifier holds the buffer. It checks both release paths, reuse, USB exclusion and return of the
-workspace after an SDK error. The native verifier return is simulated here.
+limb slots, the 160-byte modular-inverse buffer and, on the EC keypair image,
+the 128-byte keypair at the same time. It checks exhaustion, different
+allocation factors, ownership by another task, clearing and reuse. It also
+checks USB exclusion and return of the workspace after an SDK error. The native verifier return is simulated here.
 The authenticated MQTT trial and the complete certificate replay are recorded
 in the [memory report](../../docs/reports/wifi-static-memory/README.md#fixed-integer-buffers-for-the-demo-broker).
 

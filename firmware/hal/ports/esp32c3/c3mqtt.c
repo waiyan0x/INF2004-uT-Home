@@ -11,6 +11,7 @@
 #include "lwip/inet.h"
 #if UTHOME_STATIC_NET_QUEUES
 #include "lwip/netdb.h"
+#include "c3peer.h"
 #include "mbedtls/x509_crt.h"
 #endif
 #include "lwip/sockets.h"
@@ -66,7 +67,7 @@ int c3mqtt_trust (struct mbedtls_x509_crt * p_chain,
     if ((g_config.b_ca_der) && (g_config.p_ca == p_data) &&
         (g_config.ca_size == size))
     {
-        return mbedtls_x509_crt_parse_der_nocopy(p_chain, p_data, size);
+        return c3peer_leaf(p_chain, p_data, size);
     }
     return mbedtls_x509_crt_parse(p_chain, p_data, size);
 }

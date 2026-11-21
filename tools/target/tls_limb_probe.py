@@ -73,6 +73,29 @@ def measure(elf, pem):
     cpu.mem_write(inverse, marker_bytes)
     assert run('c3peer_limbs', 32, 5) == 0 and probe.live == retained
 
+    # The typed EC key remains separate from the inverse and all ordinary slots.
+    key_bytes = 0
+    if 'c3peer_key' in probe.symbols:
+        key_bytes = 128
+        key = run('c3peer_key', 1, key_bytes)
+        assert workspace <= key <= workspace + 4096 - key_bytes and key % 4 == 0
+        for start, size in [(p, 96) for p in slots] + [(inverse, 160)]:
+            assert start + size <= key or key + key_bytes <= start
+        assert not any(cpu.mem_read(key, key_bytes))
+        cpu.mem_write(key, bytes(range(key_bytes)))
+        assert run('c3peer_key', 1, key_bytes) == 0 and probe.live == retained
+        for task, count, size in ((1, 2, 64), (2, 1, key_bytes)):
+            probe.task_id = task
+            other = run('c3peer_key', count, size)
+            assert other != key and probe.live[other] == key_bytes
+            run('c3peer_key_free', other)
+        probe.task_id = 1
+        assert cpu.mem_read(key, key_bytes) == bytes(range(key_bytes))
+        run('c3peer_key_free', key)
+        assert not any(cpu.mem_read(key, key_bytes))
+        assert run('c3peer_key', 1, key_bytes) == key
+        run('c3peer_key_free', key)
+
     # A different factor uses the SDK even if the product is also 160 bytes.
     other = run('c3peer_limbs', 16, 10)
     assert other != inverse and probe.live[other] == 160
@@ -115,7 +138,7 @@ def measure(elf, pem):
     run('mbedtls_x509_crt_free', chain)
     assert not probe.live
     return dict(elf_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(), slots=len(slots),
-                slot_bytes=96, inverse_bytes=160, exhaustion_verified=True, foreign_task_verified=True,
+                slot_bytes=96, inverse_bytes=160, key_bytes=key_bytes, exhaustion_verified=True, foreign_task_verified=True,
                 release_verified=True, simulated_verifier_return=-0x2700)
 
 

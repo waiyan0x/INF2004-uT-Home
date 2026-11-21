@@ -5,6 +5,7 @@
 #include "c3peer.h"
 #if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
 #include "mbedtls/platform.h"
+#include "mbedtls/private/ecp.h"
 #include "c3bport.h"
 #include <string.h>
 #include "mbedtls/platform_util.h"
@@ -23,6 +24,9 @@ typedef struct
     /* The SDK uses five 256-bit vectors for one P-256 modular inverse. */
     uint32_t inverse[C3PEER_INVERSE_FACTOR * (C3PEER_P256_BITS / 32U)];
     bool     b_inverse_used;
+    mbedtls_ecp_keypair key;
+    bool                b_key_used;
+    bool                b_verify;
 } c3peer_math_t;
 
 typedef union
@@ -38,19 +42,21 @@ enum
     C3PEER_SIZE_CHECK = 1 / (sizeof(c3peer_store_t) <= UTHOME_JSON_BYTES)
 };
 
-static c3peer_store_t g_store     = {0};
-static bool           gb_views    = false;
-static uint8_t        g_live      = 0U;
-static int            gh_owner    = 0;
-static int            gh_verifier = 0;
+static c3peer_store_t g_store   = {0};
+static bool           gb_views  = false;
+static uint8_t        g_live    = 0U;
+static int            gh_owner  = 0;
+static int            gh_crypto = 0;
 
-static bool owns_math (void);
+static bool borrow_crypto (bool b_verify);
+static void return_crypto (void);
+static bool owns_crypto (void);
 static bool release_limb (void * p_memory);
 
 /** @brief Lend all view records to the serialized configuration parser. */
 cfgjson_value_t * c3peer_views (void)
 {
-    if (gb_views || (0U != g_live) || (0 != gh_verifier))
+    if (gb_views || (0U != g_live) || (0 != gh_crypto))
     {
         return NULL;
     }
@@ -69,14 +75,17 @@ int c3peer_der (struct mbedtls_x509_crt * p_chain,
                 const unsigned char *     p_data,
                 size_t                    size)
 {
-    if (gb_views || (0 != gh_verifier))
+    if (gb_views || (0 != gh_crypto))
     {
         return MBEDTLS_ERR_X509_ALLOC_FAILED;
     }
     /* In the no-copy parser an occupied chain's first allocation in
      * x509_crt.c is its additional node. The SDK owns linking and rollback. */
-    if ((NULL == p_chain) || (0 == p_chain->version) ||
-        (C3PEER_NODES == g_live))
+    if ((NULL != p_chain) && (0 == p_chain->version))
+    {
+        return c3peer_leaf(p_chain, p_data, size);
+    }
+    if ((NULL == p_chain) || (C3PEER_NODES == g_live))
     {
         return mbedtls_x509_crt_parse_der_nocopy(p_chain, p_data, size);
     }
@@ -88,6 +97,22 @@ int c3peer_der (struct mbedtls_x509_crt * p_chain,
     const uint32_t done = c3bport_enter();
     gh_owner            = 0;
     c3bport_leave(done);
+    return result;
+}
+
+/** @brief Parse a first DER certificate with a temporary keypair if available.
+ */
+int c3peer_leaf (mbedtls_x509_crt * p_chain,
+                 const uint8_t *    p_data,
+                 size_t             size)
+{
+    const bool b_lend =
+        (NULL != p_chain) && (0 == p_chain->version) && (borrow_crypto(false));
+    const int result = mbedtls_x509_crt_parse_der_nocopy(p_chain, p_data, size);
+    if (b_lend)
+    {
+        return_crypto();
+    }
     return result;
 }
 
@@ -143,23 +168,14 @@ int c3peer_verify (mbedtls_x509_crt *               p_chain,
                    mbedtls_x509_crt_restart_ctx *   p_restart)
 {
     /* Other chains, callbacks and restartable calls retain SDK allocation. */
-    const int  h_task = c3bport_task();
     const bool b_lend =
-        (0 < h_task) && (!gb_views) && (0U == g_live) && (0 == gh_verifier) &&
         (NULL == p_restart) && (NULL == p_check) && (NULL == p_crl) &&
         (NULL != p_chain) && (NULL == p_chain->next) &&
         (MBEDTLS_PK_SIGALG_ECDSA == p_chain->MBEDTLS_PRIVATE(sig_pk)) &&
         (NULL != p_ca) && (NULL == p_ca->next) &&
         (PSA_ECC_FAMILY_SECP_R1 == p_ca->pk.MBEDTLS_PRIVATE(ec_family)) &&
-        (C3PEER_P256_BITS == mbedtls_pk_get_bitlen(&p_ca->pk));
-    if (b_lend)
-    {
-        const uint32_t saved        = c3bport_enter();
-        g_store.math.used           = 0U;
-        g_store.math.b_inverse_used = false;
-        gh_verifier                 = h_task;
-        c3bport_leave(saved);
-    }
+        (C3PEER_P256_BITS == mbedtls_pk_get_bitlen(&p_ca->pk)) &&
+        (borrow_crypto(true));
     const int result = mbedtls_x509_crt_verify_restartable(p_chain,
                                                            p_ca,
                                                            p_crl,
@@ -171,17 +187,43 @@ int c3peer_verify (mbedtls_x509_crt *               p_chain,
                                                            p_restart);
     if (b_lend)
     {
-        const uint32_t done = c3bport_enter();
-        gh_verifier         = 0;
-        c3bport_leave(done);
+        return_crypto();
     }
     return result;
+}
+
+/** @brief Supply the synchronous certificate operation's temporary EC key. */
+void * c3peer_key (size_t count, size_t size)
+{
+    if ((1U != count) || (sizeof(g_store.math.key) != size) || (!owns_crypto()))
+    {
+        return mbedtls_calloc(count, size);
+    }
+    if (g_store.math.b_key_used)
+    {
+        return NULL;
+    }
+    g_store.math.b_key_used = true;
+    memset(&g_store.math.key, 0, sizeof(g_store.math.key));
+    return &g_store.math.key;
+}
+
+/** @brief The SDK releases the key's inner allocations before the record. */
+void c3peer_key_free (void * p_memory)
+{
+    if (p_memory == &g_store.math.key)
+    {
+        mbedtls_platform_zeroize(p_memory, sizeof(g_store.math.key));
+        g_store.math.b_key_used = false;
+        return;
+    }
+    mbedtls_free(p_memory);
 }
 
 /** @brief Supply zeroed integer storage only to the verifying task. */
 void * c3peer_limbs (size_t count, size_t size)
 {
-    if (!owns_math())
+    if ((!owns_crypto()) || (!g_store.math.b_verify))
     {
         return mbedtls_calloc(count, size);
     }
@@ -236,12 +278,43 @@ void c3peer_wipe (void * p_memory, size_t size)
     }
 }
 
+/** @brief USB, peer-node and crypto leases share the serialized MQTT/USB owner.
+ */
+static bool borrow_crypto (bool b_verify)
+{
+    const int      h_task = c3bport_task();
+    const uint32_t saved  = c3bport_enter();
+    const bool     b_available =
+        (0 < h_task) && (!gb_views) && (0U == g_live) && (0 == gh_crypto);
+    if (b_available)
+    {
+        g_store.math.b_key_used = false;
+        g_store.math.b_verify   = b_verify;
+        if (b_verify)
+        {
+            g_store.math.used           = 0U;
+            g_store.math.b_inverse_used = false;
+        }
+        gh_crypto = h_task;
+    }
+    c3bport_leave(saved);
+    return b_available;
+}
+
+/** @brief End the lease only after the native parser or verifier returns. */
+static void return_crypto (void)
+{
+    const uint32_t saved = c3bport_enter();
+    gh_crypto            = 0;
+    c3bport_leave(saved);
+}
+
 /** @brief Check the native task before touching the shared union. */
-static bool owns_math (void)
+static bool owns_crypto (void)
 {
     const int      h_task  = c3bport_task();
     const uint32_t saved   = c3bport_enter();
-    const bool     b_owned = (0 < h_task) && (h_task == gh_verifier);
+    const bool     b_owned = (0 < h_task) && (h_task == gh_crypto);
     c3bport_leave(saved);
     return b_owned;
 }
@@ -249,7 +322,7 @@ static bool owns_math (void)
 /** @brief Wipe an exact slot before its next allocation. */
 static bool release_limb (void * p_memory)
 {
-    if ((NULL != p_memory) && (owns_math()))
+    if ((NULL != p_memory) && (owns_crypto()) && (g_store.math.b_verify))
     {
         if (p_memory == g_store.math.inverse)
         {

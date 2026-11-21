@@ -93,18 +93,15 @@ the 208-byte overlap case with 25 application bytes left under the RAM cap.
 On the ESP, all nine observed startup and Wi-Fi rejoin messages used fixed
 storage. Authenticated MQTT recovered on the same boot.
 [Fixed queued event bodies](docs/reports/wifi-static-memory/README.md#fixed-queued-event-bodies)
-The Wi-Fi build uses a fixed 32-slot PSA key table and borrows the USB workspace
-for certificate arithmetic. The MQTT client reads its single demo CA directly
-from flash. CA loading peaks at 461 requested heap bytes and retains zero.
-A shared 160-byte modular-inverse buffer brings broker verification down to
-273 requested heap bytes at peak and five new requests. Both roots in
-a PEM bundle also passed verification using the SDK's ordinary parser.
-The remaining certificate heap, Wi-Fi driver allocations and whole-image
-heap trace are open. The fixed inverse-buffer image returned three authenticated
-MQTT status replies on one ESP boot across broker restart and full TLS
-renegotiation. The largest remaining verifier requests are two 128-byte key
-objects with disjoint lifetimes. The same key type also appears during CA and
-peer parsing.
+The Wi-Fi build reads the demo CA from flash and shares the existing USB
+workspace for certificate verification. One typed EC keypair now also serves
+CA parsing, peer parsing and verification. The compiled demo peaks at 333
+requested heap bytes in each parsing phase and 145 bytes during verification.
+Verification still makes three requests, one of 65 bytes and two of 48 bytes.
+The 65-byte request also occurs in both parsing phases. Wi-Fi driver
+allocations and the whole-image heap trace remain open. The preceding
+inverse-buffer image passed the physical broker restart and renegotiation trial.
+[Fixed EC keypair and phase measurements](docs/reports/wifi-static-memory/README.md#fixed-ec-keypair)
 [Fixed modular-inverse buffer and measurements](docs/reports/wifi-static-memory/README.md#fixed-modular-inverse-buffer)
 [Flash-backed trust anchor and remaining allocations](docs/reports/wifi-static-memory/README.md#flash-backed-demo-trust-anchor)
 [Fixed integer buffers and compatibility tests](docs/reports/wifi-static-memory/README.md#fixed-integer-buffers-for-the-demo-broker)
