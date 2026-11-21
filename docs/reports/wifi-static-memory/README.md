@@ -1681,6 +1681,26 @@ This comparison covers the MQTT worker's native mbedTLS allocator with USB
 idle during TLS. The full original flash, active and saved profile 943 and
 host cleanup were verified after the trial.
 
+##### X25519 client key exchange
+
+A replay of the production ESP ELF used the pinned TLS client state machine
+to generate an ephemeral key, export its public part and derive the shared
+secret. The test used host-only deterministic entropy and checked both
+outputs against Python cryptography. The generated private key stayed in a
+32-byte PSA allocation until the SDK destroyed its key handle.
+
+| Baseline operation | Heap requests | Peak live bytes including the PSA allocation |
+| --- | ---: | ---: |
+| Generate the key | 9 | 140 |
+| Export the public key | 44 | 976 |
+| Calculate the shared secret | 50 | 1,244 |
+
+The agreement peak held 956 bytes of multiprecision integer buffers, two
+128-byte decoded key objects and the 32-byte PSA allocation. Both decoded
+objects were live together. The 103 requests and 1,244-byte peak matched the
+first connection in the preceding board trial. The deterministic replay
+measures one set of inputs. The board also recorded a 104-request exchange.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

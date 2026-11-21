@@ -762,3 +762,15 @@ SDK heap/entropy/crypto are intentionally real host implementations. The single
 client verifies server trust/name; no verification bypass is added. Current
 checks and fresh target evidence are in the [network guide](../../firmware/src/network/README.md#esp-https-removal).
 This remains manual/host verification, separate from physical acceptance.
+
+### X25519 client key exchange
+
+Run `python -m tools.target.tls_exchange_probe FIRMWARE_ELF --expect workspace
+--output NEW_REPORT` on one line with the optional RV32 probe dependencies
+and Python cryptography. Use `--expect native` for the earlier firmware.
+The probe runs the compiled TLS 1.2 client step with deterministic test
+entropy and a simulated record writer. It checks the emitted X25519 public
+key and shared secret against an independent implementation. It also checks
+USB contention, rejection of an all-zero peer and cleanup of key storage.
+The [memory report](../../docs/reports/wifi-static-memory/README.md#x25519-client-key-exchange)
+compares the replay and physical MQTT measurements.
