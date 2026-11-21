@@ -1429,6 +1429,19 @@ two-root PEM bundle and three- and seven-certificate RSA fixtures verified.
 Image `dc0057fc` uses 147,432 / 147,456 B of fixed application RAM and
 276,422 / 278,528 B of total fixed DRAM.
 
+A replay traced the common 65 B request to `psa_allocate_buffer_to_slot`.
+The input to `psa_import_key` matched the CA public key during CA parsing
+and verification, and the broker public key during peer parsing. Each phase
+released its 65 B allocation before returning. This key-data copy is the
+next fixed-storage candidate.
+
+On the physical ESP, the same image returned three distinct 96-byte MQTT
+status replies with one boot identity. They arrived before broker restart,
+after reconnect and after a full server-requested TLS 1.2 renegotiation.
+The reconnected socket completed two handshakes. The fresh 4 MiB backup and
+restored flash matched. The active and saved profile were both 943, and
+the laptop uplink, saved hotspot settings and firewall cleanup verified.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

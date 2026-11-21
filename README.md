@@ -98,9 +98,10 @@ workspace for certificate verification. One typed EC keypair now also serves
 CA parsing, peer parsing and verification. The compiled demo peaks at 333
 requested heap bytes in each parsing phase and 145 bytes during verification.
 Verification still makes three requests, one of 65 bytes and two of 48 bytes.
-The 65-byte request also occurs in both parsing phases. Wi-Fi driver
-allocations and the whole-image heap trace remain open. The preceding
-inverse-buffer image passed the physical broker restart and renegotiation trial.
+The 65-byte request copies the certificate public key into a PSA key slot
+during each of the three phases. Wi-Fi driver allocations and the whole-image
+heap trace remain open. The fixed-keypair image returned three authenticated
+MQTT replies on the same ESP boot across broker restart and full TLS renegotiation.
 [Fixed EC keypair and phase measurements](docs/reports/wifi-static-memory/README.md#fixed-ec-keypair)
 [Fixed modular-inverse buffer and measurements](docs/reports/wifi-static-memory/README.md#fixed-modular-inverse-buffer)
 [Flash-backed trust anchor and remaining allocations](docs/reports/wifi-static-memory/README.md#flash-backed-demo-trust-anchor)
