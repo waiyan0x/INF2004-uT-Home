@@ -99,9 +99,8 @@ P-256 public key now fits in that workspace alongside the typed EC keypair.
 The compiled demo peaks at 268 requested heap bytes during CA and peer
 parsing and 80 bytes during verification. Verification makes two 48-byte
 requests, one at a time. Wi-Fi driver allocations and the whole-image heap
-trace remain open. The preceding fixed-keypair image returned three
-authenticated MQTT replies on one ESP boot across broker restart and
-full TLS renegotiation.
+trace remain open. The fixed public-key image returned three authenticated
+MQTT replies on one ESP boot across broker restart and full TLS renegotiation.
 [Fixed PSA public-key copy and measurements](docs/reports/wifi-static-memory/README.md#fixed-psa-public-key-copy)
 [Fixed EC keypair and phase measurements](docs/reports/wifi-static-memory/README.md#fixed-ec-keypair)
 [Fixed modular-inverse buffer and measurements](docs/reports/wifi-static-memory/README.md#fixed-modular-inverse-buffer)

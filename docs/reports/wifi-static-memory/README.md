@@ -1464,6 +1464,20 @@ three- and seven-certificate RSA controls, and fixed TLS key derivation
 passed. The BARR-C gate and 225 host tests passed. The measurements cover
 the demo certificate path. General certificate support can still use the heap.
 
+On the ESP, firmware image `beb72329` returned three distinct 96-byte MQTT
+status replies on one boot. The first came after the initial handshake, the
+second after restarting the broker, and the third after a full TLS 1.2
+renegotiation. The broker transcript confirmed both peers finished the new
+handshake before that last reply. Full flash restoration and USB profile 943
+were verified, the temporary firewall rule and hotspot were removed, and the
+laptop retained its original uplink. Wi-Fi group-key renewal overlap remains
+unmeasured.
+
+Both remaining verifier allocations in ELF `641c91ce` resolve to the
+elliptic-curve point table in the pinned SDK's `ecp.c` at line 2234. Its
+general path can transfer table ownership to the group or restart context.
+A fixed slot for the demo needs to preserve those lifetimes.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
