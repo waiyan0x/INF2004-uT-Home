@@ -58,6 +58,29 @@ and 276,430 bytes of total DRAM. On-board connection and restart acceptance
 for this image is pending. Per-thread socket semaphores and hardware
 cryptography have separate allocation paths.
 
+### Native startup pool and software crypto capacity
+
+On image `db389843c32ccc9777086b22e58e18797a1888ccb990625bce96f62ab43a2d16`,
+the kernel made one startup allocation. The area list in the 12,288-byte
+reservation contained the 8,448-byte controller stack, 3,792 free bytes and
+48 bytes of control data and alignment. The debugger matched the allocated
+block to the recorded controller stack. The same layout appeared on two
+boots at startup seal and at the ninth MQTT service call on the second boot.
+That call occurred before the station obtained an IP address. On the first
+boot a subsequent USB query timed out. Both backups, full flash restores and
+original profiles verified.
+
+An isolated build using the pinned software SHA and AES providers consumed
+275,418 bytes of fixed DRAM. It retained TLS and all application capacities.
+Compared with the socket-only image, it saved 208 bytes of SDK/kernel data
+and 804 bytes of RAM code. Application data stayed at 147,440 bytes.
+RV32 SHA-256 and HMAC-SHA256 produced their expected digests with zero
+native heap requests. Software AES-128-GCM produced the expected ciphertext
+and tag, decrypted a valid record, and rejected a damaged tag. Encryption
+and each decryption requested and released a 280-byte AES context. The
+experiment used real compiled cryptography and emulated ROM byte operations.
+Its ELF SHA-256 is `b74ad288c98f489a34d9c3aa09fc3093f270e92301b390329f961dcfc507c3bf`.
+
 ### Tribunal static-memory check, 20 November 2026
 
 **The demo firmware fails the no-application-heap requirement.** The tribunal
