@@ -98,6 +98,12 @@ if(UTHOME_STATIC_NET_QUEUES)
             "-Wl,--defsym=__wrap_${original}=${owned}")
     endforeach()
 
+    if(UTHOME_NETWORK_WIFI AND UTHOME_CONFIGURATION_APP)
+        set_property(SOURCE "${UTHOME_NATIVE_ROOT}/kernel/sysinit/sysinit.c"
+            TARGET_DIRECTORY ${UTHOME_KERNEL_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
+            tk_cre_tsk=c3audit_initial_task)
+    endif()
+
     # Replace the weak upstream pool provider without changing vendor sources.
     get_target_property(UTHOME_KERNEL_SOURCES ${UTHOME_KERNEL_LIB} SOURCES)
     set(UTHOME_START_REMOVED 0)

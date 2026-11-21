@@ -410,15 +410,18 @@ AUDIT_RENAMES["/kernel/tkernel/memory.c"] = {
     f"knl_I{name}": f"c3audit_native_{name}" for name in ("malloc", "calloc", "realloc", "free")}
 
 
-def verify_audit_scope(commands):
+def verify_audit_scope(commands, station_stack=False):
     """Reject missing, duplicate, overridden or globally leaked substitutions."""
     selected = {}
-    all_names = {symbol for renames in AUDIT_RENAMES.values() for symbol in renames}
-    for suffix in AUDIT_RENAMES:
+    expected_renames = dict(AUDIT_RENAMES)
+    if station_stack:
+        expected_renames["/kernel/sysinit/sysinit.c"] = {"tk_cre_tsk": "c3audit_initial_task"}
+    all_names = {symbol for renames in expected_renames.values() for symbol in renames}
+    for suffix, renames in expected_renames.items():
         paths = [path for path in commands if path.as_posix().endswith(suffix)]
         if len(paths) != 1:
             raise QualificationError(f"Missing or ambiguous audit source: {suffix}")
-        selected[paths[0]] = AUDIT_RENAMES[suffix]
+        selected[paths[0]] = renames
     for path, command in commands.items():
         for symbol in all_names:
             values = re.findall(r'(?:^|\s)-D\s*"?' + symbol + r'=([A-Za-z_]\w*)"?', command)
@@ -996,11 +999,13 @@ def verify_queue_adapter(work, enabled, wifi_services=False):
                 resources=dict(queue_slots=8, queue_bytes_by_slot=[512, 512, 1024, 1024, 1024, 1024, 1024, 2048],
                                queue_payload_bytes=8192, semaphore_slots=16, mutex_slots=32,
                                startup_native_semaphores=48,startup_native_mutexes=32,
-                               event_groups=8,event_waiters=16,native_startup_pool_bytes=12288),
+                               event_groups=8,event_waiters=16,
+                               native_startup_pool_bytes=3840 if wifi_services else 12288,
+                               dedicated_controller_stack_bytes=8448 if wifi_services else 0),
                 qualification="Experimental queue/event/startup scope; cache-off I/O rejects, radio/task/timer paths remain unqualified")
 
 
-def verify_compile_profiles(work, startup_trace=False):
+def verify_compile_profiles(work, startup_trace=False, station_stack=False):
     """Verify every snapshotted owned C file's generated compiler command."""
     database = work / "build/compile_commands.json"
     entries = json.loads(database.read_text(encoding="utf-8"))
@@ -1039,7 +1044,7 @@ def verify_compile_profiles(work, startup_trace=False):
     radio_includes = verify_radio_include_isolation(commands, work)
     storage = verify_uart_storage(commands, work / "source")
     flash_guard = verify_flash_guard(commands)
-    audit = verify_audit_scope(commands)
+    audit = verify_audit_scope(commands, station_stack)
     startup = verify_startup_scope(commands, work / "project", startup_trace)
     return {"status": "passed", "profiles": profiles, "uart_storage": storage,
             "flash_guard": flash_guard, "memory_audit": audit,
@@ -1468,7 +1473,9 @@ def build(kernel, sdk, work, *legacy_args, selection=None, compat_patch=None,
         if result:
             raise QualificationError(f"Kernel build failed ({result}); inspect {work / 'build.log'}")
         if selection.runtime_port:
-            evidence["compiler_profiles"] = verify_compile_profiles(work, selection.mode is BuildMode.WIFI)
+            evidence["compiler_profiles"] = verify_compile_profiles(
+                work, selection.mode is BuildMode.WIFI,
+                selection.static_net_queues and selection.network_services in ("wifi", "both"))
             if network_settings is not None:
                 record = json.loads((project / "source-manifest.json").read_text())["network_setup"]
                 try:

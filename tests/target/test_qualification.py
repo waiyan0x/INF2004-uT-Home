@@ -29,6 +29,23 @@ def setUpModule():
 
 
 class QualificationTests(unittest.TestCase):
+    def test_controller_stack_redirect_is_limited_to_station_startup(self):
+        commands = {Path("sdk" + suffix): " ".join(f"-D{key}={value}" for key, value in names.items())
+                    for suffix, names in qualification.AUDIT_RENAMES.items()}
+        startup = Path("sdk/kernel/sysinit/sysinit.c")
+        commands[startup] = ""
+        qualification.verify_audit_scope(commands)
+        rename = "-Dtk_cre_tsk=c3audit_initial_task"
+        with self.assertRaises(qualification.QualificationError):
+            qualification.verify_audit_scope(commands, station_stack=True)
+        commands[startup] = rename
+        qualification.verify_audit_scope(commands, station_stack=True)
+        with self.assertRaises(qualification.QualificationError):
+            qualification.verify_audit_scope(commands)
+        commands[Path("sdk/unrelated.c")] = rename
+        with self.assertRaises(qualification.QualificationError):
+            qualification.verify_audit_scope(commands, station_stack=True)
+
     def test_station_memory_defaults_are_wifi_service_only(self):
         station = ROOT / "tests/target/runtime_port_board/wifi-station.defaults"
         required = {

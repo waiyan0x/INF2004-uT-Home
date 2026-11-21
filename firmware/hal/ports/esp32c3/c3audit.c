@@ -3,6 +3,9 @@
  * @brief Count events with bounded single-core interrupt exclusion.
  */
 #include "c3audit.h"
+#if UTHOME_CONFIGURATION_APP && UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
+#include "c3boot.h"
+#endif
 #include "workport.h"
 #include "stackmon.h"
 #include <tk/syslib.h>
@@ -90,6 +93,8 @@ void * c3audit_kmalloc (SZ size)
         {
             ++g_boot_allocations;
         }
+#if !(UTHOME_CONFIGURATION_APP && UTHOME_NETWORK_WIFI &&                       \
+      UTHOME_STATIC_NET_QUEUES)
         gp_boot_stack = NULL;
         if ((1U == g_boot_allocations) && (8448 == size) &&
             (0 == stackmon_paint(p_memory, C3AUDIT_BOOT_STACK_BYTES)))
@@ -98,6 +103,7 @@ void * c3audit_kmalloc (SZ size)
              * Native task-context construction happens after this returns. */
             gp_boot_stack = p_memory;
         }
+#endif
     }
     enaint(interrupt_state);
     return p_memory;
@@ -115,17 +121,14 @@ int c3audit_stack_unused (uint32_t * p_unused)
     {
         return -1;
     }
-    size_t   unused          = 0U;
-    const UW interrupt_state = disint();
-    int      result          = -1;
-    if (1U == g_boot_allocations)
+    size_t                unused          = 0U;
+    const UW              interrupt_state = disint();
+    int                   result          = -1;
+    const unsigned char * p_base          = gp_boot_stack;
+    if ((NULL != p_base) &&
+        (task.istack == (p_base + C3AUDIT_BOOT_STACK_BYTES)))
     {
-        const unsigned char * p_base = gp_boot_stack;
-        if ((NULL != p_base) &&
-            (task.istack == (p_base + C3AUDIT_BOOT_STACK_BYTES)))
-        {
-            result = stackmon_unused(p_base, C3AUDIT_BOOT_STACK_BYTES, &unused);
-        }
+        result = stackmon_unused(p_base, C3AUDIT_BOOT_STACK_BYTES, &unused);
     }
     enaint(interrupt_state);
     if (0 == result)
@@ -156,6 +159,33 @@ void c3audit_kfree (void * p_memory)
     record_kernel(3U);
     c3audit_native_free(p_memory);
 }
+
+#if UTHOME_CONFIGURATION_APP && UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
+/** @brief Supply the initial task stack before the kernel builds its context.
+ */
+ID c3audit_initial_task (const T_CTSK * p_config)
+{
+    if ((NULL == p_config) || (8192 != p_config->stksz) ||
+        (NULL != p_config->bufptr) || (NULL != gp_boot_stack))
+    {
+        return E_PAR;
+    }
+    T_CTSK config = *p_config;
+    config.tskatr |= TA_USERBUF;
+    config.stksz  = C3BOOT_STACK_BYTES;
+    config.bufptr = c3boot_stack();
+    if (0 != stackmon_paint(config.bufptr, C3BOOT_STACK_BYTES))
+    {
+        return E_PAR;
+    }
+    const ID h_task = c3audit_create_task(&config);
+    if (0 < h_task)
+    {
+        gp_boot_stack = config.bufptr;
+    }
+    return h_task;
+}
+#endif
 
 /** @brief Count then preserve native task creation behavior. */
 ID c3audit_create_task (const T_CTSK * p_config)

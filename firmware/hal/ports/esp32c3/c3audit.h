@@ -40,6 +40,11 @@ void c3audit_native_free (void * p_memory);
 /* Exact native create signatures. Scoped definitions rename only the native
  * implementations; linker wrapping sends callers through counted entry points.
  * Native validation and results are unchanged, including failed attempts. */
+#if UTHOME_CONFIGURATION_APP && UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
+/** @brief Start the station controller with its dedicated stack. */
+ID c3audit_initial_task (const T_CTSK * p_config);
+#endif
+
 ID c3audit_create_task (const T_CTSK * p_config);
 ID c3audit_native_task (const T_CTSK * p_config);
 ID c3audit_create_mutex (const T_CMTX * p_config);

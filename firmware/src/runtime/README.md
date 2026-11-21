@@ -345,12 +345,31 @@ outside these hooks and require source/call-graph review.
 then scans the untouched low-address prefix. The four permanent worker stacks
 are scanned only after confirmed native dormancy. Cached minima survive binding
 changes. The 1 KiB idle stack is scanned by its higher-priority controller with
-interrupt state saved/restored. The first pre-application native allocation is
-recognized only when exactly one allocation succeeded, its size is 8448 bytes,
-and `td_ref_tsk(TSK_SELF)` confirms the same stack top/size. That is the pinned
-kernel's 8192-byte initial request plus 256 system bytes. Ambiguous provenance
-leaves controller stack evidence unavailable. Painting occurs before the native
-context writes, never on an executing or reused task stack.
+interrupt state saved/restored. The fixed-queue Wi-Fi configuration supplies
+the controller with a permanent eight-byte-aligned 8,448-byte stack. This
+covers the kernel's 8,192-byte initial request and its 256 system bytes.
+Only the initial task creation receives this storage. Other configurations
+recognize the first native allocation only when it is the sole successful
+pre-application allocation and its size matches. Both paths check the live
+task's stack top and size before scanning. Painting precedes native context
+construction. A duplicate creation cannot repaint the live stack.
+
+For the station, the 8,448-byte stack and the remaining 3,840-byte native
+pool divide the original 12,288-byte reservation. The initial task descriptor
+is copied before setting the kernel user-buffer attribute. The public kernel
+ABI and the original descriptor remain intact. The single startup caller
+owns the stack until native task creation succeeds. A failed create can be
+retried. Incidental native allocations cannot acquire or clear this ownership.
+The scan checks the current controller task and restores the saved interrupt
+state on exit.
+
+On ESP32-C3 image
+`69bf00c4164c7a31f0ed74e5778d8236168acce049b0822ed6593d909faac61f`,
+USB measured this stack in three samples through DHCP and two closed-endpoint
+connection attempts. Startup and normal kernel allocator counters were zero,
+and all normal kernel object creation counters were zero. The lowest observed
+untouched stack prefix was 6,812 bytes. SDK heap counters increased during
+this run.
 
 Sentinel observations are empirical lower bounds on remaining untouched bytes,
 not worst-case stack proofs: unvisited paths and coincidentally identical bytes
