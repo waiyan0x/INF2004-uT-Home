@@ -61,7 +61,39 @@ def check_public_copy(probe, chain, source, size):
     def import_point(out):
         return nested('c3peer_import', attrs, data, 65, out)
 
+    # Fail each integer allocation during the native P-256 import, then retry
+    # in the same parser lease. An error must discard the partial PSA key.
+    limb_calls = 0
+    fail_at = 0
+
+    def trace_limb(uc, address, length, user):
+        nonlocal limb_calls
+        limb_calls += 1
+        if limb_calls == fail_at:
+            uc.reg_write(UC_RISCV_REG_A0, 0)
+            uc.reg_write(UC_RISCV_REG_PC, uc.reg_read(UC_RISCV_REG_RA))
+
+    limb_entry = probe.symbols['c3peer_limbs']
+    hook = cpu.hook_add(UC_HOOK_CODE, trace_limb, begin=limb_entry, end=limb_entry)
+    # Both coordinates zero encode an invalid P-256 point with the right shape.
+    invalid = handles + 16
+    cpu.mem_write(invalid, bytes([4]) + bytes(64))
+    assert nested('c3peer_import', attrs, invalid, 65, handles) < 0 and probe.live == live
+    limb_calls = 0
+    start = len(probe.allocations)
     assert import_point(handles) == 0 and probe.live == live
+    heap_requests = len(probe.allocations) - start
+    limb_requests = limb_calls
+    assert limb_requests > 0
+    for index in range(1, limb_requests + 1):
+        assert nested('psa_destroy_key', int.from_bytes(cpu.mem_read(handles, 4), 'little')) == 0
+        fail_at = index
+        limb_calls = 0
+        assert import_point(handles) < 0 and limb_calls >= index and probe.live == live
+        fail_at = 0
+        limb_calls = 0
+        assert import_point(handles) == 0 and limb_calls == limb_requests and probe.live == live
+    cpu.hook_del(hook)
     offset = bytes(cpu.mem_read(workspace, 4096)).index(point)
     assert import_point(handles + 4) < 0 and probe.live == live
     probe.task_id = 2
@@ -75,6 +107,7 @@ def check_public_copy(probe, chain, source, size):
     cpu.mem_write(STACK, stack)
     cpu.emu_start(entry, STOP, count=2000000)
     assert cpu.reg_read(UC_RISCV_REG_PC) == STOP and cpu.reg_read(UC_RISCV_REG_A0) == 0
+    return dict(heap_requests=heap_requests, limb_failures_retried=limb_requests)
 
 
 def measure(elf, pem):
@@ -88,8 +121,9 @@ def measure(elf, pem):
     cpu.mem_map(source, (len(data) + 4095) & ~4095)
     cpu.mem_write(source, data)
     run('mbedtls_x509_crt_init', chain)
+    import_result = None
     if 'c3peer_import' in probe.symbols:
-        check_public_copy(probe, chain, source, len(data))
+        import_result = check_public_copy(probe, chain, source, len(data))
     else:
         assert run('c3peer_der', chain, source, len(data)) == 0
     retained = dict(probe.live)
@@ -221,7 +255,7 @@ def measure(elf, pem):
     run('c3peer_close')
     run('mbedtls_x509_crt_free', chain)
     assert not probe.live
-    return dict(elf_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(), slots=len(slots),
+    return dict(parser_key_import=import_result, elf_sha256=hashlib.sha256(elf.read_bytes()).hexdigest(), slots=len(slots),
                 point_table_bytes=48 if 'c3peer_points' in probe.symbols else 0,
                 slot_bytes=96, inverse_bytes=160, key_bytes=key_bytes,
                 public_data_bytes=65 if 'c3peer_import' in probe.symbols else 0, exhaustion_verified=True, foreign_task_verified=True,

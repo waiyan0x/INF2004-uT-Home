@@ -35,6 +35,7 @@ typedef struct
     mbedtls_ecp_keypair key;
     bool                b_key_used;
     bool                b_verify;
+    bool                b_limbs;
     /* SEC 1 uncompressed point: one format byte and two 256-bit coordinates. */
     uint8_t           public_data[1U + (2U * (C3PEER_P256_BITS / 8U))];
     bool              b_import;
@@ -222,10 +223,13 @@ psa_status_t c3peer_import (const psa_key_attributes_t * p_attributes,
     {
         return psa_import_key(p_attributes, p_data, size, ph_key);
     }
+    /* The SDK releases the decoded key and its coordinates before return. */
+    g_store.math.b_limbs  = true;
     g_store.math.b_import = true;
     const psa_status_t result =
         psa_import_key(p_attributes, p_data, size, ph_key);
     g_store.math.b_import = false;
+    g_store.math.b_limbs  = g_store.math.b_verify;
     return result;
 }
 
@@ -334,14 +338,15 @@ void c3peer_points_free (void * p_memory)
     mbedtls_free(p_memory);
 }
 
-/** @brief Supply zeroed integer storage only to the verifying task. */
+/** @brief Lend integer slots during verification or a scoped key import. */
 void * c3peer_limbs (size_t count, size_t size)
 {
-    if ((!owns_crypto()) || (!g_store.math.b_verify))
+    if ((!owns_crypto()) || (!g_store.math.b_limbs))
     {
         return mbedtls_calloc(count, size);
     }
-    if (((C3PEER_P256_BITS / 8U) == count) && (C3PEER_INVERSE_FACTOR == size))
+    if ((g_store.math.b_verify) && ((C3PEER_P256_BITS / 8U) == count) &&
+        (C3PEER_INVERSE_FACTOR == size))
     {
         if (g_store.math.b_inverse_used)
         {
@@ -406,10 +411,11 @@ static bool borrow_crypto (bool b_verify)
         g_store.math.b_data_used = false;
         g_store.math.b_key_used  = false;
         g_store.math.b_verify    = b_verify;
+        g_store.math.b_limbs     = b_verify;
+        g_store.math.used        = 0U;
         if (b_verify)
         {
             g_store.math.b_points_used  = false;
-            g_store.math.used           = 0U;
             g_store.math.b_inverse_used = false;
         }
         gh_crypto = h_task;
@@ -439,7 +445,7 @@ static bool owns_crypto (void)
 /** @brief Wipe an exact slot before its next allocation. */
 static bool release_limb (void * p_memory)
 {
-    if ((NULL != p_memory) && (owns_crypto()) && (g_store.math.b_verify))
+    if ((NULL != p_memory) && (owns_crypto()) && (g_store.math.b_limbs))
     {
         if (p_memory == g_store.math.inverse)
         {

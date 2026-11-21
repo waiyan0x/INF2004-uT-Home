@@ -1507,6 +1507,29 @@ and firewall rule were removed and the laptop retained its original uplink.
 Wi-Fi rekey overlap remains
 unmeasured.
 
+##### Fixed parser integers
+
+During the P-256 key import, the CA and peer parser now reuse the integer
+slots already reserved for the verifier. The linked demo image removed
+seven heap requests per certificate. The results count requested bytes
+with the workspace available.
+
+| Certificate phase | Previous peak | New peak | Heap requests, before / after |
+| --- | ---: | ---: | ---: |
+| Parse trusted CA | 268 B | 0 B | 7 / 0 |
+| Parse broker peer | 268 B | 32 B | 9 / 2 |
+| Verify broker peer | 32 B | 32 B | 0 / 0 |
+
+The two remaining 16-byte records belong to the peer's subject alternative
+name list. They survive verification and are released when the peer certificate
+is freed. Each of their two allocation failures was injected and retried.
+The compiled importer also recovered after each of its seven integer
+requests failed in turn within one parser lease. An invalid P-256 point
+was rejected. Foreign-task imports, USB contention, PEM signers, RSA chains
+and fixed TLS key derivation passed their controls. The full transaction
+image still uses 147,432 of 147,456 fixed application bytes and 276,422 of
+278,528 total DRAM bytes.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

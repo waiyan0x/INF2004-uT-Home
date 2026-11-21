@@ -96,11 +96,13 @@ storage. Authenticated MQTT recovered on the same boot.
 The Wi-Fi build reads the demo CA from flash and shares the existing USB
 workspace for certificate parsing and verification. A temporary 65-byte
 P-256 public key now fits in that workspace alongside the typed EC keypair.
-Each certificate parsing phase peaks at 268 requested heap bytes. The
-compiled demo verifier now reuses one two-point table and makes zero new
-heap requests. It carries forward 32 bytes from parsing the peer's subject
-alternative names. The fixed point-table image returned three authenticated
-MQTT replies on one ESP boot across broker restart and full TLS renegotiation. Parser, Wi-Fi and whole-image heap work remains.
+On the compiled demo image, parsing the trusted CA makes zero heap requests.
+Peer parsing allocates two 16-byte subject alternative name records. Broker
+verification makes zero additional requests. The preceding point-table image
+returned three authenticated MQTT replies on one boot across broker restart
+and full TLS renegotiation. The name records, Wi-Fi and whole-image heap
+trace remain open.
+[Fixed parser integers](docs/reports/wifi-static-memory/README.md#fixed-parser-integers)
 [Fixed verifier point table](docs/reports/wifi-static-memory/README.md#fixed-verifier-point-table)
 [Fixed PSA public-key copy and measurements](docs/reports/wifi-static-memory/README.md#fixed-psa-public-key-copy)
 [Fixed EC keypair and phase measurements](docs/reports/wifi-static-memory/README.md#fixed-ec-keypair)

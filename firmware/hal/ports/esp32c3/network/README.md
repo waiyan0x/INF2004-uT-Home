@@ -357,8 +357,14 @@ The first DER certificate can also borrow one typed `mbedtls_ecp_keypair`
 inside the workspace. The configured DER trust anchor and first peer use this
 path when USB views, intermediate nodes and other crypto operations are clear.
 The single-leaf verifier uses the same object alongside its integer slots.
-The lease records the native task and whether it permits integer operations.
-Parsing leaves integer allocations with the SDK. A busy workspace keeps the
+While parsing, the owning task borrows integer slots only inside the selected
+uncompressed P-256 public-key import. The SDK releases the temporary keypair
+and its coordinates before returning on success or failure. Each lease starts
+with an empty slot bitmap. The import restores the verifier's previous access
+on return. Modular inversion and point tables remain verifier-only. The parser
+keeps ordinary SDK ownership for subject alternative names until certificate
+cleanup. Manual review covered scope, integer sizes, task isolation, bounded
+slot reuse, zeroization and cleanup on error. A busy workspace keeps the
 existing trust-parser and verifier behavior. A live USB tree still rejects a
 peer parse, as required by its existing contract.
 
