@@ -1289,6 +1289,23 @@ test exercised a real JSON document and all four intermediate records. All
 build and source snapshot passed. The ELF SHA-256 is
 `9a27f05bdc5574025cfb066efaadb0113437a6f0e4686ab758f90d077ed3a622`.
 
+On the normal-profile ESP32-C3, application image
+`03047c001840f2fd7550d016a1a483b6be577eca845234f683f00f4ad227ea01`
+returned three authenticated MQTT status replies on one boot. Each 96-byte
+reply matched its request ID. The first preceded broker restart, the second
+followed reconnection and the third followed full server-requested TLS 1.2
+renegotiation. The peer recorded two server Certificate messages and two
+Finished messages in each direction on the reconnected socket. Renegotiation
+took 2.17 seconds in this trial. The board trial measured network behavior.
+The allocation counts above come from the compiled replay.
+
+An earlier attempt stopped after installation and before readiness was
+confirmed. Its backup and full restoration were independently verified.
+The successful retry used a fresh verified full backup, allowed USB time
+to reappear, and preserved the runner's error log through cleanup. The
+original 4 MiB flash, active and saved profile 943, laptop uplink, hotspot
+settings and firewall cleanup passed verification.
+
 ##### Demo trust-anchor storage experiment
 
 On the same linked image, the native no-copy parser borrowed the 433-byte

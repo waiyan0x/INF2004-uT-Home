@@ -98,7 +98,9 @@ certificate verification, the integer buffers now borrow the existing USB
 workspace. The compiled verifier peaked at 866 requested heap bytes, down
 from 2,114, and made 13 heap requests instead of 444. Loading the PEM trust
 anchor still peaked at 1,327 bytes. Wi-Fi driver allocations and the
-whole-image heap trace remain open.
+whole-image heap trace remain open. The ESP on this image returned three
+matching MQTT status replies on one boot across broker restart and full TLS
+renegotiation.
 [Fixed integer buffers and compatibility tests](docs/reports/wifi-static-memory/README.md#fixed-integer-buffers-for-the-demo-broker)
 [Certificate arithmetic measurements](docs/reports/wifi-static-memory/README.md#elliptic-curve-window-for-the-demo-broker)
 [Fixed key table and certificate memory](docs/reports/wifi-static-memory/README.md#fixed-key-table-in-the-wi-fi-build)
