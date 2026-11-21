@@ -492,6 +492,20 @@ to check native allocation and cleanup. Certificate trust and handshake memory
 are separate measurements.
 [Measured broker and chain](../../docs/reports/wifi-static-memory/README.md#broker-certificate-parser-heap)
 
+On the fixed integer-buffer image, exercise the compiled allocator boundary
+using the demo P-256 leaf certificate. Run this in the same probe environment.
+
+```powershell
+python -B -m tools.target.tls_limb_probe FIRMWARE.elf BROKER.pem --output build/limb-ownership.json
+```
+
+The test pauses the synchronous wrapper at the SDK verifier, fills all 32
+slots, checks a refused request and verifies that another task uses the SDK
+heap. It checks both release paths, reuse, USB exclusion and return of the
+workspace after an SDK error. The native verifier return is simulated here.
+The authenticated MQTT trial and the complete certificate replay are recorded
+in the [memory report](../../docs/reports/wifi-static-memory/README.md#fixed-integer-buffers-for-the-demo-broker).
+
 ## TLS derivation input probe
 
 `tls_prf_probe.py` executes the compiled PSA derivation setup, byte-input and

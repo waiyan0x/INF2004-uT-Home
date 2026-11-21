@@ -321,6 +321,25 @@ typed union preserves alignment, and the build checks its size against the
 original JSON workspace. These ownership, bounds, failure and task-context
 checks form the manual C review for this change.
 
+For synchronous verification of a single ECDSA-signed leaf and one P-256
+issuer, the same union can hold 32 equal slots of 24 RV32 words. The demo's
+previous trace used at most 27 live buffers and 18 words per buffer. Keeping
+one slot size avoids size classes and fits in the existing 4 KiB. The
+application task checks that USB views and peer intermediates are free before
+arming the loan. Entry with a CRL, verification callback or restart context
+uses native allocation. The SDK decides trust and checks the hostname.
+
+Only the verifier's native task uses the slots in the pinned crypto
+`bignum.c`. Each slot is aligned for the SDK's 32-bit limb type. A count
+above 24 or a full bitmap returns NULL. Both SDK release paths clear the
+entire slot before reuse. Other allocation shapes and other tasks retain
+their SDK allocator and matching release. The native P-256 verification
+cleans up its temporary limbs synchronously before the wrapper returns.
+The parser's bounded four-node count fits in one byte. The build checks
+the allocator bindings on the crypto source and excludes the Wi-Fi
+supplicant's separate file of the same name. These bounds, exact-pointer
+releases, task exclusion and callback signatures were reviewed for BARR-C.
+
 The selected parser uses one actual `mbedtls_x509_crt` chain head (952 bytes)
 temporarily and retains one 32-byte peer-certificate digest. Both now belong to
 `c3tout`. The head and old digest can coexist while parsing a renegotiation

@@ -20,7 +20,8 @@ class ParserProbe(OutputProbe):
         self.entry = 'mbedtls_x509_crt_parse_der_nocopy'
         if 'c3peer_der' in self.symbols:
             self.entry = 'c3peer_der'
-            self.hook(self.symbols['c3bport_task'], lambda *_: self.finish(1))
+            self.task_id = 1
+            self.hook(self.symbols['c3bport_task'], lambda *_: self.finish(self.task_id))
             for name in ('c3bport_enter', 'c3bport_leave'):
                 self.hook(self.symbols[name], lambda *_: self.finish(0))
         self.peak = 0

@@ -5,6 +5,27 @@
 #ifndef UTHOME_C3PEER_H
 #define UTHOME_C3PEER_H
 #include "cfgjson.h"
+#if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
+#include "mbedtls/x509_crt.h"
+
+typedef int c3peer_check_t (void *             p_context,
+                            mbedtls_x509_crt * p_cert,
+                            int                depth,
+                            uint32_t *         p_flags);
+
+int c3peer_verify (mbedtls_x509_crt *               p_chain,
+                   mbedtls_x509_crt *               p_ca,
+                   mbedtls_x509_crl *               p_crl,
+                   const mbedtls_x509_crt_profile * p_profile,
+                   const char *                     p_name,
+                   uint32_t *                       p_flags,
+                   c3peer_check_t *                 p_check,
+                   void *                           p_context,
+                   mbedtls_x509_crt_restart_ctx *   p_restart);
+void * c3peer_limbs (size_t count, size_t size);
+void c3peer_drop (void * p_memory);
+void c3peer_wipe (void * p_memory, size_t size);
+#endif
 
 struct mbedtls_x509_crt;
 

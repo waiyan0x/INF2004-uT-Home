@@ -37,7 +37,7 @@
     "c3dhcp.c.obj": 880,
     "tkport.c.obj": 33428,
     "cfgjson.c.obj": 25,
-    "c3peer.c.obj": 4105,
+    "c3peer.c.obj": 4106,
     "c3tls.c.obj": 3168,
     "c3tout.c.obj": 25532,
     "c3lrec.c.obj": 1806,

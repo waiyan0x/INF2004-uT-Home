@@ -1251,6 +1251,44 @@ the firmware. On the board, verification still uses the SDK heap. A firmware
 implementation must coordinate USB and intermediate-certificate ownership
 and isolate allocations made by other crypto callers.
 
+#### Fixed integer buffers for the demo broker
+
+The Wi-Fi firmware now lends the USB parser workspace to the synchronous
+P-256 verifier. All 32 equal slots fit within the existing 4,096 bytes.
+The adapter grew by one fixed byte to 4,106. Application RAM is 147,432 of
+147,456 bytes and total fixed DRAM is 276,422 of 278,528 bytes. Every group
+passed. The [adapter guide](../../../firmware/hal/ports/esp32c3/network/README.md#fixed-peer-certificate-records)
+describes the supported chain, slot bounds and ownership checks.
+
+| Compiled certificate trust verification | Before | With fixed limbs |
+|---|---:|---:|
+| Demo P-256 broker, peak live heap payload | 2,114 bytes | 866 bytes |
+| Independently generated P-256 leaf and issuer, peak | 1,994 bytes | 746 bytes |
+| Demo verifier heap requests | 444 | 13 |
+
+At the demo verification peak, the CA occupied 433 bytes and its peer's
+two alternative-name records occupied 32. Other live crypto allocations
+were 65, 128, 48 and 160 bytes. Loading the CA from PEM still peaked at
+1,327 bytes in its separate phase. These figures exclude allocator overhead,
+other tasks and the rest of the handshake.
+
+On the actual linked firmware, all four chains accepted their configured
+name, rejected a wrong name, damaged signature and empty trust list, then
+accepted the original again. The three- and seven-certificate RSA chains
+peaked at 5,090 and 6,978 bytes on the regular SDK path. An occupied USB
+workspace retained all 4,096 test bytes through a successful demo verification
+at 2,114 heap bytes. Closing the USB lease restored the 866-byte result.
+A forced full bitmap caused verification to fail and preserved the starting
+heap allocations. The same verifier then succeeded.
+
+The [slot test](../../../tools/target/README.md#measuring-broker-certificate-parsing)
+filled all 32 slots, refused the next request, checked both releases and
+verified that another task could allocate and free its own buffer. The parser
+test exercised a real JSON document and all four intermediate records. All
+87 USB, TLS and qualification tests, the pinned 347-file BARR-C gate, target
+build and source snapshot passed. The ELF SHA-256 is
+`9a27f05bdc5574025cfb066efaadb0113437a6f0e4686ab758f90d077ed3a622`.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
