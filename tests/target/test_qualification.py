@@ -534,7 +534,9 @@ class QualificationTests(unittest.TestCase):
                          dict(file='/sdk/tf-psa-crypto/utilities/asn1parse.c', command='gcc -Dmbedtls_free=c3tout_node_free')])
         commands.extend(dict(file='/sdk/tf-psa-crypto/extras/' + name, command='gcc -Dpsa_import_key=c3peer_import')
                         for name in ('pk_ecc.c', 'pk_wrap.c'))
-        names = ('c3peer_copy', 'c3peer_name_alloc', 'c3tout_node_free', 'c3peer_points', 'c3peer_points_free', 'c3peer_import', 'c3peer_psa_alloc', 'c3peer_psa_free', 'c3peer_psa_wipe', 'c3peer_verify', 'c3peer_leaf', 'c3peer_key', 'c3peer_key_free', 'c3peer_limbs', 'c3peer_drop', 'c3peer_wipe', 'c3peer_der', 'c3peer_alloc', 'c3peer_free', 'c3peer_views', 'c3peer_close', 'c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe',
+        commands.append(dict(file='/sdk/mbedtls/library/ssl_tls12_client.c',
+                             command='gcc -Dmbedtls_pk_verify_restartable=c3peer_signature'))
+        names = ('c3peer_signature', 'c3peer_copy', 'c3peer_name_alloc', 'c3tout_node_free', 'c3peer_points', 'c3peer_points_free', 'c3peer_import', 'c3peer_psa_alloc', 'c3peer_psa_free', 'c3peer_psa_wipe', 'c3peer_verify', 'c3peer_leaf', 'c3peer_key', 'c3peer_key_free', 'c3peer_limbs', 'c3peer_drop', 'c3peer_wipe', 'c3peer_der', 'c3peer_alloc', 'c3peer_free', 'c3peer_views', 'c3peer_close', 'c3tout_setup', 'c3tout_alloc', 'c3tout_free', 'c3tout_wipe',
                  'c3tout_certificate', 'mbedtls_ssl_parse_certificate',
                  'c3tout_start', 'c3tout_renegotiate',
                  'mbedtls_ssl_start_renegotiation', 'mbedtls_ssl_renegotiate',

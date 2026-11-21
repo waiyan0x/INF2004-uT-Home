@@ -22,6 +22,13 @@ int c3peer_verify (mbedtls_x509_crt *               p_chain,
                    c3peer_check_t *                 p_check,
                    void *                           p_context,
                    mbedtls_x509_crt_restart_ctx *   p_restart);
+int c3peer_signature (mbedtls_pk_context *     p_key,
+                      mbedtls_md_type_t        digest,
+                      const unsigned char *    p_hash,
+                      size_t                   hash_size,
+                      const unsigned char *    p_signature,
+                      size_t                   signature_size,
+                      mbedtls_pk_restart_ctx * p_restart);
 int c3peer_copy (unsigned char **      pp_data,
                  const unsigned char * p_end,
                  mbedtls_pk_context *  p_key);

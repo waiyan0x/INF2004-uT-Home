@@ -143,6 +143,37 @@ int c3peer_leaf (mbedtls_x509_crt * p_chain,
     return result;
 }
 
+/**
+ * @brief Lend scratch storage for the synchronous broker signature check.
+ */
+int c3peer_signature (mbedtls_pk_context *     p_key,
+                      mbedtls_md_type_t        digest,
+                      const unsigned char *    p_hash,
+                      size_t                   hash_size,
+                      const unsigned char *    p_signature,
+                      size_t                   signature_size,
+                      mbedtls_pk_restart_ctx * p_restart)
+{
+    const bool b_lend =
+        (NULL == p_restart) && (NULL != p_key) &&
+        ((MBEDTLS_MD_SHA512 == digest) || (MBEDTLS_MD_SHA256 == digest)) &&
+        (PSA_ECC_FAMILY_SECP_R1 == p_key->MBEDTLS_PRIVATE(ec_family)) &&
+        (C3PEER_P256_BITS == mbedtls_pk_get_bitlen(p_key)) &&
+        (borrow_crypto(true));
+    const int result = mbedtls_pk_verify_restartable(p_key,
+                                                     digest,
+                                                     p_hash,
+                                                     hash_size,
+                                                     p_signature,
+                                                     signature_size,
+                                                     p_restart);
+    if (b_lend)
+    {
+        return_crypto();
+    }
+    return result;
+}
+
 /** @brief Lend temporary storage while TLS copies the verified peer key. */
 int c3peer_copy (unsigned char **      pp_data,
                  const unsigned char * p_end,

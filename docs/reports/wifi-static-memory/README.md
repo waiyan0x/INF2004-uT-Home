@@ -1653,6 +1653,16 @@ were preserved. Both paths rejected a changed signed digest. The emulator
 modeled hardware multiplication. The baseline board trial independently
 verified full flash and profile restoration and host cleanup.
 
+The production TLS 1.2 client now lends the workspace around the synchronous
+P-256 signature check. On ELF replay, it verified the three captured SHA-512
+signatures and two SHA-256 controls with zero heap requests. All five rejected
+a changed digest. With USB holding the workspace, verification preserved its
+contents and matched the original allocation trace. Separate scope checks
+confirmed argument forwarding, release on error and native handling of a
+restart context or a digest outside the selected pair. Fixed application RAM
+remains 147,432 bytes out of 147,456. Total DRAM remains 276,422 out of
+278,528 bytes.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

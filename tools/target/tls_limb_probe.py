@@ -111,6 +111,41 @@ def check_public_copy(probe, chain, source, size):
     return dict(heap_requests=heap_requests, limb_failures_retried=limb_requests)
 
 
+def check_signature_scope(probe, key, scratch):
+    """Observe the loan at native verifier entry and preserve its error result."""
+    cpu = probe.uc
+    regs = (UC_RISCV_REG_A0, UC_RISCV_REG_A1, UC_RISCV_REG_A2, UC_RISCV_REG_A3,
+            UC_RISCV_REG_A4, UC_RISCV_REG_A5, UC_RISCV_REG_A6)
+    owner = probe.symbols['gh_crypto']
+    seen = []
+
+    def native(*_):
+        seen.append((tuple(cpu.reg_read(reg) for reg in regs),
+                     int.from_bytes(cpu.mem_read(owner, 4), 'little')))
+        probe.finish(0xffffd900)
+        cpu.reg_write(UC_RISCV_REG_PC, cpu.reg_read(UC_RISCV_REG_RA))
+
+    addr = probe.symbols['mbedtls_pk_verify_restartable']
+    hook = cpu.hook_add(UC_HOOK_CODE, native, begin=addr, end=addr)
+    try:
+        for ctx, digest, length, restart, busy, loan in (
+                (key, 11, 64, 0, False, True), (key, 9, 32, 0, False, True),
+                (key, 10, 48, 0, False, False), (key, 11, 64, scratch, False, False),
+                (0, 11, 64, 0, False, False), (key, 11, 64, 0, True, False)):
+            if busy:
+                assert probe.run('c3peer_views')
+            args = (ctx, digest, scratch, length, scratch + 64, 70, restart)
+            for reg, val in zip(regs[4:], args[4:]):
+                cpu.reg_write(reg, val)
+            assert probe.run('c3peer_signature', *args[:4]) == -0x2700
+            assert seen.pop() == (args, probe.task_id if loan else 0)
+            assert not any(cpu.mem_read(owner, 4))
+            if busy:
+                probe.run('c3peer_close')
+    finally:
+        cpu.hook_del(hook)
+
+
 def check_handshake_copy(probe, elf, chain):
     """Compare the native and scoped imports and reuse the workspace with the key live."""
     cpu, run = probe.uc, probe.run
@@ -143,6 +178,8 @@ def check_handshake_copy(probe, elf, chain):
     run('mbedtls_pk_free', key)
     status, end, count = copy(selected, encoded)
     assert status == 0 and end == len(encoded) and count == (0 if entry else native_count)
+    if 'c3peer_signature' in probe.symbols:
+        check_signature_scope(probe, key, source)
     cpu.mem_write(source, bytes(len(encoded)))
     workspace = run('c3peer_views')
     assert workspace

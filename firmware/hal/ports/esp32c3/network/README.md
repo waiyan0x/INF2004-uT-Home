@@ -392,6 +392,15 @@ review covered the SDK's cursor and end-pointer ABI, key lifetime,
 task ownership, error returns and return of the lease. No new static storage
 or coding-standard deviation was introduced.
 
+Only the TLS 1.2 client source binds the server signature check to
+`c3peer_signature`. A synchronous P-256 key with SHA-256 or SHA-512 can
+borrow the same workspace for the duration of native ECDSA verification.
+Manual C review checked the pinned seven-argument ABI, pointer and length
+forwarding, curve and digest selection, exclusion of restartable calls,
+task ownership and release on both success and failure. The native verifier
+owns the result and all signature checks. A busy workspace takes the SDK
+allocation path. There is no added permanent buffer or change to the SDK.
+
 Only the pinned `ecp.c` receives the two-point table allocation and free
 bindings. The verifier owns an aligned array of two SDK point records.
 The compile-time guard requires window size two, disabled group caching
