@@ -81,6 +81,38 @@ and each decryption requested and released a 280-byte AES context. The
 experiment used real compiled cryptography and emulated ROM byte operations.
 Its ELF SHA-256 is `b74ad288c98f489a34d9c3aa09fc3093f270e92301b390329f961dcfc507c3bf`.
 
+### Two fixed AES contexts on the station candidate
+
+Two typed AES contexts occupy 560 bytes plus two occupancy flags. The
+candidate gives them space by reducing the startup reservation by 1,024
+bytes. The controller stack remains 8,448 bytes. Reservation and release
+use the existing interrupt mask. The cipher library initializes each leased
+context and erases the complete context before release. A third concurrent
+request returns an allocation error and preserves both owners.
+
+The candidate used 274,962 of 278,528 bytes of fixed DRAM. Application data
+was 146,978 bytes, SDK/kernel data 54,035 and RAM code 55,450. All module
+and group budgets passed. The pinned C gate passed 351 files, and all 47
+qualification tests passed. The compiled SHA-256, HMAC-SHA256 and AES-128-GCM
+vectors made zero native allocator requests. Tests covered encryption,
+decryption, tampered-tag rejection, slot exhaustion, wiping and reuse.
+Compiled readiness, X25519 exchange and traffic-key lifetime checks passed.
+The vector probe models ROM byte operations and the interrupt guard.
+
+Run `python -m tools.target.tls_cipher_probe <elf> --output cipher.json`
+against the two-slot image. The checked ELF SHA-256 is
+`cf6a3a2859ab6bf1275865f68fc063ca3d96971fa2647993d9b4a7323b2f3e58`.
+
+Two separately backed-up trials used the same crypto changes and phone
+station settings. The first capture repeatedly halted startup in the
+debugger and timed out. The second allowed the ESP to boot freely. During
+65 USB samples it reported no IPv4 address and zero MQTT failures. The
+station recorded disconnect reasons 2 and 8. Both trials restored and
+independently verified the original full flash and active/saved profile.
+A matched hardware-provider control is needed to attribute the association
+result. The two-slot change remains a candidate pending station and broker
+acceptance.
+
 ### Tribunal static-memory check, 20 November 2026
 
 **The demo firmware fails the no-application-heap requirement.** The tribunal
