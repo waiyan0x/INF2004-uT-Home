@@ -106,8 +106,9 @@ broker restart and full TLS renegotiation.
 A board trace of the MQTT worker found 550 to 551 native mbedTLS heap
 requests per handshake. Processing the server key exchange made 445 of those
 requests and set the peak at 1,649 bytes on connection and reconnect and
-1,681 bytes during renegotiation. Trace the server key exchange before sizing
-fixed storage. Wi-Fi and whole-system static-memory qualification remain open.
+1,681 bytes during renegotiation. Replaying all three signed exchanges attributes the 445
+requests to ECDSA verification. The existing workspace handled all of them
+in a compiled loan experiment. Wi-Fi and whole-system static-memory qualification remain open.
 [TLS worker heap across three handshakes](docs/reports/wifi-static-memory/README.md#tls-worker-heap-across-three-handshakes)
 [Handshake public-key import](docs/reports/wifi-static-memory/README.md#handshake-public-key-import)
 [Fixed peer certificate names](docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-names)

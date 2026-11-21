@@ -1629,6 +1629,30 @@ The diagnostic counters add RAM only to the test image. The trial restored
 and independently verified the original 4 MiB flash, saved and active profile
 943, laptop uplink, hotspot settings and firewall cleanup.
 
+##### Server key-exchange signature allocation
+
+The board repeated the three authenticated MQTT exchanges with diagnostic
+`aa3845da`. Its TLS 1.2 server parameters selected X25519 for key agreement
+and a P-256 ECDSA signature with SHA-512. Replaying each signed exchange in
+the production ELF reproduced the board's 445 requests and requested-byte
+total for that interval. Signature verification released every temporary
+block. Its peak was 1,649 bytes in all three replays. The board's renegotiation
+peak also included the 32 bytes already live on the connected session.
+
+| Temporary storage during signature verification | Requests per signature | Bytes live at signature peak |
+| --- | ---: | ---: |
+| Multiprecision integer buffers, including inverse scratch | 440 | 1,408 |
+| Decoded EC keypair | 2 | 128 |
+| EC point table | 2 | 48 |
+| PSA public-key copy | 1 | 65 |
+
+An explicit loan of the existing USB/certificate workspace around the native
+verifier reduced all three replays to zero heap requests. With USB holding
+the workspace, the original allocation profile returned and the USB contents
+were preserved. Both paths rejected a changed signed digest. The emulator
+modeled hardware multiplication. The baseline board trial independently
+verified full flash and profile restoration and host cleanup.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot
