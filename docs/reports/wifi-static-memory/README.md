@@ -1111,6 +1111,20 @@ for equal-sized events, bounded slot scans, exact-pointer release, signed
 ID conversion, and interrupt exclusion for occupancy and zeroing. The
 346-file BARR-C gate and all 47 target qualification tests passed.
 
+A backed-up ESP32-C3 trial on image
+`b28731d83916c2a3db33f488600d29f4124af3a88483fb85b471ea18346f4280`
+verified each returned pointer against the ELF slot addresses and live
+occupancy flags. Startup delivered three observed allocations (16, 48 and
+20 bytes). During a ten-second interruption of the temporary Wi-Fi access
+point and subsequent rejoin, the observer saw three 41-byte disconnect
+messages followed by 16-, 48- and 20-byte messages. All nine allocations
+returned occupied ordinary slots. All ten occupancy flags were clear after
+recovery. Three authenticated MQTT status replies identified the same ESP
+boot before the outage, after rejoin and after debugger release. Restoration
+checks verified the original 4 MiB flash, active and saved profile 943,
+laptop uplink, hotspot settings and firewall cleanup. The eight-removal
+stress case was exercised in the compiled replay.
+
 #### Fixed-slot certificate verification experiment
 
 A separate RV32 replay tested the public P-256 demo broker on the six-key-slot

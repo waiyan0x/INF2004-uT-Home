@@ -90,6 +90,8 @@ reads passed on that boot. Two separate reboots into saved idle timed out
 before the first read. The station's SDK event bodies now use two 48-byte
 slots and eight dedicated handler-cleanup slots. The compiled firmware passed
 the 208-byte overlap case with 25 application bytes left under the RAM cap.
+On the ESP, all nine observed startup and Wi-Fi rejoin messages used fixed
+storage. Authenticated MQTT recovered on the same boot.
 [Fixed queued event bodies](docs/reports/wifi-static-memory/README.md#fixed-queued-event-bodies)
 TLS certificate work and Wi-Fi driver allocations also remain open.
 [Fixed SDK event records](docs/reports/wifi-static-memory/README.md#fixed-sdk-event-records)
