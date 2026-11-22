@@ -74,6 +74,26 @@ existing keys. A separate link retained native deletion and verified slot
 reuse. Per-thread values still use the SDK path measured below.
 [Linked regression](../../../tools/target/station_key_probe.py).
 
+The ESP32-C3 then ran image
+`71098cc07e46d9c8b802ed2227b653d6d3afd55b023a3e70c413b3a9b9f06812`
+with its original profile. At the end of the trial, the debugger matched the
+C++ and Wi-Fi registry node addresses to the two reserved slots, and the
+lwIP node to its dedicated slot. All three retained their native destructors.
+Three authenticated MQTT status replies shared a boot ID across initial
+connection, broker restart and server-requested TLS 1.2 renegotiation. Both
+peers sent a second Finished message. Only the Wi-Fi driver wrote per-thread
+pthread values (two writes). The normal-operation kernel object creation
+counters stayed at zero at all four samples. The original 4 MiB flash and
+profile verified after restoration. The temporary hotspot and scoped broker
+firewall rule were removed.
+
+**Remaining libc startup allocation.** Picolibc's `esp_libc_init` requests
+four heap bytes for the terminator of the initial environment pointer table.
+A replay of this ELF reached lock initialization on allocation success and
+`abort` on failure. The ESP's table was present and empty at the end of the
+MQTT trial. This platform allocation is outside the Wi-Fi driver. Other SDK
+allocation sites still need attribution for full AAI13 acceptance.
+
 **TCP/IP startup key.** The previous image requested 12 heap bytes in
 `sys_init` to register the cleanup function for thread-local socket semaphores.
 The current station owns one typed registry entry in `c3lsem`. Replaying the
