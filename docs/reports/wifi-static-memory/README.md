@@ -134,6 +134,32 @@ Destroying a busy mutex returned `EBUSY` and kept the slot occupied. After
 a successful destroy, a recursive mutex reused the released record.
 [Linked regression](../../../tools/target/station_mutex_probe.py).
 
+During the physical trial, both C++ mutex handles and all three PSA handles
+pointed to five distinct reserved records. Each held a distinct semaphore
+lease from the fixed pool. The board returned authenticated MQTT status on
+the same boot at initial connection, after broker restart and after a second
+TLS 1.2 handshake. The normal-operation kernel creation counters were zero
+in all four samples. The image SHA-256 was
+`f580998ca3dd704a860ebe8900fe2038c8888bc71bc9c4037d0a74783e0ee9fa`.
+The full original flash and profile verified after restoration.
+
+The debugger also paired timer allocation returns with the actual free in
+the SDK's alarm processor, starting from reset. It observed 205 successful
+32-byte timer allocations, 186 frees, 0 failed allocations and 19
+live records at the final sample. The peak was **21 concurrent records
+(672 bytes of payload)**. This is the peak observed in this workload.
+A driver-exemption claim still requires caller and lifetime justification.
+
+| Timer creation path | Created | Freed | Peak live | Live at final sample |
+|---|---:|---:|---:|---:|
+| PHY clock tracking | 181 | 180 | 1 | 1 |
+| MAC and power management | 23 | 6 | 19 | 17 |
+| Supplicant event loop | 1 | 0 | 1 | 1 |
+
+Each timer keeps the classification of its creation stack until its observed free. Group peaks can occur at different times. The PHY code in the pinned SDK creates its tracking timer on radio enable and requests deletion on disable. The alarm processor performs the actual release. The WPA supplicant registers `eloop_run_timer` in `eloop_reset_state_locked` and requests its removal during `eloop_destroy`. The capture kept one such record live through the final sample.
+
+An earlier backed-up run on this same image passed the three authenticated exchanges. Its debugger timed out before recording the final ownership snapshot. The flash and profile verified after both runs. Timer counts in the table come from the second, instrumented run.
+
 **TCP/IP startup key.** The previous image requested 12 heap bytes in
 `sys_init` to register the cleanup function for thread-local socket semaphores.
 The current station owns one typed registry entry in `c3lsem`. Replaying the
