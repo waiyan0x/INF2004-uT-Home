@@ -203,6 +203,27 @@ All three statuses used one boot ID. None of the 342 normal-service
 allocation requests in this run came from this record allocator. This trial
 does not establish a capacity for other WPA security events.
 
+**General heap trace on the fixed-timer image.** On image `63eb1aaec4e6`,
+the debugger recorded 12 successive successful general allocations per window
+and read the counter at entry to the 13th. In each window the change in count
+was 12 and the change in requested bytes matched the sum from the call stacks.
+
+| Window | PHY clock timer | Wi-Fi packet buffers | MAC timer processing | Requested bytes |
+|---|---:|---:|---:|---:|
+| Broker startup | 5 | 5 | 2 | 924 |
+| Broker restart | 5 | 7 | 0 | 6,196 |
+| Requested TLS renewal | 1 | 9 | 2 | 7,876 |
+
+The stacks reached `phy_track_pll_init` (32-byte ESP timer),
+`esf_buf_alloc_dynamic` (124 to 1,700 bytes), or
+`ieee80211_timer_process` (8 bytes). Initial and restarted brokers each
+returned authenticated status on one ESP boot. The third window began
+after the server requested TLS renegotiation. The second certificate flight
+was observed, but neither peer sent its second Finished message within the
+90-second wait. The full flash and saved profile were restored and verified.
+The 36 requests establish caller ownership inside these windows. Peak live
+memory, frees and ownership between windows require separate evidence.
+
 **TCP/IP startup key.** The previous image requested 12 heap bytes in
 `sys_init` to register the cleanup function for thread-local socket semaphores.
 The current station owns one typed registry entry in `c3lsem`. Replaying the
