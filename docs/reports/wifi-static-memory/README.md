@@ -19,9 +19,9 @@ one socket key and two generic keys in fixed application RAM. Full AAI13 accepta
 |---|---:|---:|---:|
 | Application modules | 147,057 | 147,456 | 399 |
 | Project task pool | 18,499 | 18,560 | 61 |
-| Kernel and SDK fixed data | 53,700 | 55,296 | 1,596 |
+| Kernel and SDK fixed data | 53,708 | 55,296 | 1,588 |
 | Code resident in RAM | 55,500 | 57,152 | 1,652 |
-| **Total DRAM** | **274,756** | **278,528** | **3,772** |
+| **Total DRAM** | **274,764** | **278,528** | **3,764** |
 | RTC memory (separate) | 60 | 128 | 68 |
 
 The [41-module budget table](transaction-module-budget.csv) gives the linked
@@ -29,9 +29,9 @@ size and limit for each individually budgeted object in the first two groups.
 The margin is room under the project cap. To reproduce the check on a built
 station, run the following from the repository root with the ESP-IDF tools
 available. The measured ELF SHA-256 was
-`73985e243b303a4f7b07c02b4037a0e4622c7d236556b4f586a75e31a4e6fc2b` and
+`c0664c3536b4ddf4d63e7892bd6c9b3565655986e96a97515d2707cac4cd3fa6` and
 the map SHA-256 was
-`8b33a8b3e539f9d44e4ead540a0f87ae30e7e9082e3bfcc5db5af923cc826bac`.
+`55f9ee593665ebaccd3f6f0cba4e3f5bf78445de1dadb61e6fd478bcb66af424`.
 
 ```text
 python tools/target/memory_budget.py --build <station-project-directory> --budget tools/target/transaction-budget.json --output <report.json>
@@ -166,6 +166,17 @@ Reinitializing before the alarm processor runs left two distinct 32-byte
 descriptors live. Processing pending alarms released the old descriptor, and
 a second cleanup released the new one. The one live descriptor seen on the
 board describes steady service only. [Linked lifecycle regression](../../../tools/target/station_timer_probe.py).
+
+**Fixed WPA timer.** In the static station configuration the supplicant arms
+and stops one permanent, task-dispatched ESP timer. Its argument is null and
+its callback still dispatches work to the Wi-Fi task. Reset and teardown stop
+the timer. Neither clears its storage while the timer service may be using it.
+The native descriptor belongs to the SDK fixed-data group and occupies 32 bytes.
+The SDK's general timer service and profiled builds retain their existing paths.
+A release-ELF replay cancelled a pending deadline during event-loop reset,
+rearmed the same descriptor, delivered one callback, and cancelled a later
+deadline without allocating or deleting a timer.
+[Linked regression](../../../tools/target/station_timer_probe.py).
 
 **TCP/IP startup key.** The previous image requested 12 heap bytes in
 `sys_init` to register the cleanup function for thread-local socket semaphores.

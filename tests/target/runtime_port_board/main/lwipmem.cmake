@@ -119,3 +119,54 @@ extern void c3lsem_mutex_release(const void *);
         target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--undefined=${owned}")
     endforeach()
 endif()
+
+# The station has one WPA event loop and one task-dispatched, one-shot timer.
+if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES AND UTHOME_CONFIGURATION_APP AND NOT CONFIG_ESP_TIMER_PROFILING)
+    foreach(component IN ITEMS esp_timer wpa_supplicant)
+        idf_component_get_property(dir ${component} COMPONENT_DIR)
+        idf_component_get_property(lib ${component} COMPONENT_LIB)
+        if(component STREQUAL "esp_timer")
+            set(rel "src/esp_timer.c")
+            set(expected "5063132e2fa243d69b85b9bc1c93bb19d79110b265da07b5e6a4b779f66c563e")
+        else()
+            set(rel "port/eloop.c")
+            set(expected "2decdfef8e932070a791d7fd4dfa85251fedbfd6ad06f5a0da22f4b1c6eab9ac")
+        endif()
+        set(source "${dir}/${rel}")
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${source}")
+        file(READ "${source}" body)
+        string(SHA256 actual "${body}")
+        if(NOT actual STREQUAL expected)
+            message(FATAL_ERROR "Review WPA timer lifetime against changed ${rel}")
+        endif()
+        if(component STREQUAL "esp_timer")
+            string(APPEND body [=[
+
+extern void c3wpatmr_callback(void *);
+struct esp_timer g_c3wpatmr = { .callback = c3wpatmr_callback };
+]=])
+        else()
+            string(PREPEND body [=[#include "esp_timer.h"
+#include "esp_err.h"
+extern struct esp_timer g_c3wpatmr;
+void c3wpatmr_callback(void *);
+]=])
+            string(REPLACE "    ETSTimer eloop_timer;" "" body "${body}")
+            string(REPLACE "static void eloop_run_timer(" "void c3wpatmr_callback(" body "${body}")
+            string(REPLACE "os_timer_disarm(&eloop.eloop_timer);" "(void)esp_timer_stop(&g_c3wpatmr);" body "${body}")
+            foreach(delay IN ITEMS 100 ms)
+                string(REPLACE "os_timer_arm(&eloop.eloop_timer, ${delay}, 0);"
+                    "ESP_ERROR_CHECK(esp_timer_start_once(&g_c3wpatmr, 1000ULL * ${delay}));" body "${body}")
+            endforeach()
+            string(REPLACE "    os_timer_setfn(&eloop.eloop_timer, (ETSTimerFunc *)eloop_run_timer, NULL);" "" body "${body}")
+            string(REPLACE "    os_timer_done(&eloop.eloop_timer);" "" body "${body}")
+        endif()
+        set(copy "${CMAKE_CURRENT_BINARY_DIR}/wpatimer/${rel}")
+        file(CONFIGURE OUTPUT "${copy}" CONTENT "${body}" @ONLY)
+        get_target_property(sources ${lib} SOURCES)
+        list(FILTER sources EXCLUDE REGEX "(^|/)${rel}$")
+        set_property(TARGET ${lib} PROPERTY SOURCES "${sources};${copy}")
+        get_filename_component(source_dir "${source}" DIRECTORY)
+        set_property(SOURCE "${copy}" TARGET_DIRECTORY ${lib} APPEND PROPERTY INCLUDE_DIRECTORIES "${source_dir}")
+    endforeach()
+endif()
