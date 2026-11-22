@@ -203,6 +203,24 @@ All three statuses used one boot ID. None of the 342 normal-service
 allocation requests in this run came from this record allocator. This trial
 does not establish a capacity for other WPA security events.
 
+**Continuous allocation diagnostic.** A separate ESP32-C3 build links the
+[RV32 recorder](../../../tools/target/heap_census.S) with GNU ld options
+`--undefined=__wrap_c3audit_alloc`, `--wrap=c3audit_alloc` and
+`--wrap=c3audit_free`. Both wrappers preserve the original audit hooks.
+The debugger populates triples of return PC, saved return-address offset and
+stack-frame size using the matching ELF's instructions and DWARF unwind
+records. A stack walk stops at its first unlisted return address. The recorder
+counts successful allocations and requested bytes at each site and tracks live
+and peak payload bytes by pointer. Separate counters flag site-table and
+live-pointer overflow. Each measurement interval requires both counters to be
+zero and its totals to match the independent audit.
+
+The linked diagnostic occupies 278,002 DRAM bytes. Its 149,949 application
+bytes exceed the application sub-budget by 2,493. The release figures in the
+budget table above exclude this measurement equipment. The linked emulator
+test allocated 97 records into 96 live slots, recorded the overflow, and
+verified that freeing the records returned the tracked bytes to zero.
+
 **General heap trace on the fixed-timer image.** On image `63eb1aaec4e6`,
 the debugger recorded 12 successive successful general allocations per window
 and read the counter at entry to the 13th. In each window the change in count
