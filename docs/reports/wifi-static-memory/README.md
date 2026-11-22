@@ -237,6 +237,17 @@ registry trace. This attribution applies to those specific semaphore values.
 This run stopped before obtaining an IP address. The original 4 MiB flash,
 saved profile and host configuration were restored and verified.
 
+**Full network interval.** With tracing enabled at the seal and no debugger
+stops during Wi-Fi association, MQTT connection, broker restart or TLS
+renegotiation, the USB audit counted 396 successful allocations. The
+independent census accounted for all 396 and all 121,134 requested bytes.
+Three authenticated replies shared one boot ID. Both peers completed the
+second handshake. The [network call sites](station-network-owners.csv) give
+per-site live and peak payload. Seven requests totalling 160 bytes reached
+the project's shared crypto allocation wrapper, with 32 bytes live at peak.
+This capture identifies the wrapper only. The peripheral phase was not
+entered because the trial manifest lacked the idle-profile digest.
+
 **General heap trace on the fixed-timer image.** On image `63eb1aaec4e6`,
 the debugger recorded 12 successive successful general allocations per window
 and read the counter at entry to the 13th. In each window the change in count
