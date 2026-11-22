@@ -11,6 +11,11 @@
 #include <errno.h>
 #include <stdbool.h>
 
+/* The linked station registers C++ exception and Wi-Fi semaphore keys. */
+#define C3LSEM_GENERIC_KEYS (2U)
+static key_entry_t g_keys[C3LSEM_GENERIC_KEYS]  = {0};
+static bool        gb_used[C3LSEM_GENERIC_KEYS] = {false};
+
 static key_entry_t       g_socket_key = {0};
 static sys_sem_t         g_record     = {0};
 static SemaphoreHandle_t gh_record    = NULL;
@@ -60,16 +65,43 @@ int c3lsem_key (pthread_key_t * p_key, c3lsem_destructor_t * p_destructor)
     return 0;
 }
 
+/** @brief Lease a typed registry record until native key deletion. */
+void * c3lsem_reserve (void)
+{
+    key_entry_t *  p_key = NULL;
+    const uint32_t saved = c3bport_enter();
+    for (size_t index = 0U; index < C3LSEM_GENERIC_KEYS; ++index)
+    {
+        if (!gb_used[index])
+        {
+            gb_used[index] = true;
+            p_key          = &g_keys[index];
+            break;
+        }
+    }
+    c3bport_leave(saved);
+    return p_key;
+}
+
 /** @brief Native deletion calls this after unlinking, under its registry lock.
  */
-bool c3lsem_unlinked (const void * p_entry)
+void c3lsem_unlinked (const void * p_entry)
 {
     if (&g_socket_key == p_entry)
     {
         g_socket_key.key = 0U;
-        return true;
     }
-    return false;
+    else
+    {
+        for (size_t index = 0U; index < C3LSEM_GENERIC_KEYS; ++index)
+        {
+            if (&g_keys[index] == p_entry)
+            {
+                gb_used[index] = false;
+                break;
+            }
+        }
+    }
 }
 
 /** @brief Keep independent SDK tasks on their own per-thread records. */

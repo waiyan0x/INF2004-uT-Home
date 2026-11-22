@@ -64,7 +64,7 @@
     "c3nq.c.obj": 9402,
     "c3boot.c.obj": 11168,
     "c3aes.c.obj": 564,
-    "c3lsem.c.obj": 108,
+    "c3lsem.c.obj": 134,
     "c3event.c.obj": 450,
     "c3net.c.obj": 67,
     "c3wsta.c.obj": 51,

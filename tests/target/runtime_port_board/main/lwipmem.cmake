@@ -22,8 +22,7 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
     set_property(SOURCE "${event_copy}"
         TARGET_DIRECTORY ${UTHOME_EVENT_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
         heap_caps_calloc=c3ereg_alloc free=c3ereg_free)
-    # Preserve native key and thread-value disposal. Only the unlinked socket
-    # registry node lives in application storage.
+    # Substitute only registry node storage in the pinned pthread unit.
     idf_component_get_property(pthread_dir pthread COMPONENT_DIR)
     idf_component_get_property(pthread_lib pthread COMPONENT_LIB)
     set(key_source "${pthread_dir}/pthread_local_storage.c")
@@ -33,15 +32,14 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
     if(NOT key_hash STREQUAL "838b9ea24df5493cc648248110bc5ce2e28c98bbad945ac7cfd70912977cc378")
         message(FATAL_ERROR "Pinned pthread registry layout or lifetime changed")
     endif()
-    string(REPLACE "        SLIST_REMOVE(&s_keys, entry, key_entry_t_, next);
+    string(REPLACE "malloc(sizeof(key_entry_t))" "c3lsem_reserve()" key_text "${key_text}")
+    string(REPLACE "SLIST_REMOVE(&s_keys, entry, key_entry_t_, next);
         free(entry);"
-        "        SLIST_REMOVE(&s_keys, entry, key_entry_t_, next);
-        if (!c3lsem_unlinked(entry)) {
-            free(entry);
-        }"
+        "SLIST_REMOVE(&s_keys, entry, key_entry_t_, next);
+        c3lsem_unlinked(entry);"
         key_text "${key_text}")
-    file(CONFIGURE OUTPUT "${key_copy}" CONTENT "#include <stdbool.h>
-extern bool c3lsem_unlinked(const void *);
+    file(CONFIGURE OUTPUT "${key_copy}" CONTENT "extern void *c3lsem_reserve(void);
+extern void c3lsem_unlinked(const void *);
 @key_text@" @ONLY)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${key_source}")
     get_target_property(pthread_sources ${pthread_lib} SOURCES)

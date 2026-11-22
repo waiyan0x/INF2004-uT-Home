@@ -12,16 +12,16 @@ TLS, TCP/IP or ESP-TLS contexts.
 
 ### Week 13 evidence for AAI13
 
-The ESP32-C3 station fits every assigned module budget. It now uses a fixed
-12-byte record for the lwIP startup key. Full AAI13 acceptance remains open.
+The ESP32-C3 station fits every assigned module budget. Its pthread registry reserves
+one socket key and two generic keys in fixed application RAM. Full AAI13 acceptance remains open.
 
 | Fixed RAM in the station build | Linked bytes | Budget bytes | Margin bytes |
 |---|---:|---:|---:|
-| Application modules | 146,986 | 147,456 | 470 |
+| Application modules | 147,012 | 147,456 | 444 |
 | Project task pool | 18,499 | 18,560 | 61 |
-| Kernel and SDK fixed data | 53,699 | 55,296 | 1,597 |
+| Kernel and SDK fixed data | 53,697 | 55,296 | 1,599 |
 | Code resident in RAM | 55,500 | 57,152 | 1,652 |
-| **Total DRAM** | **274,684** | **278,528** | **3,844** |
+| **Total DRAM** | **274,708** | **278,528** | **3,820** |
 | RTC memory (separate) | 60 | 128 | 68 |
 
 The [41-module budget table](transaction-module-budget.csv) gives the linked
@@ -29,9 +29,9 @@ size and limit for each individually budgeted object in the first two groups.
 The margin is room under the project cap. To reproduce the check on a built
 station, run the following from the repository root with the ESP-IDF tools
 available. The measured ELF SHA-256 was
-`13e9cf6b9dab72bded36e7e42101e51108d860f5efae92e8ca9c81e7d3736bd2` and
+`2eaa8ef24fea320af073e3f1e1c8e8b4cfd2adb7b4f29570c1b5a6292fc037b4` and
 the map SHA-256 was
-`6dccae0433bd8e7b5a96ef383418ea9c3bf1cc9b339db00e2bb1ddfee8128a1d`.
+`44927a929a1518b3b752e00ab27d0c73b6fe52f5bb244afde69f360eb3b9c426`.
 
 ```text
 python tools/target/memory_budget.py --build <station-project-directory> --budget tools/target/transaction-budget.json --output <report.json>
@@ -64,6 +64,15 @@ overhead. This is the measured scope of the receive-ring exemption. A separate
 sample traced 12 post-startup allocations to radio or PHY callers. The other
 SDK allocations still require attribution before the team can claim full
 coverage. [Receive-ring ownership and lifetime](#wi-fi-receive-ring-on-the-demo-image-22-november-2026).
+
+**Fixed C++ and Wi-Fi registry records.** The station reserves two 12-byte
+generic pthread records plus two occupancy flags in `c3lsem`. A release-ELF
+replay ran the actual C++ constructor, registered the socket and driver keys,
+and verified all three native destructor pointers with zero registry heap
+requests. A third live generic request returned `ENOMEM` and preserved the
+existing keys. A separate link retained native deletion and verified slot
+reuse. Per-thread values still use the SDK path measured below.
+[Linked regression](../../../tools/target/station_key_probe.py).
 
 **TCP/IP startup key.** The previous image requested 12 heap bytes in
 `sys_init` to register the cleanup function for thread-local socket semaphores.
@@ -102,7 +111,7 @@ The driver registered per-thread semaphores from tasks 2 and 10. At the end,
 the two live pthread values both belonged to key 3. A foreign task can still
 request a 4-byte list head and 12-byte socket value in the instruction-level
 test. That lwIP path saw zero registrations in this measured workload.
-The C++ key is a confirmed startup allocation outside the Wi-Fi exemption.
+In that earlier build the C++ key was a startup allocation outside the Wi-Fi exemption.
 Other SDK allocation sites remain open. The board's original full flash and
 profile verified after restoration, and the temporary hotspot and firewall
 rule were removed.

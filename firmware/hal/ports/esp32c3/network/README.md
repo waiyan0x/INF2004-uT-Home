@@ -77,8 +77,19 @@ alignment and lifetime. A repeated registration returns its existing unsigned
 key. An exhausted key-ID range returns `EAGAIN` before changing either the
 output or the list. The original SDK lookup and task-value destructor still
 use that list. Native deletion unlinks under its original lock and clears
-the fixed slot for reuse. Generic key deletion keeps its original release.
-The build checks the SDK source hash before adapting that one release site.
+the fixed socket slot for reuse.
+
+The static Wi-Fi build also reserves two native registry nodes for generic
+pthread keys. The C++ exception runtime takes one before the scheduler starts.
+The Wi-Fi adapter takes the other. The SDK still assigns key IDs and stores
+each caller's destructor. Two occupancy flags protect the interval between
+reserving a node and linking it. Reservation saves and restores the C3
+interrupt mask and needs no task or kernel object. Deletion releases the slot
+after unlinking under the SDK lock. The next request can reuse it. A third
+simultaneous generic request returns the SDK's `ENOMEM` and preserves the
+output key and live records. Per-thread value storage has its own lifetime.
+The build checks the SDK source hash before substituting the registry's
+allocation and release sites.
 [Linked registry checks](../../../../../tools/target/station_key_probe.py).
 
 ### Manual C review
