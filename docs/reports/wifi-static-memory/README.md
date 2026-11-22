@@ -224,6 +224,21 @@ was observed, but neither peer sent its second Finished message within the
 The 36 requests establish caller ownership inside these windows. Peak live
 memory, frees and ownership between windows require separate evidence.
 
+A control delayed the final trace until both TLS peers sent their second
+Finished message. Initial and restarted MQTT status succeeded. The three
+windows again reconciled exactly with the count and byte totals.
+
+| Control window | PHY clock timer | Wi-Fi packet buffers | MAC timer processing | Requested bytes |
+|---|---:|---:|---:|---:|
+| Broker startup | 3 | 8 | 1 | 6,252 |
+| Broker restart | 7 | 5 | 0 | 4,368 |
+| After completed TLS renewal | 9 | 1 | 2 | 428 |
+
+OpenOCD reported the ESP halted after the final debugger detach. A manual
+resume followed, but the final MQTT status timed out. This harness behavior
+limits interpretation of both trials. Neither timeout establishes a firmware
+fault. The original flash, profile and host settings verified after restoration.
+
 **TCP/IP startup key.** The previous image requested 12 heap bytes in
 `sys_init` to register the cleanup function for thread-local socket semaphores.
 The current station owns one typed registry entry in `c3lsem`. Replaying the
