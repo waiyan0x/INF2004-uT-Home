@@ -10,6 +10,79 @@ full-profile setup/recovery uses USB. The host Desk and Home Assistant web
 interfaces remain available. No Wi-Fi-driver exception automatically exempts
 TLS, TCP/IP or ESP-TLS contexts.
 
+### Week 13 evidence for AAI13
+
+The ESP32-C3 demo image fits every assigned module budget. Network startup
+still makes a confirmed application-side heap request. Full AAI13 acceptance
+remains open.
+
+| Fixed RAM in the demo image | Linked bytes | Budget bytes | Margin bytes |
+|---|---:|---:|---:|
+| Application modules | 146,974 | 147,456 | 482 |
+| Project task pool | 18,499 | 18,560 | 61 |
+| Kernel and SDK fixed data | 53,703 | 55,296 | 1,593 |
+| Code resident in RAM | 55,500 | 57,152 | 1,652 |
+| **Total DRAM** | **274,676** | **278,528** | **3,852** |
+| RTC memory (separate) | 60 | 128 | 68 |
+
+The [41-module budget table](transaction-module-budget.csv) gives the linked
+size and limit for each individually budgeted object in the first two groups.
+The margin is room under the project cap. To reproduce the check on a built
+station, run the following from the repository root with the ESP-IDF tools
+available. The measured ELF SHA-256 was
+`ee1f4623cbc62697ccbff215f58244bb62dbfd873b71a8cd7f45bf55c60a6505` and
+the map SHA-256 was
+`f079107b8bc083670afd20814da08acf66615b409b72dfbecc7ee2e710e3d1a6`.
+
+```text
+python tools/target/memory_budget.py --build <station-project-directory> --budget tools/target/transaction-budget.json --output <report.json>
+```
+
+**Fixed storage and kernel objects.** The station reserves task stacks and
+control blocks, queues, parser slots, and TCP packet and timer records in
+advance. The single broker session has fixed TLS record buffers. Certificate
+processing can borrow the parser workspace while it is idle. On the physical
+demo run, the kernel counters recorded zero new objects after startup through
+broker restart, TLS renegotiation and peripheral reads.
+[Reservations and capacities](../../../tools/target/transaction-budget.json)
+and [physical measurements](#physical-acceptance-of-the-fixed-aes-station-configuration).
+
+**Overflow demonstration.** From the repository root, run
+`python -B -m unittest discover -s tests/target -p test_admission.py` with the
+project's pinned formatter available. The parser accepts an array of 510
+Booleans inside an object, filling all 512 slots. Adding one Boolean rejects
+the package. The next valid package succeeds. The test repeats the sequence
+20 times with heap interception enabled. An independent TCP test on the
+linked ESP instructions sent 2,440 bytes, exercised segment splitting and
+recovered four data slots with zero general heap requests.
+[Parser demonstration](../../../tests/target/test_admission.py) and
+[TCP packet probe](../../../tools/target/tcp_packet_probe.py).
+
+**Wi-Fi exemption.** The vendor driver needs its DMA receive ring throughout
+station operation. A hardware trace identified six 1,604-byte reservations and
+a 72-byte descriptor table, totalling 9,696 requested bytes before allocator
+overhead. This is the measured scope of the receive-ring exemption. A separate
+sample traced 12 post-startup allocations to radio or PHY callers. The other
+SDK allocations still require attribution before the team can claim full
+coverage. [Receive-ring ownership and lifetime](#wi-fi-receive-ring-on-the-demo-image-22-november-2026).
+
+**Open TCP/IP startup allocation.** lwIP calls `pthread_key_create` from
+`sys_init` to register the cleanup function for thread-local socket semaphores.
+That function calls `malloc(12)` for one shared registry entry. Replaying
+the linked ESP instructions with a controlled allocator produced key 1 on
+success. Returning a null pointer left the registry empty, yet initialization
+continued to socket registration. Both calls returned from `malloc` to
+`0x42006114` in the ELF above. This record has a separate lifetime from the
+controller task's fixed 84-byte socket semaphore. It belongs to TCP/IP
+startup and needs fixed storage with the SDK's lookup and cleanup semantics.
+
+Twelve network instruction-level checks on that ELF passed across TCP, UDP,
+ARP, DHCP, DNS, IGMP, event registration, frame copying, IPv4, interface
+creation, timers and Wi-Fi receive handoff. These checks exercise selected
+paths with simulated hardware or OS boundaries. The linker accounts for
+fixed storage, and the startup replay establishes a remaining runtime heap
+request even with all module sizes within budget.
+
 ### Physical acceptance of the fixed AES station configuration
 
 The default Wi-Fi build uses software SHA and two fixed AES contexts for the
