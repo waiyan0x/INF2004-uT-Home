@@ -2,18 +2,19 @@
 
 ## Current network resource assessment
 
-**The transaction image passes fixed-linker budgets but does not satisfy the
-whole-system no-application-heap requirement yet.** On 17 November 2026 the user
-authorized removal of the ESP HTTPS service, replacing the earlier requirement
-to retain it alongside MQTT. The maintained image now has one MQTT TLS client;
-full-profile setup/recovery uses USB. The host Desk and Home Assistant web
-interfaces remain available. No Wi-Fi-driver exception automatically exempts
-TLS, TCP/IP or ESP-TLS contexts.
+**The single-broker BMP388/LD2450 demo has measured AAI13 coverage under
+the documented Wi-Fi driver exemption.** The release fits all 41 module
+budgets. Continuous measurements on the diagnostic build found zero
+successful application-owned general heap allocations during the measured
+application startup and demo workload, and zero new kernel objects during
+normal service. The ESP verified the MQTT broker over TLS, reconnected after
+broker restart, renegotiated TLS, applied the idle profile and executed both
+physical reads. The release retains USB configuration and recovery.
 
 ### Week 13 evidence for AAI13
 
 The ESP32-C3 station fits every assigned module budget. Its pthread registry reserves
-one socket key and two generic keys in fixed application RAM. Full AAI13 acceptance remains open.
+one socket key and two generic keys in fixed application RAM. The scope and limits of the Wi-Fi exemption are stated below.
 
 | Fixed RAM in the station build | Linked bytes | Budget bytes | Margin bytes |
 |---|---:|---:|---:|
@@ -57,13 +58,47 @@ recovered four data slots with zero general heap requests.
 [Parser demonstration](../../../tests/target/test_admission.py) and
 [TCP packet probe](../../../tools/target/tcp_packet_probe.py).
 
-**Wi-Fi exemption.** The vendor driver needs its DMA receive ring throughout
-station operation. A hardware trace identified six 1,604-byte reservations and
-a 72-byte descriptor table, totalling 9,696 requested bytes before allocator
-overhead. This is the measured scope of the receive-ring exemption. A separate
-sample traced 12 post-startup allocations to radio or PHY callers. The other
-SDK allocations still require attribution before the team can claim full
-coverage. [Receive-ring ownership and lifetime](#wi-fi-receive-ring-on-the-demo-image-22-november-2026).
+**Wi-Fi driver exemption for the demo.** At application startup the 59
+successful requests totalled 26,040 bytes. During the final workload all 321
+successful requests and all 114,067 requested bytes reconciled with the
+independent counter. There were no dropped sites or live pointers. The
+[startup inventory](station-startup-owners.csv) and
+[full demo inventory](station-demo-owners.csv) identify the owner, request
+count, total bytes, peak concurrent payload and bytes still live at the end
+for each linked call site. Requested bytes include repeated reuse.
+
+* The vendor Wi-Fi station reserves its receive ring and descriptors, queues,
+  configuration and station state. At startup the DMA receive ring alone
+  held six 1,604-byte reservations plus its 72-byte descriptor table.
+  MAC packet buffers and aggregation state handle the variable traffic after
+  association. During the final run the packet-buffer site accounted for
+  155 requests, peaked at 10,392 live bytes and returned to zero.
+* PHY calibration, clock tracking, radio timers and coexistence state service
+  the running radio. The normal-service PHY tracking timer peaked at 32
+  bytes and returned to zero. The 8-byte MAC timer-processing requests also
+  returned to zero. Persistent station keys and aggregation state account
+  for part of the 776 bytes from normal-service allocations still live at
+  the end, while the station was associated.
+* The WPA supplicant establishes the station's encrypted Wi-Fi link. It
+  owns the callback table, PMKSA header and EAPOL buffers. Full call stacks
+  on Wi-Fi task 11 traced all 11 shared crypto allocations in the final run
+  back to incoming EAPOL frames. Ten HMAC key imports requested 256 bytes
+  cumulatively and one AES unwrap key import requested 16. Both sites ended
+  with zero bytes live. This accounts for the shared allocator in the WPA
+  handshake without extending the exemption to the MQTT TLS application.
+* The four pthread allocations at startup match the two driver-owned
+  per-task semaphore list heads and two values identified by the
+  [registry ownership trial](#registry-ownership-during-authenticated-mqtt-22-november-2026).
+  The exemption covers those driver instances only.
+
+**Qualification boundary.** The production DRAM table excludes the diagnostic
+recorder and variable vendor heap payload. The live-byte measurements exclude
+allocator metadata. The successful-allocation hook establishes ownership for
+the observed executions. Failure and exhaustion behavior is tested separately.
+Arbitrary certificate chains, other SDK clients and alternative task
+scheduling are outside this demo qualification. The forced USB/verification
+overlap described below can reach the general allocator. Requalify changes to
+the broker certificate profile, driver, scheduling or supported workload.
 
 **Fixed C++ and Wi-Fi registry records.** The station reserves two 12-byte
 generic pthread records plus two occupancy flags in `c3lsem`. A release-ELF
