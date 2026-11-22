@@ -258,7 +258,7 @@ int main (void)
 
 
 def main():
-    with tempfile.TemporaryDirectory(prefix="buddy1_notify_actual_") as folder:
+    with tempfile.TemporaryDirectory(prefix="kernel_tasks_notify_actual_") as folder:
         directory = Path(folder)
         staged = directory / "components/freertos_shim/shim_task.c"
         staged.parent.mkdir(parents=True)

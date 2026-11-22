@@ -1,7 +1,7 @@
 try:
     from fixed_stack_pool import FixedStackPool
 except ModuleNotFoundError:
-    from tests.buddy1.fixed_stack_pool import FixedStackPool
+    from tests.kernel_tasks.fixed_stack_pool import FixedStackPool
 
 pool = FixedStackPool()
 

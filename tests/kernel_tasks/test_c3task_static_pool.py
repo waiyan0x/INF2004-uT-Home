@@ -139,7 +139,7 @@ int main (void)
 
 
 def main():
-    with tempfile.TemporaryDirectory(prefix="buddy1_c3task_") as folder:
+    with tempfile.TemporaryDirectory(prefix="kernel_tasks_c3task_") as folder:
         directory = Path(folder)
         test_source = directory / "test_c3task.c"
         binary = directory / "test_c3task"

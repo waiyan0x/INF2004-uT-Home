@@ -46,8 +46,8 @@ python tools/test_uart_gpio.py
 | Buddy 1 | Static task-pool lifecycle and shim checks; run by CI on Linux with address and undefined-behavior sanitizers |
 
 For the Buddy 1 tests, initialize the pinned kernel submodule first. On Linux,
-run `python -m unittest discover -s tests/buddy1 -p test_fixed_stack_pool.py -v`,
-then each `tests/buddy1/test_shim_*.py`, `test_c3task_static_pool.py`,
+run `python -m unittest discover -s tests/kernel_tasks -p test_fixed_stack_pool.py -v`,
+then each `tests/kernel_tasks/test_shim_*.py`, `test_c3task_static_pool.py`,
 `test_c3task_alignment.py`, `test_c3task_no_static.py`, and
 `test_fixed_stack_stress.py` with Python. Three
 fixtures require a compiler with AddressSanitizer and UndefinedBehaviorSanitizer;

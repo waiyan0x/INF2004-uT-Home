@@ -142,10 +142,10 @@ int main(void) {
 
 
 def main():
-    fixture = ROOT / 'tests/buddy1/fixtures/shim_task_observer_original.txt'
+    fixture = ROOT / 'tests/kernel_tasks/fixtures/shim_task_observer_original.txt'
     if not fixture.is_file():
         raise SystemExit('Observer-only test fixture missing')
-    with tempfile.TemporaryDirectory(prefix='buddy1_failures_') as tmp:
+    with tempfile.TemporaryDirectory(prefix='kernel_tasks_failures_') as tmp:
         directory = Path(tmp)
         staged = directory / 'components/freertos_shim/shim_task.c'
         staged.parent.mkdir(parents=True)

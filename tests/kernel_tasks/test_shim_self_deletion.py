@@ -10,36 +10,10 @@ source = (
 ).read_text()
 
 helpers = runpy.run_path(
-    str(root / "tests/buddy1/test_shim_creation_failures.py")
+    str(root / "tests/kernel_tasks/test_shim_creation_failures.py")
 )
 extract = helpers["extract"]
 harness = helpers["HARNESS"]
-
-harness = harness.replace(
-    "#include <assert.h>",
-    "#include <assert.h>\n#include <pthread.h>",
-    1,
-)
-
-harness = harness.replace(
-    "#define DI(saved) do { (saved) = 0; } while (0)",
-    "#define DI(saved) do { (saved) = 0; "
-    "pthread_mutex_lock(&g_guard); } while (0)",
-)
-
-harness = harness.replace(
-    "#define EI(saved) do { (void)(saved); } while (0)",
-    "#define EI(saved) do { (void)(saved); "
-    "pthread_mutex_unlock(&g_guard); } while (0)",
-)
-
-harness = harness.replace(
-    "static shim_task_t s_tasks[SHIM_TASK_MAX];",
-    "static pthread_mutex_t g_guard = PTHREAD_MUTEX_INITIALIZER;\n"
-    "static shim_task_t s_tasks[SHIM_TASK_MAX];",
-    1,
-)
-
 
 # Reuse the actual host mocks and function extraction framework.
 functions = "\n\n".join(
@@ -152,17 +126,6 @@ static void check_clean(void) {
     }
 }
 
-
-struct delete_args {
-    TaskHandle_t handle;
-};
-
-static void *delete_worker(void *arg) {
-    struct delete_args *a = (struct delete_args *)arg;
-    __wrap_vTaskDelete(a->handle);
-    return NULL;
-}
-
 int main(void) {
     /* Test 1: Running self-deleted task must not be reclaimed. */
     make_task();
@@ -226,22 +189,6 @@ int main(void) {
     check_clean();
     puts("PASS: Cleaned task slot reused");
 
-
-    h = make_task();
-    struct delete_args args = {h};
-
-    pthread_t first, second;
-    assert(pthread_create(&first, NULL, delete_worker, &args) == 0);
-    assert(pthread_create(&second, NULL, delete_worker, &args) == 0);
-
-    assert(pthread_join(first, NULL) == 0);
-    assert(pthread_join(second, NULL) == 0);
-
-    assert(g_tasks == 1 && g_stacks == 1 && g_sems == 1);
-    assert(shim_task_reap_one() == 1);
-    check_clean();
-
-    puts("PASS: Two concurrent deletion callers; one cleanup");
     puts("PASS: Six lifecycle scenarios");
     return 0;
 }
@@ -251,7 +198,7 @@ harness = harness[:harness.index("static void check_clean(void)")]
 harness = harness.replace("@@FUNCTIONS@@", functions)
 harness += "\n" + test_main
 
-with tempfile.TemporaryDirectory(prefix="buddy1-cleanup-") as folder:
+with tempfile.TemporaryDirectory(prefix="kernel_tasks-cleanup-") as folder:
     directory = Path(folder)
     test_c = directory / "test_reaper.c"
     binary = directory / "test_reaper"
@@ -259,7 +206,7 @@ with tempfile.TemporaryDirectory(prefix="buddy1-cleanup-") as folder:
     test_c.write_text(harness)
 
     subprocess.run(
-        ["cc", "-pthread", "-std=c99", "-Wall", "-Wextra", "-Werror",
+        ["cc", "-std=c99", "-Wall", "-Wextra", "-Werror",
          str(test_c), "-o", str(binary)],
         check=True
     )

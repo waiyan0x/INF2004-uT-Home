@@ -37,7 +37,7 @@ def run_command(args, cwd=None):
 if not SHIM.is_file() or not SHIM_CMAKE.is_file() or not PATCH.is_file():
     raise SystemExit('Run from repo root; vendor shim or observer patch missing')
 
-with tempfile.TemporaryDirectory(prefix='buddy1_reservation_') as folder:
+with tempfile.TemporaryDirectory(prefix='kernel_tasks_reservation_') as folder:
     workspace = Path(folder)
     stage = workspace / 'components/freertos_shim'
     stage.mkdir(parents=True)

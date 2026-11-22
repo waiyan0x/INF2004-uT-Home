@@ -44,8 +44,8 @@ jobs:
         run: git submodule update --init --recursive firmware/third_party/esp32c3-mtk3
       - name: Run Buddy 1 static task tests
         run: |
-          python -m unittest discover -s tests/buddy1 -p test_fixed_stack_pool.py -v
-          for test in tests/buddy1/test_shim_*.py tests/buddy1/test_c3task_static_pool.py tests/buddy1/test_c3task_alignment.py tests/buddy1/test_c3task_no_static.py tests/buddy1/test_fixed_stack_stress.py; do python "$test"; done
+          python -m unittest discover -s tests/kernel_tasks -p test_fixed_stack_pool.py -v
+          for test in tests/kernel_tasks/test_shim_*.py tests/kernel_tasks/test_c3task_static_pool.py tests/kernel_tasks/test_c3task_alignment.py tests/kernel_tasks/test_c3task_no_static.py tests/kernel_tasks/test_fixed_stack_stress.py; do python "$test"; done
       - name: Run target failure and build-tool tests
         run: python -m unittest discover -s tests/target -p 'test_*.py' -v
 
