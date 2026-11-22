@@ -75,6 +75,15 @@ test link retained the normally unused native key-delete function and verified
 that deleting and re-registering the socket key reuses the fixed slot.
 [RV32 key replay](../../../tools/target/station_key_probe.py).
 
+On 22 November 2026 a USB debugger inspected the running ESP32-C3 after
+startup with its original profile. The native registry held three entries.
+Socket key 2 pointed to the fixed 12-byte node and its destructor matched
+`sys_thread_sem_free`. The sample was taken before IP acquisition. It
+qualifies key registration on hardware. The original 4 MiB flash verified
+after restoration, and both active and saved profiles matched the preflight
+revision and CRC. Application image SHA-256
+`69691a899bb5a22d35779d89be6b8b44d18a7cedf032ecaa29f56891135ee2fe`.
+
 **Remaining scope.** An explicit foreign-thread socket-value registration in
 the replay still requested 4 bytes for a list head and 12 bytes for a value.
 The permanent station controller has a separate fixed semaphore. Establish
