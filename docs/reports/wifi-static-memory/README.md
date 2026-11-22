@@ -47,6 +47,34 @@ covers the AES provider's allocation and release pair. The 353-file C gate,
 wipe and reuse checks passed. The full board backup, original profile and
 host settings verified after the run.
 
+#### General SDK allocation owners during physical MQTT traffic
+
+A second backed-up run used the same binary. The debugger attached before
+Wi-Fi startup. At each of three broker handshake windows it captured the
+first four successful general allocations with their native task, requested
+size and SDK call stack. The memory audit was sealed at all 12 stops.
+
+| Allocation site | Native task | Initial connect | Reconnect | Renewal attempt |
+|---|---:|---:|---:|---:|
+| PHY PLL tracking through `esp_timer_create`, 32 bytes | 11 | 1 | 1 | 0 |
+| `esf_buf_alloc_dynamic` through coexistence allocation, 124 bytes | 11 | 1 | 1 | 0 |
+| `esf_buf_alloc_dynamic` through `wifi_malloc`, 1,700 bytes | 11 | 2 | 2 | 3 |
+| `ieee80211_timer_process` through `wifi_malloc`, 8 bytes | 1 | 0 | 0 | 1 |
+
+During initial connect and reconnect all eight stops fell between the client
+handshake flight and the Finished pair. The ESP then answered a fresh status
+query on the same boot in both cases. During the observed renewal the server
+sent its second certificate flight, and the connection closed before the
+second Finished pair. The preceding run completed renewal without debugger
+stops. Both runs restored and verified the original full flash, profile and
+host network settings.
+
+These stacks identify radio and PHY work across the sampled intervals. They
+do not measure peak simultaneous buffer ownership or classify the other SDK
+allocations. The PLL timer uses SDK heap storage; the kernel object-create
+counter measures a separate API. Extending the driver exception beyond the
+fixed receive ring requires a capacity and lifetime justification.
+
 ### Controller semaphore and demo-broker certificate measurements, 22 November 2026
 
 On the ESP32-C3, station startup reserved the controller's lwIP semaphore
