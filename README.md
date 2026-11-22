@@ -4,11 +4,21 @@ A configurable embedded platform for INF2004, group AAI13. The project aims
 to let a user change how an ESP32-C3 communicates with peripherals at runtime,
 without recompiling or reflashing the firmware for each change.
 
-## Resume next session
+## Week 13 static-memory requirement (AAI13)
 
-For the single-broker BMP388/LD2450 demo, the static-memory assessment includes
-the release linker budget, physical allocation census, overflow recovery and
-the measured Wi-Fi driver exemption. [Week 13 AAI13 evidence](docs/reports/wifi-static-memory/README.md#week-13-evidence-for-aai13).
+**Verified for the ESP32-C3 release using one authenticated MQTT broker, the BMP388 over I?C and the LD2450 over UART.** The application uses fixed storage on the qualified workload. The documented Wi-Fi driver exemption covers radio association, authentication and packet handling. The evidence below covers the firmware; the laptop broker, Configuration Desk and Home Assistant run on the host.
+
+| Requirement | Implementation and verification |
+|---|---|
+| No application heap allocation | A diagnostic build recorded every successful general allocation across the measured demo and reconciled both the count and requested bytes against the firmware audit. All 410 calls (118,202 cumulative bytes) came from identified Wi-Fi driver paths, including WPA authentication. The SDK reported zero allocation failures. [Call-site inventory](docs/reports/wifi-static-memory/station-disconnect-owners.csv) |
+| Create kernel objects at startup | The station reserves task stacks, control blocks and communication objects before normal operation. All six hardware audit samples reported zero kernel object creations after startup, including after broker disconnect. [Static design and measurements](docs/reports/wifi-static-memory/README.md#week-13-evidence-for-aai13) |
+| Fixed RAM limits per sub-module and overall | All 41 budgeted modules fit. Application modules use **147,057 of 147,456 bytes**. Including the task pool, kernel and SDK fixed data, and code resident in RAM, the release uses **274,764 of 278,528 DRAM bytes**, leaving **3,764 bytes**. The report records the ELF and linker-map hashes and the reproduction command. [Per-module budgets](docs/reports/wifi-static-memory/transaction-module-budget.csv) |
+| Bounded parsing, validation, Apply and rollback | The parser reserves 512 slots. On the ESP, a 1,033-byte Apply containing 513 array elements was rejected. Active and saved revision 943 and its CRC survived, and the next valid Apply succeeded. Host fault-injection tests exercise rollback after activation failure and recovery when rollback itself fails. [Parser boundary tests](tests/target/test_admission.py) ? [Rollback cases](tests/fault_injection/rttrans_main.c) |
+| Bounded network, supervisor, inter-task and temporary storage | Tasks use reserved stacks; queues, TCP packet slots, timer records and TLS buffers have fixed capacities. The demo certificate verifier shares the USB parser workspace under the qualified scheduling model. Parser exhaustion and TCP slot reuse are covered alongside physical MQTT reconnect, TLS renewal and both peripheral reads. [Capacities](tools/target/transaction-budget.json) ? [TCP slot test](tools/target/tcp_packet_probe.py) |
+
+**Scope of the result.** The release RAM figures describe fixed linked storage. The Wi-Fi exemption is justified per allocation site, with peak live payload reported separately. Before application entry, SDK interrupt and logging setup allocated 209 bytes. Arbitrary broker certificate chains and forced concurrent USB parsing and certificate verification fall outside this qualification. The latter can reach the general allocator. [Week 13 evidence and exemption rationale](docs/reports/wifi-static-memory/README.md#week-13-evidence-for-aai13)
+
+## Resume next session
 
 The professor has approved **uT-Kernel on the ESP32-C3, MQTT for commands and
 results, Home Assistant MQTT discovery for display, and a rule-based decision
@@ -351,7 +361,7 @@ The [power-save comparison](tools/transaction/README.md#normal-profile-packet-ca
 is complete, with the original image/profile restored and no root-cause claim.
 The [physical SPI and UART check](tools/configurator/README.md#physical-oled-and-radar-transactions)
 verified three OLED command writes and both 16- and 32-byte radar reads through the Desk and HA.
-Use the [bench guide](HARDWARE_ACCEPTANCE.md#ssd1306-oled-over-spi) for OLED initialization and raw radar reception;
+Use the [bench guide](https://github.com/waiyan0x/INF2004-uT-Home/blob/e0de898c98f32c0a735f65f3df69dd5d5c13d91b/HARDWARE_ACCEPTANCE.md#ssd1306-oled-over-spi) for OLED initialization and raw radar reception;
 confirm current equipment and wiring before board work. Preserve the existing visual
 style and review proposed UI adjustments before implementation. See the
 [completion plan](CONTRIBUTING.md#completion-plan).
@@ -507,13 +517,13 @@ requirements; use the current guides below for development.
 |---|---|
 | Workload, interfaces and deliverables | [Team workload](CONTRIBUTING.md) |
 | Set up or build the existing firmware | [Firmware](firmware/README.md) |
-| Existing hardware wiring and acceptance procedures | [Hardware acceptance](HARDWARE_ACCEPTANCE.md) |
+| Existing hardware wiring and acceptance procedures | [Hardware acceptance](https://github.com/waiyan0x/INF2004-uT-Home/blob/e0de898c98f32c0a735f65f3df69dd5d5c13d91b/HARDWARE_ACCEPTANCE.md) |
 | Existing configuration application | [Configuration Desk](tools/configurator/README.md) |
 | Existing network work and limitations | [Network](firmware/src/network/README.md) |
 | Current rule-based decision work | [Transaction service](firmware/src/services/transaction/README.md) |
 | Existing firmware contracts | [Shared contracts](firmware/CONTRACTS.md) |
 | Software tests | [Tests](tests/README.md) |
-| Required C policy | [BARR-C project standard](C_CODING_STANDARD.md), [agent rules](AGENTS.md) |
+| Required C policy | [C standard enforcement](tools/c_standard/README.md) |
 
 All new or changed project-owned C must follow BARR-C:2018 and the project
 standard, including the pinned formatting/checker gate, manual review and
