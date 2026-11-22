@@ -178,6 +178,15 @@ rearmed the same descriptor, delivered one callback, and cancelled a later
 deadline without allocating or deleting a timer.
 [Linked regression](../../../tools/target/station_timer_probe.py).
 
+On the ESP32-C3 the debugger observed the fixed descriptor and WPA callback
+at event-loop startup and again after authenticated MQTT connection, broker
+restart and TLS 1.2 renegotiation. All three statuses shared a boot ID, and
+both TLS peers sent their second Finished message. The full 4 MiB flash and
+original profile were restored and verified. Image SHA-256 was
+`63eb1aaec4e682ce2fa64e2a41cbfdea43a2b43f07de36ebae8ec4f208a05e37`.
+The board trial covered normal station service. Immediate event-loop reset
+and cancellation were exercised in the linked replay.
+
 **TCP/IP startup key.** The previous image requested 12 heap bytes in
 `sys_init` to register the cleanup function for thread-local socket semaphores.
 The current station owns one typed registry entry in `c3lsem`. Replaying the
