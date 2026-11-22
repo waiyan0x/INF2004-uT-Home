@@ -256,6 +256,21 @@ budget table above exclude this measurement equipment. The linked emulator
 test allocated 97 records into 96 live slots, recorded the overflow, and
 verified that freeing the records returned the tracked bytes to zero.
 
+**SDK boot and rejected Apply.** From the first heap-hook entry in the
+application image to project application entry, the SDK made 15 successful
+requests for 209 bytes. Interrupt bookkeeping used 160 bytes across 11
+requests and SDK logging used 49 bytes across four. All were live at
+application entry. These platform boot allocations are reported separately
+from application heap use and from the Wi-Fi exemption. Boot ROM and the
+separate bootloader precede this measurement.
+
+On the same boot the ESP rejected a 1,033-byte USB Apply containing a
+513-element array. Its active and saved revision remained 943 with CRC
+3,623,560,383. The following valid idle Apply and both peripheral reads
+succeeded. At the end of normal service the census reconciled 322 successful
+requests and 109,470 bytes, with zero recorder overflows. The full original
+flash and host setup verified after restoration.
+
 **Application startup on the diagnostic ESP.** From application entry through
 the seal, all 59 successful requests and all 26,040 bytes reconcile with the
 independent audit. The two fixed trace tables reported zero overflows.
