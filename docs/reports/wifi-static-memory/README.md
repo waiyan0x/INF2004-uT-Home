@@ -187,6 +187,22 @@ original profile were restored and verified. Image SHA-256 was
 The board trial covered normal station service. Immediate event-loop reset
 and cancellation were exercised in the linked replay.
 
+**WPA timeout records.** Separate from the permanent native timer, the
+supplicant can request a 64-byte record for a scheduled callback. In the
+released ELF, registration returned `-1` on allocation refusal. With two
+references, dropping the first kept the record live and dropping the last
+freed it once. The linked WPA callers include PMKSA cache expiry, pairwise
+key renewal and MIC failure handling. They do not check the registration
+result. Any fixed-capacity replacement must account for these paths.
+[Linked timeout regression](../../../tools/target/station_timeout_probe.py).
+
+On image `63eb1aaec4e6`, hardware breakpoints observed the return from the
+record allocator and the final free from reset through Wi-Fi association,
+authenticated MQTT, broker restart and TLS renegotiation. Neither site fired.
+All three statuses used one boot ID. None of the 342 normal-service
+allocation requests in this run came from this record allocator. This trial
+does not establish a capacity for other WPA security events.
+
 **TCP/IP startup key.** The previous image requested 12 heap bytes in
 `sys_init` to register the cleanup function for thread-local socket semaphores.
 The current station owns one typed registry entry in `c3lsem`. Replaying the
