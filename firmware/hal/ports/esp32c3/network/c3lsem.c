@@ -7,11 +7,14 @@
 #if UTHOME_NETWORK_WIFI && UTHOME_STATIC_NET_QUEUES
 #include "c3bport.h"
 #include "freertos/semphr.h"
+#include "pthread_key_registry.h"
+#include <errno.h>
 #include <stdbool.h>
 
-static sys_sem_t         g_record  = {0};
-static SemaphoreHandle_t gh_record = NULL;
-static int               gh_owner  = 0;
+static key_entry_t       g_socket_key = {0};
+static sys_sem_t         g_record     = {0};
+static SemaphoreHandle_t gh_record    = NULL;
+static int               gh_owner     = 0;
 
 static bool is_owner (void);
 
@@ -34,6 +37,39 @@ int c3lsem_start (void)
     }
     gh_owner = h_task;
     return 0;
+}
+
+/** @brief Register the single socket key before other tasks use lwIP. */
+int c3lsem_key (pthread_key_t * p_key, c3lsem_destructor_t * p_destructor)
+{
+    const uint32_t saved = c3bport_enter();
+    if (0U == g_socket_key.key)
+    {
+        const key_entry_t * const p_head = SLIST_FIRST(&s_keys);
+        if ((NULL != p_head) && (UINT32_MAX == p_head->key))
+        {
+            c3bport_leave(saved);
+            return EAGAIN;
+        }
+        g_socket_key.key        = (NULL == p_head) ? 1U : (p_head->key + 1U);
+        g_socket_key.destructor = p_destructor;
+        SLIST_INSERT_HEAD(&s_keys, &g_socket_key, next);
+    }
+    *p_key = g_socket_key.key;
+    c3bport_leave(saved);
+    return 0;
+}
+
+/** @brief Native deletion calls this after unlinking, under its registry lock.
+ */
+bool c3lsem_unlinked (const void * p_entry)
+{
+    if (&g_socket_key == p_entry)
+    {
+        g_socket_key.key = 0U;
+        return true;
+    }
+    return false;
 }
 
 /** @brief Keep independent SDK tasks on their own per-thread records. */

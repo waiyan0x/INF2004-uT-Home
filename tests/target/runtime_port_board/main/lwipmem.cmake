@@ -22,10 +22,37 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
     set_property(SOURCE "${event_copy}"
         TARGET_DIRECTORY ${UTHOME_EVENT_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
         heap_caps_calloc=c3ereg_alloc free=c3ereg_free)
+    # Preserve native key and thread-value disposal. Only the unlinked socket
+    # registry node lives in application storage.
+    idf_component_get_property(pthread_dir pthread COMPONENT_DIR)
+    idf_component_get_property(pthread_lib pthread COMPONENT_LIB)
+    set(key_source "${pthread_dir}/pthread_local_storage.c")
+    set(key_copy "${CMAKE_CURRENT_BINARY_DIR}/pthread/pthread_local_storage.c")
+    file(READ "${key_source}" key_text)
+    string(SHA256 key_hash "${key_text}")
+    if(NOT key_hash STREQUAL "838b9ea24df5493cc648248110bc5ce2e28c98bbad945ac7cfd70912977cc378")
+        message(FATAL_ERROR "Pinned pthread registry layout or lifetime changed")
+    endif()
+    string(REPLACE "        SLIST_REMOVE(&s_keys, entry, key_entry_t_, next);
+        free(entry);"
+        "        SLIST_REMOVE(&s_keys, entry, key_entry_t_, next);
+        if (!c3lsem_unlinked(entry)) {
+            free(entry);
+        }"
+        key_text "${key_text}")
+    file(CONFIGURE OUTPUT "${key_copy}" CONTENT "#include <stdbool.h>
+extern bool c3lsem_unlinked(const void *);
+@key_text@" @ONLY)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${key_source}")
+    get_target_property(pthread_sources ${pthread_lib} SOURCES)
+    list(FILTER pthread_sources EXCLUDE REGEX "(^|/)pthread_local_storage[.]c$")
+    set_property(TARGET ${pthread_lib} PROPERTY SOURCES "${pthread_sources};${key_copy}")
+    set_property(SOURCE "${key_copy}" TARGET_DIRECTORY ${pthread_lib} APPEND PROPERTY INCLUDE_DIRECTORIES "${pthread_dir}")
     idf_component_get_property(UTHOME_LWIP_LIB lwip COMPONENT_LIB)
     idf_component_get_property(UTHOME_LWIP_DIR lwip COMPONENT_DIR)
     set_property(SOURCE "${UTHOME_LWIP_DIR}/port/freertos/sys_arch.c"
         TARGET_DIRECTORY ${UTHOME_LWIP_LIB} APPEND PROPERTY COMPILE_DEFINITIONS
+        pthread_key_create=c3lsem_key
         sys_thread_sem_get=c3lsem_native_get sys_thread_sem_init=c3lsem_native_init
         sys_thread_sem_deinit=c3lsem_native_deinit)
     foreach(operation IN ITEMS get init deinit)

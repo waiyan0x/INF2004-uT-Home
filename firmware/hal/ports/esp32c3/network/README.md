@@ -69,6 +69,18 @@ The control record remains allocated while any sender can reference it.
 Thread cleanup requires completed socket operations. These checks cover the
 type, lifetime, concurrency and failure paths for the C review.
 
+The Wi-Fi station also reserves one native 12-byte pthread registry entry for
+lwIP's socket cleanup key. The build imports the pinned SDK record type. On the
+single-core C3, insertion saves and restores the interrupt mask, excluding
+the native pthread critical sections on that same core. The entry has static
+alignment and lifetime. A repeated registration returns its existing unsigned
+key. An exhausted key-ID range returns `EAGAIN` before changing either the
+output or the list. The original SDK lookup and task-value destructor still
+use that list. Native deletion unlinks under its original lock and clears
+the fixed slot for reuse. Generic key deletion keeps its original release.
+The build checks the SDK source hash before adapting that one release site.
+[Linked registry checks](../../../../../tools/target/station_key_probe.py).
+
 ### Manual C review
 
 Reviewed `c3lbox.c/.h` and the two new `c3nq` entry points against the project's

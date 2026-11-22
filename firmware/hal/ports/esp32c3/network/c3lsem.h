@@ -6,6 +6,16 @@
 #define UTHOME_C3LSEM_H
 
 #include "lwip/sys.h"
+#include <pthread.h>
+#include <stdbool.h>
+
+typedef void c3lsem_destructor_t (void * p_value);
+
+/** @brief Bind the SDK socket destructor to a permanent registry slot. */
+int c3lsem_key (pthread_key_t * p_key, c3lsem_destructor_t * p_destructor);
+
+/** @brief Return true for the fixed record unlinked by native key deletion. */
+bool c3lsem_unlinked (const void * p_entry);
 
 /** @brief Reserve the controller record before the station starts lwIP. */
 int c3lsem_start (void);

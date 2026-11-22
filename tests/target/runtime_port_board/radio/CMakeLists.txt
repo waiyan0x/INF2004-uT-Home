@@ -25,6 +25,21 @@ endif()
 if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
     idf_component_get_property(UTHOME_EVENT_DIR esp_event COMPONENT_DIR)
     set_property(SOURCE "../../hal/c3ereg.c" APPEND PROPERTY INCLUDE_DIRECTORIES "${UTHOME_EVENT_DIR}/private_include")
+    idf_component_get_property(pthread_dir pthread COMPONENT_DIR)
+    set(key_source "${pthread_dir}/pthread_local_storage.c")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${key_source}")
+    file(READ "${key_source}" key_text)
+    string(REGEX MATCH "typedef struct key_entry_t_ [{][^}]+[}] key_entry_t;" key_type "${key_text}")
+    if(NOT key_type)
+        message(FATAL_ERROR "Missing pinned pthread key type")
+    endif()
+    file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pthread_key_registry.h"
+        CONTENT "#include <sys/queue.h>
+typedef void (*pthread_destructor_t)(void *);
+@key_type@
+extern SLIST_HEAD(key_list_t, key_entry_t_) s_keys;
+" @ONLY)
+    set_property(SOURCE "../../hal/c3lsem.c" APPEND PROPERTY INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}")
     set(registry_source "${UTHOME_NETIF_DIR}/esp_netif_objects.c")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${registry_source}")
     file(READ "${registry_source}" registry_source_text)

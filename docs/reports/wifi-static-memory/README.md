@@ -12,17 +12,16 @@ TLS, TCP/IP or ESP-TLS contexts.
 
 ### Week 13 evidence for AAI13
 
-The ESP32-C3 demo image fits every assigned module budget. Network startup
-still makes a confirmed application-side heap request. Full AAI13 acceptance
-remains open.
+The ESP32-C3 station fits every assigned module budget. It now uses a fixed
+12-byte record for the lwIP startup key. Full AAI13 acceptance remains open.
 
-| Fixed RAM in the demo image | Linked bytes | Budget bytes | Margin bytes |
+| Fixed RAM in the station build | Linked bytes | Budget bytes | Margin bytes |
 |---|---:|---:|---:|
-| Application modules | 146,974 | 147,456 | 482 |
+| Application modules | 146,986 | 147,456 | 470 |
 | Project task pool | 18,499 | 18,560 | 61 |
-| Kernel and SDK fixed data | 53,703 | 55,296 | 1,593 |
+| Kernel and SDK fixed data | 53,699 | 55,296 | 1,597 |
 | Code resident in RAM | 55,500 | 57,152 | 1,652 |
-| **Total DRAM** | **274,676** | **278,528** | **3,852** |
+| **Total DRAM** | **274,684** | **278,528** | **3,844** |
 | RTC memory (separate) | 60 | 128 | 68 |
 
 The [41-module budget table](transaction-module-budget.csv) gives the linked
@@ -30,9 +29,9 @@ size and limit for each individually budgeted object in the first two groups.
 The margin is room under the project cap. To reproduce the check on a built
 station, run the following from the repository root with the ESP-IDF tools
 available. The measured ELF SHA-256 was
-`ee1f4623cbc62697ccbff215f58244bb62dbfd873b71a8cd7f45bf55c60a6505` and
+`13e9cf6b9dab72bded36e7e42101e51108d860f5efae92e8ca9c81e7d3736bd2` and
 the map SHA-256 was
-`f079107b8bc083670afd20814da08acf66615b409b72dfbecc7ee2e710e3d1a6`.
+`6dccae0433bd8e7b5a96ef383418ea9c3bf1cc9b339db00e2bb1ddfee8128a1d`.
 
 ```text
 python tools/target/memory_budget.py --build <station-project-directory> --budget tools/target/transaction-budget.json --output <report.json>
@@ -41,7 +40,7 @@ python tools/target/memory_budget.py --build <station-project-directory> --budge
 **Fixed storage and kernel objects.** The station reserves task stacks and
 control blocks, queues, parser slots, and TCP packet and timer records in
 advance. The single broker session has fixed TLS record buffers. Certificate
-processing can borrow the parser workspace while it is idle. On the physical
+processing can borrow the parser workspace while it is idle. On the earlier fixed-AES physical
 demo run, the kernel counters recorded zero new objects after startup through
 broker restart, TLS renegotiation and peripheral reads.
 [Reservations and capacities](../../../tools/target/transaction-budget.json)
@@ -66,22 +65,23 @@ sample traced 12 post-startup allocations to radio or PHY callers. The other
 SDK allocations still require attribution before the team can claim full
 coverage. [Receive-ring ownership and lifetime](#wi-fi-receive-ring-on-the-demo-image-22-november-2026).
 
-**Open TCP/IP startup allocation.** lwIP calls `pthread_key_create` from
+**TCP/IP startup key.** The previous image requested 12 heap bytes in
 `sys_init` to register the cleanup function for thread-local socket semaphores.
-That function calls `malloc(12)` for one shared registry entry. Replaying
-the linked ESP instructions with a controlled allocator produced key 1 on
-success. Returning a null pointer left the registry empty, yet initialization
-continued to socket registration. Both calls returned from `malloc` to
-`0x42006114` in the ELF above. This record has a separate lifetime from the
-controller task's fixed 84-byte socket semaphore. It belongs to TCP/IP
-startup and needs fixed storage with the SDK's lookup and cleanup semantics.
+The current station owns one typed registry entry in `c3lsem`. Replaying the
+linked startup twice with general allocation forbidden produced the same key
+both times. A generic pthread key coexisted with it. The SDK found the socket
+key and invoked its destructor once during foreign-thread cleanup. A separate
+test link retained the normally unused native key-delete function and verified
+that deleting and re-registering the socket key reuses the fixed slot.
+[RV32 key replay](../../../tools/target/station_key_probe.py).
 
-Twelve network instruction-level checks on that ELF passed across TCP, UDP,
-ARP, DHCP, DNS, IGMP, event registration, frame copying, IPv4, interface
-creation, timers and Wi-Fi receive handoff. These checks exercise selected
-paths with simulated hardware or OS boundaries. The linker accounts for
-fixed storage, and the startup replay establishes a remaining runtime heap
-request even with all module sizes within budget.
+**Remaining scope.** An explicit foreign-thread socket-value registration in
+the replay still requested 4 bytes for a list head and 12 bytes for a value.
+The permanent station controller has a separate fixed semaphore. Establish
+whether another task takes this path in the supported workload. Twelve
+network instruction-level checks on the preceding demo ELF covered selected
+TCP/IP, SDK event and Wi-Fi handoff paths. The fixed-storage budget and those
+checks alone cannot qualify all runtime allocations.
 
 ### Physical acceptance of the fixed AES station configuration
 
