@@ -13,6 +13,19 @@ physical reads. The release retains USB configuration and recovery.
 
 ### Week 13 evidence for AAI13
 
+**Final acceptance run.** One ESP boot covered Wi-Fi association, authenticated
+MQTT status, broker restart and TLS renegotiation, rejected USB Apply, valid
+idle Apply, BMP388 and LD2450 reads, and eight seconds after the broker was
+closed. The observer counted **410 successful general allocations, 118,202
+requested bytes and zero SDK allocation-failure notifications**. The independent
+audit matched the successful count and bytes at the same boundary. All six
+USB samples showed zero normal-service kernel object creations. The
+[final call-site inventory](station-disconnect-owners.csv) identifies each
+allocation site and its live payload peak. All owners fall within the
+specific station driver paths documented below. The final diagnostic image
+SHA-256 was `4a9fbf7cf5a2034756d512a6bbcc57356e706ebd8072c9a4cdb0de727c2fa414`.
+The release image retained MQTT TLS and its published fixed-RAM budgets.
+
 The ESP32-C3 station fits every assigned module budget. Its pthread registry reserves
 one socket key and two generic keys in fixed application RAM. The scope and limits of the Wi-Fi exemption are stated below.
 

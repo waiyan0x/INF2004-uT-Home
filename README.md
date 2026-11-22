@@ -6,6 +6,10 @@ without recompiling or reflashing the firmware for each change.
 
 ## Resume next session
 
+For the single-broker BMP388/LD2450 demo, the static-memory assessment includes
+the release linker budget, physical allocation census, overflow recovery and
+the measured Wi-Fi driver exemption. [Week 13 AAI13 evidence](docs/reports/wifi-static-memory/README.md#week-13-evidence-for-aai13).
+
 The professor has approved **uT-Kernel on the ESP32-C3, MQTT for commands and
 results, Home Assistant MQTT discovery for display, and a rule-based decision
 program on the ESP**. This approval was recorded from the user's confirmation
