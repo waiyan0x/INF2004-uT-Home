@@ -101,6 +101,30 @@ Lookup, overwrite and removal passed. Adding a setter to the station requires
 rechecking the static-memory budget and startup behavior.
 [Linked startup regression](../../../tools/target/station_environ_probe.py).
 
+On the ESP32-C3, a hardware breakpoint at libc startup followed by breakpoints
+at `malloc` and lock initialization confirmed that the station reached the locks
+with its syscall table installed and no intervening `malloc`. Three authenticated
+MQTT status replies shared one boot across broker restart and TLS 1.2
+renegotiation. Both peers sent a second Finished message. Normal kernel object
+creation counters were zero at all four samples. Image SHA-256 was
+`c157ba67c4bd91edd54c345ec93b5a766fd1561b29168014d9e24c4460fc5a30`.
+The original 4 MiB flash, saved profile and laptop network settings verified
+after restoration.
+
+From the libc lock boundary through the final MQTT reply, the debugger counted `pthread_mutex_init` (5 requests) and `esp_timer_create` (85 requests) at their native heap call sites. These counts cover the two named sites only.
+
+All five pthread mutex requests were eight bytes. Two arrived during C++
+global initialization. Replaying the linked constructors for the nothrow
+and terminate translation units showed that each requested its own mutex
+record and returned `ENOMEM` when that allocation failed. Two more requests
+came through PSA initialization and one through PSA key creation. These
+five requests fall outside the radio-driver exemption. Their 40 requested
+bytes exclude allocator overhead. Disassembly shows that both semaphore creation
+branches already call `c3nq_mutex`, backed by the station's fixed network pool.
+The outstanding heap request is the native pthread record around that handle.
+The timer count reports calls across the full run, including repeated calls.
+Its peak live storage requires separate lifetime evidence.
+
 **TCP/IP startup key.** The previous image requested 12 heap bytes in
 `sys_init` to register the cleanup function for thread-local socket semaphores.
 The current station owns one typed registry entry in `c3lsem`. Replaying the
