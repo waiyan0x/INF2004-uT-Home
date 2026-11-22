@@ -221,6 +221,22 @@ budget table above exclude this measurement equipment. The linked emulator
 test allocated 97 records into 96 live slots, recorded the overflow, and
 verified that freeing the records returned the tracked bytes to zero.
 
+**Application startup on the diagnostic ESP.** From application entry through
+the seal, all 59 successful requests and all 26,040 bytes reconcile with the
+independent audit. The two fixed trace tables reported zero overflows.
+The [43 call sites](station-startup-owners.csv) identify the linked object,
+cumulative requests and payload bytes, and the live and peak payload at each
+site. Peaks at separate sites can occur at different times.
+
+The radio MAC, packet processor, PHY, Wi-Fi adapter, coexistence and Wi-Fi
+configuration objects accounted for 53 requests. The station supplicant made
+two more for its callback table (108 bytes) and PMKSA cache header (20 bytes).
+Both persisted at sealing. Four pthread allocations used 32 bytes for the two
+per-task list heads and two driver semaphore values observed in the earlier
+registry trace. This attribution applies to those specific semaphore values.
+This run stopped before obtaining an IP address. The original 4 MiB flash,
+saved profile and host configuration were restored and verified.
+
 **General heap trace on the fixed-timer image.** On image `63eb1aaec4e6`,
 the debugger recorded 12 successive successful general allocations per window
 and read the counter at entry to the 13th. In each window the change in count
