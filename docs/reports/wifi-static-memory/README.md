@@ -84,13 +84,28 @@ after restoration, and both active and saved profiles matched the preflight
 revision and CRC. Application image SHA-256
 `69691a899bb5a22d35779d89be6b8b44d18a7cedf032ecaa29f56891135ee2fe`.
 
-**Remaining scope.** An explicit foreign-thread socket-value registration in
-the replay still requested 4 bytes for a list head and 12 bytes for a value.
-The permanent station controller has a separate fixed semaphore. Establish
-whether another task takes this path in the supported workload. Twelve
-network instruction-level checks on the preceding demo ELF covered selected
-TCP/IP, SDK event and Wi-Fi handoff paths. The fixed-storage budget and those
-checks alone cannot qualify all runtime allocations.
+**Registry ownership during authenticated MQTT, 22 November 2026.** A second
+backed-up run used the same image. Hardware breakpoints traced native
+`pthread_key_create` and `pthread_setspecific` from reset through an initial
+status reply, broker restart and server-requested TLS 1.2 renegotiation.
+Three nonce-matched replies carried the same ESP boot ID. Each TLS peer sent
+its second Finished message. The registry and per-task lists were then read
+on the halted ESP.
+
+| Key | Owner identified on the ESP | Registry storage | Value writes during the run |
+|---|---|---|---|
+| 1 | C++ exception runtime, `eh_globals_dtor(void*)` | 12 bytes from the general heap | 0 |
+| 2 | lwIP socket cleanup, `sys_thread_sem_free` | 12 fixed application bytes | 0 |
+| 3 | Wi-Fi driver, `wifi_thread_semphr_free` | 12 bytes from the general heap | 2, both from the driver |
+
+The driver registered per-thread semaphores from tasks 2 and 10. At the end,
+the two live pthread values both belonged to key 3. A foreign task can still
+request a 4-byte list head and 12-byte socket value in the instruction-level
+test. That lwIP path saw zero registrations in this measured workload.
+The C++ key is a confirmed startup allocation outside the Wi-Fi exemption.
+Other SDK allocation sites remain open. The board's original full flash and
+profile verified after restoration, and the temporary hotspot and firewall
+rule were removed.
 
 ### Physical acceptance of the fixed AES station configuration
 
