@@ -11,7 +11,7 @@ c3event.c.obj,application_fixed,450,450,0
 c3i2c.c.obj,application_fixed,60,64,4
 c3iface.c.obj,application_fixed,278,278,0
 c3lrec.c.obj,application_fixed,1806,1806,0
-c3lsem.c.obj,application_fixed,130,134,4
+c3lsem.c.obj,application_fixed,175,179,4
 c3mqtt.c.obj,application_fixed,1802,1802,0
 c3net.c.obj,application_fixed,67,67,0
 c3nq.c.obj,application_fixed,9402,9402,0

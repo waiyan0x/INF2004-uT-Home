@@ -46,6 +46,25 @@ extern void c3lsem_unlinked(const void *);
     list(FILTER pthread_sources EXCLUDE REGEX "(^|/)pthread_local_storage[.]c$")
     set_property(TARGET ${pthread_lib} PROPERTY SOURCES "${pthread_sources};${key_copy}")
     set_property(SOURCE "${key_copy}" TARGET_DIRECTORY ${pthread_lib} APPEND PROPERTY INCLUDE_DIRECTORIES "${pthread_dir}")
+    # Preserve native lock, destroy, and failure paths; substitute only record ownership.
+    set(mutex_source "${pthread_dir}/pthread.c")
+    set(mutex_copy "${CMAKE_CURRENT_BINARY_DIR}/pthread/pthread.c")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${mutex_source}")
+    file(READ "${mutex_source}" mutex_text)
+    string(SHA256 mutex_hash "${mutex_text}")
+    if(NOT mutex_hash STREQUAL "3423df09f2a291e76abf2cb34a26b5fde21a22bd514563f1526d44cdafa8da15")
+        message(FATAL_ERROR "Review the changed SDK pthread mutex allocation and release paths")
+    endif()
+    string(REPLACE "malloc(sizeof(esp_pthread_mutex_t))" "c3lsem_mutex_reserve()" mutex_text "${mutex_text}")
+    string(REPLACE "free(mux);" "c3lsem_mutex_release(mux);" mutex_text "${mutex_text}")
+    file(CONFIGURE OUTPUT "${mutex_copy}" CONTENT "extern void *c3lsem_mutex_reserve(void);
+extern void c3lsem_mutex_release(const void *);
+@mutex_text@" @ONLY)
+    get_target_property(pthread_sources ${pthread_lib} SOURCES)
+    list(FILTER pthread_sources EXCLUDE REGEX "(^|/)pthread[.]c$")
+    set_property(TARGET ${pthread_lib} PROPERTY SOURCES "${pthread_sources};${mutex_copy}")
+    set_property(SOURCE "${mutex_copy}" TARGET_DIRECTORY ${pthread_lib} APPEND PROPERTY
+        INCLUDE_DIRECTORIES "${pthread_dir}")
     idf_component_get_property(UTHOME_LWIP_LIB lwip COMPONENT_LIB)
     idf_component_get_property(UTHOME_LWIP_DIR lwip COMPONENT_DIR)
     set_property(SOURCE "${UTHOME_LWIP_DIR}/port/freertos/sys_arch.c"

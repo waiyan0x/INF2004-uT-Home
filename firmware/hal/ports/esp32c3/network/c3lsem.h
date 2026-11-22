@@ -19,6 +19,12 @@ void * c3lsem_reserve (void);
 /** @brief Release a fixed record after native key deletion unlinks it. */
 void c3lsem_unlinked (const void * p_entry);
 
+/** @brief Reserve a record until native destroy or initialization rollback. */
+void * c3lsem_mutex_reserve (void);
+
+/** @brief Return the record after the SDK releases its semaphore lease. */
+void c3lsem_mutex_release (const void * p_record);
+
 /** @brief Reserve the controller record before the station starts lwIP. */
 int c3lsem_start (void);
 

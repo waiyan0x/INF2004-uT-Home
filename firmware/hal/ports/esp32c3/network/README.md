@@ -79,6 +79,17 @@ output or the list. The original SDK lookup and task-value destructor still
 use that list. Native deletion unlinks under its original lock and clears
 the fixed socket slot for reuse.
 
+The station also reserves five independent pthread mutex records, one per
+observed C++ or PSA owner. Each uses the SDK's native eight-byte record type.
+Five flags track occupancy. Reserve and release both restore the calling
+task's previous interrupt mask on the single-core C3. Release compares typed
+slot addresses without pointer arithmetic. The SDK assigns both fields before
+publishing the caller's handle and retains ownership of type
+validation, recursive behavior, semaphore leases, busy checks and destruction.
+A source-hash check covers both release sites, including initialization
+rollback. A sixth concurrent mutex returns `ENOMEM`. These five slots are
+shared across all callers of the station pthread API.
+
 The static Wi-Fi build also reserves two native registry nodes for generic
 pthread keys. The C++ exception runtime takes one before the scheduler starts.
 The Wi-Fi adapter takes the other. The SDK still assigns key IDs and stores

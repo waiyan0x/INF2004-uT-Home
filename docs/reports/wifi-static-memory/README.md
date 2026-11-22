@@ -17,11 +17,11 @@ one socket key and two generic keys in fixed application RAM. Full AAI13 accepta
 
 | Fixed RAM in the station build | Linked bytes | Budget bytes | Margin bytes |
 |---|---:|---:|---:|
-| Application modules | 147,012 | 147,456 | 444 |
+| Application modules | 147,057 | 147,456 | 399 |
 | Project task pool | 18,499 | 18,560 | 61 |
-| Kernel and SDK fixed data | 53,697 | 55,296 | 1,599 |
+| Kernel and SDK fixed data | 53,700 | 55,296 | 1,596 |
 | Code resident in RAM | 55,500 | 57,152 | 1,652 |
-| **Total DRAM** | **274,708** | **278,528** | **3,820** |
+| **Total DRAM** | **274,756** | **278,528** | **3,772** |
 | RTC memory (separate) | 60 | 128 | 68 |
 
 The [41-module budget table](transaction-module-budget.csv) gives the linked
@@ -29,9 +29,9 @@ size and limit for each individually budgeted object in the first two groups.
 The margin is room under the project cap. To reproduce the check on a built
 station, run the following from the repository root with the ESP-IDF tools
 available. The measured ELF SHA-256 was
-`a223f0e6c9ddc783180a148491784b341e0be9f657893efe8346548f28adeaa2` and
+`73985e243b303a4f7b07c02b4037a0e4622c7d236556b4f586a75e31a4e6fc2b` and
 the map SHA-256 was
-`a98e51ae69fc4d983dc7a0ef51d73028e9b298332b042cdf5926374fccd508b6`.
+`8b33a8b3e539f9d44e4ead540a0f87ae30e7e9082e3bfcc5db5af923cc826bac`.
 
 ```text
 python tools/target/memory_budget.py --build <station-project-directory> --budget tools/target/transaction-budget.json --output <report.json>
@@ -121,9 +121,18 @@ came through PSA initialization and one through PSA key creation. These
 five requests fall outside the radio-driver exemption. Their 40 requested
 bytes exclude allocator overhead. Disassembly shows that both semaphore creation
 branches already call `c3nq_mutex`, backed by the station's fixed network pool.
-The outstanding heap request is the native pthread record around that handle.
+In that build the native pthread record around the semaphore was still allocated on the heap.
 The timer count reports calls across the full run, including repeated calls.
 Its peak live storage requires separate lifetime evidence.
+
+**Fixed pthread mutex records.** The station now reserves five native records
+and five occupancy flags in `c3lsem` (45 bytes). The release ELF exercised
+native initialization and destruction with the general allocator forbidden.
+A sixth live mutex returned `ENOMEM` and preserved every existing record.
+A failed semaphore lease returned `EAGAIN` and returned the slot to the pool.
+Destroying a busy mutex returned `EBUSY` and kept the slot occupied. After
+a successful destroy, a recursive mutex reused the released record.
+[Linked regression](../../../tools/target/station_mutex_probe.py).
 
 **TCP/IP startup key.** The previous image requested 12 heap bytes in
 `sys_init` to register the cleanup function for thread-local socket semaphores.

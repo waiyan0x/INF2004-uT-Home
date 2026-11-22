@@ -40,6 +40,15 @@ typedef void (*pthread_destructor_t)(void *);
 extern SLIST_HEAD(key_list_t, key_entry_t_) s_keys;
 " @ONLY)
     set_property(SOURCE "../../hal/c3lsem.c" APPEND PROPERTY INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}")
+    set(mutex_source "${pthread_dir}/pthread.c")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${mutex_source}")
+    file(READ "${mutex_source}" mutex_text)
+    string(REGEX MATCH "typedef struct [{][^{}]+[}] esp_pthread_mutex_t;" mutex_type "${mutex_text}")
+    if(NOT mutex_type)
+        message(FATAL_ERROR "Missing pinned pthread mutex record type")
+    endif()
+    file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pthread_mutex_record.h"
+        CONTENT "#include \"freertos/semphr.h\"\n@mutex_type@\n" @ONLY)
     set(registry_source "${UTHOME_NETIF_DIR}/esp_netif_objects.c")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${registry_source}")
     file(READ "${registry_source}" registry_source_text)

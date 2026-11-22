@@ -8,6 +8,7 @@
 #include "c3bport.h"
 #include "freertos/semphr.h"
 #include "pthread_key_registry.h"
+#include "pthread_mutex_record.h"
 #include <errno.h>
 #include <stdbool.h>
 
@@ -15,6 +16,10 @@
 #define C3LSEM_GENERIC_KEYS (2U)
 static key_entry_t g_keys[C3LSEM_GENERIC_KEYS]  = {0};
 static bool        gb_used[C3LSEM_GENERIC_KEYS] = {false};
+
+#define C3LSEM_MUTEXES (5U)
+static esp_pthread_mutex_t g_mutexes[C3LSEM_MUTEXES]     = {0};
+static bool                gb_mutex_used[C3LSEM_MUTEXES] = {false};
 
 static key_entry_t       g_socket_key = {0};
 static sys_sem_t         g_record     = {0};
@@ -102,6 +107,39 @@ void c3lsem_unlinked (const void * p_entry)
             }
         }
     }
+}
+
+/** @brief Interrupt exclusion also covers the early C++ constructors. */
+void * c3lsem_mutex_reserve (void)
+{
+    esp_pthread_mutex_t * p_record = NULL;
+    const uint32_t        saved    = c3bport_enter();
+    for (size_t index = 0U; index < C3LSEM_MUTEXES; ++index)
+    {
+        if (!gb_mutex_used[index])
+        {
+            gb_mutex_used[index] = true;
+            p_record             = &g_mutexes[index];
+            break;
+        }
+    }
+    c3bport_leave(saved);
+    return p_record;
+}
+
+/** @brief A slot becomes reusable only after its native owner is finished. */
+void c3lsem_mutex_release (const void * p_record)
+{
+    const uint32_t saved = c3bport_enter();
+    for (size_t index = 0U; index < C3LSEM_MUTEXES; ++index)
+    {
+        if (&g_mutexes[index] == p_record)
+        {
+            gb_mutex_used[index] = false;
+            break;
+        }
+    }
+    c3bport_leave(saved);
 }
 
 /** @brief Keep independent SDK tasks on their own per-thread records. */
