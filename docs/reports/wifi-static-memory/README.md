@@ -239,6 +239,24 @@ resume followed, but the final MQTT status timed out. This harness behavior
 limits interpretation of both trials. Neither timeout establishes a firmware
 fault. The original flash, profile and host settings verified after restoration.
 
+The corrected harness resumed the ESP immediately after the final trace and
+kept the debugger attached until the last status exchange. Both TLS peers
+completed renegotiation, and three distinct authenticated status requests
+succeeded on one ESP boot. Each window reconciled with the count and byte
+counters.
+
+| Corrected run | PHY clock timer | Wi-Fi packet buffers | MAC timer processing | Requested bytes |
+|---|---:|---:|---:|---:|
+| Broker startup | 4 | 6 | 2 | 2,660 |
+| Broker restart | 4 | 7 | 1 | 6,172 |
+| Requested TLS renewal | 1 | 9 | 2 | 7,808 |
+
+At the final USB sample, 36 of 318 normal-service allocation requests
+were traced to the three named Wi-Fi driver paths. The other 282 fell
+outside these windows. All four USB samples showed zero kernel object
+creations after startup. A whole-run exemption still requires ownership and
+lifetime evidence for the remaining requests.
+
 **TCP/IP startup key.** The previous image requested 12 heap bytes in
 `sys_init` to register the cleanup function for thread-local socket semaphores.
 The current station owns one typed registry entry in `c3lsem`. Replaying the
