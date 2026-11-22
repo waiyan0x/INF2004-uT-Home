@@ -160,6 +160,13 @@ Each timer keeps the classification of its creation stack until its observed fre
 
 An earlier backed-up run on this same image passed the three authenticated exchanges. Its debugger timed out before recording the final ownership snapshot. The flash and profile verified after both runs. Timer counts in the table come from the second, instrumented run.
 
+A release-ELF replay exercised the WPA callback through the legacy set and
+delete functions. Resetting the legacy wrapper clears its handle immediately.
+Reinitializing before the alarm processor runs left two distinct 32-byte
+descriptors live. Processing pending alarms released the old descriptor, and
+a second cleanup released the new one. The one live descriptor seen on the
+board describes steady service only. [Linked lifecycle regression](../../../tools/target/station_timer_probe.py).
+
 **TCP/IP startup key.** The previous image requested 12 heap bytes in
 `sys_init` to register the cleanup function for thread-local socket semaphores.
 The current station owns one typed registry entry in `c3lsem`. Replaying the
