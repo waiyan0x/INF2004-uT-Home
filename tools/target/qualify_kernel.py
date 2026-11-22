@@ -112,6 +112,7 @@ RUNTIME_SOURCE_FILES = {
     'firmware/hal/ports/esp32c3/network/c3lrec.h': 'hal/c3lrec.h',
     'tests/target/runtime_port_board/main/tlsmem.cmake': 'main/tlsmem.cmake',
     'tests/target/runtime_port_board/main/lwipmem.cmake': 'main/lwipmem.cmake',
+    'tests/target/runtime_port_board/main/libcmem.cmake': 'main/libcmem.cmake',
     'firmware/hal/ports/esp32c3/network/c3nq.c': 'hal/c3nq.c',
     'firmware/hal/ports/esp32c3/network/c3nq.h': 'hal/c3nq.h',
     'tests/target/runtime_port_board/main/netqueue.cmake': 'main/netqueue.cmake',

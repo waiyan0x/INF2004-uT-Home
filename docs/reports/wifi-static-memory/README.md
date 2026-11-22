@@ -29,9 +29,9 @@ size and limit for each individually budgeted object in the first two groups.
 The margin is room under the project cap. To reproduce the check on a built
 station, run the following from the repository root with the ESP-IDF tools
 available. The measured ELF SHA-256 was
-`2eaa8ef24fea320af073e3f1e1c8e8b4cfd2adb7b4f29570c1b5a6292fc037b4` and
+`a223f0e6c9ddc783180a148491784b341e0be9f657893efe8346548f28adeaa2` and
 the map SHA-256 was
-`44927a929a1518b3b752e00ab27d0c73b6fe52f5bb244afde69f360eb3b9c426`.
+`a98e51ae69fc4d983dc7a0ef51d73028e9b298332b042cdf5926374fccd508b6`.
 
 ```text
 python tools/target/memory_budget.py --build <station-project-directory> --budget tools/target/transaction-budget.json --output <report.json>
@@ -87,12 +87,19 @@ counters stayed at zero at all four samples. The original 4 MiB flash and
 profile verified after restoration. The temporary hotspot and scoped broker
 firewall rule were removed.
 
-**Remaining libc startup allocation.** Picolibc's `esp_libc_init` requests
-four heap bytes for the terminator of the initial environment pointer table.
-A replay of this ELF reached lock initialization on allocation success and
-`abort` on failure. The ESP's table was present and empty at the end of the
-MQTT trial. This platform allocation is outside the Wi-Fi driver. Other SDK
-allocation sites still need attribution for full AAI13 acceptance.
+**Libc startup environment.** The previous station requested four heap bytes
+for its empty environment. The current station supplies a writable,
+null-terminated pointer table in fixed RAM. A replay of the linked firmware
+installed the SDK syscall table and initialized libc locks with zero allocation
+requests, including when the test allocator had no memory available.
+
+If a build links Picolibc's environment setter, its initial table retains SDK
+heap ownership. In a separate link, startup requested four bytes and aborted
+when that allocation failed. With startup successful, the native setter
+recovered from a failed first growth and resized the owned table on retry.
+Lookup, overwrite and removal passed. Adding a setter to the station requires
+rechecking the static-memory budget and startup behavior.
+[Linked startup regression](../../../tools/target/station_environ_probe.py).
 
 **TCP/IP startup key.** The previous image requested 12 heap bytes in
 `sys_init` to register the cleanup function for thread-local socket semaphores.

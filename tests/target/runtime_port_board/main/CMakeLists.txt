@@ -234,6 +234,7 @@ set_source_files_properties("nqcheck.c" "../network/netring.c" "../network/netwa
 include("${CMAKE_CURRENT_LIST_DIR}/netqueue.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/tlsmem.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/lwipmem.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/libcmem.cmake")
 
 if(UTHOME_WIFI_PROBE OR UTHOME_BLE_PROBE)
     # Keep the USB core's complete fixed RAM/code footprint in the diagnostic.
