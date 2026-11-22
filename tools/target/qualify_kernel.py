@@ -87,6 +87,8 @@ RUNTIME_SOURCE_FILES = {
     'firmware/src/network/netpool.h': 'network/netpool.h',
     'firmware/hal/ports/esp32c3/network/c3lbox.c': 'hal/c3lbox.c',
     'firmware/hal/ports/esp32c3/network/c3lbox.h': 'hal/c3lbox.h',
+    "firmware/hal/ports/esp32c3/network/c3aes.c": "hal/c3aes.c",
+    "firmware/hal/ports/esp32c3/network/c3aes.h": "hal/c3aes.h",
     "firmware/hal/ports/esp32c3/network/c3lsem.c": "hal/c3lsem.c",
     "firmware/hal/ports/esp32c3/network/c3lsem.h": "hal/c3lsem.h",
     'firmware/hal/ports/esp32c3/network/c3tls.c': 'hal/c3tls.c',
@@ -1002,7 +1004,7 @@ def verify_queue_adapter(work, enabled, wifi_services=False):
                                queue_payload_bytes=8192, semaphore_slots=16, mutex_slots=32,
                                startup_native_semaphores=48,startup_native_mutexes=32,
                                event_groups=8,event_waiters=16,
-                               native_startup_pool_bytes=3744 if wifi_services else 12288,
+                               native_startup_pool_bytes=2720 if wifi_services else 12288,
                                dedicated_controller_stack_bytes=8448 if wifi_services else 0),
                 qualification="Experimental queue/event/startup scope; cache-off I/O rejects, radio/task/timer paths remain unqualified")
 
@@ -1037,9 +1039,9 @@ def verify_compile_profiles(work, startup_trace=False, station_stack=False):
         profiles[source] = expected
     for path, command in commands.items():
         adapted = "-Dasm=__asm__" in command
-        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3lsem.c", "c3tls.c", "c3tout.c", "c3peer.c", "c3lrec.c", "c3pkt.c", "c3rx.c", "c3dhcp.c", "c3iface.c", "c3ereg.c")}):
+        if adapted != (path in {(work / "project/hal" / name).resolve() for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3lsem.c", "c3tls.c", "c3aes.c", "c3tout.c", "c3peer.c", "c3lrec.c", "c3pkt.c", "c3rx.c", "c3dhcp.c", "c3iface.c", "c3ereg.c")}):
             raise QualificationError("SDK assembly spelling adaptation escaped its adapter")
-    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3lsem.c", "c3tls.c", "c3tout.c", "c3peer.c", "c3lrec.c", "c3pkt.c", "c3rx.c", "c3dhcp.c", "c3iface.c", "c3ereg.c"):
+    for name in ("c3wifi.c", "c3ble.c", "c3gatt.c", "c3wsta.c", "c3gsvc.c", "c3mqtt.c", "c3lbox.c", "c3lsem.c", "c3tls.c", "c3aes.c", "c3tout.c", "c3peer.c", "c3lrec.c", "c3pkt.c", "c3rx.c", "c3dhcp.c", "c3iface.c", "c3ereg.c"):
         owned_radio = (work / "project/hal" / name).read_text()
         if re.search(r"\b(?:asm|__asm__|typeof|__typeof__)\b", owned_radio):
             raise QualificationError("Owned radio adapter must remain C99: " + name)

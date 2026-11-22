@@ -59,6 +59,8 @@ class QualificationTests(unittest.TestCase):
             "CONFIG_LWIP_MAX_UDP_PCBS=2",
             "CONFIG_LWIP_MAX_LISTENING_TCP=1",
             "CONFIG_VFS_SUPPORT_IO=n",
+            "CONFIG_MBEDTLS_HARDWARE_SHA=n",
+            "CONFIG_MBEDTLS_HARDWARE_AES=n",
         }
         self.assertEqual(
             required,

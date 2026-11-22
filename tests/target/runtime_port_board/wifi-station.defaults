@@ -13,3 +13,6 @@ CONFIG_LWIP_MAX_ACTIVE_TCP=3
 CONFIG_LWIP_MAX_LISTENING_TCP=1
 # Use native lwIP socket I/O and the SDK console on the station.
 CONFIG_VFS_SUPPORT_IO=n
+# Use the software SHA and AES providers for MQTT.
+CONFIG_MBEDTLS_HARDWARE_SHA=n
+CONFIG_MBEDTLS_HARDWARE_AES=n

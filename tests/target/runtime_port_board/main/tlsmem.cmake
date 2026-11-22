@@ -40,7 +40,40 @@ if(UTHOME_NETWORK_WIFI AND UTHOME_STATIC_NET_QUEUES)
     endforeach()
     # Setup and hostname setting select fixed storage. Other allocations keep
     # their SDK path; both failure-free and zeroizing cleanup must be bound.
+    if(CONFIG_MBEDTLS_HARDWARE_SHA OR CONFIG_MBEDTLS_HARDWARE_AES OR
+       NOT CONFIG_ESP_WIFI_MBEDTLS_CRYPTO)
+        message(FATAL_ERROR "Fixed TLS crypto requires software SHA/AES and the reviewed WPA provider")
+    endif()
+    # Preserve the ESP32-C3 radio's optimized WPA2 passphrase calculation.
+    # MQTT SHA-256 and HMAC keep their software PSA providers.
+    idf_component_get_property(wpa_lib wpa_supplicant COMPONENT_LIB)
+    idf_component_get_property(wpa_dir wpa_supplicant COMPONENT_DIR)
+    set(wpa_crypto "${wpa_dir}/esp_supplicant/src/crypto")
+    target_sources(${wpa_lib} PRIVATE "${wpa_crypto}/fastpsk.c")
+    set_property(SOURCE "${wpa_crypto}/crypto_mbedtls.c" TARGET_DIRECTORY ${wpa_lib}
+                 APPEND PROPERTY COMPILE_DEFINITIONS CONFIG_FAST_PSK)
     idf_component_get_property(UTHOME_MBED_DIR mbedtls COMPONENT_DIR)
+    set(cipher_source "${UTHOME_MBED_DIR}/mbedtls/tf-psa-crypto/drivers/builtin/src/cipher_wrap.c")
+    set(cipher_copy "${CMAKE_CURRENT_BINARY_DIR}/cipher/cipher_wrap.c")
+    file(READ "${cipher_source}" cipher_text)
+    string(SHA256 cipher_hash "${cipher_text}")
+    if(NOT cipher_hash STREQUAL "77a61ccd7dbfbe145bd2efcbe5cb2290f5d18fff7e25d88df256c45a218a771a")
+        message(FATAL_ERROR "Pinned AES context lifetime changed")
+    endif()
+    string(REPLACE "mbedtls_aes_context *aes = mbedtls_calloc(1, sizeof(mbedtls_aes_context))"
+                   "mbedtls_aes_context *aes = c3aes_take()" cipher_text "${cipher_text}")
+    string(REPLACE "mbedtls_aes_free((mbedtls_aes_context *) ctx);\n    mbedtls_free(ctx);"
+                   "mbedtls_aes_free((mbedtls_aes_context *) ctx);\n    c3aes_drop(ctx);" cipher_text "${cipher_text}")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/cipher")
+    file(WRITE "${cipher_copy}" "${cipher_text}")
+    get_target_property(cipher_sources builtin SOURCES)
+    list(FILTER cipher_sources EXCLUDE REGEX "(^|/)cipher_wrap[.]c$")
+    set_property(TARGET builtin PROPERTY SOURCES "${cipher_sources};${cipher_copy}")
+    get_filename_component(cipher_dir "${cipher_source}" DIRECTORY)
+    set_property(SOURCE "${cipher_copy}" TARGET_DIRECTORY builtin APPEND PROPERTY INCLUDE_DIRECTORIES "${cipher_dir}")
+    set_property(SOURCE "${cipher_copy}" TARGET_DIRECTORY builtin APPEND PROPERTY COMPILE_OPTIONS
+                 "-include" "${CMAKE_CURRENT_LIST_DIR}/../hal/c3aes.h")
+    target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--undefined=c3aes_take" "-Wl,--undefined=c3aes_drop")
     set_property(SOURCE "${UTHOME_MBED_DIR}/mbedtls/library/ssl_tls.c"
         TARGET_DIRECTORY mbedtls APPEND PROPERTY COMPILE_DEFINITIONS
         mbedtls_calloc=c3tout_alloc mbedtls_free=c3tout_free

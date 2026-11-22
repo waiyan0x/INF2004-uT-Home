@@ -10,6 +10,43 @@ full-profile setup/recovery uses USB. The host Desk and Home Assistant web
 interfaces remain available. No Wi-Fi-driver exception automatically exempts
 TLS, TCP/IP or ESP-TLS contexts.
 
+### Physical acceptance of the fixed AES station configuration
+
+The default Wi-Fi build uses software SHA and two fixed AES contexts for the
+single MQTT broker. It retains optimized WPA2 station association. On 22
+November 2026 the ESP32-C3 ran image
+`a63c89cfe9bbee8b210584928ff52aef7c283089a752924d33b5e68130ca647d`.
+Seven nonce-matched MQTT status replies from the board shared one boot ID.
+These included initial authentication, reconnection after a broker restart
+and a server-requested TLS 1.2 renegotiation. Both peers sent a second
+Finished message on the existing connection. On the same boot, the idle
+profile returned BMP388 ID `50` over I2C and 16 LD2450 bytes over UART.
+
+| Physical sampling point | Cumulative SDK allocations after startup | Cumulative frees |
+|---|---:|---:|
+| Wi-Fi ready, broker offline | 315 | 305 |
+| Authenticated status | 401 | 391 |
+| Status after broker restart | 519 | 509 |
+| Status after renegotiation | 548 | 538 |
+| Idle profile after two peripheral reads | 579 | 569 |
+
+Across these five samples, the kernel allocator counters stayed at zero, the
+kernel created no objects after startup, and the memory observer stayed
+sealed without saturation. At least 5,504 bytes of the 8,448-byte controller
+stack remained untouched. The linked image uses 274,676 of 278,528 DRAM bytes
+and 146,974 of 147,456 application bytes. The debugger read the fixed
+controller semaphore handle and owner task 2. A subsequent debugger reset
+yielded eight early boot allocation samples. They included 4 bytes from libc initialization,
+48 bytes from brownout interrupt setup and 49 bytes from Wi-Fi log-level setup.
+
+The AES module's manual C review covered typed and aligned storage, two bounded
+slot searches, saved interrupt state around occupancy changes, exhaustion
+returning NULL, and the SDK wipe before release. The pinned source adaptation
+covers the AES provider's allocation and release pair. The 353-file C gate,
+48 target qualification cases, real target build and compiled cipher exhaustion,
+wipe and reuse checks passed. The full board backup, original profile and
+host settings verified after the run.
+
 ### Controller semaphore and demo-broker certificate measurements, 22 November 2026
 
 On the ESP32-C3, station startup reserved the controller's lwIP semaphore
@@ -43,9 +80,9 @@ The direct key-copy measurement exercises a separate SDK entry point. The
 ordinary USB/MQTT scheduling evidence is documented under
 [USB validation during MQTT TLS](#usb-validation-during-mqtt-tls).
 
-The emulator measures the instrumented certificate allocator. Physical
-authentication, broker restart, TLS renegotiation and attribution of the
-remaining SDK calls on this combined image are still open.
+The emulator measures the instrumented certificate allocator. The physical
+acceptance above covers broker traffic on this same image. Attribution of
+remaining SDK calls during normal service remains open.
 
 ### Wi-Fi receive ring on the demo image, 22 November 2026
 
