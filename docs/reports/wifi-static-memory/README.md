@@ -248,6 +248,20 @@ the project's shared crypto allocation wrapper, with 32 bytes live at peak.
 This capture identifies the wrapper only. The peripheral phase was not
 entered because the trial manifest lacked the idle-profile digest.
 
+**Full peripheral workload.** The corrected trial manifest included the
+reviewed idle-profile digest. On one boot the station applied the profile,
+returned BMP388 chip ID `50` and received 16 LD2450 bytes after broker
+restart and TLS renewal. The final recorder and audit agreed on 356 successful
+requests and 110,930 requested bytes. All five USB audit samples showed zero
+normal-service kernel object creations. Neither recorder table overflowed.
+The full flash, original profile and host settings verified after restoration.
+
+The [unwind-rule generator](../../../tools/target/station_census_rules.py)
+accepts a diagnostic ELF and an optional `--objdump` path. Its JSON contains
+the ELF digest followed by the return PC, saved return-address byte offset,
+frame size, calling function and target for each rule. The first three
+fields are stored in the recorder as little-endian RV32 words before tracing.
+
 **General heap trace on the fixed-timer image.** On image `63eb1aaec4e6`,
 the debugger recorded 12 successive successful general allocations per window
 and read the counter at entry to the 13th. In each window the change in count
