@@ -15,7 +15,6 @@ let connected = false, busy = false, pendingTelemetry = null, reviewId = null, e
 let draftEdited = false, draftGeneration = 0;
 let discoveryFeatures = 0, recoveryRequired = false, discovered = null;
 let discoveryTimer = null, discoveryGeneration = 0, connections = [];
-let datasheetSelection = null;
 let recipeSupported = false, recipeExamples = [], editingRecipeId = '', recipeGeneration = 0;
 const recipeFields = {device_id: 'recipe-device', bus_ref: 'recipe-bus', address: 'recipe-address',
   register: 'recipe-register', read_length: 'recipe-read', read_pause_ms: 'recipe-pause',
@@ -32,11 +31,11 @@ function updateRecipeControls() {
     el('recipe-preview').textContent = error.message;
   }
   el('recipe-add').disabled = !connected || !recipeSupported || busy || !valid || !el('recipe-confirm').checked;
-  el('recipe-add').textContent = editingRecipeId ? 'Update recipe in draft' : 'Add recipe to draft';
+  el('recipe-add').textContent = editingRecipeId ? 'Update read in draft' : 'Add read to draft';
   el('recipe-device').readOnly = !!editingRecipeId;
-  el('recipe-support').textContent = !connected ? 'Connect to check recipe support. Preparing a draft does not apply it.'
-    : recipeSupported ? 'Connected firmware supports I²C register-read recipes.'
-      : 'This firmware cannot run recipes. Install a recipe-enabled build before applying one.';
+  el('recipe-support').textContent = !connected ? 'Connect to check register-read support.'
+    : recipeSupported ? 'Connected firmware supports I²C register reads.'
+      : 'This firmware does not support configurable register reads.';
 }
 function fillRecipe(recipe) {
   for (const [key, id] of Object.entries(recipeFields)) {
@@ -61,7 +60,7 @@ function refreshRecipeProfile() {
   if (buses.some(bus => bus.id === previousBus)) el('recipe-bus').value = previousBus;
   const devices = Array.isArray(profile?.devices) ? profile.devices.filter(device => device?.driver === 'i2c_recipe') : [];
   el('recipe-existing').replaceChildren();
-  for (const device of [{device_id: '', label: 'New recipe'}, ...devices]) {
+  for (const device of [{device_id: '', label: 'New read'}, ...devices]) {
     const option = document.createElement('option');
     option.value = device.device_id;
     option.textContent = device.label || device.device_id;
@@ -114,7 +113,6 @@ function updateControls() {
   el('review').disabled = busy;
   el('file').disabled = busy;
   el('apply').disabled = !connected || !reviewId || busy;
-  el('datasheet-generate').disabled = busy || !connected || !datasheetSelection || !el('datasheet-confirm').checked;
   updateRecipeControls();
 }
 function invalidateReviewAndDiscovery() {
@@ -123,7 +121,6 @@ function invalidateReviewAndDiscovery() {
   el('review-summary').textContent = 'Profile changed. Validate and review again.';
   el('plan').replaceChildren();
   el('rule-plan').replaceChildren();
-  el('datasheet-generate-status').textContent = 'A draft cannot install a driver or change the board. Review and apply separately.';
   renderProfile(el('profile').value);
   refreshRecipeProfile();
   updateControls();
@@ -168,12 +165,12 @@ el('recipe-add').onclick = () => {
     clearDiscovery();
     const result = await rpc('recipe-prepare', request);
     if (draft !== draftGeneration || form !== recipeGeneration) {
-      throw new Error('The draft or recipe changed. Prepare the recipe again.');
+      throw new Error('The draft or register read changed. Prepare the read again.');
     }
     el('profile').value = JSON.stringify(result.profile, null, 2);
     markDraftChanged();
     el('recipe-status').textContent = result.summary + ' Draft only. Validate and review before applying.';
-    notice('Recipe prepared in your draft. Validate and review the complete profile next.');
+    notice('Register read prepared in your draft. Validate and review the complete profile next.');
   }, error => { el('recipe-status').textContent = error.message; });
 };
 async function decodeResponse(response, action) {
@@ -239,87 +236,6 @@ el('discovery-preset').onchange = updateDiscoveryPreset;
 el('wiring-confirmed').onchange = () => {
   clearDiscovery();
   updateControls();
-};
-el('datasheet-confirm').onchange = updateControls;
-function resetDatasheetMatch() {
-  datasheetSelection = null;
-  el('datasheet-confirm').checked = false;
-  el('datasheet-enable-wrap').hidden = true;
-  el('datasheet-enable').value = '';
-  el('datasheet-address').replaceChildren();
-  updateControls();
-}
-el('datasheet-name').oninput = resetDatasheetMatch;
-for (const id of ['datasheet-device-id', 'datasheet-address', 'datasheet-sda', 'datasheet-scl', 'datasheet-enable']) {
-  el(id).addEventListener('change', () => {
-    el('datasheet-confirm').checked = false;
-    updateControls();
-  });
-}
-el('datasheet-match').onclick = () => runBoardAction(async () => {
-  resetDatasheetMatch();
-  const name = el('datasheet-name').value.trim();
-  const result = await rpc('datasheet_match', {device_name: name});
-  if (el('datasheet-name').value.trim() !== name) return;
-  const available = result.matches.filter(match => match.driver_available === true);
-  if (available.length !== 1) {
-    el('datasheet-driver').textContent = result.matches.length ?
-      (result.connected ? 'The connected firmware has no unique available driver for this selection.' : 'Connect the board to check driver availability.') :
-      'No exact reviewed catalogue entry found. A maintainer must review this device before use.';
-    updateControls();
-    return;
-  }
-  const match = available[0];
-  const builder = match.draft_builder;
-  if (!builder?.eligible) {
-    el('datasheet-driver').textContent = 'This reviewed device is not supported by the periodic I2C draft builder. Use the existing device flow.';
-    updateControls();
-    return;
-  }
-  for (const address of builder.addresses) {
-    const option = document.createElement('option');
-    option.value = address;
-    option.textContent = address;
-    el('datasheet-address').append(option);
-  }
-  datasheetSelection = {...match, needsEnable: builder.needs_enable};
-  el('datasheet-enable-wrap').hidden = !builder.needs_enable;
-  el('datasheet-confirm').checked = false;
-  el('datasheet-driver').textContent = `Candidate ${match.descriptor_id} · ${match.driver_id} is installed. Confirm the physical module and connections.`;
-  updateControls();
-});
-el('datasheet-generate').onclick = () => {
-  let validationError;
-  const sda = el('datasheet-sda').value, scl = el('datasheet-scl').value;
-  const enable = el('datasheet-enable').value;
-  if (!datasheetSelection || !el('datasheet-confirm').checked) {
-    validationError = 'Check the device and wiring first.';
-  } else if (sda === '' || scl === '') {
-    validationError = 'Select SDA and SCL GPIO pins.';
-  } else if (datasheetSelection.needsEnable && enable === '') {
-    validationError = 'Select the enable GPIO pin.';
-  }
-  if (validationError) {
-    notice(validationError, true);
-    el('datasheet-generate-status').textContent = validationError;
-    return;
-  }
-  const generation = draftGeneration;
-  const request = {profile: el('profile').value, descriptor_id: datasheetSelection.descriptor_id,
-    descriptor_version: datasheetSelection.descriptor_version, device_id: el('datasheet-device-id').value,
-    address: el('datasheet-address').value, sda_gpio: Number(sda), scl_gpio: Number(scl),
-    ...(datasheetSelection.needsEnable ? {enable_gpio: Number(enable)} : {}),
-    wiring_confirmed: true, identity_confirmed: true};
-  return runBoardAction(async () => {
-    if (generation !== draftGeneration) throw new Error('The profile changed; prepare the draft again.');
-    const result = await rpc('datasheet_prepare_i2c', request);
-    if (generation !== draftGeneration) throw new Error('The profile changed; prepare the draft again.');
-    el('profile').value = JSON.stringify(result.profile, null, 2);
-    markDraftChanged();
-    const message = 'Device added to the draft. Validate and review the whole profile before applying.';
-    el('datasheet-generate-status').textContent = message;
-    notice(message);
-  }, error => { el('datasheet-generate-status').textContent = error.message; });
 };
 el('detect').onclick = () => runBoardAction(async () => {
   reviewId = null;
@@ -404,7 +320,6 @@ el('download').onclick = () => runExclusiveAction(() => {
 el('connect').onclick = () => runBoardAction(async () => {
   const data = await rpc('connect', {port: el('port').value.trim()});
   connected = true;
-  resetDatasheetMatch();
   discoveryFeatures = data.capabilities.features;
   recipeSupported = data.capabilities.drivers.includes('i2c_recipe');
   el('wiring-confirmed').checked = false;
@@ -421,7 +336,6 @@ el('disconnect').onclick = () => runBoardAction(async () => {
   await rpc('disconnect');
   connected = false;
   recipeSupported = false;
-  resetDatasheetMatch();
   invalidateReviewAndDiscovery();
   renderTelemetry(null);
   el('capabilities').textContent = '';

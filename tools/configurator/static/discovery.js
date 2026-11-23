@@ -81,8 +81,7 @@ export function renderDiscovery(report, add, message = 'Connect a board and conf
     if (selected && device.capabilities.support === 'unavailable') label = 'Identified · driver unavailable';
     const item = tile(`${selected ? selected.id : address} · ${label}`,
       `${address} · ${observation.status.replaceAll('_', ' ')} · not configured by this check`, 'i2c', 'violet');
-    const details = text('details', '');
-    details.append(text('summary', 'Evidence and recommended settings'));
+    const details = text('div', '');
     const value = observation.value === null ? 'no chip ID' : 'chip ID 0x' + observation.value.toString(16).padStart(2, '0');
     details.append(text('p', `${value} · register 0x${observation.register.toString(16).padStart(2, '0')} · ${device.identity.status} catalogue match`, 'hint'));
     if (selected) details.append(text('p', `Descriptor ${selected.id} v${selected.version} · driver ${device.capabilities.driver} · hardware qualification ${device.capabilities.hardware_qualified ? 'recorded' : 'pending'}`, 'hint'));
@@ -92,11 +91,6 @@ export function renderDiscovery(report, add, message = 'Connect a board and conf
     }
     container.append(item);
   }
-  const evidence = text('details', '', 'discovery-evidence');
-  evidence.append(text('summary', 'Capture details'), text('p',
-    result === 'manual' ? `Preset ${report.preset_id} v${report.preset_version}; board revision ${report.capture.active_revision}; user confirmation only, no measured identity.` :
-      `Preset ${report.preset_id} v${report.preset_version}; request ${report.capture.request_id}; board revision ${report.capture.active_revision}; board time ${report.capture.started_ms} ms; elapsed ${report.capture.elapsed_ms} ms; firmware ${report.capture.build_sha256}.`, 'hint'));
-  container.append(evidence);
   readinessChanged();
 }
 
@@ -108,8 +102,7 @@ function renderManualOrUartDevice(container, report, device, index, add, confirm
     device.identity.status === 'candidate' ? 'Candidate — confirm module' :
     device.identity.status === 'ambiguous' ? 'More than one match' : 'No reliable match';
   const item = tile(`${name} · ${label}`, 'Not configured by this check', manual ? device.observation.protocol || 'gpio' : 'uart', 'violet');
-  const details = text('details', '');
-  details.append(text('summary', 'Evidence and recommended settings'));
+  const details = text('div', '');
   details.append(text('p', manual ? 'No readback is available for this selection. User confirmation is not proof that the device operates.' :
     `${device.observation.valid_reports ?? 0} complete reports; ${device.observation.window_ms ?? 0} ms window; ${device.observation.receive_errors ?? 0} receive errors; ${device.observation.discarded_bytes ?? 0} discarded bytes. Silence does not prove disconnection; reports with zero targets still count.`, 'hint'));
   for (const caution of device.cautions || []) details.append(text('p', caution, 'hint'));

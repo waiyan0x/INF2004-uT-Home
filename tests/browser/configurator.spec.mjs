@@ -64,8 +64,6 @@ async function openDesk(page, overrides = {}) {
   });
   await page.clock.install({time: new Date('2026-11-02T08:00:00Z')});
   await page.goto('http://uthome.test/');
-  await page.getByText('Edit profile JSON', {exact: true}).click();
-  await page.getByText('Discover or select hardware', {exact: true}).click();
   return {requests, errors, handlers};
 }
 
@@ -75,25 +73,6 @@ async function connectAndDetect(page) {
   await page.locator('#detect').click();
   await expect(page.getByRole('button', {name: 'Confirm module'})).toBeVisible();
 }
-
-test('datasheet matching uses server requirements while catalogue loading is pending', async ({page}) => {
-  const pending = deferred();
-  const desk = await openDesk(page, {catalogue: () => pending.promise,
-    datasheet_match: () => ({connected: true, matches: [{
-      descriptor_id: 'sen0390', descriptor_version: '1.0.0', driver_id: 'sen0390', driver_available: true,
-      draft_builder: {eligible: true, addresses: ['0x4a'], needs_enable: true},
-    }]}),
-  });
-  await page.locator('#connect').click();
-  await page.getByText('Driver availability and configuration', {exact: true}).click();
-  await page.locator('#datasheet-name').fill('sen0390');
-  await page.locator('#datasheet-match').click();
-  await expect(page.locator('#datasheet-address')).toHaveValue('0x4a');
-  await expect(page.locator('#datasheet-enable-wrap')).toBeVisible();
-  await expect(page.locator('#datasheet-driver')).toContainText('sen0390 is installed');
-  pending.resolve(catalogue);
-  expect(desk.errors).toEqual([]);
-});
 
 test('an import cannot replace edits made while File.text is pending', async ({page}) => {
   await page.addInitScript(() => {
@@ -108,6 +87,7 @@ test('an import cannot replace edits made while File.text is pending', async ({p
   await page.locator('#file').setInputFiles({name: 'profile.json', mimeType: 'application/json',
     buffer: Buffer.from('{"node_id":"imported"}')});
   const newer = '{"node_id":"edited while loading"}';
+  await page.locator('#tab-review').click();
   await page.locator('#profile').fill(newer);
   await page.evaluate(() => globalThis.releaseImport());
   await expect(page.locator('#notice')).toContainText('draft changed while reading');
@@ -149,7 +129,9 @@ test('real modules wire confirmation, busy controls, addition and review navigat
   const confirmation = deferred();
   const desk = await openDesk(page, {confirm_discovered: () => confirmation.promise});
   await expect(page.locator('#profile')).toHaveValue(JSON.stringify(draft, null, 2));
+  await expect(page.getByRole('heading', {name: 'I²C register reads'})).toBeVisible();
   await connectAndDetect(page);
+  await expect(page.locator('details, summary, #datasheet-details, #profile-heading')).toHaveCount(0);
   const check = page.locator('#discovery-results input[type=checkbox]');
   const confirm = page.getByRole('button', {name: 'Confirm module'});
   await expect(confirm).toBeDisabled();
@@ -176,7 +158,10 @@ for (const mode of ['edit', 'import']) {
     const pending = deferred();
     const desk = await openDesk(page, {catalogue: () => pending.promise});
     const content = JSON.stringify({...draft, node_id: mode});
-    if (mode === 'edit') await page.locator('#profile').fill(content);
+    if (mode === 'edit') {
+      await page.locator('#tab-review').click();
+      await page.locator('#profile').fill(content);
+    }
     else await page.locator('#file').setInputFiles({name: 'profile.json', mimeType: 'application/json', buffer: Buffer.from(content)});
     await expect(page.locator('#profile')).toHaveValue(content);
     pending.resolve(catalogue);
@@ -213,85 +198,12 @@ for (const failure of ['network', 'json', 'unavailable']) {
     await expect(page.locator('#pills')).not.toContainText('120 mm');
     await expect(page.locator('#readings')).toBeEmpty();
     await expect(page.locator('#healthTiles')).toBeEmpty();
-    await expect(page.locator('#diagnostics')).toBeEmpty();
     await expect(page.locator('#state')).toContainText('Board state unavailable');
     await expect(page.locator('#recover')).toBeDisabled();
     if (failure === 'network') await expect(page.locator('#notice')).toContainText('telemetry failed:');
     expect(desk.errors).toEqual([]);
   });
 }
-
-const i2cMatch = needsEnable => ({connected: true, matches: [{
-  descriptor_id: 'sen0390', descriptor_version: '1.0.0', driver_id: 'sen0390', driver_available: true,
-  draft_builder: {eligible: true, addresses: ['0x4a'], needs_enable: needsEnable},
-}]});
-
-async function selectI2cDraft(page, needsEnable = true) {
-  await page.locator('#connect').click();
-  await page.getByText('Driver availability and configuration', {exact: true}).click();
-  await page.locator('#datasheet-name').fill('sen0390');
-  await page.locator('#datasheet-match').click();
-  await expect(page.locator('#datasheet-address')).toHaveValue('0x4a');
-  await page.locator('#datasheet-sda').fill('4');
-  await page.locator('#datasheet-scl').fill('5');
-  if (needsEnable) await page.locator('#datasheet-enable').fill('6');
-  await page.locator('#datasheet-confirm').check();
-}
-
-for (const needsEnable of [true, false]) {
-  test(`datasheet draft sends reviewed inputs and consumes review, enable=${needsEnable}`, async ({page}) => {
-    const prepared = {...draft, node_id: 'prepared'};
-    const desk = await openDesk(page, {datasheet_match: () => i2cMatch(needsEnable),
-      datasheet_prepare_i2c: () => ({profile: prepared})});
-    await selectI2cDraft(page, needsEnable);
-    await page.locator('#review').click();
-    await expect(page.locator('#apply')).toBeEnabled();
-    await page.locator('#tab-profile').click();
-    await page.locator('#datasheet-generate').click();
-    await expect(page.locator('#profile')).toHaveValue(JSON.stringify(prepared, null, 2));
-    await expect(page.locator('#apply')).toBeDisabled();
-    expect(desk.requests.find(row => row.action === 'datasheet_prepare_i2c').body).toEqual({
-      profile: JSON.stringify(draft, null, 2), descriptor_id: 'sen0390', descriptor_version: '1.0.0',
-      device_id: 'i2c_sensor', address: '0x4a', sda_gpio: 4, scl_gpio: 5,
-      ...(needsEnable ? {enable_gpio: 6} : {}), wiring_confirmed: true, identity_confirmed: true,
-    });
-    expect(desk.errors).toEqual([]);
-  });
-}
-
-for (const missing of ['sda', 'enable']) {
-  test(`missing local ${missing} preserves a valid review without sending a draft request`, async ({page}) => {
-    const desk = await openDesk(page, {datasheet_match: () => i2cMatch(true)});
-    await selectI2cDraft(page);
-    await page.locator('#review').click();
-    await expect(page.locator('#apply')).toBeEnabled();
-    await page.locator('#tab-profile').click();
-    await page.locator(`#datasheet-${missing}`).fill('');
-    await page.locator(`#datasheet-${missing}`).blur();
-    await page.locator('#datasheet-confirm').check();
-    await page.locator('#datasheet-generate').click();
-    await expect(page.locator('#datasheet-generate-status')).toContainText('Select');
-    await expect(page.locator('#apply')).toBeEnabled();
-    expect(desk.requests.filter(row => row.action === 'datasheet_prepare_i2c')).toEqual([]);
-    expect(desk.errors).toEqual([]);
-  });
-}
-
-test('a delayed datasheet draft cannot replace a profile edited and then restored', async ({page}) => {
-  const pending = deferred();
-  const desk = await openDesk(page, {datasheet_match: () => i2cMatch(true),
-    datasheet_prepare_i2c: () => pending.promise});
-  await selectI2cDraft(page);
-  await page.locator('#datasheet-generate').click();
-  await expect.poll(() => desk.requests.filter(row => row.action === 'datasheet_prepare_i2c').length).toBe(1);
-  const original = await page.locator('#profile').inputValue();
-  await page.locator('#profile').fill('{"node_id":"newer"}');
-  await page.locator('#profile').fill(original);
-  pending.resolve({profile: {...draft, node_id: 'stale'}});
-  await expect(page.locator('#notice')).toContainText('profile changed');
-  await expect(page.locator('#profile')).toHaveValue(original);
-  expect(desk.errors).toEqual([]);
-});
 
 for (const success of [true, false]) {
   test(`apply waits for outstanding telemetry and follows its result, success=${success}`, async ({page}) => {
@@ -336,6 +248,7 @@ for (const action of ['discover', 'review']) {
     await page.locator(action === 'discover' ? '#detect' : '#review').click();
     await expect.poll(() => desk.requests.some(row => row.action === action)).toBe(true);
     const edited = JSON.stringify({...draft, node_id: 'edited'});
+    await page.locator('#tab-review').click();
     await page.locator('#profile').fill(edited);
     pending.resolve(action === 'discover' ? report(false) : reviewed);
     await expect(page.locator('#review')).toBeEnabled();

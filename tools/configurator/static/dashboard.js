@@ -23,7 +23,7 @@ const drivers = {
   hc_sr04: ['HC-SR04', 'ruler', 'cyan'],
   pwm_output: ['PWM output', 'gpio', 'teal'],
   sen0390: ['SEN0390 light sensor', 'gauge', 'amber'],
-  i2c_recipe: ['I²C register-read recipe', 'i2c', 'violet'],
+  i2c_recipe: ['I²C register read', 'i2c', 'violet'],
 };
 const display = value => value === null || typeof value === 'object'
   ? '[invalid value]' : String(value);
@@ -79,9 +79,6 @@ export function renderProfile(text) {
   try { profile = JSON.parse(text); } catch { profile = null; }
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) profile = {};
   el('appbarNode').textContent = typeof profile.node_id === 'string' ? profile.node_id : 'no valid profile loaded';
-  el('profileMeta').textContent = profile.board?.variant
-    ? `${display(profile.board.variant)} · schema ${display(profile.schema_version ?? '—')}` : 'JSON draft';
-
   const devices = rows(profile.devices);
   el('devicesMeta').textContent = `${devices.filter(d => d.enabled === true).length}/${devices.length} enabled`;
   tiles('devices', devices.map(device => {
@@ -196,7 +193,6 @@ export function renderTelemetry(snapshot) {
     el('health').textContent = snapshot ? 'No current health observation' : 'No live observations';
     el('state').textContent = snapshot ? 'Board state unavailable; refresh to query again.'
       : 'Disconnected; last board state is no longer current.';
-    el('diagnostics').textContent = '';
     return;
   }
   el('timestamp').textContent = `Board uptime ${(snapshot.timestamp_ms / 1000).toFixed(1)} s`;
@@ -205,7 +201,6 @@ export function renderTelemetry(snapshot) {
   renderTable(el('readings'), ['Source', 'Quality', 'Value', 'Age'], snapshot.samples.map(sample => [
     sample.name, sample.quality, formatSampleValue(sample), sample.age_ms === null ? '—' : sample.age_ms + ' ms',
   ]));
-  el('diagnostics').textContent = JSON.stringify({runtime: snapshot.runtime, queues: snapshot.queues}, null, 2);
   const pills = [];
   for (const sample of snapshot.samples) {
     const value = sample.value;

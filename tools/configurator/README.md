@@ -47,8 +47,7 @@ The screen contains:
    replaces a rule without performing peripheral I/O. Execution uses the active
    rule, even if another operation is selected in the preview.
 4. One result card: operation status, fresh raw bytes, reported TX/RX counts and
-   age. A collapsed **Details** section holds source references and the last
-   receipt, clearly marked historical when it is no longer current.
+   age.
 
 For example, selecting `pressure_raw` previews TX `04` and RX length 3 while
 `chip_id / revision 1` remains active. Execute still uses chip ID until Load
@@ -69,7 +68,7 @@ or received a message.
 | Offline or not ready | Preview remains usable; Load/Execute disabled with the reason |
 | Rule accepted | Active operation/revision updates; live raw bytes/counts remain unavailable |
 | Execution complete | Current raw bytes/counts and age, including legitimate zero bytes |
-| Expired, failed snapshot or disconnected | Live bytes/counts clear; the last receipt stays in Details as history |
+| Expired, failed snapshot or disconnected | Live bytes and transfer counts clear |
 | Unsupported operation | Explain its missing capability beside the preview; loading is disabled |
 | Rejected rule | Show rejection; preserve the acknowledged active rule |
 | Outcome unknown | Block Load/Execute; show Check status and Recover last result only as needed; never repeat uncertain I/O automatically |
@@ -84,7 +83,7 @@ existing profile workflow for explicit setup/restoration.
 On small screens, fields stack and the four tabs remain keyboard accessible.
 The Runtime tab previews the SPI clock, mode, CS and D/C, or the UART baud.
 Only I2C operations take an address. Unsupported operations stay unavailable. Normal actions need no JSON
-editing. Details contains one historical receipt; there is no repeated-read mode.
+editing. Each execution requires an explicit request.
 
 `GET /api/runtime-catalogue` compiles only repository descriptions, without
 peripheral I/O. Session-authenticated `POST /api/runtime` accepts `snapshot`,
@@ -134,8 +133,7 @@ HA remains at `http://127.0.0.1:18123`.
 5. Select `chip_id`, load and execute once. Expect revision 3, raw `50` and
    TX/RX `1 / 1`.
 6. Leave it idle for five seconds. Expect **Result expired** and unavailable
-   raw/TX/RX, while the active rule remains. **Details** retains the last receipt
-   as history. The six HA entities follow the same freshness contract.
+   raw/TX/RX, while the active rule remains. The six HA entities follow the same freshness contract.
 7. **Disconnect**. The active rule and all six HA sensors become unavailable.
 
 Read each result promptly: one click performs one read, and the helper does not
@@ -383,7 +381,7 @@ and idle stack watermarks showed 5,088 and 896 bytes unused at both snapshots.
 Original flash, saved profile 943, broker permissions and laptop settings
 were restored and verified.
 
-## Configuration recipes
+## I²C register reads
 
 The professor-feedback change starts with one bounded generic I2C operation:
 write a one-byte register pointer, read 1–16 bytes, and publish a selected
@@ -407,7 +405,7 @@ addresses are rejected without changing the active plan, and ordinary BMP/OLED/
 radar profiles still work. Host tests and a firmware build establish software
 checks only; dated board captures are needed for each physical claim.
 
-The recipe form prepares one reader on an I2C interface already present in the
+The register-read form prepares one reader on an I2C interface already present in the
 draft. Connect firmware advertising `i2c_recipe`, select the bus and address,
 review the register/read/selection fields, confirm the physical operation, then
 prepare the draft. Preparing does not stop, apply or save anything. It clears
@@ -444,22 +442,7 @@ connection-error cleanup and single-use review checks as the HTTP entry point.
 `contracts.py` defines their JSON-compatible result fields; recorded receipts
 retain their existing shape. `dispatch` decodes browser actions only.
 
-**Reviewed catalogue draft** under **Add a device** prepares a local profile draft.
-Peripheral Markdown descriptions and the separate runtime-rule compiler live in
-[the datasheet guide](../../datasheets/README.md). No PDF is sent to an online service.
-
-Check a reviewed catalogue ID or supported product-name alias against the connected firmware, choose its address
-and GPIO pins, and confirm the actual module and electrical wiring. The periodic
-I2C draft builder uses reviewed catalogue defaults, rejects conflicting pins and
-missing drivers, and changes only the draft. Use the normal review and Apply
-controls afterwards. A name match does not verify identity. The SEN0390 remains
-unavailable in normal firmware: a diagnostic build exercised the reviewed Desk
-backend and light sensor, but full combined-system acceptance remains open.
-When supported light telemetry is available, the live monitor shows illuminance
-in lux with the source name and freshness.
-The reviewed alias `HLK-LD2450` maps to `hlk_ld2450`; other punctuation and
-unknown names are not inferred. UART devices still use their existing device flow.
-1. In **Profile**, choose an example or import JSON. Open **Edit profile JSON**
+1. In **Profile**, choose an example or import JSON. Use the JSON editor in **Review & apply**
    for custom instances, wiring, timing and routes. Optional discovery is under
    **Add a device**; interfaces and queues are under
    **Wiring & resources**.
@@ -470,8 +453,7 @@ unknown names are not inferred. UART devices still use their existing device flo
 4. **Apply & save** replaces the whole plan and attempts persistent storage.
    Check both the result and active/saved revisions. Retry saving is a separate,
    explicit operation; it does not reapply the profile.
-5. **Live monitor** shows source identity, freshness and health. Open its
-   observation and runtime details when needed.
+5. **Live monitor** shows source identity, freshness and health.
    Disconnecting leaves the board running. Recover retries cleanup only when
    recovery is required. To stop a healthy setup, review/apply an empty hardware
    profile. **Apply & save also replaces the saved startup profile**; keep the

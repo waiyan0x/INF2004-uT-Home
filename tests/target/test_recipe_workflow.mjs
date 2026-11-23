@@ -52,7 +52,7 @@ async function openDesk(drivers = ['i2c_recipe']) {
 test('unsupported firmware leaves recipe preparation disabled', async () => {
   const {get, requests} = await openDesk([]);
   assert.equal(get('recipe-add').disabled, true);
-  assert.match(get('recipe-support').textContent, /cannot run recipes/);
+  assert.match(get('recipe-support').textContent, /does not support configurable register reads/);
   assert.equal(requests.some(row => row.url === '/api/recipe-prepare'), false);
 });
 

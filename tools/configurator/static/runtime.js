@@ -9,7 +9,7 @@ const statusNames = {ready: 'Ready', not_ready: 'Not ready', update_ok: 'Rule lo
 export function setupRuntime() {
   const token = document.querySelector('meta[name="session"]').content;
   let descriptions = [], catalogueLoaded = false, cataloguePending = false;
-  let active = false, view = null, receipt = null, received = 0;
+  let active = false, view = null, received = 0;
   let pending = false, sending = false, epoch = 0, nextPoll = 0;
   let message = '', transportUnknown = false, checking = false, snapshotFailed = false;
 
@@ -35,7 +35,7 @@ export function setupRuntime() {
   }
 
   function preview() {
-    const {item, operation, rule} = selection();
+    const {operation, rule} = selection();
     let settings = '';
     if (rule?.protocol === 'uart') settings = `${rule.rate} baud`;
     else if (rule) {
@@ -49,9 +49,6 @@ export function setupRuntime() {
       ? `${rule.protocol.toUpperCase()} / TX ${rule.write_hex || 'none'} / Read ${rule.read_length} ${rule.read_length === 1 ? 'byte' : 'bytes'} / ${settings} / ${rule.timeout_ms} ms`
       : operation?.reason || 'Select a reviewed description, operation and address.';
     el('notes').textContent = operation?.notes || '';
-    el('details').textContent = JSON.stringify({source: item ? {
-      description: item.id, sha256: item.sha256, pdf: item.source, pages: operation?.pages,
-    } : null, last_receipt: receipt}, null, 2);
   }
 
   function render() {
@@ -100,7 +97,6 @@ export function setupRuntime() {
     if (snapshotFailed) { message = ''; snapshotFailed = false; }
     view = data;
     received = started; // Include HTTP round-trip time when judging freshness.
-    if (view.state?.last) receipt = view.state.last;
     if (checking && !view.busy) {
       if (!view.error && view.state?.status_fresh) transportUnknown = false;
       checking = false;

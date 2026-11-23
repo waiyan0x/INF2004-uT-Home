@@ -81,33 +81,13 @@
   <section id="workspace-profile" role="tabpanel" aria-labelledby="tab-profile" tabindex="0">
     <div class="workspace-grid">
       <div class="workspace-column">
-        <section class="section" aria-labelledby="profile-heading">
-          <div class="section__head" data-accent="slate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-braces"/></svg><h2 id="profile-heading">Your profile</h2><div class="section__meta" id="profileMeta"></div></div>
-          <div class="card">
-            <div class="profile-picker">
-              <div class="field"><label class="field__label" for="examples">Start with an example</label><select class="input" id="examples"><option value="">Select a profile</option></select></div>
-              <label class="btn btn--file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-upload"/></svg>Import JSON<input id="file" aria-label="Import JSON profile" type="file" accept=".json,application/json"></label>
-            </div>
-            <details class="editor-details" id="editor-details">
-              <summary>Edit profile JSON</summary>
-              <div class="details-body">
-                <div class="field"><label class="field__label" for="profile">Profile JSON</label><textarea class="textarea" id="profile" spellcheck="false"></textarea></div>
-                <div class="toolbar"><button class="btn" id="format">Format JSON</button></div>
-              </div>
-            </details>
-            <div class="profile-actions toolbar">
-              <button class="btn btn--primary" id="review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-shield"/></svg>Validate and review</button>
-              <button class="btn" id="download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-download"/></svg>Download JSON</button>
-            </div>
-          </div>
-        </section>
         <section class="section" aria-labelledby="recipe-heading">
-          <div class="section__head" data-accent="violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-i2c"/></svg><h2 id="recipe-heading">Communication recipe</h2><span class="section__meta">I²C register read</span></div>
+          <div class="section__head" data-accent="violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-i2c"/></svg><h2 id="recipe-heading">I²C register reads</h2></div>
           <div class="card">
-            <p class="hint">Tell the ESP which register to read and which bytes to keep. Change these instructions through JSON using the same firmware.</p>
-            <p class="hint" id="recipe-support" role="status">Connect to check recipe support.</p>
-            <div class="field"><label class="field__label" for="recipe-existing">Recipe in this profile</label><select class="input" id="recipe-existing"><option value="">New recipe</option></select></div>
-            <div class="field"><label class="field__label" for="recipe-example">Reviewed read example</label><select class="input" id="recipe-example"><option value="">Custom recipe</option></select></div>
+            <p class="hint">Tell the ESP which register to read and which bytes to keep.</p>
+            <p class="hint" id="recipe-support" role="status">Connect to check register-read support.</p>
+            <div class="field"><label class="field__label" for="recipe-existing">Configured read</label><select class="input" id="recipe-existing"><option value="">New read</option></select></div>
+            <div class="field"><label class="field__label" for="recipe-example">Reviewed read example</label><select class="input" id="recipe-example"><option value="">Custom read</option></select></div>
             <p class="hint" id="recipe-example-note">Check the commands against your exact device's datasheet.</p>
             <div class="field-row">
               <div class="field"><label class="field__label" for="recipe-device">Source name</label><input class="input" id="recipe-device" value="raw_sensor" maxlength="22"></div>
@@ -119,29 +99,35 @@
               <div class="field"><label class="field__label" for="recipe-read">Bytes to read</label><input class="input" id="recipe-read" type="number" min="1" max="16" value="1"></div>
               <div class="field"><label class="field__label" for="recipe-interval">Read every (ms)</label><input class="input" id="recipe-interval" type="number" min="200" max="60000" value="500"></div>
             </div>
-            <details><summary>Byte selection &amp; timing</summary><div class="details-body field-row">
+            <div class="field-row">
               <div class="field"><label class="field__label" for="recipe-offset">First byte to keep (starts at 0)</label><input class="input" id="recipe-offset" type="number" min="0" max="15" value="0"></div>
               <div class="field"><label class="field__label" for="recipe-length">Bytes to keep</label><input class="input" id="recipe-length" type="number" min="1" max="16" value="1"></div>
               <div class="field"><label class="field__label" for="recipe-pause">Read delay (ms)</label><input class="input" id="recipe-pause" type="number" min="0" max="10" value="0"></div>
               <div class="field"><label class="field__label" for="recipe-timeout">Deadline (ms)</label><input class="input" id="recipe-timeout" type="number" min="10" max="100" value="100"></div>
-            </div></details>
+            </div>
             <p class="hint" id="recipe-preview" aria-live="polite"></p>
             <label class="discovery-confirm"><input type="checkbox" id="recipe-confirm">I checked the read instructions, device address and existing wiring against the datasheet.</label>
-            <button class="btn" id="recipe-add" type="button" disabled>Add recipe to draft</button>
+            <button class="btn" id="recipe-add" type="button" disabled>Add read to draft</button>
             <p class="hint" id="recipe-status" role="status" aria-live="polite">Draft only. Validate and review before applying. A device address can have only one owner.</p>
-            <details><summary>What this supports</summary><p class="hint">Bounded register reads return raw bytes, without temperature or light conversion. Devices needing initialization writes or other commands need more operation support. Generic SPI/UART recipes and configurable sensor ML are not implemented yet.</p></details>
           </div>
         </section>
         <section class="section" aria-labelledby="devices-heading">
           <div class="section__head" data-accent="orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-package"/></svg><h2 id="devices-heading">Devices in this profile</h2><div class="section__meta" id="devicesMeta"></div></div>
+          <div class="profile-picker">
+            <div class="field"><label class="field__label" for="examples">Start with an example</label><select class="input" id="examples"><option value="">Select a profile</option></select></div>
+            <label class="btn btn--file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-upload"/></svg>Import JSON<input id="file" aria-label="Import JSON profile" type="file" accept=".json,application/json"></label>
+          </div>
           <div class="tiles" id="devices"></div>
+          <div class="profile-actions toolbar">
+            <button class="btn btn--primary" id="review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-shield"/></svg>Validate and review</button>
+            <button class="btn" id="download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-download"/></svg>Download JSON</button>
+          </div>
         </section>
       </div>
       <aside class="workspace-column" aria-label="Profile tools">
         <section class="section" aria-labelledby="discovery-heading">
           <div class="section__head" data-accent="violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-i2c"/></svg><h2 id="discovery-heading">Add a device</h2></div>
-          <details class="card" id="discovery-details">
-            <summary>Discover or select hardware</summary>
+          <div class="card">
             <div class="details-body">
               <div class="field"><label class="field__label" for="discovery-preset">Connection or device</label><select class="input" id="discovery-preset" aria-describedby="discovery-wiring"></select></div>
               <p class="hint" id="discovery-wiring">Loading connection details…</p>
@@ -150,36 +136,14 @@
               <button class="btn" id="detect" disabled>Detect devices</button>
               <p class="hint" id="discovery-status" role="status" aria-live="polite">Connect to check for devices.</p>
               <div class="tiles" id="discovery-results"></div>
-              <details><summary>Preparing an idle board</summary><p class="hint">I2C and radar detection need an empty hardware configuration; manual selections only prepare draft settings. Keep a copy of the profile you will restore. In a separate draft, empty the devices, interfaces, queues and rules lists, then Validate and review → Apply &amp; save. This also replaces the saved startup profile. Restore your original draft to add discoveries. Detection never performs this step for you.</p></details>
             </div>
-          </details>
-          <details class="card datasheet-card" id="datasheet-details" open>
-            <summary><img class="datasheet-icon" src="/assets/datasheet/document.png" alt=""> Reviewed catalogue draft</summary>
-            <div class="details-body">
-              <p class="hint">Use a reviewed catalogue entry to prepare a local draft.</p>
-              <details><summary>Driver availability and configuration</summary><div class="details-body">
-                <div class="field"><label class="field__label" for="datasheet-name">Reviewed catalogue device ID</label><input class="input" id="datasheet-name" placeholder="e.g. bmp388"></div>
-                <button class="btn" id="datasheet-match" type="button">Check catalogue</button>
-                <p class="hint" id="datasheet-driver">A name match is only a candidate; confirm the actual module.</p>
-                <div class="field-row">
-                  <div class="field"><label class="field__label" for="datasheet-device-id">Device name</label><input class="input" id="datasheet-device-id" value="i2c_sensor" maxlength="22"></div>
-                  <div class="field"><label class="field__label" for="datasheet-address">Device address</label><select class="input" id="datasheet-address"></select></div>
-                  <div class="field"><label class="field__label" for="datasheet-sda">SDA GPIO</label><input class="input" id="datasheet-sda" type="number" min="0" max="21"></div>
-                  <div class="field"><label class="field__label" for="datasheet-scl">SCL GPIO</label><input class="input" id="datasheet-scl" type="number" min="0" max="21"></div>
-                  <div id="datasheet-enable-wrap" hidden><div class="field"><label class="field__label" for="datasheet-enable">Enable GPIO</label><input class="input" id="datasheet-enable" type="number" min="0" max="21"><p class="hint">The reviewed profile enables the sensor when you apply it.</p></div></div>
-                </div>
-                <label class="discovery-confirm"><input type="checkbox" id="datasheet-confirm">I checked the device identity, selected pins, supply and signal levels.</label>
-              </div></details>
-              <button class="btn" id="datasheet-generate" type="button" disabled>Generate draft</button>
-              <p class="hint" id="datasheet-generate-status" role="status" aria-live="polite">A draft cannot install a driver or change the board. Review and apply separately.</p>
-            </div>
-          </details>
+          </div>
         </section>
         <section class="section" aria-labelledby="resources-heading">
           <div class="section__head" data-accent="amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-layers"/></svg><h2 id="resources-heading">Wiring &amp; resources</h2></div>
           <div class="card resource-details">
-            <details><summary>Interfaces <span class="summary-note" id="interfacesMeta"></span></summary><div class="tiles details-body" id="interfaces"></div></details>
-            <details><summary>Queues <span class="summary-note" id="queuesMeta"></span></summary><div class="tiles details-body" id="queues"></div></details>
+            <h3>Interfaces <span class="summary-note" id="interfacesMeta"></span></h3><div class="tiles details-body" id="interfaces"></div>
+            <h3>Queues <span class="summary-note" id="queuesMeta"></span></h3><div class="tiles details-body" id="queues"></div>
           </div>
         </section>
       </aside>
@@ -191,6 +155,8 @@
       <section class="section" aria-labelledby="review-heading">
         <div class="section__head" data-accent="indigo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-clipboard"/></svg><h2 id="review-heading">Review your changes</h2></div>
         <div class="card">
+          <div class="field"><label class="field__label" for="profile">Profile JSON</label><textarea class="textarea" id="profile" spellcheck="false"></textarea></div>
+          <div class="toolbar"><button class="btn" id="format">Format JSON</button></div>
           <p class="hint" id="review-summary">Validate your profile to see the requested devices, resources and rules.</p>
           <div class="table-scroll" id="plan"></div><div class="table-scroll" id="rule-plan"></div>
           <div class="toolbar"><button class="btn btn--primary" id="apply" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>Apply &amp; save</button><button class="btn" type="button" data-workspace-link="profile">Back to profile</button></div>
@@ -202,10 +168,10 @@
         <div class="card">
           <p class="hint" id="state">Connect to read active and saved revisions.</p>
           <button class="btn" id="query" disabled>Refresh state</button>
-          <details><summary>Save &amp; recovery</summary><div class="details-body">
+          <div>
             <div class="toolbar"><button class="btn" id="save" disabled>Retry saving</button><button class="btn btn--danger" id="recover" disabled>Recover</button></div>
             <p class="hint">Retry saving keeps the current running configuration. Recover is only available after failed cleanup; it clears the live plan after checked cleanup and keeps the saved profile.</p>
-          </div></details>
+          </div>
         </div>
       </section>
     </div>
@@ -221,8 +187,7 @@
         <div class="section__head" data-accent="cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-activity"/></svg><h2 id="health-heading">System health</h2></div>
         <div class="alert alert--neutral" id="health" role="status">No live observations.</div>
         <div class="tiles health-tiles" id="healthTiles"></div>
-        <details class="card observation-details"><summary>Per-source observations</summary><div class="table-scroll" id="readings" aria-live="polite"></div></details>
-        <details class="card observation-details"><summary>Queue and runtime details</summary><pre id="diagnostics"></pre></details>
+        <div class="card observation-details"><div class="table-scroll" id="readings" aria-live="polite"></div></div>
       </section>
     </div>
   </section>
@@ -258,7 +223,6 @@
           <div><dt>Age</dt><dd id="runtime-age">Unavailable</dd></div>
         </dl>
         <div class="toolbar" id="runtime-recovery" hidden><button class="btn" id="runtime-check" type="button">Check status</button><button class="btn" id="runtime-recover" type="button">Recover last result</button></div>
-        <details><summary>Details</summary><div class="details-body"><p class="hint">Source references and the last receipt. A receipt is history, not a current reading. The source PDF has not been verified by this session.</p><pre id="runtime-details">No receipt.</pre></div></details>
       </section>
     </div>
   </section>

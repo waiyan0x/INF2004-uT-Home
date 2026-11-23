@@ -171,7 +171,7 @@ test('a lost HTTP action blocks another execute until explicit status checking',
   expect(errors).toEqual([]);
 });
 
-test('expired results and failed snapshots clear current bytes but retain receipt details', async ({page}) => {
+test('expired results and failed snapshots clear current bytes', async ({page}) => {
   const {model, errors} = await desk(page, session({age: 4900}));
   await page.clock.runFor(200);
   await expect(page.locator('#runtime-status')).toHaveText('Result expired');
@@ -180,7 +180,7 @@ test('expired results and failed snapshots clear current bytes but retain receip
   await page.clock.runFor(600);
   await expect(page.locator('#runtime-active')).toHaveText('Unavailable');
   await expect(page.locator('#runtime-execute')).toBeDisabled();
-  await expect(page.locator('#runtime-details')).toContainText('"raw_hex": "50"');
+  await expect(page.locator('#workspace-runtime details, #runtime-details')).toHaveCount(0);
   model.snapshot = null;
   model.view = session({status: 'result_expired'});
   await page.clock.runFor(600);
