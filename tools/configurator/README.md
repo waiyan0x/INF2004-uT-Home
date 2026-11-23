@@ -103,6 +103,70 @@ through first connect, A/B/A, expiry and disconnect with three reads and no
 browser errors. Evidence is local-only under
 `build/runtime-ui-review-20261117/`. The [physical BMP388 walkthrough](#physical-bmp388-walkthrough) follows below.
 
+### Tribunal 2 presenter guide
+
+Allow about six minutes to present and a separate setup window. Have the physical
+ESP's Home Assistant device page beside the Desk, plus the software block diagram
+and the [memory evidence](../../docs/reports/wifi-static-memory/README.md#week-13-evidence-for-aai13)
+ready to show. The physical and simulated nodes have separate HA device pages.
+
+**Prepare before presenting.** Use the reviewed BMP388 wiring at I2C address
+`0x77` and LD2450 wiring at 256000 baud. Keep the original profile and a verified
+full flash backup before a temporary firmware installation. Start HA, the broker
+and a Desk session configured for the physical node and the trusted broker CA.
+The physical rehearsal used separate broker connections for ESP commands and HA
+display publication. Open the URL printed by that physical session. An offline
+Desk can preview descriptions even when it has no MQTT target.
+
+Use USB for profile setup. Apply and save the reviewed idle profile and verify
+the active and saved revisions and CRCs match. The periodic sensor workers
+must release the buses before runtime commands can use them. If using a bank,
+disconnect laptop USB, allow power to drop, then power the setup from the bank
+before connecting MQTT. Wait for the new boot to report ready. Complete any
+readiness restart before the first load. Keep the board powered through the
+entire I2C / UART / I2C sequence.
+
+| Time | Operator action | What the audience should see or hear |
+|---|---|---|
+| 0:00 | Show diagram page 2. Point from Markdown to compiler, controller, broker, ESP and HA. | The host compiles the rule. The ESP validates and executes it. HA displays six read-only sensors. Page 3 shows why the transaction engine requires an idle peripheral plan. |
+| 0:40 | In **Peripheral transactions**, click **Connect MQTT** once. | Look for **MQTT ready**, **HA publisher connected**, and the physical node ID. **Connect USB** is for profile management. |
+| 1:00 | Select BMP388, `chip_id`, address `0x77`. Point out register `00`, one byte to read, bus speed and timeout. Click **Load rule** and pause. | The active rule becomes `chip_id` with a revision. Raw bytes and counts are unavailable. Loading validates and stores the rule without peripheral I/O. |
+| 1:40 | Click **Execute active rule** once. Show Desk and HA together. | Hex `50`, TX accepted 1, RX received 1. In HA, show operation status, active rule, protocol, raw bytes and both counts. |
+| 2:10 | Select LD2450 and `raw_16`. Pause before loading. Then load, wait for acknowledgement, and execute once. | The preview changes to UART at 256000 baud while the old rule remains active until load. UART needs no I2C address. TX 0, RX 16 shows a receive-only radar read. The chunk can start mid-frame. |
+| 3:00 | Return to BMP388 / `chip_id` / `0x77`. Load and execute once. | Hex `50`, TX 1, RX 1 again. Both protocol changes ran on one boot and firmware image. |
+| 3:30 | Leave the display alone for five seconds. Then click **Disconnect MQTT**. | First the result expires and raw/TX/RX clear while the active rule remains. After disconnect all six HA sensors become unavailable. |
+| 4:10 | Show the memory table, C-standard check and recovery evidence. | Explain which properties the live reads show and which require the measurements and controlled tests below. |
+
+For a longer demonstration insert BMP388 `pressure_raw` after the first chip ID
+(TX 1, RX 3), and LD2450 `raw_32` after `raw_16` (TX 0, RX 32). Pressure is a
+raw register value. Radar data are bytes from a stream. The physical rehearsal
+on 23 November 2026 returned `50`, `B5 21 6A`, 16 radar bytes, 32 radar bytes
+and `50` in that order. Fresh runs may return different pressure and radar bytes.
+
+**Requirement questions**
+
+| ID | Evidence to show or explain |
+|---|---|
+| FR1 | Preview a reviewed operation before loading. Compare its register, byte counts, speed and timeout with the [BMP388 description](../../datasheets/bmp388.md). |
+| FR2 | Show the acknowledged active rule before executing, then the same-boot BMP388 / LD2450 / BMP388 switch. |
+| FR3 | The generic layer supports I2C write/read, SPI write and raw UART transmit/receive. Limits are 30 TX bytes, 32 RX where supported, and 10 to 1,000 ms. The live radar operation uses RX. [Bus tests](../../tests/target/test_tx_owner.py) cover UART TX and SPI write. SPI writes were acknowledged on the bench. Visible OLED operation under the idle plan remains unverified. |
+| FR4 | Match raw bytes and counts across Desk and HA. For request ID, rule revision and ESP completion time, use the correlated result record or HA operation-status attributes. The age on the Desk is elapsed time. |
+| FR5 | Show the USB port control, **Review & apply**, active/saved revisions and **Live monitor** during setup. Explain that reconnect queries boot, plan generation and last command before the controller can recover a matching cached result. See the [physical restart walkthrough](#physical-restart-recovery) and [controller tests](../../tests/target/test_transaction_controller.py). |
+| NFR1 | Each TJ v2 command and reply is 96 application bytes over certificate-verified MQTT/TLS. One controller owns the journal, one rule is active, and at most one command is outstanding. |
+| NFR2 | Invalid or stale changes preserve the old rule. A proven exact retry returns the cached reply. Link loss cancels active work and releases resources. Use the [compiled rule-engine tests](../../tests/target/test_txjob.py) and [owner tests](../../tests/target/test_tx_owner.py) for rejection, replay and cancellation. |
+| NFR3 | All 41 modules fit. Fixed DRAM is 274,764 of 278,528 bytes, leaving 3,764. The separate diagnostic run attributed all 410 observed general allocations to documented Wi-Fi driver paths. Six runtime samples recorded zero new kernel objects. The qualification covers the single-broker demo workload. |
+| NFR4 | Show five-second expiry from original ESP completion and disconnect. Failed or uncertain operations also clear current data. Recovered results retain their original age. |
+| NFR5 | Show the pinned gate result alongside the [manual audit](../c_standard/AUDIT.md) and [deviation register](../c_standard/deviations.json). The automated gate checked 353 owned sources and headers with zero findings on 23 November. Manual review covers rules the checker cannot establish. |
+
+**If the demo pauses.** For **Not configured**, open the physical session URL.
+For an unavailable HA reading, check the device identity, publisher status and
+result age. For **Outcome unknown**, use **Check status**, then **Recover last
+result** only if offered. Avoid executing again merely to recover a reply.
+After a reboot or plan change, wait for ready and explicitly reload the rule.
+If the link cannot be restored during the presentation, identify the recorded
+physical rehearsal as prior evidence. Finish the backed-up session by
+disconnecting MQTT, returning the board to laptop USB and verifying restoration.
+
 ### Simulated operator walkthrough
 
 For this checkout's local HA setup, start its containers with
