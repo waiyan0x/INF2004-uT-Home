@@ -37,6 +37,8 @@ async function openDesk(page, overrides = {}) {
   page.on('pageerror', error => errors.push(error.message));
   const handlers = {
     catalogue: () => catalogue,
+    'runtime-catalogue': () => ({descriptions: []}),
+    runtime: () => ({configured: false, enabled: false}),
     connect: () => ({capabilities: {features: 0, drivers: [], board: 'test', node_schema: '2.1.0'}, state: board}),
     telemetry: () => ({result: 1, discovery_id: 'discovery-token'}),
     discover: () => report(false),
@@ -64,6 +66,7 @@ async function openDesk(page, overrides = {}) {
   });
   await page.clock.install({time: new Date('2026-11-02T08:00:00Z')});
   await page.goto('http://uthome.test/');
+  await page.getByRole('tab', {name: 'Profile', exact: true}).click();
   return {requests, errors, handlers};
 }
 
@@ -129,7 +132,7 @@ test('real modules wire confirmation, busy controls, addition and review navigat
   const confirmation = deferred();
   const desk = await openDesk(page, {confirm_discovered: () => confirmation.promise});
   await expect(page.locator('#profile')).toHaveValue(JSON.stringify(draft, null, 2));
-  await expect(page.getByRole('heading', {name: 'I²C register reads'})).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'Periodic I²C register reads'})).toBeVisible();
   await connectAndDetect(page);
   await expect(page.locator('details, summary, #datasheet-details, #profile-heading')).toHaveCount(0);
   const check = page.locator('#discovery-results input[type=checkbox]');

@@ -22,26 +22,16 @@ test('a user review waits for an active observation without disabling the button
     return elements.get(id);
   };
   const timers = [], requests = [], reviewPlans = [];
-  let finishObservation, duplicate = false;
+  let finishObservation;
+  const views = [];
   const response = data => ({ ok: true, json: async () => data });
   const fetch = async url => {
     requests.push(url);
-    if (url === '/api/catalogue') return response({ examples: {}, connections: [], descriptors: [{
-      descriptor_id: 'sen0390', descriptor_version: '1.0.0', protocol: 'i2c', execution: { kind: 'periodic' },
-      instance_schema: { properties: { interface: { required: ['enable_gpio'],
-        properties: { address: { enum: ['0x4a'] } } } } },
-    }] });
+    if (url === '/api/catalogue') return response({examples: {}, connections: [], descriptors: []});
     if (url === '/api/connect') return response({ capabilities: { features: 0, drivers: [], board: 'test', node_schema: '2.1.0' }, state: {} });
     if (url === '/api/telemetry') return new Promise(resolve => { finishObservation = () => resolve(response({ result: 1 })); });
     if (url === '/api/review') return response({ review_id: 'review', bytes: 2, connected: true,
       plan: { resources: { active_tasks: 0, device_stack_bytes: 0 }, devices: [], rules: [] } });
-    if (url === '/api/datasheet_match') return response({ connected: true, matches: [{
-      descriptor_id: 'sen0390', descriptor_version: '1.0.0', driver_id: 'sen0390', driver_available: true,
-      draft_builder: {eligible: true, addresses: ['0x4a'], needs_enable: true},
-    }] });
-    if (url === '/api/datasheet_prepare_i2c') return duplicate
-      ? { ok: false, json: async () => ({ error: 'This device name is already in the profile' }) }
-      : response({ profile: {} });
     throw new Error(`Unexpected request: ${url}`);
   };
   const document = {
@@ -53,8 +43,8 @@ test('a user review waits for an active observation without disabling the button
   const context = vm.createContext({ document, fetch, setTimeout: fn => timers.push(fn), clearTimeout() {},
     renderProfile() {}, renderTelemetry() {}, renderBoardState() {},
     renderReviewPlan(plan, connected) { reviewPlans.push({plan, connected}); },
-    updateDiscoveryControls() {}, renderDiscovery() {}, renderDatasheet() {},
-    setupWorkspace: () => () => {}, setupRuntime: () => ({activate() {}}), console });
+    updateDiscoveryControls() {}, renderDiscovery() {},
+    setupWorkspace: () => view => views.push(view), setupRuntime: () => ({activate() {}}), console });
   vm.runInContext(source, context);
   await new Promise(resolve => setImmediate(resolve));
   await get('connect').onclick();
@@ -74,16 +64,5 @@ test('a user review waits for an active observation without disabling the button
   assert.equal(reviewPlans.length, 1);
   assert.equal(reviewPlans[0].connected, true);
   assert.equal(reviewPlans[0].plan.resources.active_tasks, 0);
-  get('datasheet-name').value = 'SEN0390';
-  await get('datasheet-match').onclick();
-  assert.match(get('datasheet-driver').textContent, /sen0390 is installed/);
-  assert.equal(get('datasheet-enable-wrap').hidden, false);
-  get('datasheet-confirm').checked = true;
-  get('datasheet-sda').value = '0'; get('datasheet-scl').value = '1';
-  get('datasheet-enable').value = '5'; get('profile').value = '{}';
-  await get('datasheet-generate').onclick();
-  assert.match(get('datasheet-generate-status').textContent, /Device added to the draft/);
-  duplicate = true;
-  await get('datasheet-generate').onclick();
-  assert.match(get('datasheet-generate-status').textContent, /already in the profile/);
+  assert.deepEqual(views, ['runtime', 'review']);
 });

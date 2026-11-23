@@ -14,10 +14,9 @@ The interface uses one fixed colour palette. Removing the ESP HTTPS service
 does not change this host web interface. Full-profile setup uses USB; runtime
 transactions use MQTT over TLS.
 
-## Runtime transactions
+## Peripheral transactions
 
-The **Runtime transactions** tab uses the existing fonts, colours, cards and
-buttons. Profile, Review & apply and Live monitor keep their existing workflows.
+The Desk opens on **Peripheral transactions** for I²C, SPI and UART operations. Profile, Review & apply and Live monitor keep their existing workflows.
 USB connection controls stay with those views; the runtime tab shows its own
 MQTT target and connection state. Descriptions can be previewed offline.
 
@@ -120,8 +119,7 @@ synthetic node `uthome-0123456789ab`. It uses the existing scoped local broker
 settings; it performs no automatic load or execution and stops after 15 minutes.
 HA remains at `http://127.0.0.1:18123`.
 
-1. Open the fourth tab, **Runtime transactions**, beside **Live monitor** in the
-   existing Desk, then **Connect**. Wait for **MQTT ready** and
+1. In **Peripheral transactions**, select **Connect**. Wait for **MQTT ready** and
    **HA publisher connected**.
 2. Select `bmp388`, `chip_id` and address `0x77`, then **Load rule**. Expect
    **Rule loaded**, active `chip_id / revision 1`, and unavailable raw/TX/RX.
@@ -163,7 +161,7 @@ The helper is stopped.
 ### Physical BMP388 walkthrough
 
 On 19 November 2026 an automated Chromium session used **Connect**, **Load rule**,
-**Execute active rule** and **Disconnect** on the Runtime transactions tab. The
+**Execute active rule** and **Disconnect** on the Peripheral transactions tab. The
 ESP32-C3 read the BMP388 at I2C address `0x77`. The Desk sent commands to the
 bench TLS MQTT broker and its display publisher used the local WSL TLS broker.
 Home Assistant Container 2026.11.1 recorded the following raw hex bytes.
@@ -381,7 +379,7 @@ and idle stack watermarks showed 5,088 and 896 bytes unused at both snapshots.
 Original flash, saved profile 943, broker permissions and laptop settings
 were restored and verified.
 
-## I²C register reads
+## Periodic I²C register reads
 
 The professor-feedback change starts with one bounded generic I2C operation:
 write a one-byte register pointer, read 1–16 bytes, and publish a selected

@@ -11,6 +11,7 @@ const showWorkspace = setupWorkspace(view => {
   for (const id of ['usb-connection', 'notice', 'connection', 'appbarNode']) el(id).hidden = active;
   runtime.activate(active);
 });
+showWorkspace('runtime');
 let connected = false, busy = false, pendingTelemetry = null, reviewId = null, examples = {};
 let draftEdited = false, draftGeneration = 0;
 let discoveryFeatures = 0, recoveryRequired = false, discovered = null;

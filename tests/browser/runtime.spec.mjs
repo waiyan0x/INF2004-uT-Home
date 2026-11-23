@@ -54,7 +54,8 @@ async function desk(page, initial = session(), catalogue = descriptions) {
   });
   await page.clock.install({time: new Date('2026-11-17T00:00:00+08:00')});
   await page.goto('http://uthome.test/');
-  await page.locator('#tab-runtime').click();
+  await expect(page.getByRole('tab').first()).toHaveText('Peripheral transactions');
+  await expect(page.getByRole('tab', {name: 'Peripheral transactions'})).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('#runtime-description option')).toHaveCount(catalogue.length + 1);
   await expect(page.locator('#runtime-connection')).not.toHaveText('Status unavailable');
   return {model, errors};
@@ -239,7 +240,9 @@ test('approved compact layout works at desktop and narrow widths', async ({page}
   expect(await page.evaluate(() => globalThis.document.documentElement.scrollWidth <= globalThis.innerWidth + 1)).toBe(true);
   await page.screenshot({path: fileURLToPath(new URL('implemented-mobile.png', folder)), fullPage: true});
   await page.locator('#tab-runtime').focus();
-  await page.keyboard.press('Home');
+  await page.keyboard.press('ArrowRight');
   await expect(page.locator('#tab-profile')).toBeFocused();
+  await page.keyboard.press('Home');
+  await expect(page.locator('#tab-runtime')).toBeFocused();
   expect(errors).toEqual([]);
 });

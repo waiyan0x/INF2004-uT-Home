@@ -171,7 +171,7 @@ serialized owner. Call `poll` regularly. UI and Home Assistant should consume
 the copied snapshot; do not mutate controller internals or create another
 command owner.
 
-The [Configuration Desk Runtime transactions tab](../configurator/README.md#runtime-transactions)
+The [Configuration Desk Peripheral transactions tab](../configurator/README.md#peripheral-transactions)
 provides selection, Load rule, Execute active rule and result display using this
 same controller. Start the Desk with the broker, CA, node and journal settings,
 then connect explicitly in the tab. Close any command-line owner for that node
@@ -241,7 +241,7 @@ and [sensor availability/expiry](https://www.home-assistant.io/integrations/sens
 Host tests verify the messages through a real local MQTT broker and compiled C
 owner with simulated buses. The [isolated HA check](#home-assistant-vm-check)
 also verifies entity states in a real Home Assistant instance. The [physical chip-ID check](#physical-bmp388-chip-id-in-home-assistant)
-verified one real ESP execution through this adapter in Home Assistant Container. The approved Configuration Desk Runtime transactions tab is
+verified one real ESP execution through this adapter in Home Assistant Container. The approved Configuration Desk Peripheral transactions tab is
 implemented. Its HTTP actions passed the local compiled-owner/MQTT/HA A/B/A,
 expiry and journal-reopen check on 17 November, with exactly three simulated
 operations and none added by loading or recovery. This supplements the existing
