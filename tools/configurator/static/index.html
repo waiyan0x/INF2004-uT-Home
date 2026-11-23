@@ -56,27 +56,17 @@
   <h1 class="appbar__title">Configuration Desk</h1>
   <span class="appbar__node" id="appbarNode" hidden>no profile loaded</span>
   <span class="appbar__spacer"></span>
-  <span class="badge" id="connection" hidden>Offline review</span>
+  <span class="badge" id="connection">USB disconnected</span>
 </header>
 
 <main class="page">
-  <section class="section connection-section" id="usb-connection" hidden aria-label="Board connection">
-    <div class="card connection-card">
-      <div class="connection-row">
-        <div class="field"><label class="field__label" for="port">Board connection</label><input class="input" id="port" placeholder="Serial port · /dev/cu.usbmodem… or COM8" maxlength="128"></div>
-        <div class="toolbar"><button class="btn" id="connect">Connect</button><button class="btn" id="disconnect" disabled>Disconnect</button></div>
-      </div>
-      <p class="hint" id="capabilities"></p>
-    </div>
-  </section>
-
   <div class="workspace-tabs" role="tablist" aria-label="Configuration workspace">
     <button class="workspace-tab" id="tab-runtime" type="button" role="tab" aria-selected="true" aria-controls="workspace-runtime" data-workspace-tab="runtime">Peripheral transactions</button>
     <button class="workspace-tab" id="tab-profile" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="workspace-profile" data-workspace-tab="profile">Profile</button>
     <button class="workspace-tab" id="tab-review" type="button" role="tab" aria-selected="false" aria-controls="workspace-review" tabindex="-1" data-workspace-tab="review">Review &amp; apply</button>
     <button class="workspace-tab" id="tab-monitor" type="button" role="tab" aria-selected="false" aria-controls="workspace-monitor" tabindex="-1" data-workspace-tab="monitor">Live monitor</button>
   </div>
-  <div class="alert alert--neutral workspace-notice" id="notice" hidden role="status" aria-live="polite">Choose an example or import a profile, then validate and review.</div>
+  <div class="alert alert--neutral workspace-notice" id="notice" hidden role="status" aria-live="polite"></div>
 
   <section id="workspace-profile" role="tabpanel" aria-labelledby="tab-profile" tabindex="0" hidden>
     <div class="workspace-grid">
@@ -197,9 +187,18 @@
         <strong id="runtime-node">Runtime session</strong>
         <span class="badge" id="runtime-connection">Not connected</span>
         <span class="hint" id="runtime-ha">HA publisher disabled</span>
-        <button class="btn" id="runtime-connect" type="button" disabled>Connect</button>
+        <button class="btn" id="runtime-connect" type="button" disabled>Connect MQTT</button>
       </div>
       <p class="hint" id="runtime-notice" role="status" aria-live="polite">Open this tab to review runtime operations.</p>
+      <section class="section connection-section" id="usb-connection" aria-label="USB board connection">
+        <div class="card connection-card">
+          <div class="connection-row">
+            <div class="field"><label class="field__label" for="port">USB serial port</label><input class="input" id="port" placeholder="Serial port · /dev/cu.usbmodem… or COM8" maxlength="128"></div>
+            <div class="toolbar"><button class="btn" id="connect">Connect USB</button><button class="btn" id="disconnect" disabled>Disconnect USB</button></div>
+          </div>
+          <p class="hint" id="capabilities"></p>
+        </div>
+      </section>
       <section class="card" aria-labelledby="runtime-choose-heading">
         <div class="section__head" data-accent="blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><use href="#i-braces"/></svg><h2 id="runtime-choose-heading">Choose operation</h2></div>
         <div class="runtime-fields">

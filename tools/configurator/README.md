@@ -17,8 +17,7 @@ transactions use MQTT over TLS.
 ## Peripheral transactions
 
 The Desk opens on **Peripheral transactions** for I²C, SPI and UART operations. Profile, Review & apply and Live monitor keep their existing workflows.
-USB connection controls stay with those views; the runtime tab shows its own
-MQTT target and connection state. Descriptions can be previewed offline.
+On the opening tab, use **Connect MQTT** for wireless transactions or enter the board's serial port and select **Connect USB** for profile setup and diagnostics. Descriptions can be previewed offline.
 
 To enable runtime actions, install the transaction requirements and supply the
 same local settings used by the [controller session](../transaction/README.md#persistent-controller):
@@ -119,7 +118,7 @@ synthetic node `uthome-0123456789ab`. It uses the existing scoped local broker
 settings; it performs no automatic load or execution and stops after 15 minutes.
 HA remains at `http://127.0.0.1:18123`.
 
-1. In **Peripheral transactions**, select **Connect**. Wait for **MQTT ready** and
+1. In **Peripheral transactions**, select **Connect MQTT**. Wait for **MQTT ready** and
    **HA publisher connected**.
 2. Select `bmp388`, `chip_id` and address `0x77`, then **Load rule**. Expect
    **Rule loaded**, active `chip_id / revision 1`, and unavailable raw/TX/RX.

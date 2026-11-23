@@ -66,7 +66,7 @@ export function setupRuntime() {
         : view.enabled ? 'MQTT reconnecting' : 'Not connected';
     el('ha').textContent = !view?.home_assistant.enabled ? 'HA publisher disabled'
       : current && view.home_assistant.connected ? 'HA publisher connected' : 'HA publisher disconnected';
-    el('connect').textContent = view?.enabled ? 'Disconnect' : 'Connect';
+    el('connect').textContent = view?.enabled ? 'Disconnect MQTT' : 'Connect MQTT';
     el('connect').disabled = busy || !current || !view.configured;
     el('description').disabled = busy || !catalogueLoaded;
     el('operation').disabled = busy || !item;

@@ -100,9 +100,9 @@ test('offline preview and unsupported choices send no peripheral action', async 
   await page.locator('#runtime-operation').selectOption('deferred');
   await expect(page.locator('#runtime-preview')).toContainText('command/wait/read');
   expect(model.requests.every(item => item.action === 'snapshot')).toBe(true);
-  await expect(page.locator('#usb-connection')).toBeHidden();
+  await expect(page.getByRole('button', {name: 'Connect USB', exact: true})).toBeVisible();
   await page.locator('#tab-profile').click();
-  await expect(page.locator('#usb-connection')).toBeVisible();
+  await expect(page.locator('#usb-connection')).toBeHidden();
   expect(errors).toEqual([]);
 });
 

@@ -8,7 +8,7 @@ const token = document.querySelector('meta[name="session"]').content;
 const runtime = setupRuntime();
 const showWorkspace = setupWorkspace(view => {
   const active = view === 'runtime';
-  for (const id of ['usb-connection', 'notice', 'connection', 'appbarNode']) el(id).hidden = active;
+  el('appbarNode').hidden = active;
   runtime.activate(active);
 });
 showWorkspace('runtime');
@@ -94,11 +94,12 @@ function updateDiscoveryPreset() {
   updateControls();
 }
 function notice(text, error = false) {
+  el('notice').hidden = false;
   el('notice').textContent = text;
   el('notice').classList.toggle('error', error);
 }
 function updateControls() {
-  el('connection').textContent = connected ? 'Connected · USB' : 'Offline review';
+  el('connection').textContent = connected ? 'Connected · USB' : 'USB disconnected';
   for (const id of ['disconnect', 'query', 'save']) {
     el(id).disabled = !connected || busy;
   }

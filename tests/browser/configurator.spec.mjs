@@ -70,8 +70,15 @@ async function openDesk(page, overrides = {}) {
   return {requests, errors, handlers};
 }
 
+async function connectBoard(page) {
+  await page.locator('#tab-runtime').click();
+  await page.getByRole('button', {name: 'Connect USB', exact: true}).click();
+  await expect(page.locator('#notice')).toBeVisible();
+  await page.locator('#tab-profile').click();
+}
+
 async function connectAndDetect(page) {
-  await page.locator('#connect').click();
+  await connectBoard(page);
   await page.locator('#wiring-confirmed').check();
   await page.locator('#detect').click();
   await expect(page.getByRole('button', {name: 'Confirm module'})).toBeVisible();
@@ -100,7 +107,7 @@ test('an import cannot replace edits made while File.text is pending', async ({p
 
 test('a failed local import preserves a valid review and recovery state', async ({page}) => {
   const desk = await openDesk(page, {telemetry: snapshot});
-  await page.locator('#connect').click();
+  await connectBoard(page);
   await page.clock.runFor(1000);
   await expect(page.locator('#recover')).toBeEnabled();
   await page.locator('#review').click();
@@ -120,7 +127,7 @@ for (const action of ['catalogue', 'connect']) {
       const desk = await openDesk(page, {[action]: async (_body, route) => {
         await route.fulfill({status, body: '<html>Upstream failure</html>', contentType: 'text/html'});
       }});
-      if (action === 'connect') await page.locator('#connect').click();
+      if (action === 'connect') await connectBoard(page);
       await expect(page.locator('#notice')).toContainText(`HTTP ${status}`);
       await expect(page.locator('#notice')).toContainText('response was not valid JSON');
       expect(desk.errors).toEqual([]);
@@ -185,7 +192,7 @@ test('catalogue HTTP failures retain the server explanation', async ({page}) => 
 for (const failure of ['network', 'json', 'unavailable']) {
   test(`a ${failure} telemetry failure clears every current observation and recovery control`, async ({page}) => {
     const desk = await openDesk(page, {telemetry: snapshot});
-    await page.locator('#connect').click();
+    await connectBoard(page);
     await page.clock.runFor(1000);
     await expect(page.locator('#pills')).toContainText('120 mm');
     await expect(page.locator('#readings')).toContainText('120 mm');
@@ -216,7 +223,7 @@ for (const success of [true, false]) {
       if (success) return snapshot();
       await route.abort('failed');
     }});
-    await page.locator('#connect').click();
+    await connectBoard(page);
     await page.locator('#review').click();
     await expect(page.locator('#apply')).toBeEnabled();
     await page.clock.runFor(1000);
@@ -246,7 +253,7 @@ for (const action of ['discover', 'review']) {
   test(`editing while ${action} is pending rejects its stale response`, async ({page}) => {
     const pending = deferred();
     const desk = await openDesk(page, {[action]: () => pending.promise});
-    await page.locator('#connect').click();
+    await connectBoard(page);
     if (action === 'discover') await page.locator('#wiring-confirmed').check();
     await page.locator(action === 'discover' ? '#detect' : '#review').click();
     await expect.poll(() => desk.requests.some(row => row.action === action)).toBe(true);
@@ -268,7 +275,7 @@ test('expired discovery cannot add and a rejected apply consumes its review toke
     await pending.promise;
     await route.fulfill({status: 409, json: {error: 'Review expired'}});
   }});
-  await page.locator('#connect').click();
+  await connectBoard(page);
   await page.locator('#wiring-confirmed').check();
   await page.locator('#detect').click();
   await expect(page.getByRole('button', {name: /Add .* to profile/})).toBeEnabled();
@@ -289,7 +296,7 @@ test('expired discovery cannot add and a rejected apply consumes its review toke
 test('connecting during catalogue loading still initializes an untouched empty draft', async ({page}) => {
   const pending = deferred();
   const desk = await openDesk(page, {catalogue: () => pending.promise});
-  await page.locator('#connect').click();
+  await connectBoard(page);
   pending.resolve(catalogue);
   await expect(page.locator('#profile')).toHaveValue(JSON.stringify(draft, null, 2));
   expect(desk.errors).toEqual([]);
