@@ -6,7 +6,7 @@ the cache here changes neither its storage layout nor its lifetime. Services
 consume snapshots without owning the cache. The service and native source lists
 use the new path; historical evidence retains the original source identity.
 
-## Workload measurement handoff
+## Workload measurement
 
 The runtime update now calls preparation directly after the branches that
 establish it is required. Manual BARR-C review found no ABI, storage, arithmetic,
@@ -55,8 +55,8 @@ slot. Stop waits for dormancy and successful cleanup before releasing the bindin
 it never deletes the kernel task. Handles still never repeat during a boot.
 
 The current 16 KiB admission limit describes requested profile stack budgets,
-not actual reserved RAM. That conservative host/target limit remains unchanged
-pending the complete wireless/system budget. Configuration changes cannot resize
+not actual reserved RAM. That conservative host/target limit is separate from the
+[linked system budget](../../../docs/reports/wifi-static-memory/README.md#fixed-ram-budget). Configuration changes cannot resize
 the fixed stacks. Existing telemetry is not a measured memory budget. Radio and
 other infrastructure tasks need separate reservations.
 

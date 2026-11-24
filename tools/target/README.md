@@ -81,9 +81,10 @@ it only to reproduce the known upstream build failure. The resource patch adds
 only to the staged copy and hashed. Native startup pool size is build-dependent:
 inspect the actual image map, not an earlier override claim. A pool reservation
 is not measured free RAM. The
-[static-memory impact review](../../firmware/README.md#mandatory-static-memory-change)
-describes the outstanding allocation, lifecycle and budget changes; existing
-build success does not establish compliance with the new requirement.
+[static-memory impact review](../../firmware/README.md#wireless-integration-and-static-memory)
+describes the implemented allocation and lifecycle boundaries. The current
+resource assessment qualifies a specific workload; a successful build alone
+does not establish runtime compliance.
 
 Outputs include `project/`, `build/`, `build.log`, `sdkconfig`, patches and
 `evidence.json` with hashes/exit status. Failed builds retain diagnostics.
@@ -316,7 +317,7 @@ ROM helpers are doubled. The report records these boundaries, the exact ELF
 hash and every poll/result. This check establishes connect-state progression.
 Radio, encrypted handshakes, board timing and physical recovery need live
 acceptance. The [network guide](../../firmware/src/network/README.md#mqtt-tls-connect-retry)
-records the completed before/after check and the fresh target build.
+explains the retry contract and links the physical verification scope.
 
 ## TLS fragment reproducer
 
@@ -353,8 +354,9 @@ allocator and ROM byte-copy routines are simulated; the SDK receive helper and
 input-fetch routine execute their compiled instructions. Between retry calls,
 the returned stack is overwritten to represent valid intervening work. This
 does not emulate radio hardware, complete a TLS handshake or measure ESP timing.
-The [resource assessment](../../docs/reports/wifi-static-memory/README.md#dynamic-tls-buffer-assessment)
-records the source/build identity, result and remaining memory constraints.
+The [resource assessment](../../docs/reports/wifi-static-memory/README.md#qualification-limits)
+records the current qualified workload and its memory limits. Each probe output
+records its own source/build identity and result.
 
 ## TLS output allocation probe
 
@@ -386,7 +388,7 @@ actual fixed typed stores. Use the existing optional Unicorn/pyelftools
 environment, the qualified Wi-Fi ELF and its matching passing memory report:
 
 ```powershell
-python -B -m tools.target.tls_state_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --memory-report build/tls-state-fixed-20261117/memory-final.json --output build/tls-state/new-sdk-report.json
+python -B -m tools.target.tls_state_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --memory-report ABSOLUTE_WORK_DIR/memory-budget.json --output build/tls-state/new-sdk-report.json
 ```
 
 Create the output directory first. Assertions must remain enabled; existing
@@ -410,8 +412,8 @@ advanced directly to native wrapup. No authentication, encrypted handshake,
 cipher handover, radio or runtime peak is tested. The current ELF has no linked
 session-reset API, and the probe does not claim reset coverage. Memory headroom
 comes from the matching linked-image report, including scope/lease metadata;
-runtime peaks and remaining certificates, keys, tickets and TCP/IP allocations
-are unqualified. See the [current assessment](../../docs/reports/wifi-static-memory/README.md#fixed-tls-handshake-state).
+certificate/key and TCP/IP behavior require their separate probes and physical
+evidence. Session tickets are disabled by the build policy. See the [current assessment](../../docs/reports/wifi-static-memory/README.md#fixed-storage-design).
 
 ## TLS retained-hostname probe
 
@@ -465,7 +467,7 @@ It uses one synthetic certificate. Record reading, DER parsing, trust validation
 SHA-256 calculation, public-key import, alerts, heap, ROM helpers and hash/handshake
 progress are doubled. DER internals, multi-certificate chains, authentication,
 encrypted handshake, runtime peaks and hardware remain untested. See the
-[current record assessment](../../docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records).
+[current record assessment](../../docs/reports/wifi-static-memory/README.md#fixed-storage-design).
 
 ## Measuring broker certificate parsing
 
@@ -491,7 +493,7 @@ intermediate, and fills all four intermediate slots. A fifth request must return
 allocation error without making a heap request. The probe then frees the chain
 and parses another leaf and intermediate. Certificate trust and handshake memory
 are separate measurements.
-[Measured broker and chain](../../docs/reports/wifi-static-memory/README.md#broker-certificate-parser-heap)
+[Measured broker and chain](../../docs/reports/wifi-static-memory/README.md#fixed-storage-design)
 
 On the fixed integer-buffer image, exercise the compiled allocator boundary
 using the demo P-256 leaf certificate. Run this in the same probe environment.
@@ -506,7 +508,7 @@ the 128-byte keypair at the same time. It checks exhaustion, different
 allocation factors, ownership by another task, clearing and reuse. It also
 checks USB exclusion and return of the workspace after an SDK error. The native verifier return is simulated here.
 The authenticated MQTT trial and the complete certificate replay are recorded
-in the [memory report](../../docs/reports/wifi-static-memory/README.md#fixed-integer-buffers-for-the-demo-broker).
+in the [memory report](../../docs/reports/wifi-static-memory/README.md#fixed-storage-design).
 
 ## TLS derivation input probe
 
@@ -560,7 +562,7 @@ count. This mode checks for zero table allocations at startup and on first
 use. It fills the table with distinct native keys and checks the next import
 returns `PSA_ERROR_INSUFFICIENT_MEMORY`. Releasing one slot must let both
 SHA-256 and SHA-384 derivations succeed with every other key intact.
-[Offline build and results](../../docs/reports/wifi-static-memory/README.md#offline-fixed-table-build)
+[Offline build and results](../../docs/reports/wifi-static-memory/README.md#fixed-storage-design)
 
 ### Tracing TLS renegotiation on the host
 
@@ -582,7 +584,7 @@ Set a debugger breakpoint at the successful return in
 same connection, zero client verification flags and a successful application
 exchange afterward. Check the independent peer's Certificate and Finished
 messages and run a wrong-hostname control.
-[Measured peaks](../../docs/reports/wifi-static-memory/README.md#authenticated-renegotiation-on-the-laptop)
+[Measured peaks](../../docs/reports/wifi-static-memory/README.md#fixed-storage-design)
 
 ## Measuring shared PSA key slots
 
@@ -632,7 +634,7 @@ monotonic timestamps. Debugger pauses affect timing. The highest observed
 count applies to the completed workload. In the completed ESP32-C3 trace,
 OpenOCD connected before broker startup and both polling intervals were set
 to 2 ms after GDB connected. Review other supported workloads before choosing
-a fixed capacity. [Board measurements](../../docs/reports/wifi-static-memory/README.md#imported-tls-derivation-key)
+a fixed capacity. [Board measurements](../../docs/reports/wifi-static-memory/README.md#fixed-storage-design)
 
 ### Observing Wi-Fi group-key renewal on the six-slot image
 
@@ -666,7 +668,7 @@ non-dynamic-buffer ELF. Use the same optional probe dependencies above. Pass a
 successful memory-budget report for that exact ELF; mismatched hashes reject.
 
 ```powershell
-python -B -m tools.target.tls_input_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --memory-report build/tls-input-fixed-20261117/memory.json --output build/tls-input/new-sdk-report.json
+python -B -m tools.target.tls_input_probe ABSOLUTE_WORK_DIR/build/uthome_runtime_port.elf --memory-report ABSOLUTE_WORK_DIR/memory-budget.json --output build/tls-input/new-sdk-report.json
 ```
 
 Create the output folder first. Assertions must be enabled and reports are never
@@ -685,8 +687,9 @@ remaining TLS allocations and physical acceptance are separate.
 The report verifies that the SDK uses the adapter's actual ELF/DWARF input array
 and issues no input-buffer heap request. It reports linked capacity and remaining
 application/total headroom from the matching memory report. This is no longer a
-projection; runtime free heap and remaining crypto/TCP/IP needs are unmeasured. See the
-[capacity decision](../../docs/reports/wifi-static-memory/README.md#tls-input-lifetime-and-capacity-decision)
+projection. This probe alone does not measure runtime free heap or qualify
+crypto/TCP/IP behavior. See the
+[capacity decision](../../docs/reports/wifi-static-memory/README.md#qualification-limits)
 before attempting buffer reuse or changing record limits.
 
 ## TLS record compatibility probe
@@ -698,7 +701,7 @@ the existing `tools/transaction/requirements-dev.txt`, CMake, Ninja and GCC.
 Use the pinned SDK checkout and a **new** directory below root `build/`:
 
 ```powershell
-python -B -m tools.target.tls_profile_probe --sdk C:/Users/kkak4/esp/uthome-c3-sdk-v6.1 --cc C:/Users/kkak4/mingw64/bin/gcc.exe --output build/tls-profile/new-run
+python -B -m tools.target.tls_profile_probe --sdk ABSOLUTE_SDK_DIR --cc ABSOLUTE_HOST_GCC --output build/tls-profile/new-run
 ```
 
 The command checks clean SDK and nested mbedTLS revisions, builds with warnings
@@ -722,7 +725,7 @@ TLS 1.2 ClientHello and reports extension types; every case must omit ticket
 extension 35. A fresh private ticket-enabled build of the same fixture provides
 the positive control. It is a test reference, not a supported target mode.
 Earlier reports retain their original policy and source hashes. See the
-[ticket-policy verification](../../docs/reports/wifi-static-memory/README.md#mqtt-session-tickets-disabled).
+[ticket-policy verification](../../docs/reports/wifi-static-memory/README.md#fixed-storage-design).
 
 `tls_profile_peer.py` drives the serialized C peer in
 `tests/target/tls_profile/`. Its two 32 KiB ciphertext queues are **host transport
@@ -738,7 +741,7 @@ MQTT uses the existing authenticated AMQTT fixture and a test packet encoder,
 not `c3mqtt`. One C connection runs at a time. No no-heap claim, ESP timing,
 radio compatibility, arbitrary certificate compatibility or hardware acceptance
 follows from this experiment. The removed HTTPS upload cases remain only in
-earlier immutable reports. See the [compatibility decision](../../docs/reports/wifi-static-memory/README.md#tls-record-compatibility-decision).
+earlier immutable reports. See the [compatibility decision](../../docs/reports/wifi-static-memory/README.md#qualification-limits).
 
 ### Host TLS fixture C review
 
@@ -783,7 +786,7 @@ The probe runs the compiled TLS 1.2 client step with deterministic test
 entropy and a simulated record writer. It checks the emitted X25519 public
 key and shared secret against an independent implementation. It also checks
 USB contention, rejection of an all-zero peer and cleanup of key storage.
-The [memory report](../../docs/reports/wifi-static-memory/README.md#x25519-client-key-exchange)
+The [memory report](../../docs/reports/wifi-static-memory/README.md#fixed-storage-design)
 compares the replay and physical MQTT measurements.
 
 Run `python -B -m tools.target.station_sem_probe FIRMWARE.elf --output NEW.json`

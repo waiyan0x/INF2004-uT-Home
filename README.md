@@ -33,3 +33,32 @@ The physical demo switches between reading the BMP388 chip ID over I2C and recei
 | On-board rule execution | [Transaction service](firmware/src/services/transaction/README.md) |
 | USB configuration and recovery | [Configuration transfer](tools/config_transfer/README.md) |
 | Software and target verification | [Tests](tests/README.md) |
+
+## Running and reviewing the submission
+
+Start with the [Configuration Desk setup and presenter sequence](tools/configurator/README.md).
+It lists Python dependencies, local startup, broker settings and the live demo
+steps. Supply credentials privately; a serial port, running broker and flashed
+image must be checked for the actual setup. Offline description preview does
+not require a connected board.
+
+For a reproducible firmware build, follow the [pinned target setup](firmware/README.md)
+and [target tools](tools/target/README.md). A Git checkout must initialize the
+pinned submodule with `git submodule update --init --recursive`; a source export
+includes that dependency at the recorded revision for review. The target build
+helper requires a clean Git checkout of the kernel as well as the SDK; for a
+source export, obtain a separate pinned kernel checkout and pass `--kernel` as
+described in the firmware guide. SDK and compiler installations are external
+prerequisites.
+
+The [test guide](tests/README.md) distinguishes host tests, target builds and
+hardware observations. [C coding policy](C_CODING_STANDARD.md),
+[hardware acceptance](HARDWARE_ACCEPTANCE.md), [platform contracts](firmware/CONTRACTS.md)
+and [team contributions and delivery scope](CONTRIBUTING.md) define the review boundaries.
+The application does not claim arbitrary certificate chains, indefinite radio
+reliability or visible OLED output after runtime idle.
+
+Submission contents are source, configuration examples, dependency pins, tests,
+maintained guides and retained qualification records. Generated builds, local
+credentials, controller journals, flash backups and private working notes are
+excluded. Preserve the recorded evidence hashes and third-party licence notices.

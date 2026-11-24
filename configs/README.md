@@ -155,5 +155,5 @@ print("Load lab files from:", folder)
 Baseline 1.0 and old ESP32-S3/prototype-specific decisions are historical, not
 current setup instructions. Their full text remains in Git at commit
 `37319fbd55ca622779eca498519128e6a33bcaa5`, path
-`configs/PROTOTYPE_REFERENCE.md`. The [root guide](../README.md#platform-contract)
+`configs/PROTOTYPE_REFERENCE.md`. The [root guide](../firmware/CONTRACTS.md)
 defines today's platform baseline. Existing JSON examples are preserved.

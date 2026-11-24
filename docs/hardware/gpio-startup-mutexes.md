@@ -22,7 +22,7 @@ The stopped-worker/serialized lifecycle requirement remains unchanged. No
 changes were made to timing, duty conversion, GPIO assignments, public portable
 HAL operations, sensor drivers, configuration schemas or the relay additions.
 
-## RAM and remaining static-allocation work
+## RAM and qualification scope
 
 Reserve six kernel mutex control blocks at startup regardless of the enabled
 profile. Their IDs already occupy the adapter state structures. Two Boolean
@@ -34,8 +34,9 @@ that the kernel's own creation implementation is heap-free.
 
 UART, I2C and SPI also create their resources at startup. Fixed workers and
 parsing are implemented; see the [C3 port](../../firmware/hal/ports/esp32c3/README.md)
-and [system status](../../README.md#current-status). Remaining system work concerns
-wireless resources and combined acceptance, not a repeat of the worker migration.
+and [scoped resource assessment](../reports/wifi-static-memory/README.md). The single-broker
+demo is qualified within its documented scope; broader workloads require their
+own measurements.
 
 ## Verification
 

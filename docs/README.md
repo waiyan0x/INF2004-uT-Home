@@ -1,6 +1,6 @@
 # Project documentation
 
-Start with the [current project direction](../README.md#resume-next-session)
+Start with the [current project direction](../README.md)
 and [team responsibilities](../CONTRIBUTING.md). Each maintained source folder
 keeps its own implementation guide and contracts.
 

@@ -2,8 +2,9 @@
 
 The configuration application binds validated profiles to independent driver
 contexts, generic kernel workers, typed samples, telemetry and output rules.
-It includes reviewed discovery. Software/build checks and basic peripheral
-bench observations exist; full physical acceptance is still pending.
+It includes reviewed discovery. The single-broker BMP388/LD2450 demo has
+[scoped physical verification](../tools/configurator/README.md#physical-verification).
+Other hardware acceptance items remain in the [acceptance guide](../HARDWARE_ACCEPTANCE.md).
 
 ## Pinned target
 
@@ -26,6 +27,18 @@ main or copy individual kernel headers into project includes.
 git submodule update --init --recursive firmware/third_party/esp32c3-mtk3
 git -C firmware/third_party/esp32c3-mtk3 rev-parse HEAD
 ```
+
+If reviewing a source archive without Git metadata, the included kernel files
+are for inspection. Obtain a separate pristine checkout for the build helper:
+
+```powershell
+git clone https://github.com/sirfonzie/esp32c3-mtk3.git C:/esp/uthome-kernel
+git -C C:/esp/uthome-kernel checkout ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2
+```
+
+Use an unused destination and add `--kernel C:/esp/uthome-kernel` to `inspect`
+and `build` below. The helper checks that checkout's exact revision and clean
+state; no replacement of the archived sources is required.
 
 Use the pinned ESP-IDF installation and its activated terminal. A new SDK setup
 can follow [Espressif's Windows guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/get-started/windows-setup.html),
@@ -86,98 +99,40 @@ startup and task implementation are in that dependency's `config/`,
 `components/mtkernel/` and `kernel/tkernel/`. Pin/wiring constraints are in
 [configurations](../configs/README.md), and exact limits remain in source/catalogue.
 
-## On-device wireless integration gate
+## Wireless integration and static memory
 
-Wi-Fi and BLE run on the ESP under uT-Kernel. The optional application services
-provide BLE identification/status/telemetry and Wi-Fi MQTT telemetry plus runtime
-rules/results. Full saved-profile setup and recovery use USB; ESP HTTPS is removed.
-The [network guide](src/network/README.md) owns compatibility contracts,
-task-stack, notification, timer, TLS and SDK-allocation limitations.
+The qualified delivery uses uT-Kernel, one authenticated MQTT/TLS broker and the
+BMP388/LD2450 transaction workload. Full saved-profile setup and recovery use
+USB. Optional BLE and radio diagnostics are separate build modes; they do not
+inherit the Wi-Fi demo qualification. ESP HTTPS is retired.
 
-The optional `--static-net-queues` build selects owned fixed queue/event resources;
-it does not enable radios or prove whole-system static compliance. Queue/event
-adapters and the isolated radio diagnostics' native task stacks are now bounded.
-Notification semantics, timer callback context, BLE/lwIP/service allocation,
-runtime stack margin and cache-off traffic still need work.
+The [AAI13 assessment](../docs/reports/wifi-static-memory/README.md) records the
+release's fixed RAM, zero observed application-owned general allocations on the
+qualified workload, zero normal-service kernel object creations, and the scoped
+Wi-Fi driver exemption. It also identifies pre-application SDK allocations and
+the forced USB/certificate-verification overlap that remains outside acceptance.
 
-Preserve the pinned SDK/kernel. Use owned wrappers and isolated build integration,
-not vendor edits or a switch to FreeRTOS scheduling. An SDK API named `Static`
-may still allocate or ignore caller storage. Check actual symbols, stack-size
-units, callback/ISR context, priority/TLS behavior and compiled tick frequency.
-The inspected setup uses 1000 Hz ticks and a native 1 ms timer; stale comments
-do not establish a tick mismatch.
+The core uses bounded parser/storage workspaces, permanent worker stacks,
+startup HAL locks and retained native UART resources. Network adapters reserve
+fixed task, queue, event, packet, timer and TLS storage. Read the
+[network contracts](src/network/README.md), [runtime contracts](src/runtime/README.md)
+and [storage policy](src/config/README.md) for their lifetimes and failure paths.
 
-Inventory all infrastructure tasks, stacks, objects and buffers separately from
-the four peripheral slots. Define bounded connections, payloads and queued work;
-precreate resources needed for reconnects. Audit BLE, lwIP, MQTT, credential
-storage and any TLS path, not just the Wi-Fi driver. Do not copy upstream demos'
-automatic NVS erase or open-access settings into the application.
+Keep SDK/kernel pins and owned wrappers. Do not modify vendor dependencies,
+raise budgets or add heap fallbacks. A static-looking SDK API alone does not
+prove allocation behavior. Apply/rollback must preserve ownership until cleanup
+succeeds; rejected inputs must leave the working plan intact.
 
-Network callbacks must send bounded requests to the existing controller owner.
-Keep authentication, validation, explicit reviewed Apply and truthful save/fault
-responses. AP/broker/client loss must not stop sampling, local rules or recovery.
-Exercise concurrent traffic, full queues, oversized messages, client exhaustion,
-reconnects and flash saves while measuring allocations, object counts and timing.
-The queue adapter rejects paths requiring flash code while cache is disabled;
-successful normal traffic alone does not establish save-time radio compatibility.
+## Build and acceptance boundaries
 
-## Mandatory static-memory change
+Run the pinned C gate, manual review, affected warning-clean tests and real-target
+qualification after relevant changes. Reproduce the module and aggregate budget
+with the current ELF/map. Fixed linked storage, runtime live heap, stack margin
+and timing are different measurements. Record source/build identity with each
+physical result; a previously built image is not proof of the currently installed
+firmware.
 
-The supplied `Project/ESP/Tribunal1/requirement_change.txt` prohibits application
-heap allocation, including startup, requires kernel objects at startup only,
-and requires fixed per-module RAM budgets within a declared total. It covers
-parsing, validation, Apply/rollback, communication, supervision and temporary
-buffers. Oversize input and exhausted capacity must fail without changing the
-working plan or falling back to heap storage.
-
-The document allows a justified Wi-Fi-driver exception; no blanket SDK, BLE,
-TCP/IP, TLS, libc, UART or application exemption is established. Any claimed
-exception needs explicit scope and evidence. Startup object creation is not
-permission for application `malloc`.
-
-### Confirmed changes and dependency boundaries
-
-The USB core uses fixed parser pools, four permanent caller-owned 8 KiB worker
-stacks, a fixed 1 KiB idle stack, startup HAL locks, retained native UART resources
-and checked nonallocating profile storage. See [parsing/storage](src/config/README.md),
-[workers/audits](src/runtime/README.md) and [UART storage](../docs/hardware/uart-static-storage.md).
-No application-startup/runtime allocation or late-object calls were observed in
-the scoped core acceptance. Wireless and complete-system qualification remain open.
-
-Preserve these failure protections: aligned parser storage and partial-parse
-cleanup; cooperative worker quiescence before rebinding; retained ownership after
-failed cleanup; no implicit retry of failed startup creation; checked partition
-layout before writes. SDK partition lookup can allocate, and flash reads may
-use a heap buffer for unsuitable destinations. Audit reachable calls, not just
-application symbols; source grep alone proves neither execution nor absence.
-
-### Reusable design and measured baseline
-
-Use the current ELF/map and [budget tooling](../tools/target/README.md#fixed-memory-budget).
-Count fixed controller/plans, parser, caches, queues, driver storage, kernel/SDK
-reservations, RAM code and stacks. Four physical worker stacks reserve 32 KiB;
-the separate aggregate requested-stack admission limit remains 16 KiB. Neither
-active worker count nor a logical queue depth measures total reserved RAM.
-
-The exact storage-layout guard permits only the two profile slots. It does not
-authorize OTA, NVS or network credential writes. Any layout/persistence change
-requires reviewed bounds, backups and preservation/migration of configuration.
-Measure each new image with the existing memory budget checker; fixed linked
-storage is not a promise of free runtime memory.
-
-### Migration and acceptance order
-
-1. Finish fixed wireless notification/timer/service resources and actual SDK
-   semantics, with budgets and host/target capabilities kept consistent.
-2. Verify maximum occupancy, parser/queue/storage exhaustion, discovery cleanup,
-   rollback, network loss and flash saves on the combined image. Count creation
-   calls, not just live objects, and retain unavailable measurements as null.
-3. Run the full C gate, manual review, warning-clean tests and real-target builds.
-   Preserve map attribution, stack evidence and scoped board results.
-4. Demonstrate runtime rule changes and raw results over MQTT on the same
-   image, including rejected updates and restart recovery. Follow the
-   [completion plan](../CONTRIBUTING.md#completion-plan).
-
-The memory rule applies to the embedded system; the controller, display adapter
-and Configuration Desk run on the host. Rejected rules preserve the active rule.
-UI changes require review; the memory change itself does not require a redesign.
+The [presenter guide](../tools/configurator/README.md#tribunal-2-presenter-guide)
+covers runtime rule switching without reflashing. Broader workload, electrical,
+optional peripheral and interrupted-storage tests follow the
+[hardware acceptance procedure](../HARDWARE_ACCEPTANCE.md).

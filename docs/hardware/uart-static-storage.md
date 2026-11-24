@@ -3,7 +3,8 @@
 The native UART records use fixed typed storage in project-owned code; the
 pinned dependency remains unchanged. This replaces the earlier record-allocation
 concern in [the retained-handle guide](uart-startup-allocation.md). Isolated fault injection,
-external baud/framing and complete wireless-system acceptance remain open.
+and external baud/framing acceptance remain open. Bounded LD2450 receives are
+covered by the [wireless demo](../../tools/configurator/README.md#physical-verification).
 
 ## Build adaptation
 

@@ -112,8 +112,10 @@ NACK and arbitration errors reset controller state without an unbounded retry.
 Stuck external lines still require correcting the wiring/device; this is not a
 general bus-unwedge service.
 
-Basic I2C/SPI operation has scoped bench evidence. Broader bus, output and
-combined-system acceptance remain open; consult the qualification index.
+I2C/SPI transfers and LD2450 UART receives have scoped bench evidence. See the
+[physical summary](../../../../tools/configurator/README.md#physical-verification)
+and [acceptance guide](../../../../HARDWARE_ACCEPTANCE.md) for broader bus,
+output and system limits.
 The five LL boundaries (`c3ihw`, `c3shw`, `c3pin`, `c3pulse`, `c3pwm`) use C99 syntax; compilation needs
 GNU99 because pinned external LL headers use GNU `typeof`. Other ordinary owned
 modules compile as C99.
@@ -150,17 +152,15 @@ worker calls belong in the runtime adapter. HAL synchronization uses the pinned
 kernel mutex API and the runtime operating-time clock; drivers include neither
 kernel nor SDK headers.
 
-### Integration with local cleanup fixes
+### Cleanup-owner contract
 
-The 26 October `system-integration` update retains the startup-only resources
-while preserving the local `rt_port_is_cleanup_owner()` permission in UART,
-pulse and PWM close callbacks. The UART conflict resolution retains its new
-`b_ready` and poison checks. Only the lifecycle owner's guarded cleanup context
+Startup-only resources retain `rt_port_is_cleanup_owner()` permission in UART,
+pulse and PWM close callbacks. UART also checks `b_ready` and poison state. Only the lifecycle owner's guarded cleanup context
 receives this permission; it does not permit initialization/open or another
 task to claim resources. The UART descriptor/mutex are still never deleted by
 close, and failed cleanup retains logical ownership.
 
-Manual BARR-C review of this resolution covered rules 1-8: no API, ABI, cast,
+Manual BARR-C review of this contract covered rules 1-8: no API, ABI, cast,
 storage, loop or language-profile change; Boolean operands are explicitly
 grouped, existing initialization/error checks remain, and synchronization and
 cleanup bounds are unchanged. Existing cleanup-owner/shared-guard tests were

@@ -91,17 +91,7 @@ SHA-256. Changed descriptions require another page review. Actions are queued
 to one owner; HTTP handlers never access the journal or MQTT client directly.
 The existing Host/Origin/session-token and request-size checks apply.
 
-Verification on 17 November 2026: eight owner/API checks and nine browser
-checks passed, alongside 23 existing Desk backend checks, 40 JavaScript checks
-and 26 existing Desk browser checks. Tests cover preview versus active state,
-load without I/O, one execution per click, delayed replies, rejected updates,
-unknown-outcome recovery, reconnect, expiry and narrow-screen layout. The new
-HTTP path also passed chip-ID / raw-pressure / chip-ID, expiry and journal-reopen
-checks through the compiled C owner, local TLS broker and HA Container, with
-exactly three simulated reads. A separate run drove the actual browser controls
-through first connect, A/B/A, expiry and disconnect with three reads and no
-browser errors. Evidence is local-only under
-`build/runtime-ui-review-20261117/`. The [physical BMP388 walkthrough](#physical-bmp388-walkthrough) follows below.
+
 
 ### Tribunal 2 presenter guide
 
@@ -142,7 +132,7 @@ Leave the Desk serial connection closed and show **USB disconnected**. Click **C
 load the chip-ID rule and execute once. While `50` is fresh, **Latest result** shows the
 matching MQTT/TLS reply's request ID, packet length and result topic. Its 96 bytes include the
 transaction envelope carrying the one sensor byte. Keep the cable in place and click
-**Disconnect MQTT**. the reading clears and execution becomes unavailable.
+**Disconnect MQTT**. The reading clears and execution becomes unavailable.
 
 For a longer demonstration insert BMP388 `pressure_raw` after the first chip ID
 (TX 1, RX 3), and LD2450 `raw_32` after `raw_16` (TX 0, RX 32). Pressure is a
@@ -158,7 +148,7 @@ and `50` in that order. Fresh runs may return different pressure and radar bytes
 | FR2 | Show the acknowledged active rule before executing, then the same-boot BMP388 / LD2450 / BMP388 switch. |
 | FR3 | The generic layer supports I2C write/read, SPI write and raw UART transmit/receive. Limits are 30 TX bytes, 32 RX where supported, and 10 to 1,000 ms. The live radar operation uses RX. [Bus tests](../../tests/target/test_tx_owner.py) cover UART TX and SPI write. SPI writes were acknowledged on the bench. Visible OLED operation under the idle plan remains unverified. |
 | FR4 | Match raw bytes and counts across Desk and HA. For request ID, rule revision and ESP completion time, use the correlated result record or HA operation-status attributes. The age on the Desk is elapsed time. |
-| FR5 | Show the USB port control, **Review & apply**, active/saved revisions and **Live monitor** during setup. Explain that reconnect queries boot, plan generation and last command before the controller can recover a matching cached result. See the [physical restart walkthrough](#physical-restart-recovery) and [controller tests](../../tests/target/test_transaction_controller.py). |
+| FR5 | Show the USB port control, **Review & apply**, active/saved revisions and **Live monitor** during setup. Explain that reconnect queries boot, plan generation and last command before the controller can recover a matching cached result. See the [physical restart walkthrough](#physical-verification) and [controller tests](../../tests/target/test_transaction_controller.py). |
 | NFR1 | Each TJ v2 command and reply is 96 application bytes over certificate-verified MQTT/TLS. One controller owns the journal, one rule is active, and at most one command is outstanding. |
 | NFR2 | Invalid or stale changes preserve the old rule. A proven exact retry returns the cached reply. Link loss cancels active work and releases resources. Use the [compiled rule-engine tests](../../tests/target/test_txjob.py) and [owner tests](../../tests/target/test_tx_owner.py) for rejection, replay and cancellation. |
 | NFR3 | All 41 modules fit. Fixed DRAM is 274,764 of 278,528 bytes, leaving 3,764. The separate diagnostic run attributed all 410 observed general allocations to documented Wi-Fi driver paths. Six runtime samples recorded zero new kernel objects. The qualification covers the single-broker demo workload. |
@@ -174,280 +164,39 @@ If the link cannot be restored during the presentation, identify the recorded
 physical rehearsal as prior evidence. Finish the backed-up session by
 disconnecting MQTT, returning the board to laptop USB and verifying restoration.
 
-### Simulated operator walkthrough
+### Physical verification
 
-For this checkout's local HA setup, start its containers with
-`build/homeassistant-wsl-20261116/start-ha.ps1`, then run:
+Physical ESP32-C3, Desk and Home Assistant runs verified BMP388 chip-ID and raw
+pressure reads, LD2450 16/32-byte reception, and return to BMP388 on one firmware
+image. Chip ID was `50`; pressure and radar bytes depend on device state. Radar
+chunks can cross frame boundaries. The 64-read repeated workload also completed.
+A separate cold-start rehearsal ran from a power bank without laptop USB data.
 
-```powershell
-.\build\homeassistant-wsl-20261116\run-runtime-desk.ps1
-```
+The 23 November presenter rehearsal and 24 November campus-uplink rehearsal used
+USB power and MQTT commands/results. The three-read presenter sequence returned
+BMP388 `50`, 16 LD2450 bytes, and BMP388 `50` on one boot. Results expired while
+the active rule remained; disconnect made all six HA entities unavailable.
+Original flash/profile and temporary host settings were restored and verified.
+Raw captures and laptop-specific launchers are private local artifacts, not
+portable setup prerequisites. Use the public startup command above with your
+own broker, trusted CA, node and journal.
 
-This private helper serves the actual Desk at `http://127.0.0.1:8080` with a fresh
-journal, the compiled C owner/HAL and simulated buses. Use only one fixture for
-synthetic node `uthome-0123456789ab`. It uses the existing scoped local broker
-settings; it performs no automatic load or execution and stops after 15 minutes.
-HA remains at `http://127.0.0.1:18123`.
+Restart checks covered the Desk using the same journal, the command broker,
+the display broker, HA Core and the ESP. Host/broker/display restarts did not
+perform new bus operations or refresh an old completion timestamp. An ESP reboot
+changed boot identity and cleared the rule; another explicit load was required.
 
-1. In **Peripheral transactions**, select **Connect MQTT**. Wait for **MQTT ready** and
-   **HA publisher connected**.
-2. Select `bmp388`, `chip_id` and address `0x77`, then **Load rule**. Expect
-   **Rule loaded**, active `chip_id / revision 1`, and unavailable raw/TX/RX.
-3. Select `pressure_raw` without loading it. The preview changes to TX `04` and
-   Read 3 bytes; the active rule stays chip ID. **Execute active rule** still
-   returns `50`, with TX/RX `1 / 1`.
-4. **Load rule**, then **Execute active rule** once. Expect active
-   `pressure_raw / revision 2`, raw `00 00 00` and TX/RX `1 / 3`.
-5. Select `chip_id`, load and execute once. Expect revision 3, raw `50` and
-   TX/RX `1 / 1`.
-6. Leave it idle for five seconds. Expect **Result expired** and unavailable
-   raw/TX/RX, while the active rule remains. The six HA entities follow the same freshness contract.
-7. **Disconnect**. The active rule and all six HA sensors become unavailable.
+SPI commands were accepted with the reported TX counts, but the panel remained
+blank after the idle transition in operator-observed trials. Reapplying the
+normal profile restored its display. Reset level, initialization and physical
+waveforms remain unqualified for raw SPI operation. Do not equate acknowledged
+SPI bytes with visible OLED acceptance.
 
-Read each result promptly: one click performs one read, and the helper does not
-keep results fresh by repeating it. This sequence performs three simulated
-reads; loading, expiry and disconnect add none. Stop the helper with Ctrl+C or,
-from another shell at the repository root:
-
-```powershell
-Set-Content .\build\homeassistant-wsl-20261116\runtime-desk-control.txt -Value stop -Encoding utf8
-```
-
-Each run records API observations and operation counts under the ignored
-`build/homeassistant-wsl-20261116/desk-YYYYMMDD-HHMMSS/`. Keep user observations
-separate from those logs and from physical ESP acceptance. The helper and local
-credentials remain private setup artifacts.
-
-The user completed this walkthrough on 17 November 2026. They confirmed every
-result above, including changing the preview to pressure while the chip-ID rule
-remained active, then executing that chip-ID rule. The API record independently
-matched all three loads/results and HA states. Exactly three reads occurred;
-loading, expiry, disconnect and helper cleanup added none. The Desk disconnected,
-all six HA sensors became unavailable, and the user confirmed HA stayed responsive.
-Local evidence is in `desk-20261117-014224/` under the folder above, including
-separate `user-observations.json`, `events.jsonl` and `verification.json` files.
-The helper is stopped.
-
-### Physical BMP388 walkthrough
-
-On 19 November 2026 an automated Chromium session used **Connect**, **Load rule**,
-**Execute active rule** and **Disconnect** on the Peripheral transactions tab. The
-ESP32-C3 read the BMP388 at I2C address `0x77`. The Desk sent commands to the
-bench TLS MQTT broker and its display publisher used the local WSL TLS broker.
-Home Assistant Container 2026.11.1 recorded the following raw hex bytes.
-
-| Active rule | Register | MQTT execution ID | Desk and HA result | TX / RX bytes |
-|---|---|---:|---|---|
-| `chip_id`, revision 1 | `0x00` | 2 | `50` | 1 / 1 |
-| `pressure_raw`, revision 2 | `0x04` | 4 | `24 87 6A` | 1 / 3 |
-| `chip_id`, revision 3 | `0x00` | 6 | `50` | 1 / 1 |
-
-Each load cleared the displayed bytes. All three executions matched the ESP
-replies by request ID, boot ID, generation and completion time. The final result
-expired after five seconds. Disconnect made all six HA entities unavailable.
-The pressure bytes are specific to this read. Pressure accuracy requires a
-separate measurement.
-
-The first attempt stopped during a read-only USB network query before the idle
-profile was applied. On the successful run an authenticated MQTT status reply
-established readiness. Both attempts restored and verified the original full
-flash and saved profile. The temporary hotspot and firewall rule were removed
-and the HA broker ACL matched its original hash. Repeatability of idle readiness
-remains open.
-
-Local evidence, including the three Desk screenshots and `verified-result.json`,
-is under `build/desk-bmp388-retry-20261119/`. The Desk checkpoint was `d231b89`
-and the temporarily installed ESP firmware was built from `370d09e`.
-
-### Physical restart recovery
-
-On 19 November 2026 the Desk runtime HTTP API loaded the BMP388 chip-ID rule
-once at address `0x77`. The test requested one read before each separate restart,
-using the same two brokers as the browser walkthrough above.
-
-| Restart | What the Desk and Home Assistant showed after recovery |
-|---|---|
-| Desk process, reopened with the same journal | Revision 1 stayed active. The last result had expired. |
-| Physical TLS MQTT broker | The ESP and Desk reconnected. Revision 1 stayed active and the result had expired. |
-| HA display MQTT broker | The publisher reconnected. HA recovered the rule and showed the result as expired. |
-| HA Core container | The HA API returned and the six entities recovered with the previous result expired. |
-| ESP32-C3 | A new boot reported ready with zero completed commands. The previous rule, protocol and result were unavailable. |
-
-On the first four restarts the firmware retained the request ID and completion
-time of the preceding read. Across both physical broker traces there was one
-load and exactly five executions (IDs 2 through 6). Each returned `50` with one
-byte sent and one received. HA history recorded exactly five fresh values for
-each of raw bytes, TX and RX. All six entities became unavailable on final
-disconnect.
-
-The full 4 MiB flash and saved profile were restored and verified. Both HA
-containers were running, the original broker permissions were verified, and
-the temporary hotspot and firewall rule were removed. This was one controlled
-run on Desk commit `46c0e09` and firmware `370d09e`. The private packet and HA
-checks are in `build/desk-restart-physical-20261119/verified-result.json`
-and `ha-history.json` in the same folder.
-
-### Physical OLED and radar transactions
-
-On 19 November 2026 Chromium drove the Runtime tab on Desk commit `e9af4f2`.
-The ESP32-C3 used firmware `370d09e` on the idle plan with the visualiser
-wiring. The physical MQTT trace and HA states were checked through the same
-two-broker setup as the physical BMP388 walkthrough.
-
-| Device and operation | Execute request IDs | TX / RX | Observation |
-|---|---|---:|---|
-| SSD1306 SPI on, off, on | 2, 4, 6 | 1 / 0 each | ESP accepted `AF`, `AE`, `AF`. Desk and HA reported success and empty RX. The panel sequence was unobserved in this run. |
-| LD2450 UART `raw_16` | 8 | 0 / 16 | The Desk and HA matched all 16 bytes from the ESP. |
-| LD2450 UART `raw_32` | 10 | 0 / 32 | The chunk ended in `55 CC AA FF`, crossing a report boundary. |
-
-The physical broker recorded exactly five loads and five executions. Request
-IDs, boot identity, generation, result bytes and completion times matched the
-display records. All six HA entities became unavailable after disconnect. The
-original 4 MiB flash, profile revision 943, display-broker permissions and
-laptop network settings were restored and checked. Local evidence is in
-`build/desk-spi-uart-20261119/verified-io.json`. The two successful UART
-reads establish bounded raw reception on this setup. Longer-run reception and
-radar target interpretation require separate evidence.
-
-In a separate operator-paced check, the six-pin panel showed content on the
-normal profile. After one idle Apply on the same ESP boot, the Desk sent
-`display_on` (`AF`). The ESP reported TX 1 / RX 0 and HA matched the result,
-but the operator saw a blank panel. The run stopped at that first command.
-Both full flash restores and host cleanups verified. Local evidence is in
-`build/desk-oled-observed-20261119/verified-io.json` and the two operator
-observations alongside it.
-
-Profile cleanup sends `AE` and releases the GPIO10 reset output. The raw SPI
-rule opens the bus and D/C only. The panel's reset level and the waveform at
-its pins were unmeasured. Visible on/off control after the idle transition
-remains open.
-
-A follow-up used the SSD1306 whole-display override to check whether a blank
-framebuffer could account for the dark panel. The operator again saw content
-on the normal profile. On the same boot after idle Apply, the Desk requested
-`A5 AF`, then `A4 AE` 4.7 seconds later. The ESP and HA confirmed TX 2 / RX 0
-for each transaction, and the operator saw a blank panel throughout. A working,
-initialized SSD1306 receiving `A5 AF` should light even with empty display RAM.
-Panel reset level, initialization state and SPI signals at the module were
-unmeasured. The original full flash, profile and host setup were verified after
-restoration. The private diagnostic rules and results are under
-`build/desk-oled-all-pixels-20261119/`.
-
-The initialization trial compared three stages on one boot of firmware
-`370d09e`. The operator saw content on the normal profile (generation 1).
-On idle (generation 2), the Desk sent the working driver's 25 setup bytes
-with its usual 128x64 panel and charge-pump settings. It then sent `A5 AF`
-and, 4.3 seconds later, `A4 AE`. The ESP accepted 25, 2 and 2 bytes and HA
-matched all three completions. The operator saw no light during the pulse.
-
-Reapplying the original normal profile advanced the plan to generation 3.
-Content returned on the same boot, before flash restoration. That path drives
-GPIO10 through reset, initializes the panel and redraws using the configured
-SPI driver. The idle path released the bus between writes and left RESET
-undriven by the ESP. This comparison establishes same-boot recovery and leaves
-the individual effects of reset, bus ownership and redraw unresolved.
-Local packet, profile and operator records are in `build/desk-oled-reinit-20261119/`.
-
-### Power-bank demo rehearsal
-
-On 19 November 2026 the supplied ESP32-C3 cold-started on a power bank with
-the laptop USB data cable disconnected. USB setup had verified firmware
-`370d09e` (image SHA-256 prefix `4fd99ab2`) and saved the idle profile.
-Authenticated MQTT status identified a new boot. Automated Chromium used
-the Runtime tab from Desk commit `35b9496` to perform the sequence below.
-
-| Step | Operation | Execute ID | TX / RX bytes | Observed result |
-|---|---|---:|---:|---|
-| 1 | BMP388 `chip_id`, I2C `0x77` | 2 | 1 / 1 | `50` |
-| 2 | BMP388 `pressure_raw`, I2C `0x77` | 4 | 1 / 3 | `00 00 80` |
-| 3 | LD2450 `raw_16`, UART 256000 baud | 6 | 0 / 16 | 16 bytes, beginning `AA FF 03 00` |
-| 4 | LD2450 `raw_32`, UART 256000 baud | 8 | 0 / 32 | 32 bytes, ending `55 CC AA FF` |
-| 5 | BMP388 `chip_id`, I2C `0x77` | 10 | 1 / 1 | `50` |
-
-To rehearse, connect the Desk after the bank-powered node reports ready.
-For each row, select the description and operation, **Load rule**, then
-**Execute active rule** once. Check the raw bytes and counts in both the Desk
-and HA. Use the two chip-ID reads as the repeatable check. Pressure and radar
-bytes depend on the device state, and radar chunks can cross report boundaries.
-
-The physical broker recorded exactly five loads and five executions on the same
-boot. The full payloads, request IDs and completion times matched the Desk and
-HA. Windows detected no matching USB device during the walkthrough. After the
-last result expired, the Desk and HA hid the raw data. Disconnecting the Desk
-made all six HA sensors unavailable. The full trace and USB-presence samples
-are local under `build/power-bank-bmp-radar-20261119/`. After reconnecting
-USB, the original 4 MiB flash and profile revision 943 were restored and
-verified. Cleanup restored the laptop network settings and HA broker permissions.
-
-### Repeated BMP388 and radar switching
-
-The 64-read demo workload passed on 20 November 2026. A USB-powered ESP ran
-firmware `370d09e` (image SHA-256 prefix `4fd99ab2`) with Desk `36e82c8`.
-USB carried profile and diagnostics traffic. MQTT over TLS carried every rule
-and result. The Desk loaded and executed each of these four operations once
-per cycle for 16 cycles, in the order shown.
-
-| Execute operation | TX / RX bytes | Verified reads | Median broker round trip (ms) | Maximum (ms) |
-|---|---:|---:|---:|---:|
-| BMP388 chip ID | 1 / 1 | 16 | 47.86 | 57.11 |
-| LD2450 raw 16 | 0 / 16 | 16 | 77.69 | 149.52 |
-| BMP388 raw pressure | 1 / 3 | 16 | 45.07 | 59.08 |
-| LD2450 raw 32 | 0 / 32 | 16 | 154.39 | 214.91 |
-
-One broker clock measured 316.499 s from the first load to the final execute
-reply. Across all 64 executions, the median was 50.17 ms and the 95th
-percentile was 195.84 ms (nearest rank). These round trips include transport
-and ESP processing. The broker saw exactly 64 loads and 64 executions with
-consecutive command IDs 1 through 128 on one boot and generation. All
-transmitted rules matched the descriptions checked against the two source
-PDF hashes. Every chip ID was `50`. Pressure and radar results were raw bytes.
-Both displays matched the wire results, including revision, identity, byte
-counts and completion time. The last result expired after five seconds and
-all six HA sensors became unavailable after disconnect.
-
-Across the 329.163 s USB diagnostic window, the normal-mode audit counted
-11,478 allocations, 11,482 frees and 3,205,556 cumulative bytes requested.
-These counters do not measure live heap size. All audited kernel object-creation
-and kernel allocator call counts held steady. The controller and idle stack
-watermarks showed 5,088 and 896 bytes unused at both endpoints. Whole-system
-fixed-memory qualification remains open.
-
-The original 4 MiB flash, saved profile 943, broker permissions and laptop
-settings were restored and verified. Local evidence is in
-`build/switch-ready-load-20261120/verified-load.json`. The readiness check
-allows up to 15 seconds for fresh same-boot status between commands. All 64
-slots had fresh status at the check on this run.
-
-#### Earlier eight-read attempt
-
-On 20 November 2026 the USB-powered ESP ran the same demo firmware
-(`4fd99ab2`) with profile diagnostics over USB and rule traffic over TLS MQTT.
-The Desk at `36e82c8` loaded and executed BMP388 chip ID, LD2450 16-byte
-receive, BMP388 raw pressure and LD2450 32-byte receive twice on one boot.
-The broker saw eight loads and eight executions. Both displays matched every
-reply, including the request ID, rule revision, completion time and raw bytes.
-
-| Execute operation | Reads | Median broker round trip (ms) | Maximum (ms) |
-|---|---:|---:|---:|
-| BMP388 chip ID | 2 | 46.52 | 46.71 |
-| LD2450 16 bytes | 2 | 119.38 | 138.25 |
-| BMP388 raw pressure | 2 | 46.54 | 50.00 |
-| LD2450 32 bytes | 2 | 179.65 | 203.10 |
-
-The first load through the last execution reply spanned 36.087 s. Times use
-one broker clock from incoming command to incoming device reply and include
-transport and ESP processing. The separate post-read status query took 2.386 s.
-The Desk temporarily withheld the boot identity before load nine. The eventual
-status reported the same boot and generation, command 16 complete and no
-pending command. The run ended at eight of the planned 64 reads.
-
-Across the 46.609 s diagnostic window, normal-mode counters rose by 1,532
-allocations, 1,531 frees and 416,244 cumulative bytes requested. Live heap
-size and allocation ownership are outside this measurement. All audited kernel
-object-creation and kernel allocator call counts held steady. The controller
-and idle stack watermarks showed 5,088 and 896 bytes unused at both snapshots.
-Original flash, saved profile 943, broker permissions and laptop settings
-were restored and verified.
+The [AAI13 report](../../docs/reports/wifi-static-memory/README.md) describes the
+release memory measurements and Wi-Fi exception. Earlier recordings describe
+their original image identities; repeat the relevant checks for a changed image
+or network. The [hardware procedure](../../HARDWARE_ACCEPTANCE.md) covers broader
+failure, persistence, electrical and optional peripheral acceptance.
 
 ## Periodic I²C register reads
 

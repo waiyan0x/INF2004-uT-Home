@@ -48,8 +48,8 @@ and SDK APIs.
 Adding a board means adding another port without changing drivers or services.
 
 USB provides configuration and monitoring. On-device wireless work is in the
-[experimental network layer](../src/network/README.md); combined radio/service
-integration and qualification remain open.
+[network layer](../src/network/README.md). The single-broker demo is qualified
+within the [documented limits](../../docs/reports/wifi-static-memory/README.md#qualification-limits).
 
 ## UART
 
@@ -57,7 +57,8 @@ integration and qualification remain open.
 partial TX counts, checked cleanup and monotonic time. `uartfake` supplies host
 faults; `c3uart` wraps the pinned kernel UART1. Protocol parsing remains in the
 driver. See [UART integration](../drivers/hlk_ld2450/INTEGRATION.md).
-Native UART hardware qualification remains pending.
+Bounded LD2450 UART receives have physical demo evidence. Other baud rates,
+framing faults and electrical timing require separate hardware qualification.
 
 `c3ukern` contains native handle creation, attributes, counts and error-code
 conversion. `c3uart` owns boot-once initialization, lock/claim transitions,

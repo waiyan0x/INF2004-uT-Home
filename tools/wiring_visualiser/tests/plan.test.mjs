@@ -126,7 +126,9 @@ test("provisional SEN0390 addition shares I2C and only uses the 3.3 V supply", (
   assert.ok(graph.same("light:GND", "A:j30"));
   assert.ok(!graph.same("light:VCC", "A:j29"));
   assert.ok(!graph.same("light:EN", "A:j31"));
-  assert.match(plan.steps.at(-1).note, /not yet|no SEN0390 driver/i);
+  assert.match(plan.steps.at(-1).note, /ordinary firmware builds do not enable/i);
+  assert.match(plan.steps.at(-1).note, /dedicated diagnostic build/i);
+  assert.match(plan.steps.at(-1).note, /hardware and timing acceptance are incomplete/i);
 });
 test("all wire changes are power-off steps; unknown modules receive no wiring", () => {
   for (const plan of Object.values(PLANS)) {

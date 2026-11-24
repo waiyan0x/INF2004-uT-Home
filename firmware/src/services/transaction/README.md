@@ -163,7 +163,7 @@ length when it compiles the selected [description](../../../../datasheets/README
 
 | Test input | Expected decision | Where verified |
 |---|---|---|
-| Load BMP388 chip ID at `0x77`, then execute | I2C writes register `00` and reads one byte, `50` | [Power-bank rehearsal](../../../../tools/configurator/README.md#power-bank-demo-rehearsal) |
+| Load BMP388 chip ID at `0x77`, then execute | I2C writes register `00` and reads one byte, `50` | [Power-bank rehearsal](../../../../tools/configurator/README.md#physical-verification) |
 | Switch to LD2450 `raw_32`, then execute | UART receives 32 raw bytes at 256000 baud and sends zero bytes | Same physical rehearsal |
 | With BMP388 pressure revision 2 active, request revision 3 with 33 RX bytes | Reject the update as invalid, keep revision 2 and perform no bus I/O on rejection. Executing revision 2 still reads three bytes | [Compiled C owner with simulated buses](../../../../tests/target/test_descriptions.py) |
 | Repeat the exact most recently completed execute in its original session | Return the cached result with the original completion time and one total driver start | [C decision tests](../../../../tests/target/test_txjob.py) |
@@ -193,15 +193,16 @@ The status reply adds no persistent buffer. Only the 64-bit boot value is new
 state; shortening both stored rule identities releases more storage than that
 cost. See the fresh target map and
 [resource audit](../../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
-for sizes, budgets and remaining TLS/TCP/IP allocation blockers. Passing the C
+for current sizes, budgets and the qualified network workload. Passing the C
 and map gates does not establish runtime stack/heap or physical bus acceptance.
 
 The [host controller](../../../../tools/transaction/README.md#persistent-controller)
 now preserves exact pending commands across process restarts, obtains cached
 receipts explicitly and expires display data. Its software tests run this C
 engine/owner with simulated buses and a real loopback TLS broker. The
-[live BMP388 check](../../network/README.md#live-mqtt-check) now verifies MQTT
-rule switching, target rejection/preservation and cached-result recovery with
-actual I2C transfers on the same image. Runtime SPI/UART and full resource
-acceptance remain open. The Home Assistant adapter is still future work.
+[physical verification](../../../../tools/configurator/README.md#physical-verification)
+covers BMP388 I2C and LD2450 UART transactions with Home Assistant results,
+expiry and disconnect handling. SPI transfer counts were observed, but visible
+OLED output after idle remains unqualified. The resource report records the
+qualified single-broker workload and its limits.
 No native API listener remains.

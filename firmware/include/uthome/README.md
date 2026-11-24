@@ -20,7 +20,7 @@ A node names a driver and reviewed descriptor version, then supplies its own
 instance ID, connection, behaviour and scheduling values. The target adapter
 must validate these against its actual build and board capabilities before
 calling low-level lifecycle APIs. Host code must not be mistaken for a target
-kernel adapter. See [the platform baseline](../../../README.md#platform-contract).
+kernel adapter. See [the platform baseline](../../CONTRACTS.md).
 
 The component interface and its unit test retain Member 1's contribution.
 Shared-header changes require matching caller and target-adapter updates.

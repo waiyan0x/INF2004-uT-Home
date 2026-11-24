@@ -82,12 +82,6 @@ continue to change at runtime without rebuilding that provisioned firmware.
 
 ## MQTT plan changes
 
-Previously, every plan-generation change closed TLS and restarted MQTT,
-including a healthy, subscribed connection with no packet in progress. The
-recorded idle trials show the first status query reaching the broker before
-the new ESP connection completed. This is a predictable reconnect gap,
-separate from the unresolved intermittent TCP/beacon-loss failure.
-
 `netbroker` now keeps a READY session when Wi-Fi is available and neither a
 write nor a received MQTT packet is in progress. It discards the old outbound
 mailbox and copied request, preserves diagnostic counters and adopts the new
@@ -96,19 +90,12 @@ partial MQTT input, incomplete handshakes and actual outages retain the clean
 reconnect path. Bytes already handed to TCP cannot be recalled; transaction
 boot/generation checks still reject stale commands. No command is replayed.
 
-Verification on 18 November: 136 network and 22 transaction tests passed,
-including the actual ESP adapter over SDK doubles. New regressions failed on
-the prior implementation and pass with this change. They cover preserved
-subscription, old queued work, fresh commands, keepalive success/timeout,
-partial input/output, Wi-Fi loss and prior failure backoff. The full pinned
-BARR-C gate passed for 334 files, and a fresh ESP32-C3 build and source check
-passed. Fixed DRAM remains 272,322/278,528 bytes; all group caps are unchanged.
-The [backed-up board trial](../../../tools/transaction/README.md#plan-change-session-trial)
-returned 334/338 normal-profile replies within eight seconds; four arrived late,
-so idle Apply was skipped. A repeat passed 295/295 with the same boot identity.
-Captured TCP delays remain unexplained; the session-preservation change still
-needs hardware acceptance. Original flash/profile and host cleanup are verified.
-Runtime peaks, radio reliability and combined HA acceptance remain open.
+The network regressions cover preserved subscriptions, old queued work, fresh
+commands, keepalive success/timeout, partial input/output, Wi-Fi loss and
+failure backoff through the actual ESP adapter with SDK doubles. The current
+[physical summary](../../../tools/configurator/README.md#physical-verification)
+records completed Desk/MQTT/Home Assistant trials. Long-duration radio
+reliability and workloads outside the qualified scope remain unestablished.
 
 Manual BARR-C review: the change uses C99, the matching header and a private
 helper with a prototype. Boolean conditions, constant-left comparisons,
@@ -134,26 +121,13 @@ code does not grant permission to raise any reservation. A target map check is
 separate from target stack high-water, SDK heap, radio timing and combined-load
 acceptance. No new worker slot is assumed.
 
-The [current source/map assessment](../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
-confirms reachable heap paths in mbedTLS, lwIP connection/packet pools
-and other SDK state. They are outside an automatic Wi-Fi-driver exemption.
-The fixed mailbox adapter now removes the separate `sys_mbox_new` backing
-allocation in Wi-Fi service builds; it does not remove packet/connection/TLS
-allocations. `c3tls` now bounds ESP-TLS contexts, error trackers and temporary
-hostname scratch for the single MQTT connection. Its
-source-scoped bindings retain the SDK lifecycle and reject exhaustion without
-heap fallback. `c3tout` now also owns record buffers, the retained mbedTLS name
-and typed outer handshake state, temporary peer-certificate head and peer digest.
-Its derivation seed/label stores also replace those two PSA allocations while
-keeping Wi-Fi's competing allocations separate by native task identity.
-Session tickets are disabled under the approved
-[MQTT policy](../../hal/ports/esp32c3/network/README.md#mqtt-session-ticket-policy);
-the application already starts a fresh verified TLS connection on reconnect.
-Inner certificate/key data, secret copies and remaining
-TCP/IP storage are still open; see the [TLS storage contracts](../../hal/ports/esp32c3/network/README.md#fixed-tls-handshake-state).
-Fixed native queue/task pools and a passing linker budget do not qualify these
-allocations; bounded allocation remediation and runtime measurements remain open.
-No-network and isolated radio fixtures do not qualify the combined application.
+The [current resource assessment](../../../docs/reports/wifi-static-memory/README.md)
+records the measured single-broker workload under its specific Wi-Fi exemption.
+The fixed mailbox, TCP/IP and TLS stores do not authorize unrelated SDK heap
+clients. Session tickets are disabled under the
+[MQTT policy](../../hal/ports/esp32c3/network/README.md#mqtt-session-ticket-policy).
+Arbitrary certificate chains and forced concurrent USB parsing/TLS verification
+are outside qualification; the latter can reach the general allocator.
 
 ## USB Wi-Fi troubleshooting
 
@@ -166,7 +140,7 @@ allowing USB observations to be correlated with MQTT replies and TCP captures.
 Version-1 firmware supplies the station fields and leaves MQTT fields absent.
 See the [wire contract](../config/README.md#wire-version-1) and
 [host command](../../../tools/config_transfer/README.md#read-only-wi-fi-and-mqtt-status).
-The [backed-up USB/TCP trial](../../../tools/transaction/README.md#usb-mqtt-observation-board-trial)
+The [backed-up USB/TCP trial](../../../tools/transaction/README.md#prepare-a-live-session)
 verified these fields during normal traffic and broker recovery. The later
 stall did not recur; the original image/profile were restored and the timeout
 cause remains unresolved.
@@ -181,127 +155,14 @@ against the private settings; changing the setting requires a fresh build.
 This is a board-specific troubleshooting option, not a universal connection fix
 or a measurement of actual radiated power.
 
-### Current hardware check
+### Physical verification
 
-On 15 November 2026, the same ESP32-C3 and wiring connected to a 2.4 GHz WPA2
-Android hotspot. The local SSID capitalization was corrected first; the laptop
-also verified the supplied credentials. With those same credentials, the
-**unchanged pinned ESP-IDF station example** repeatedly failed authentication
-at a 20 dBm startup limit, connected at 10 dBm, then failed again in a repeated
-20 dBm control. The 10 dBm setting worked with both fresh and saved calibration.
-These are diagnostic comparisons, not uT-Kernel or BARR-C qualification.
-The electrical/RF cause was not measured; the lower startup limit resolves the
-observed connection failure on this board. An earlier runtime-only cap did not
-affect radio startup.
-
-The full project was then built from `433b29e` plus the startup-power change,
-using `tx_power_quarter_dbm: 40`. Its checked image SHA-256 is
-`19570aaf606a8b1f89b5679d63b7557a6402fd18eeefd61d5f8447e338f711fa`.
-All 519 target-facing tests, the full 329-file C standard gate, real-target
-compiler/profile checks and source-snapshot verification passed. Fixed DRAM
-remains 260,386/278,528 bytes; no memory limit or SDK/kernel pin changed.
-
-Physical observations on that same project image:
-
-- Wi-Fi stayed online throughout a 45-second observation with no SDK error.
-- After an ESP restart, it was online by the first five-second follow-up.
-- A user-controlled hotspot off/on cycle produced an observed loss of IP,
-  bounded waiting/retry states and automatic recovery without reflashing or
-  restarting the ESP. The reported disconnect reason retains the last failure;
-  current `has_ip` and retry state identify recovery.
-- Authenticated, certificate/name-verified HTTPS `GET /v1/identity` and
-  `GET /v1/status` both returned HTTP 200. These were read-only requests.
-- Active and saved profile 931 retained CRC 3623560383. BMP388/radar samples
-  were fresh, and all three workers reported transfers without timeouts or
-  bus errors. OLED appearance was not observed.
-
-The original 4 MB flash was backed up and independently verified, restored
-before installing the checked project image, then the installed flash regions
-were verified. **The board now runs the fixed project image with private bench
-settings**, retaining the original peripheral profile. The laptop's original
-Wi-Fi was restored and its temporary test profile removed; no firewall rule
-changed. No MQTT broker was started during this Wi-Fi check.
-
-The following MQTT check extends this Wi-Fi result. Prolonged MQTT load,
-wider secure-connection load and network heap/stack acceptance remain open.
-Allocation counters are not free-heap/peak measurements, and unavailable worker
-stack measurements remain unmeasured.
-
-Fresh local-only evidence is under `build/wifi-20261115/`: the diagnostic
-manifests/results, `project-installed.json`, `project-memory.json`,
-`project-running.json`, `project-after-restart.json`,
-`project-hotspot-cycle.json` and `https-roundtrip.json`. The isolated target
-build is `C:/Users/kkak4/esp/uthome-wifi-fix-20261115`; earlier bench observations
-remain under `build/bench-20261114/`. Settings, certificates, images and raw logs
-must stay outside Git. USB Apply also saves the idle profile; follow the
-[explicit restoration guidance](../../../tools/config_transfer/README.md)
-instead of expecting a reboot to undo it.
-
-### Live MQTT check
-
-On 15 November 2026, the installed application was independently verified against
-the same image SHA-256 above. No firmware source change or reflash was required.
-The host used the private authenticated TLS broker, reviewed BMP388 Markdown,
-the maintained MQTT client/controller and actual I2C0 SDA0/SCL1 at address 0x77.
-An explicitly applied idle plan released the sensor workers before transactions.
-
-- The persistent controller loaded/executed A (`00`, RX 1 -> `50`), B (`04`,
-  RX 3 -> `05 6E 6B`), then A again within the same ESP boot and plan generation.
-  Update acknowledgements reported no bus transfer; executions reported TX 1
-  and the configured RX count. These are raw bytes, not pressure accuracy evidence.
-- A host-invalid preview was rejected before publication. After that controller
-  closed, a single diagnostic owner separately sent RX length 33 to the ESP.
-  The ESP returned `invalid`, retained B's revision, and successfully executed B
-  and then A. This distinguishes target rejection from host-only validation.
-- Closing/reopening the host journal and stopping/restarting the broker preserved
-  the last command identity and completion time. An explicit identical request
-  retrieved the same cached reply. No new command was automatically executed.
-  Two status queries timed out during broker recovery; readiness must be observed,
-  not inferred from Wi-Fi alone. Initial broker startup also had a delayed join;
-  its cause was not isolated, and no firewall change was required.
-- Certificate/name-verified TLS 1.2 HTTPS status reads returned HTTP 200 both with
-  MQTT ready and during the broker outage. This verifies one MQTT connection plus
-  a transient HTTPS read, not the maximum two-HTTPS-client load or HTTPS writes.
-
-The exact original profile bytes were restored and saved as revision 933 with
-CRC 3623560383, then verified after restart. The new boot had no test rule or
-command history; its active sensor plan correctly reported transactions not
-ready. BMP388/radar data returned fresh, and all three workers reported no bus
-errors/timeouts. OLED appearance was not observed. The 30-second normal-operation
-window counted 8,429 allocations and 8,423 frees, requesting 549,580 cumulative
-bytes across the audit's sources. These are not resident/peak heap figures or
-allocation attribution; whole-system static memory remains unqualified.
-
-Local-only evidence is under `build/mqtt-20261115/`: `controller-demo.jsonl`,
-`target-rejection.jsonl`, `broker-recovery.json`, `https-*.json`,
-`image-verify-restart.log`, `profile-restored.json`, `restored-running.json` and
-`final-mqtt-status.json`. The broker was stopped after testing. Keep credentials,
-packet journals and captures outside Git. Follow the
-[live-session procedure](../../../tools/transaction/README.md#prepare-a-live-session)
-for the next run; the diagnostic owner handoff is not a second concurrent client.
-
-The later [display-adapter trial](../../../tools/transaction/README.md#current-live-trial)
-received discovery/ready-state messages but encountered MQTT status timeouts
-after applying the idle plan. A physical reconnect restored five successful
-status queries on the normal profile; the subsequent idle-plan attempt timed
-out again. This remains an open transition/reliability issue, not a replacement
-for the earlier successful run above. That trial flashed no new image and ended
-with the original profile restored as revision 941, CRC 3623560383.
-
-The [current status investigation](../../../tools/transaction/README.md#mqtt-status-investigation)
-also observed failures on the normal plan, an unattended Apply reset and a
-30-second reconnect-backoff case. Later packet delays/disconnections remain
-unisolated; no firmware fix is claimed. A subsequent normal-profile capture
-showed repeated TCP data and delayed acknowledgments, including a 6.791-second
-wait before acknowledgment of one status request. Local broker/gateway controls
-were responsive; moving the hotspot phone closer did not clear ESP packet loss.
-These observations do not locate the fault. The board remains on profile 943
-with the same original CRC and unchanged firmware. See that guide for the
-separate live/software evidence and the completed power-save comparison. That
-approved comparison reduced ping latency with modem sleep disabled but retained
-initial MQTT timeouts in both modes. The full original flash and saved profile
-were restored and verified. No production change was kept from that comparison.
-TLS work resumed on 17 November after the simulated HA/Desk walkthrough.
+The qualified single-broker workload has passed authenticated MQTT, broker
+restart, TLS renewal, BMP388/LD2450 reads, Desk/HA display, expiry and disconnect.
+See the [physical summary](../../../tools/configurator/README.md#physical-verification)
+and [AAI13 scope](../../../docs/reports/wifi-static-memory/README.md).
+Use fresh readiness/status on the actual deployment network. An earlier pass
+does not establish indefinite reliability or qualify another certificate profile.
 
 ### MQTT TLS connect retry
 
@@ -318,39 +179,11 @@ socket creation, error handling, TLS setup and certificate verification.
 The correction uses the pinned private context layout and the existing
 serialized application owner. It adds zero mutable storage.
 
-On 17 November, 122 affected network/TLS/build-qualification tests passed.
-The final adapter fixture rerun passed all 38 tests, including three timed-out
-polls followed by connection and another two timed-out polls after reopening.
 The [compiled connect probe](../../../tools/target/README.md#tls-connect-retry-probe)
-also passed 12 cases on each of the original and corrected RV32 images. The
-original adapter stalls after a timeout, while the corrected adapter reaches
-the handshake when the socket becomes readable or writable. The probe executes
-the actual adapter and SDK connect instructions with socket readiness and TLS
-handshake boundaries doubled.
-
-The full pinned 340-file C gate, manual review, warnings-as-errors ESP32-C3
-build, original-source snapshot verification and every fixed-memory budget
-passed. Total DRAM is 269,378/278,528 bytes, with application storage at
-140,255/147,456. Every group has the same usage and cap as the preceding TLS
-output-buffer build.
-
-The fresh build is `C:/Users/kkak4/esp/uthome-tls-retry-20261117/`.
-Its application image SHA-256 is
-`4d01003367559ad591ae0cef4f103679a4b862902af88345bc2c83c079dfb05f`.
-Its `evidence.json` SHA-256 is
-`446751c37d77e0efd0bc2989f4b6f0984f7fab10e324e9c12c475d3224653462`.
-Private reports and logs are under `build/tls-retry-20261117/`.
-This intermediate image is unflashed. The later cumulative candidate, including
-this correction, completed an approved
-[backed-up board comparison](../../../tools/transaction/README.md#backed-up-tls-board-comparison).
-It answered initial and post-broker-restart queries, then lost normal-profile
-replies before any idle Apply. That comparison does not isolate this correction
-from the other changes. The original full flash was restored. Packet loss,
-later status delays and the unattended Apply reset still require their own
-observations. The subsequent USB/TCP trial did not reproduce the later stall
-and does not isolate this correction either. The remaining
-TLS/TCP/IP storage work is tracked in the
-[resource assessment](../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
+executes actual adapter/SDK instructions with socket readiness and TLS boundaries
+doubled. Regression cases cover repeated timeouts, later readiness and reopening.
+Physical acceptance is summarized above; a diagnostic probe alone does not
+establish radio reliability.
 
 #### Connect retry C review
 
@@ -368,39 +201,10 @@ deviation is needed.
 
 ## ESP HTTPS removal
 
-On 17 November 2026 the user replaced the earlier requirement to retain HTTPS.
-The ESP listener, authenticated HTTP parser/replies, profile-upload mux and host
-HTTPS commands are removed. The build selects TLS client-only mode and rejects
-linked server entry points. `c3tls` and `c3tout` each reserve one MQTT session;
-record limits and broker CA/name verification stay unchanged. Shared TCP/IP
-queues/records still serve SDK traffic and have not been resized from a TLS count.
-
-Use [USB configuration](../../../tools/config_transfer/README.md) for full-profile
-Apply, export, restore and recovery, including explicit idle-plan preparation.
-Runtime rules/results use MQTT. The host Configuration Desk and Home Assistant
-web interfaces are unchanged. Older installed firmware may still expose HTTPS;
-this source change does not install an image or establish a live timeout fix.
-
-Verification passed: **509 target-facing tests**, the full pinned **333-file
-C gate**, manual BARR-C review, a fresh warnings-as-errors ESP32-C3 build and
-original-source snapshot verification. Twelve encrypted MQTT compatibility cases
-matched their expected outcomes, including wrong-CA/name rejection. Compiled
-RV32 probes passed all 12 connect cases, one-slot output exhaustion/erasure/reuse
-with eight SDK setup and seven cleanup calls, and 12 input-retention/read cases.
-The instruction probes double transport/heap/ROM/hash boundaries; input-read
-cases inject post-decryption data. They do not qualify encrypted board behavior.
-
-The new build is `C:/Users/kkak4/esp/uthome-mqtt-only-20261117/`.
-Application SHA-256:
-`bef502e50e545a6b3613a6c9fdb2c9c8359e251fcaf3ba8113b2639c3d500f62`.
-Its `evidence.json` SHA-256 is
-`be7a1c899ddd074762af0d8abdc393dff4db6ce68ba59ae25d35c11abb4861a6`.
-Fixed DRAM is **251,346/278,528 bytes**, 18,032 below the preceding retry build.
-Application storage is **122,228/147,456**, leaving 25,228 bytes. The two TLS
-module reservations shrink and the HTTPS reservation is removed; all aggregate
-caps stay unchanged. Private evidence/settings are under
-`build/remove-https-20261117/`. No board, serial port or live network was accessed.
-The image is **unflashed**; installation and physical acceptance remain deferred.
+The ESP application provides MQTT/TLS commands/results. Profile configuration,
+persistence and recovery use USB; the localhost Configuration Desk remains the
+host UI. The board does not expose an HTTPS configuration server. MQTT TLS
+verification and bounded single-session storage remain enabled.
 
 ### HTTPS removal C review
 
@@ -492,16 +296,13 @@ qualify live radio, timing, heap use or physical ESP/Home Assistant integration.
 
 ## Remaining acceptance
 
-- Repeat broker/Wi-Fi checks on the final deployment network; the current proof
-  uses one private hotspot and broker.
-- MQTT reconnect, prolonged load/exhaustion and USB Apply during network traffic.
-- Independent I2C/SPI/UART physical transactions and combined-load measurements.
-- Live Home Assistant display with ESP results; the host adapter has passed
-  local-broker/compiled-C and rendered simulated-HA tests; physical acceptance remains open.
-
-Use the [team implementation plan](../../../CONTRIBUTING.md) to coordinate these
-checks. Historical experiment records were removed from this checkout at the
-user's request; they must not be presented as evidence for the cleaned build.
+The BMP388/LD2450 single-broker workflow and scoped static-memory assessment are
+complete for their measured configurations. Recheck the final deployment network,
+installed image and readiness. Remaining limits include indefinite reliability,
+arbitrary certificate chains, forced USB/TLS overlap, optional BLE/coexistence,
+visible OLED control after idle transition, and unmeasured electrical/cache-off
+behavior. New workloads require new measurements; use the
+[hardware procedure](../../../HARDWARE_ACCEPTANCE.md).
 
 ## Queue bookkeeping storage
 

@@ -81,314 +81,41 @@ demonstration.
   implementing them.
 - Handoff: example profiles, host flow, diagram, integration evidence and demo.
 
-## Completion plan
+## Delivery scope
 
-**Live demo scope (19 November).** Use the BMP388 and LD2450 on the same
-running ESP image. The [physical power-bank rehearsal](tools/configurator/README.md#power-bank-demo-rehearsal)
-passed all five reads on a single cold boot over Wi-Fi/MQTT, including the
-switch back to BMP388, final result expiry and clean disconnect.
+The submitted workflow is implemented: reviewed Markdown is compiled on the host,
+loaded as a bounded TJ v2 rule, explicitly executed on the ESP32-C3, and displayed
+in the Configuration Desk and Home Assistant. The same firmware switches between
+BMP388 I2C reads and LD2450 UART reception. The generic layer also supports SPI
+writes and raw UART transmission; visible OLED behavior after entering the idle
+plan is not qualified.
 
-Demo-broker TLS and the five physical restart checks have passed. The
-[64-read physical run](tools/configurator/README.md#repeated-bmp388-and-radar-switching)
-verified 16 alternating BMP388/radar cycles, end-to-end results, broker timing
-and target allocation and stack counters. Remaining submission work includes
-whole-system resource qualification and the final demo script, diagram and
-evidence. Keep visible OLED control for spare time. Dedicated intermittent MQTT-delay investigation remains last priority.
+One controller owns one journal per node. One rule is active and at most one
+command is outstanding. Transactions require an idle peripheral plan. USB profile
+configuration, saved-profile restoration and diagnostics remain available.
+Automatic PDF conversion, trained ML, sensor-unit decoding, arbitrary wiring,
+concurrent rule programs, SPI receive and automatic rule persistence are outside
+the delivery.
 
-The user lifted the earlier input deferral on 17 November. The
-[connect retry correction](firmware/src/network/README.md#mqtt-tls-connect-retry)
-has software and target-build verification. The approved
-[cumulative board comparison](tools/transaction/README.md#backed-up-tls-board-comparison)
-passed initial status and broker reconnection, then lost normal-profile replies
-before any idle Apply. A later
-[USB/TCP diagnostic trial](tools/transaction/README.md#usb-mqtt-observation-board-trial)
-did not reproduce that stall; both original-image controls also passed.
-The original image/profile were restored after each trial. Sustained MQTT
-reliability and whole-system resource compliance remain final
-acceptance requirements. The numbered sections below track the remaining areas.
+The [presenter guide](tools/configurator/README.md#tribunal-2-presenter-guide)
+covers setup, same-boot switching, expiry and recovery. The
+[physical verification summary](tools/configurator/README.md#physical-verification)
+distinguishes measured behavior from remaining hardware limits. The
+[AAI13 assessment](docs/reports/wifi-static-memory/README.md#week-13-evidence-for-aai13)
+records the release RAM budget, allocation attribution and exact qualification
+scope. General wireless/static-memory qualification beyond that workload is not
+claimed.
 
-The finished demonstration must let a user select reviewed peripheral Markdown
-and an operation on the host, inspect the proposed communication, load the rule,
-explicitly execute it and see raw bytes/status in the host UI and Home Assistant.
-Changing rules, supported peripherals or protocols must use the same running
-uT-Kernel firmware image.
+## Verification and contributions
 
-The initial delivery uses one ESP32-C3, one controller, one active rule and one
-outstanding operation. Peripherals can remain wired to their reviewed buses;
-transactions execute sequentially with an idle peripheral plan. Existing
-configuration profiles remain the setup/recovery path. Automatic PDF processing,
-trained ML, sensor-unit decoding, arbitrary GPIO wiring, concurrent rule programs,
-SPI receive and automatic rule persistence are outside this delivery. Network
-credentials may be provisioned once for the demonstration; changing a peripheral
-rule must not require another build.
+Follow the [C standard](C_CODING_STANDARD.md), [test guide](tests/README.md) and
+[hardware acceptance procedure](HARDWARE_ACCEPTANCE.md). Use the pinned formatter,
+manual review, warnings as errors and active assertions; build affected real
+ESP targets. Keep dependency pins, approved exceptions and memory caps unchanged.
+Source checks, host tests, target compilation and physical observations are
+separate evidence.
 
-### Reviewed baseline
-
-| Area | Present implementation | Remaining gap |
-|---|---|---|
-| ESP decision program | `txjob` validates and stores the active rule, preserves it on rejection and passed 64 physical BMP388/radar reads | Include the [decision vectors](firmware/src/services/transaction/README.md#decision-test-vectors-for-the-demo) and measured results in the submission |
-| Generic operations | `txport` reaches actual I2C, SPI-write and raw UART HALs through `c3tx` | Physical acceptance, initialization prerequisites and selected timing extensions |
-| Description compiler | `tools/transaction/description.py` compiles I2C register reads, SPI writes and raw UART chunks | OLED cold-start, continuous radar streaming and SEN0390 review |
-| MQTT | Live BMP388 rule switching, target rejection, cached results and broker recovery verified on the earlier image; HTTPS now removed | Wider secure-connection load and network allocation blocker |
-| UI | Runtime transactions tab implements description selection, preview, load/execute and expiring results; physical BMP388/radar power-bank browser walkthrough passed | Final demonstration script |
-| Home Assistant | WSL2 container displayed all 64 physical BMP388/radar reads and passed the five earlier restart checks | Final demo handoff |
-| Verification | 531 target-facing tests plus 59 affected tests rerun after SDK-binding corrections; full 337-file C gate, checked target image, SDK setup/free instruction probe and unchanged memory budgets | Whole-system resource acceptance, wider network reliability and optional visible OLED response |
-
-The [15 November hardware check](firmware/src/network/README.md#current-hardware-check)
-resolved the observed Wi-Fi join failure with an explicit startup-power setting.
-The same image rejoined after an ESP restart and a hotspot outage, while retaining
-the original peripheral profile. This closes the hotspot connectivity blocker.
-The follow-up [live MQTT check](firmware/src/network/README.md#live-mqtt-check)
-also passed the BMP388 rule-switching and rejection sequence, host reopen and
-broker recovery. Whole-system resource acceptance remains open.
-
-The [current assessment](docs/reports/wifi-static-memory/README.md#imported-tls-derivation-key)
-gives the latest software image's measured fixed RAM and remaining budget.
-Use those limits for the remaining TLS/TCP storage. The previous
-[board trial](tools/transaction/README.md#plan-change-session-trial) records
-the backed-up installation and restoration.
-Fixed-linker fit is not free-heap, stack or timing acceptance.
-
-### 1. Session contract and final resource acceptance
-
-**Session contract implemented; resource assessment complete; allocation
-remediation and board measurements remain open.** `TJ` v2 reuses the existing
-application boot identity and adds a read-only MQTT status query without growing
-the 96-byte messages. It reports active rule, generation, busy/cleanup/readiness,
-last completion, pending request and boot-relative times. Device identifiers are
-now at most 15 characters; v1 wire packets and transaction JSON are rejected.
-
-The [transaction contract](firmware/src/services/transaction/README.md) specifies
-restarts, delayed replies, exact retries, ID exhaustion and generation changes.
-The C engine and host codec preserve original cached completion times and retain
-operation kind, byte counts and bus settings. One-shot CLI status and explicit
-boot binding are available; the persistent controller is described in Step 2.
-A reconnect never authorizes repeating a write with a new ID.
-
-Verification: 531 target-facing tests passed; all 59 affected TLS/qualification
-tests passed again after the SDK-binding correction. The full 337-file C standard
-gate, manual review, fresh ESP32-C3 build, source-snapshot verification and unchanged
-group/total fixed-memory caps pass. The binding tests cover eight-entry profiles
-with four enabled devices at late/interleaved positions, unchanged sample
-identities, repeated driver replacement, five-worker rejection, rollback and
-retained cleanup failures. TLS output tests cover three-buffer capacity, erasure,
-setup failure, same-sized unrelated allocations and 1,000 reuse cycles. The
-compiled SDK setup/free instruction probe also passes, with heap and hash calls
-doubled; it performs no TLS handshake. All 47 qualification tests pass.
-These are software/build results; this image
-remains unflashed. Prior live network checks above apply to the previous image.
-
-The [current resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
-identifies reachable heap allocation in mbedTLS state/buffers,
-lwIP packet/control-block pools and other SDK state. The mailbox backing path uses
-the existing fixed queues, with exhaustion/reuse tests and linked-target proof;
-that change adds no fixed RAM or native objects. The Wi-Fi-driver exception does
-not exempt these application network paths. Static native tasks/queues alone
-are insufficient. Compact configuration views reclaimed 24,600 fixed DRAM bytes
-without changing the profile schema. The user authorized removal of the ESP HTTPS service on 17 November. The
-listener, HTTP/profile-upload code and host commands are gone; full-profile setup
-and recovery use USB. Runtime rules and results still use MQTT over verified TLS,
-and the host Configuration Desk/Home Assistant web interfaces remain available.
-This supersedes the earlier requirement to retain MQTT plus two HTTPS sessions.
-
-`c3tls` and `c3tout` now reserve one MQTT context/error record and full-size
-input/output buffers, the retained broker hostname and typed outer handshake
-state, including overlapping active/negotiating transform and session records,
-plus the temporary peer-certificate head and retained peer digest.
-TLS derivation also reserves its seed, label, secret and temporary imported
-key for the application's native task. The shared PSA table peaked at three
-slots on the board during MQTT connection and reconnect. A 30-slot diagnostic
-recovered from exhaustion in emulation. The laptop TLS client used five
-slots during renegotiation. The ESP also peaked at five during a verified
-server-requested renegotiation and returned to two occupied slots. In host
-tests with one additional AES key held, five slots exhausted the table and
-six completed renegotiation. The fixed-six ESP diagnostic also passed Wi-Fi
-startup, broker restart and TLS renegotiation on its normal profile. Measure
-the ESP during a confirmed overlapping Wi-Fi group-key renewal before
-selecting a production capacity.
-The [removal verification](firmware/src/network/README.md#esp-https-removal) and
-[resource assessment](docs/reports/wifi-static-memory/README.md#current-network-resource-assessment)
-record the fresh build and measured headroom. The user approved disabling unused
-TLS session tickets on 17 November; reconnects still use full verified handshakes.
-Inner certificate, key and TCP/IP state still need bounded storage.
-Keep full record limits and certificate checks while
-designing that storage. The pinned dynamic-buffer option remains rejected because
-it loses partial headers across nonblocking retries. No cap increase or new
-allocation exception is authorized by removing HTTPS.
-
-**TLS work resumed on 17 November:** implement bounded network allocation with
-deterministic exhaustion and reconnect tests, then
-capture startup/reconnect/normal-operation
-heap, native-object and stack evidence on the selected board. Do not mark
-whole-system static memory complete from the linker table or host tests.
-
-### 2. Build the persistent host controller
-
-Extend the existing `tools/transaction/` package with one serialized controller.
-It owns connection state, session recovery, request IDs, rule revisions, pending
-operations, result correlation and display expiry. Reuse the current compiler,
-codec and TLS transport. UI and Home Assistant consume its events; neither
-becomes a second command owner.
-
-Provide explicit select/preview, load and execute operations. Load must complete
-successfully before execution becomes available. An unknown transport outcome
-must remain unknown; reconnect must not repeat a write. Preserve command identity
-and unresolved outcomes across host restart, or require a verified fresh session.
-
-Make idle-plan preparation and restore an explicit setup workflow through the
-existing configuration controller. Preserve/export the saved profile; do not
-silently stop workers, rewrite saved settings or flash on connection. A reboot
-can restore an old active profile, so readiness must be checked again.
-
-Done: a user can run A -> B -> rejected update -> B -> A without typing request
-IDs or generation numbers, including recovery from host/ESP/broker restarts.
-First verify this with the compiled C fixture and a real local TLS broker.
-
-**Software implementation complete:** `controller.py` owns the session and
-`journal.py` commits exact packets before publication. `session.py` exposes
-explicit JSON-line commands without manual counters or UI changes. Reconnect
-queries only; explicit recovery retrieves a proven cached completion without
-new I/O. An unseen command remains unknown and blocks another command. ESP boot
-or generation changes invalidate the old active rule and require explicit load.
-The current/last state is durable; it is not a complete transaction history.
-
-Tests cover process termination, disk errors, cross-process ownership, stale
-display data and boot/generation changes during recovery using the actual C
-engine/owner. The loopback TLS broker test covers rule switching, host restart,
-lost replies and broker restart. It also rejects incorrect hostname/login
-credentials. Board Wi-Fi acceptance and the UI/HA integration remain separate.
-See [usage and reproduction](tools/transaction/README.md#persistent-controller).
-
-### 3. Complete the reviewed peripheral operations
-
-Extend the versioned description contract only for supported transfer shapes:
-I2C write/read, SPI write with reviewed D/C and CS, and UART raw receive/write.
-Keep strict limits, source provenance and independent target validation. Do not
-encode device-name cases in the generic drivers.
-
-| Demonstration | Required work |
-|---|---|
-| BMP388 | Preserve chip-ID and three-byte raw reads; make initialization and possible zero data explicit |
-| SPI OLED | Physical Desk and HA verified AE/AF writes. On idle the panel stayed blank after the normal setup bytes and all-pixels command. The normal profile restored content on the same boot. Isolate reset and SPI ownership before claiming visible idle control |
-| LD2450 | Sixteen reads at each chunk length passed on the physical ESP, Desk and HA under alternating I2C/UART load. Continuous UART streaming and report framing remain unqualified |
-| SEN0390, desired second I2C device | Resolve the source's register/timing ambiguity and EN handling; expose the HAL's existing read pause only through a reviewed rule extension; physically qualify before claiming device switching |
-
-The HAL already has `read_pause_ms`; `txport` currently sets it to zero. This is
-an integration gap, not a reason to write another I2C driver. Other protocols'
-command/wait/read sequences need separate explicit support. The SHT4x and
-unavailable ADXL345/VEML7700 hardware are additional scope unless chosen for the
-demonstration. Never report every Markdown file as executable or hardware-tested.
-
-Done: every operation offered by the final host workflow compiles to a supported
-rule, has deterministic prerequisites and has appropriate reference tests.
-
-### 4. Establish the actual Wi-Fi/MQTT deployment
-
-Prepare reproducible private broker/CA/credential settings and Home Assistant
-connection instructions. Confirm the board, wiring and installed image afresh;
-preserve a full backup and obtain installation approval before a test flash.
-Verify real TLS trust, server-name and certificate-time behavior with the pinned
-SDK, plus AP/broker loss and reconnection. Do not disable TLS checks to get a pass.
-
-Start this bench check early when equipment is available, using the current CLI
-if the controller is not ready yet. It can expose network/resource blockers
-before UI work. USB diagnostics remain a recovery tool; USB transactions and
-host simulations do not count as live MQTT acceptance.
-
-Done: the ESP receives a rule over actual Wi-Fi/MQTT, executes a real bus
-transaction and returns correlated raw bytes/status on the same installed image.
-
-### 5. Connect the user interface
-
-The [simulated operator walkthrough](tools/configurator/README.md#simulated-operator-walkthrough)
-verified preview versus active rule. The [physical BMP388 walkthrough](tools/configurator/README.md#physical-bmp388-walkthrough)
-verified A/B/A reads, expiry and disconnect in the Desk and Home Assistant.
-
-Propose a small Runtime Transactions view within the existing Configuration Desk
-and review it with the user before UI implementation. Preserve the visual style.
-Show the selected description/operation, connection/readiness, proposed protocol,
-address/settings, TX bytes, RX length, active rule and last operation outcome.
-Distinguish configuration accepted, execution complete, unavailable and unknown
-outcome. Unsupported operations explain their missing capability and cannot run.
-
-Use the controller from step 2 for all actions. Preserve the existing profile and
-recovery views. Bounded display history should retain source/rule identity and
-failure information without presenting stale bytes as a current measurement.
-
-Done: the complete normal demonstration can be run through the UI without
-editing JSON or entering internal request counters. Browser tests cover busy,
-delayed response, reconnect, rejected update and stale-display behavior.
-
-### 6. Add Home Assistant display
-
-**Host implementation and MQTT-contract tests complete.** `homeassistant.py`
-consumes copied controller snapshots, and `session --home-assistant` enables it.
-It publishes stable discovery identities and state for status, raw hex, active
-rule/protocol and counts. Configured bytes/counts remain separate from reported
-results; an update acknowledgement never becomes a fresh reading. The existing
-Configuration Desk and firmware are unchanged by this host adapter.
-
-Tests cover adapter/ESP availability, expiry, broker reconnection, retained
-discovery, non-retained raw state and HA birth/reload. Re-announcing discovery
-adds no driver call. See the [setup, topics and limits](tools/transaction/README.md#home-assistant-display).
-
-The [earlier live trial](tools/transaction/README.md#current-live-trial) received
-discovery and ready-state messages, but completed no new rule execution. The
-[WSL2 HA container](tools/transaction/README.md#home-assistant-container-in-wsl2)
-subsequently passed simulated display and restart checks, including the rendered
-operator walkthrough. The old VM instability remains a separate unresolved issue.
-The physical BMP388/radar switching checks are recorded in the completion plan above.
-Wider reliability remains open. The dedicated MQTT-delay investigation is last priority.
-
-Physical BMP388 display, expiry and disconnect passed on 19 November.
-The [physical restart check](tools/configurator/README.md#physical-restart-recovery)
-also passed for the Desk, both MQTT brokers, HA Core and the ESP.
-
-### 7. Complete integrated acceptance
-
-On one selected image, demonstrate valid zero bytes, changes in command/read
-length, protocol switching and preservation of the active rule after a rejected
-update. Use the BMP388 and radar for the demo. The desired second I2C device
-requires separate qualification. Exercise stale/duplicate/out-of-order messages,
-wrong sessions/generations, full buffers, oversized input, missing peripherals,
-timeouts, cleanup failure and reconnects. Include a cold boot and sustained load.
-
-Measure runtime allocation/creation calls, stack high-water marks and operation
-latency under the combined load. The fixed linker budget is only one gate.
-Re-run the pinned formatter/full C gate, manual BARR-C review, affected tests,
-Linux sanitizer checks where required and fresh real-target builds for changes.
-Do not weaken assertions, budgets or approved exceptions.
-
-Done: each success/failure is tied to exact source/build identity and actual
-wiring, with host simulation, physical observation and unperformed checks
-separated. Follow [hardware acceptance](HARDWARE_ACCEPTANCE.md).
-
-### 8. Package the final delivery
-
-Provide one startup/setup path, private-settings template, reviewed descriptions,
-reproducible builds/tests, a task/data-flow diagram, recovery instructions and a
-short professor demonstration script. Show the unchanged firmware identity while
-switching rules and retain an explicit limitations list.
-
-The Week 13 submission requires the current memory-budget table, static-
-allocation design, overflow/exhaustion demonstration and verification evidence.
-Publish a small reviewed, sanitized final report in the maintained documentation;
-keep credential-bearing firmware, raw captures and large outputs under ignored
-`build/` or private storage. Retiring old history does not remove this final
-submission requirement. Review the final diff and cloud checks before an
-explicitly authorized commit/push/release.
-
-Keep one main guide per maintained folder. Historical source/evidence is already
-kept by the user outside this working checkout; it is not a current build input.
-Current coding-policy approvals, pins, tests and useful setup/recovery tools stay.
-The retired source holding copy under ignored `build/retired-cleanup-20261113/`
-is local-only because automatic review blocked permanent broad deletion.
-
-Every member follows [BARR-C:2018](C_CODING_STANDARD.md) and the checks in
-[AGENTS.md](AGENTS.md): pinned formatter/full gate, manual review, warnings as
-errors with assertions enabled, and applicable real-target builds. No budget,
-policy exception or test assertion may be weakened to make cleanup pass.
-Use [hardware acceptance](HARDWARE_ACCEPTANCE.md) for wiring/procedures. Host
-simulation, target build and physical acceptance remain distinct. Raw measurement
-accuracy is not the demonstration goal; communication, runtime change and honest
-status are. Preserve Member 5's existing UI style and review UI changes first.
+Keep current usage and limitations in each folder's main guide. Record fresh
+builds and private bench captures under ignored `build/`; do not publish
+credentials, provisioned firmware or raw private captures. Preserve the team's
+attribution and Member 5's UI style. Review UI changes with the project owner.

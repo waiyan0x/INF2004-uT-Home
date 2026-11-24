@@ -44,19 +44,11 @@ A second profile can read status register `0x03` on the same firmware. This
 checks configurable register access, not sensor accuracy, arbitrary-device
 support, full timing acceptance or MQTT/Home Assistant integration.
 
-Bench observation, 4 November 2026 (build `recipe-20261104-r1`, C3 MAC
-`d4:05:92:e6:c3:bc`, BMP388 at `0x77` with OLED and LD2450 wired): Desk applied
-`i2c-recipe-demo` (revision 925) and the monitor showed fresh byte `50`. The
-recipe form then changed only the register to `0x03`; revision 926 showed `70`
-without reflashing or a board restart. `c3-protocol-demo` was reapplied as
-revision 927 and BMP388 readings resumed. The LD2450 reported faults throughout,
-including before the reflash. A full flash backup was taken first; it is local
-only. This is a short observation, not timing or combined-system acceptance.
-
-The local build-only evidence is
-`build/datasheet-work/generic-target-build-evidence.json`; it records the source
-hashes and compiler profile for the earlier primitive build. No board was flashed
-or tested for that build.
+A physical BMP388 recipe trial changed register `0x00` to `0x03` without a
+reflash or board restart and restored the normal device profile afterwards.
+That trial establishes configurable register access only. Current runtime
+transaction and Home Assistant evidence is summarized in the
+[operator guide](../../../tools/configurator/README.md#physical-verification).
 
 `senlux` is a fixed-storage SEN0390 sequence used by the provisional reviewed
 adapter. It reserves address 0x4A, drives a borrowed EN output low for at least
@@ -76,7 +68,7 @@ first-read NACK. That narrows the failure but does not identify its cause. The
 repeats light reads during startup; its loop is unbounded and also treats zero as
 not ready, so it is not a suitable implementation of this runtime's contract.
 Investigate the NACK without masking faults, then extend the four-device board
-test and assess the existing radar fault before advertising the driver.
+test and assess shared-bus behavior before advertising the driver.
 
 The SEN0390 is not qualified for this primitive. DFRobot's reference library
 reads four bytes at register `0x00`, uses address bytes `0x94/0x95`, converts

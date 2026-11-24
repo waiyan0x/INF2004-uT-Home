@@ -14,7 +14,7 @@
   hashes and compiler-profile checks; building does not flash or qualify a board.
 - [c_standard/](c_standard/README.md): mandatory BARR-C checks and audit evidence.
 
-Follow the [current delivery plan](../README.md#overall-delivery-plan) for
+Follow the [delivery scope](../CONTRIBUTING.md#delivery-scope) for
 combined hardware acceptance and runtime-rule integration.
 The local configurator adapts Member 5's cached design; its README records the
 source revision and the retained/replaced pieces.

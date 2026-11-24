@@ -26,7 +26,7 @@ peak field measures all live tracked bytes at an allocation in that state.
 Include the live total at the start of the interval when calculating its peak.
 Check that requests and bytes reconcile against frees and retained blocks
 over each interval. Accept a run only with zero errors, the same owner and
-three authenticated replies from the same ESP boot. See the [board measurements](../../../docs/reports/wifi-static-memory/README.md#tls-worker-heap-across-three-handshakes).
+three authenticated replies from the same ESP boot. See the [board measurements](../../../docs/reports/wifi-static-memory/README.md#fixed-storage-design).
 
 To observe USB validation, run `source tests/target/tls_heap/usb_views.py` in
 ESP GDB on the diagnostic ELF. Before resuming from the reset halt, run
@@ -37,4 +37,4 @@ They resume automatically. At each test checkpoint, hold the broker's
 response to the client handshake flight until USB has returned a schema
 rejection. Match both events to that interval and verify the original profile
 revision and CRC, the authenticated MQTT reply and the allocator counters.
-[USB validation during MQTT TLS](../../../docs/reports/wifi-static-memory/README.md#usb-validation-during-mqtt-tls)
+[USB validation during MQTT TLS](../../../docs/reports/wifi-static-memory/README.md#qualification-limits)

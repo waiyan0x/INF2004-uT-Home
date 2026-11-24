@@ -1,6 +1,6 @@
 # ESP32-C3 network adapters
 
-This folder contains the SDK/kernel boundaries for the experimental network
+This folder contains the SDK/kernel boundaries for the network
 compatibility layer. Portable queue, event and wait policy lives in
 [`firmware/src/network`](../../../../src/network/README.md), which owns the
 resource limits, build instructions, manual reviews and qualification evidence.
@@ -123,7 +123,7 @@ and kernel/clock calls doubled. They cover shared exhaustion, exact partition
 capacity, invalid/oversized requests, null messages, full queues, ISR posting,
 nonempty/foreign close, initialization order and 1,000 reuse cycles without
 additional native objects. The existing pool suite covers waiter/release races.
-For fresh target results and the remaining TLS/TCP/IP allocation gaps, see the
+For current target results and workload qualification limits, see the
 [current resource assessment](../../../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
 No live broker, board timing or whole-system heap acceptance follows from these
 software checks.
@@ -164,8 +164,8 @@ the full 31-character node limit. This pays for the socket endpoint within the
 original MQTT module reservation. The maximum-name test checks availability,
 the transaction subscription and the result topic through the MQTT adapter.
 
-The build guard excludes ESP-TLS saved-session storage. mbedTLS ticket parsing
-can still allocate internally; it is not covered by that guard.
+The build guard excludes ESP-TLS saved-session storage. Separate mbedTLS
+feature checks disable ticket parsing under the session-ticket policy below.
 Global CA-store and saved-session APIs are outside
 this adapter contract; selected callers supply their own CA bytes and no saved
 session. Do not add another ESP-TLS user without reviewing its allocation shapes.
@@ -200,12 +200,13 @@ lease cycles under allocator interception. They do not perform TLS handshakes.
 The real target build uses the full pinned SDK declarations.
 
 The selected build rejects `CONFIG_MBEDTLS_DYNAMIC_BUFFER`; the pinned SDK's
-partial-header failure is documented in the resource assessment below. The
+partial-header failure is reproduced by the
+[TLS fragment probe](../../../../../tools/target/README.md#tls-fragment-reproducer). The
 qualifier also rejects a linked `esp_mbedtls_add_rx_buffer` implementation.
 
 The scoped bindings cover ESP-TLS context, name and numeric endpoint storage. The adapter below owns TLS
-record buffers and the connection hostname; certificates/keys, ticket state and lwIP packet/control-block storage still
-need bounded allocation and live acceptance. See the
+record buffers and the connection hostname. Additional scoped adapters below
+cover certificate/key and lwIP storage; session tickets are disabled. See the
 [current resource assessment](../../../../../docs/reports/wifi-static-memory/README.md#current-network-resource-assessment).
 
 ## Fixed TLS record buffers
@@ -274,7 +275,7 @@ The original SDK owns buffer pointer updates, retries and cleanup order. The
 adapter never releases a buffer at WANT_READ/WANT_WRITE or uses stack-backed storage for
 partial data. It uses the SDK's explicit zeroization operation before making
 storage reusable. The two record requests and scoped hostname request have a fixed-pool guarantee;
-other SDK allocations are visible remaining work. Host tests intercept direct
+other SDK allocation shapes belong to their separate adapters and policies. Host tests intercept direct
 allocator calls in the owned module and separately count intentional SDK
 forwarding. They cover independent exhaustion, alignment, complete clearing on
 both cleanup paths, failure before/between/after buffer acquisition, output
@@ -352,7 +353,7 @@ both release paths, zeroing/reuse and out-of-phase equal-sized allocations.
 Their opaque typed records do not simulate crypto cleanup. Compiled SDK probes
 separately exercise native lifecycle instructions against the real typed stores.
 Fresh checks, build identity and limits are in the
-[resource assessment](../../../../../docs/reports/wifi-static-memory/README.md#fixed-tls-handshake-state).
+[resource assessment](../../../../../docs/reports/wifi-static-memory/README.md#fixed-storage-design).
 
 ## Fixed peer certificate records
 
@@ -556,7 +557,7 @@ both stores' exhaustion, both free paths and unrelated allocations across phases
 The compiled probe separately executes native message framing, identity decisions,
 promotion and cleanup. DER parsing, trust verification, digest/key operations,
 record reading and alerts are doubled; it is not authentication or hardware proof.
-See the [fresh evidence and remaining work](../../../../../docs/reports/wifi-static-memory/README.md#fixed-peer-certificate-records).
+See the [current storage design and qualification scope](../../../../../docs/reports/wifi-static-memory/README.md#fixed-storage-design).
 
 ## Fixed TLS derivation inputs
 
@@ -643,15 +644,16 @@ limit or a heap exception. No pinned SDK source is modified.
 The final ELF has no session/handshake ticket fields. A native session is now
 128 bytes, down from 144; the two session stores save 32 bytes. Transforms remain
 84 bytes and the handshake remains 2,448 bytes. State probes and host doubles
-use the reviewed new sizes. This does not close inner certificate/key, secret
-or TCP/IP allocations, nor establish runtime peaks or hardware acceptance.
+use the reviewed new sizes. This ticket policy alone does not establish
+certificate/key, secret or TCP/IP allocation behavior; their scoped adapters
+and the resource assessment describe those boundaries.
 
 Manual BARR-C review covers the additional feature guard and the host fixture's
 session-size change: C99 and existing prefixes/types remain; bounds match the
 measured layout, and no runtime algorithm, cast, lifetime, synchronization,
 task/ISR contract or exception changes. The host-only `tlsconf.h` uses ordinary
 preprocessing to select the same ticket policy without altering vendor headers.
-See the [verification and build identity](../../../../../docs/reports/wifi-static-memory/README.md#mqtt-session-tickets-disabled).
+See the [verification and build identity](../../../../../docs/reports/wifi-static-memory/README.md#fixed-storage-design).
 
 ## Fixed lwIP records
 
@@ -691,7 +693,7 @@ reschedule even with every slot occupied. Native scheduling asserts on
 exhaustion in this build. Changes to interfaces, protocols or timer owners
 require another capacity check.
 
-[Timer capacity and verification](../../../../../docs/reports/wifi-static-memory/README.md#fixed-tcpip-timeout-records)
+[Timer capacity and verification](../../../../../docs/reports/wifi-static-memory/README.md#fixed-storage-design)
 
 ### lwIP record C review
 
@@ -717,7 +719,7 @@ reference count. Its stop path unlinks the list and saves the next pointer
 before releasing each entry. A second interface or distinct group receives
 `ERR_MEM` while the station holds the slot. Home Assistant discovery runs
 on the MQTT host, so the demo requires no further group on the ESP.
-[Membership checks](../../../../../docs/reports/wifi-static-memory/README.md#fixed-station-multicast-membership)
+[Membership checks](../../../../../docs/reports/wifi-static-memory/README.md#fixed-storage-design)
 
 The two message arrays use the native `struct tcpip_msg` layout. Each
 record uses 16 bytes on RV32 plus one byte of occupancy. A failed post
@@ -731,8 +733,8 @@ zeroing and repeats release and reuse 1,000 times with heap calls trapped.
 Run it with `python -B -m unittest discover -s tests/target -p test_lwip_records.py -v`.
 The target build checks the eight record source bindings. The linked-instruction
 test exercises both immediate failure and partial-write rollback.
-[TCP record measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-tcp-records)
-[Receive and dispatch measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-tcpip-message-handoff)
+[TCP record measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-storage-design)
+[Receive and dispatch measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-storage-design)
 
 ## Outgoing TCP packets
 
@@ -780,7 +782,7 @@ layer and the exact SDK frame size. Its 44-byte backing length fits the
 16-bit SDK argument. The ABI, device register access and task/ISR contracts
 are unchanged. The two reviewed C99 adapters require no new deviation.
 
-[ARP and UDP measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-arp-and-udp-storage)
+[ARP and UDP measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-storage-design)
 
 ## ARP and Wi-Fi packet copies
 
@@ -822,7 +824,7 @@ The non-null opaque key identifies a live slot under the same guard used
 for lookup and deletion. The eight queues, sixteen semaphores, thirty-two
 mutexes and 8,192 queue payload bytes retain their previous capacities.
 
-[Packet-copy measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-arp-and-wi-fi-frame-copies)
+[Packet-copy measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-storage-design)
 
 ## DHCP client and outgoing messages
 
@@ -834,7 +836,7 @@ its final pbuf reference is released. A third simultaneous request receives
 the native allocation error and uses the client's retry schedule. Timer
 records and packets copied by other layers have separate ownership.
 
-[DHCP memory checks](../../../../../docs/reports/wifi-static-memory/README.md#fixed-dhcp-client-and-messages)
+[DHCP memory checks](../../../../../docs/reports/wifi-static-memory/README.md#fixed-storage-design)
 
 ## Wi-Fi receive records
 
@@ -860,4 +862,4 @@ Lengths above the SDK's 16-bit field are refused before conversion. A raw
 pbuf adds zero header offset, preserving the driver's payload pointer.
 No new kernel object or coding-standard deviation is required.
 
-[Receive tests and measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-wi-fi-receive-records)
+[Receive tests and measurements](../../../../../docs/reports/wifi-static-memory/README.md#fixed-storage-design)

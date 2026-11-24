@@ -18,7 +18,7 @@ commands, ownership, partition layout, reconnect behavior and acceptance limits.
 Telemetry/health and [display services](../src/services/TELEMETRY.md#oled-rendering) are now
 integrated. The [local UI](../../tools/configurator/README.md) discovers compiled
 capabilities and uses this endpoint. [Typed rules](../src/automation/README.md)
-route configured sources to the existing PWM component. Combined wireless/hardware acceptance remains open. The current rule-based
+route configured sources to the existing PWM component. The single-broker wireless demo has scoped physical acceptance; broader workloads require separate qualification. The current rule-based
 transaction owner is documented in [transaction services](../src/services/transaction/README.md).
 
 Optional networking is selected with `--network-services ble|wifi|both`
@@ -52,11 +52,8 @@ with connection/read/write entry points unresolved at link time. Assertions
 cannot be disabled. The pump retains its 48-byte maximum write chunks for the
 64-byte response, avoiding a full USB packet requiring a terminating ZLP.
 
-Verification on 17 November 2026: 73 affected host tests and the full pinned
-BARR-C gate (334 files) passed. The fresh ESP32-C3 build and snapshot check
-passed. Fixed application memory remains 143185/147456 bytes and total DRAM
-272322/278528 bytes; no fixed-memory category grew. The subsequent
-[backed-up board trial](../../tools/transaction/README.md#usb-mqtt-observation-board-trial)
-observed these MQTT fields during normal traffic and broker recovery, then
-restored the original flash. The later stall did not recur; sustained hardware
-acceptance and runtime heap/stack peaks remain open.
+Current software checks are described in the [test guide](../../tests/README.md).
+The [resource assessment](../../docs/reports/wifi-static-memory/README.md)
+records the qualified release image, current RAM budgets and workload limits.
+[Physical verification](../../tools/configurator/README.md#physical-verification)
+covers the Desk, MQTT, BMP388, LD2450 and Home Assistant workflow.

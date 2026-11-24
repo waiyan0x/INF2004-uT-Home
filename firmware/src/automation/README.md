@@ -3,7 +3,8 @@
 This module provides bounded sensor-to-output rules for the platform.
 It uses common sample types, the existing guarded source cache and the existing
 PWM component. The generic runtime and HAL gain no device-name branches.
-Physical output acceptance remains open; offline AI work is a separate pipeline.
+Physical output acceptance remains open. These profile-based output rules are
+separate from the [runtime peripheral transactions](../services/transaction/README.md).
 
 Only two C modules are added: `rulecalc` evaluates copied typed samples;
 `cfgrule`, under `config/`, independently admits rules. The existing binder
