@@ -80,6 +80,10 @@ export function setupRuntime() {
       : available ? 'Execution complete' : display?.status === 'execute_ok' ? 'Result expired'
         : statusNames[display?.status] || display?.status?.replaceAll('_', ' ') || 'Unavailable';
     el('status').textContent = status;
+    const receipt = available && state?.mqtt_receipt;
+    el('receipt').hidden = !receipt;
+    el('receipt').textContent = receipt
+      ? `MQTT/TLS reply #${receipt.request_id} · ${receipt.bytes} bytes · ${receipt.topic}` : '';
     el('raw').textContent = available ? (display.raw_hex || '(empty)') : 'Unavailable';
     el('tx').textContent = available ? String(display.tx_accepted) : 'Unavailable';
     el('rx').textContent = available ? String(display.rx_received) : 'Unavailable';

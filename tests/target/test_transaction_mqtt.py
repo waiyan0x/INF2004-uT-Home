@@ -46,7 +46,14 @@ class MqttControllerTests(unittest.TestCase):
             controller.connect()
             controller.select(ROOT/'datasheets/bmp388.md', 'chip_id', 119)
             self.assertEqual(controller.load()['status'], 'ok')
-            self.assertEqual(controller.execute()['raw_hex'], '50')
+            controller.refresh()
+            self.assertIsNone(controller.snapshot()['mqtt_receipt'])
+            reading = controller.execute()
+            self.assertEqual(reading['raw_hex'], '50')
+            controller.refresh()
+            self.assertEqual(controller.snapshot()['mqtt_receipt'], {
+                'topic': f'uthome/v1/{NODE}/transaction/result', 'bytes': 96,
+                'request_id': reading['request_id']})
             controller.select(ROOT/'datasheets/bmp388.md', 'pressure_raw', 119)
             controller.load()
             self.assertEqual(controller.execute()['raw_hex'], '00 00 00')

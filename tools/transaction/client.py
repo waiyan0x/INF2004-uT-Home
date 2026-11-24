@@ -197,6 +197,7 @@ class Mqtt:
         if not re.fullmatch(r'uthome-[0-9a-f]{12}',node):
             raise ValueError('node must be the ESP MAC identity uthome-xxxxxxxxxxxx')
         self.timeout=timeout; self.ready=False; self.failure=None; self.responses=[]
+        self.last_execute_reply = None
         self.request_topic=f'uthome/v1/{node}/transaction/request'
         self.result_topic=f'uthome/v1/{node}/transaction/result'
         self.client=mqtt.Client(client_id=f'uthome-controller-{os.getpid()}',clean_session=True)
@@ -260,6 +261,8 @@ class Mqtt:
                 return True
             return False
         self.wait(matching)
+        if kind == 2:
+            self.last_execute_reply = answer
         return answer
 
     def close(self):

@@ -338,7 +338,13 @@ class Controller:
                     age += int((self.clock() - self.query_started) * 1000)
                     if age < self.freshness_ms:
                         raw = result['raw_hex']
-        return dict(node=state['node'], connected=self.link is not None, status_fresh=recent,
+        receipt = None
+        if raw is not None and isinstance(self.link, client.Mqtt):
+            packet = self.link.last_execute_reply
+            if packet is not None and packet.hex() == last['reply']:
+                receipt = dict(topic=self.link.result_topic, bytes=len(packet),
+                               request_id=outcome['result']['request_id'])
+        return dict(node=state['node'], mqtt_receipt=receipt, connected=self.link is not None, status_fresh=recent,
                     ready=ready, can_load=ready and state['selected'] is not None and state['high_id'] < MAX_ID and state['revision'] < MAX_ID,
                     can_execute=ready and state['loaded'] is not None and state['high_id'] < MAX_ID,
                     issue=self.issue, error=self.error, journal_fault=self.fault,

@@ -137,6 +137,13 @@ entire I2C / UART / I2C sequence.
 | 3:30 | Leave the display alone for five seconds. Then click **Disconnect MQTT**. | First the result expires and raw/TX/RX clear while the active rule remains. After disconnect all six HA sensors become unavailable. |
 | 4:10 | Show the memory table, C-standard check and recovery evidence. | Explain which properties the live reads show and which require the measurements and controlled tests below. |
 
+**USB-powered wireless demonstration.** Keep the USB cable connected for power after setup.
+Leave the Desk serial connection closed and show **USB disconnected**. Click **Connect MQTT**,
+load the chip-ID rule and execute once. While `50` is fresh, **Latest result** shows the
+matching MQTT/TLS reply's request ID, packet length and result topic. Its 96 bytes include the
+transaction envelope carrying the one sensor byte. Keep the cable in place and click
+**Disconnect MQTT**. the reading clears and execution becomes unavailable.
+
 For a longer demonstration insert BMP388 `pressure_raw` after the first chip ID
 (TX 1, RX 3), and LD2450 `raw_32` after `raw_16` (TX 0, RX 32). Pressure is a
 raw register value. Radar data are bytes from a stream. The physical rehearsal

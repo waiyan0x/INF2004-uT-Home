@@ -172,6 +172,19 @@ test('a lost HTTP action blocks another execute until explicit status checking',
   expect(errors).toEqual([]);
 });
 
+test('a fresh MQTT receipt is shown with USB disconnected and clears on disconnect', async ({page}) => {
+  const initial = session();
+  initial.state.mqtt_receipt = {topic: 'uthome/v1/uthome-0123456789ab/transaction/result', request_id: 7, bytes: 96};
+  const {model} = await desk(page, initial);
+  const receipt = page.locator('#runtime-receipt');
+  await expect(page.locator('#connection')).toHaveText('USB disconnected');
+  await expect(receipt).toBeVisible();
+  await expect(receipt).toHaveText('MQTT/TLS reply #7 · 96 bytes · uthome/v1/uthome-0123456789ab/transaction/result');
+  model.view = session({connected: false});
+  await page.clock.runFor(650);
+  await expect(receipt).toBeHidden();
+});
+
 test('expired results and failed snapshots clear current bytes', async ({page}) => {
   const {model, errors} = await desk(page, session({age: 4900}));
   await page.clock.runFor(200);

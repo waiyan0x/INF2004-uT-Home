@@ -51,6 +51,7 @@ th { color: hsl(var(--muted-foreground)); font-weight: 500; }
 .runtime-results dt { color: hsl(var(--muted-foreground)); font-size: var(--text-sm); }
 .runtime-results dd { margin: var(--space-2) 0 0; overflow-wrap: anywhere; font-family: var(--font-mono); }
 #workspace-runtime .toolbar { align-items: center; }
+#runtime-receipt { overflow-wrap: anywhere; }
 #runtime-notice { margin: 0; }
 @media (max-width: 559px) {
   .runtime-fields { grid-template-columns: minmax(0, 1fr); }
