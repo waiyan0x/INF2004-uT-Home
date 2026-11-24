@@ -32,7 +32,7 @@ The physical demo switches between reading the BMP388 chip ID over I2C and recei
 | Peripheral descriptions and rule compilation | [Runtime transaction tools](tools/transaction/README.md) |
 | On-board rule execution | [Transaction service](firmware/src/services/transaction/README.md) |
 | USB configuration and recovery | [Configuration transfer](tools/config_transfer/README.md) |
-| Software and target verification | [Tests](tests/README.md) |
+| Requirements, test cases and reproducible verification | [Assessment test guide](tests/README.md#requirements-and-test-cases) |
 
 ## Running and reviewing the submission
 
@@ -42,14 +42,16 @@ steps. Supply credentials privately; a serial port, running broker and flashed
 image must be checked for the actual setup. Offline description preview does
 not require a connected board.
 
+The Git repository is the submission. For assessment, start with the
+[requirements-to-test map](tests/README.md#requirements-and-test-cases) and the
+[CI results for the submitted commit](https://github.com/waiyan0x/INF2004-uT-Home/actions/workflows/c-standard.yml).
+The test guide explains stimuli, expected results, exhaustive finite domains
+and the distinction between software tests and hardware qualification.
+
 For a reproducible firmware build, follow the [pinned target setup](firmware/README.md)
-and [target tools](tools/target/README.md). A Git checkout must initialize the
-pinned submodule with `git submodule update --init --recursive`; a source export
-includes that dependency at the recorded revision for review. The target build
-helper requires a clean Git checkout of the kernel as well as the SDK; for a
-source export, obtain a separate pinned kernel checkout and pass `--kernel` as
-described in the firmware guide. SDK and compiler installations are external
-prerequisites.
+and [target tools](tools/target/README.md). Initialize the pinned kernel with
+`git submodule update --init --recursive`. SDK and compiler installations are
+external prerequisites.
 
 The [test guide](tests/README.md) distinguishes host tests, target builds and
 hardware observations. [C coding policy](C_CODING_STANDARD.md),

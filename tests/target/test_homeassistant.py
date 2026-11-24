@@ -242,6 +242,39 @@ class DisplayBrokerTests(unittest.TestCase):
         self.assertEqual(self.bridge.command(0), 3)
         self.assertTrue(all(not retained for topic, _, retained in self.messages if topic.endswith('/state')))
 
+    def test_i2c_spi_uart_i2c_switch_reaches_display_on_one_compiled_owner(self):
+        self.controller.connect()
+        boot = None
+        cases = (
+            ('bmp388.md', 'chip_id', 119, None, 1, 1, '50'),
+            ('ssd1306.md', 'display_off', None, None, 1, 0, ''),
+            ('ld2450.md', 'raw_32', None, bytes(range(32)), 0, 32,
+             ' '.join(f'{value:02X}' for value in range(32))),
+            ('bmp388.md', 'chip_id', 119, None, 1, 1, '50'),
+        )
+        for revision, (file, operation, address, feed, tx, rx, expected) in enumerate(cases, 1):
+            with self.subTest(operation=operation, revision=revision):
+                before = [self.bridge.command(index) for index in (0, 1, 2, 5)]
+                self.controller.select(ROOT/'datasheets'/file, operation, address)
+                self.assertEqual(self.controller.load()['status'], 'ok')
+                self.until(lambda: self.latest().get('status') == 'update_ok' and
+                           (self.latest().get('details', {}).get('configured') or {}).get('revision') == revision)
+                self.assertIsNone(self.latest()['raw_hex'])
+                self.assertEqual([self.bridge.command(index) for index in (0, 1, 2, 5)], before)
+                if feed is not None:
+                    self.bridge.command(('uart_feed', feed))
+                reply = self.controller.execute()
+                self.assertEqual(reply['status'], 'ok')
+                if boot is None:
+                    boot = reply['boot_id']
+                self.assertEqual(reply['boot_id'], boot)
+                self.until(lambda: (self.latest().get('details', {}).get('last_result') or {}).get('request_id') == reply['request_id'])
+                self.assertEqual((self.latest()['raw_hex'], self.latest()['tx_accepted'],
+                                  self.latest()['rx_received']), (expected, tx, rx))
+                self.assertEqual(self.latest()['details']['operation'], operation)
+        self.assertEqual([self.bridge.command(index) for index in (0, 1, 2, 5)], [2, 1, 32, 0])
+        self.assertEqual(len({topic for topic, _, _ in self.configs()}), 6)
+
     def test_retained_discovery_offline_will_and_host_reopen_have_no_raw_replay(self):
         self.controller.connect()
         self.select('chip_id')

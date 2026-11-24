@@ -40,6 +40,24 @@ class WorkflowTests(unittest.TestCase):
         for evidence in ("*.elf", "*.map", "evidence.json", "compile_commands.json", "build.log"):
             self.assertIn(evidence, step["with"]["path"])
 
+    def test_host_evidence_survives_failure_and_reports_actual_step_outcomes(self):
+        steps = self.workflow['jobs']['c-standard']['steps']
+        checks = {step['id']: step for step in steps if 'id' in step}
+        self.assertEqual(set(checks), {'standard', 'checker', 'contracts', 'foundation',
+                                      'discovery', 'runtime', 'kernel', 'target',
+                                      'javascript', 'node', 'browser', 'gpio'})
+        summary = next(step for step in steps if 'GITHUB_STEP_SUMMARY' in step.get('run', ''))
+        self.assertEqual(summary['if'], 'always()')
+        for name, step in checks.items():
+            self.assertNotIn('continue-on-error', step)
+            self.assertIn('pipefail', step['run'])
+            self.assertIn('tee build/test-results/', step['run'])
+            self.assertIn('steps.' + name + '.outcome', summary['run'])
+        upload = next(step for step in steps if step.get('uses', '').startswith('actions/upload-artifact@'))
+        self.assertEqual(upload['if'], 'always()')
+        self.assertIn('build/test-results/*.log', upload['with']['path'])
+        self.assertIn('build/browser-results/', upload['with']['path'])
+
     def test_preserves_all_host_suites(self):
         host = "\n".join(step.get("run", "") for step in self.workflow["jobs"]["c-standard"]["steps"])
         for suite in ("tests/c_standard", "tests/foundation", "tests/runtime", "tests/target",

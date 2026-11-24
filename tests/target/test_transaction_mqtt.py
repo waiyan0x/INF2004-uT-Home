@@ -11,7 +11,7 @@ from unittest.mock import patch
 from tools.transaction.client import Mqtt, _MqttSocket
 from tools.transaction.controller import Controller
 from tools.transaction import session
-from mqtt_fixture import LocalBroker, DeviceBridge, NODE
+from mqtt_fixture import LocalBroker, DeviceBridge, NODE, certificates
 import test_tx_owner as owner
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -102,6 +102,63 @@ class MqttControllerTests(unittest.TestCase):
         try:
             controller.connect()
             self.assertTrue(controller.snapshot()['connected'])
+        finally:
+            controller.close()
+
+    def test_untrusted_ca_rejects_connection_before_any_peripheral_io(self):
+        untrusted = self.work / 'untrusted'
+        untrusted.mkdir()
+        certificates(untrusted)
+        with self.assertRaises(ssl.SSLCertVerificationError):
+            Mqtt('127.0.0.1', self.broker.port, untrusted/'ca.pem', NODE, timeout=2)
+        self.assertEqual([self.bridge.command(index) for index in (0, 1, 2, 5)], [0, 0, 0, 0])
+        controller = self.controller()
+        try:
+            controller.connect()
+            self.assertTrue(controller.snapshot()['connected'])
+        finally:
+            controller.close()
+
+    def test_lost_spi_write_reply_is_recovered_without_repeating_the_write(self):
+        controller = self.controller()
+        try:
+            controller.connect()
+            controller.select(ROOT/'datasheets/ssd1306.md', 'display_off')
+            self.assertEqual(controller.load()['status'], 'ok')
+            self.assertEqual(self.bridge.command(1), 0)
+            self.bridge.command('drop')
+            with self.assertRaises(TimeoutError):
+                controller.execute()
+            self.assertEqual(self.bridge.command(1), 1)
+            controller.close()
+            controller = self.controller()
+            controller.connect()
+            reply = controller.recover()
+            self.assertEqual((reply['status'], reply['tx_accepted'], reply['rx_received']),
+                             ('ok', 1, 0))
+            self.assertEqual(self.bridge.command(1), 1)
+            controller.refresh()
+            self.assertEqual(self.bridge.command(1), 1)
+        finally:
+            controller.close()
+
+    def test_uart_maximum_transmit_and_receive_survive_tls_round_trip(self):
+        controller = self.controller()
+        payload = bytes(range(32))
+        try:
+            controller.connect()
+            controller.select_rule({**owner.profile('uart'),
+                                    'write_hex': bytes(range(30)).hex(' '), 'read_length': 32})
+            self.assertEqual(controller.load()['status'], 'ok')
+            self.assertEqual(self.bridge.command(5), 0)
+            self.bridge.command(('uart_feed', payload))
+            reply = controller.execute()
+            self.assertEqual((reply['status'], reply['tx_accepted'], reply['rx_received']),
+                             ('ok', 30, 32))
+            self.assertEqual(bytes.fromhex(reply['raw_hex']), payload)
+            self.assertEqual(self.bridge.command('uart_tx_peak'), 30)
+            self.assertEqual(self.bridge.command(5), 0)  # Successful close clears the fake TX buffer.
+            self.assertEqual(self.bridge.command(2), 32)
         finally:
             controller.close()
 

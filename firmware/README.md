@@ -28,18 +28,6 @@ git submodule update --init --recursive firmware/third_party/esp32c3-mtk3
 git -C firmware/third_party/esp32c3-mtk3 rev-parse HEAD
 ```
 
-If reviewing a source archive without Git metadata, the included kernel files
-are for inspection. Obtain a separate pristine checkout for the build helper:
-
-```powershell
-git clone https://github.com/sirfonzie/esp32c3-mtk3.git C:/esp/uthome-kernel
-git -C C:/esp/uthome-kernel checkout ebef6428bea65e8fb7c1e0f935c5ecec925b3ca2
-```
-
-Use an unused destination and add `--kernel C:/esp/uthome-kernel` to `inspect`
-and `build` below. The helper checks that checkout's exact revision and clean
-state; no replacement of the archived sources is required.
-
 Use the pinned ESP-IDF installation and its activated terminal. A new SDK setup
 can follow [Espressif's Windows guide](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/get-started/windows-setup.html),
 but its revision/toolchain must match the table. SDK and build paths must have

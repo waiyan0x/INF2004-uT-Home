@@ -1,4 +1,4 @@
-"""Authenticated loopback TLS broker and C-owner bridge for host acceptance."""
+"""Authenticated loopback TLS broker and C-owner bridge for host acceptance tests."""
 import asyncio
 import ctypes as c
 from datetime import datetime, timedelta, timezone
@@ -135,6 +135,8 @@ class DeviceBridge:
         self.control = queue.Queue(maxsize=4)
         self.online = False
         self.drop = False
+        self.uart_feed = None
+        self.uart_tx_peak = 0
         self.error = None
         self.client = mqtt.Client(client_id='uthome-C-fixture', clean_session=True)
         self.client.username_pw_set('fixture-test', broker.passwords['fixture-test'])
@@ -175,6 +177,12 @@ class DeviceBridge:
                 self.client.loop(timeout=0.01)
                 now += 1
                 self.lib.txptest_pump(now, self.online, True)
+                # The fake clears its TX buffer on close; sample while RX is pending.
+                self.uart_tx_peak = max(self.uart_tx_peak, self.lib.txptest_observed(5))
+                if self.uart_feed is not None and self.lib.c3tx_busy():
+                    if self.lib.txptest_feed(self.uart_feed, len(self.uart_feed)) != 0:
+                        raise RuntimeError('UART fixture feed requires an open receive operation')
+                    self.uart_feed = None
                 if self.lib.txptest_reply(output) == 0:
                     if self.drop and output.raw[3] == 2:
                         self.drop = False
@@ -188,6 +196,10 @@ class DeviceBridge:
                     continue
                 if action == 'drop':
                     self.drop = True
+                elif isinstance(action, tuple) and action[0] == 'uart_feed':
+                    self.uart_feed = action[1]
+                elif action == 'uart_tx_peak':
+                    result.append(self.uart_tx_peak)
                 elif action == 'reconnect':
                     self.ready.clear()
                     self.client.reconnect()

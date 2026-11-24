@@ -29,47 +29,128 @@ jobs:
       - name: Require the host compiler
         run: gcc --version
       - name: Enforce BARR-C policy
-        run: python tools/c_standard/check.py --root .
+        id: standard
+        run: |
+          set -o pipefail
+          mkdir -p build/test-results
+          python tools/c_standard/check.py --root . 2>&1 | tee build/test-results/standard.log
       - name: Verify the policy checker
-        run: python -m unittest discover -s tests/c_standard -p 'test_*.py' -v
+        id: checker
+        run: |
+          set -o pipefail
+          mkdir -p build/test-results
+          python -m unittest discover -s tests/c_standard -p 'test_*.py' -v 2>&1 | tee build/test-results/checker.log
       - name: Verify host data contracts
-        run: python -m mypy --config-file tools/config_transfer/mypy.ini
+        id: contracts
+        run: |
+          set -o pipefail
+          mkdir -p build/test-results
+          python -m mypy --config-file tools/config_transfer/mypy.ini 2>&1 | tee build/test-results/contracts.log
       - name: Run foundation acceptance
-        run: python -m unittest discover -s tests/foundation -p 'test_*.py' -v
+        id: foundation
+        run: |
+          set -o pipefail
+          mkdir -p build/test-results
+          python -m unittest discover -s tests/foundation -p 'test_*.py' -v 2>&1 | tee build/test-results/foundation.log
       - name: Verify discovery contracts and matching
-        run: python -B -m unittest discover -s tests/discovery -p 'test_*.py' -v
+        id: discovery
+        run: |
+          set -o pipefail
+          mkdir -p build/test-results
+          python -B -m unittest discover -s tests/discovery -p 'test_*.py' -v 2>&1 | tee build/test-results/discovery.log
       - name: Run runtime C suites
-        run: python -m unittest discover -s tests/runtime -p 'test_*.py' -v
+        id: runtime
+        run: |
+          set -o pipefail
+          mkdir -p build/test-results
+          python -m unittest discover -s tests/runtime -p 'test_*.py' -v 2>&1 | tee build/test-results/runtime.log
       - name: Fetch pinned kernel for Buddy 1 host tests
         run: git submodule update --init --recursive firmware/third_party/esp32c3-mtk3
       - name: Run Buddy 1 static task tests
+        id: kernel
         run: |
+          set -eo pipefail
+          exec > >(tee build/test-results/kernel.log) 2>&1
           python -m unittest discover -s tests/kernel_tasks -p test_fixed_stack_pool.py -v
           for test in tests/kernel_tasks/test_shim_*.py tests/kernel_tasks/test_c3task_static_pool.py tests/kernel_tasks/test_c3task_alignment.py tests/kernel_tasks/test_c3task_no_static.py tests/kernel_tasks/test_fixed_stack_stress.py; do python "$test"; done
       - name: Run target failure and build-tool tests
-        run: python -m unittest discover -s tests/target -p 'test_*.py' -v
+        id: target
+        run: |
+          set -o pipefail
+          mkdir -p build/test-results
+          python -m unittest discover -s tests/target -p 'test_*.py' -v 2>&1 | tee build/test-results/target.log
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
       - name: Verify JavaScript source
+        id: javascript
         run: |
+          set -eo pipefail
+          exec > >(tee build/test-results/javascript.log) 2>&1
           npm ci --ignore-scripts
           npm run lint
       - name: Verify dashboard and wiring visualiser
+        id: node
         run: |
+          set -eo pipefail
+          exec > >(tee build/test-results/node.log) 2>&1
           node --test tests/target/test_*.mjs
           node --test tools/wiring_visualiser/tests/*.test.mjs
 
       - name: Verify real browser composition and asynchronous transitions
+        id: browser
         run: |
+          set -eo pipefail
+          exec > >(tee build/test-results/browser.log) 2>&1
           npx playwright install --with-deps chromium
           npm run test:browser
 
       - name: Run standalone UART/GPIO regressions
+        id: gpio
         run: |
+          set -eo pipefail
+          exec > >(tee build/test-results/gpio.log) 2>&1
           python tools/test_uart_gpio.py
+
+      - name: Publish the requirement verification summary
+        if: always()
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
+          ## Submission test evidence
+
+          Source: `${{ github.sha }}`. [Requirements, scenarios and expected results](${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/tests/README.md#requirements-and-test-cases).
+
+          | Check | Outcome |
+          |---|---|
+          | BARR-C gate | ${{ steps.standard.outcome }} |
+          | Checker regressions | ${{ steps.checker.outcome }} |
+          | Host data contracts | ${{ steps.contracts.outcome }} |
+          | Foundation | ${{ steps.foundation.outcome }} |
+          | Discovery | ${{ steps.discovery.outcome }} |
+          | Runtime C | ${{ steps.runtime.outcome }} |
+          | Kernel static tasks | ${{ steps.kernel.outcome }} |
+          | Target host, finite domains and TLS/display integration | ${{ steps.target.outcome }} |
+          | JavaScript lint | ${{ steps.javascript.outcome }} |
+          | Node interaction tests | ${{ steps.node.outcome }} |
+          | Chromium | ${{ steps.browser.outcome }} |
+          | UART/GPIO | ${{ steps.gpio.outcome }} |
+
+          Download `host-test-evidence-${{ github.run_id }}` for individual test names, counts and diagnostics. A skipped or failed check is not a pass. Python method totals do not count every parameter combination or C assertion. The field-domain coverage is specified in the test guide.
+
+          These results use host compilers, simulated peripheral I/O and loopback TLS. ESP32-C3 build jobs run separately after the host gate. CI does not execute hardware or establish NFR3's measured radio/heap qualification.
+          SUMMARY
+      - name: Preserve host test evidence even after failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-test-evidence-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 90
+          path: |
+            build/test-results/*.log
+            build/browser-results/
 
 
   esp32c3:

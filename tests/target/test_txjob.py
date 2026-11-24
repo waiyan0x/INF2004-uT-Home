@@ -1,4 +1,4 @@
-"""Runtime rules: actual fixed C decision engine, injected owner operations."""
+"""Runtime rules: fixed C decision engine with injected owner operations."""
 import ctypes as c
 from pathlib import Path
 import shutil
@@ -149,6 +149,125 @@ class JobTests(unittest.TestCase):
             self.submit(request(protocol=2,rx=0,rid=rid,**{'52':pin}))
             self.assertEqual(self.take()[41],1)
         self.assertEqual(self.begins,0)
+
+    def test_rule_admission_boundaries_preserve_last_valid_revision(self):
+        cases = []
+        for protocol, minimum, maximum in ((1, 10000, 400000),
+                                           (2, 100000, 8000000),
+                                           (3, 9600, 460800)):
+            for rate, status in ((minimum - 1, 1), (minimum, 0),
+                                 (maximum, 0), (maximum + 1, 1)):
+                packet = bytearray(request(protocol=protocol, rx=0 if protocol == 2 else 1))
+                struct.pack_into('<I', packet, 44, rate)
+                cases.append((f'protocol {protocol} rate {rate}', packet, status))
+        for timeout, status in ((9, 1), (10, 0), (1000, 0), (1001, 1)):
+            packet = bytearray(request())
+            struct.pack_into('<H', packet, 48, timeout)
+            cases.append((f'timeout {timeout}', packet, status))
+        for address, status in ((7, 1), (8, 0), (119, 0), (120, 1)):
+            cases.append((f'I2C address {address}', request(**{'41': address}), status))
+        cases.extend([
+            ('maximum TX', request(tx=bytes(range(30))), 0),
+            ('excess TX', request(**{'50': 31}), 1),
+            ('maximum RX', request(rx=32), 0),
+            ('excess RX', request(rx=33), 1),
+            ('read only', request(tx=b''), 0),
+            ('write only', request(rx=0), 0),
+            ('empty transfer', request(tx=b'', rx=0), 1),
+            ('I2C mode', request(**{'42': 1}), 1),
+            ('I2C chip select', request(**{'52': 4}), 1),
+            ('UART address', request(protocol=3, **{'41': 8}), 1),
+            ('SPI maximum mode', request(protocol=2, rx=0, **{'42': 3}), 0),
+            ('SPI excess mode', request(protocol=2, rx=0, **{'42': 4}), 1),
+            ('SPI address', request(protocol=2, rx=0, **{'41': 8}), 1),
+            ('SPI shared CS/DC', request(protocol=2, rx=0, **{'43': 4}), 1),
+            ('SPI DC without pin', request(protocol=2, rx=0, **{'53': 1}), 1),
+            ('SPI valid DC', request(protocol=2, rx=0, **{'43': 5, '53': 1}), 0),
+            ('SPI excess DC level', request(protocol=2, rx=0, **{'43': 5, '53': 2}), 1),
+            ('unknown protocol', request(protocol=4), 7),
+        ])
+        self.load()
+        active_revision = 1
+        for rid, (label, original, status) in enumerate(cases, 2):
+            with self.subTest(case=label):
+                packet = bytearray(original)
+                struct.pack_into('<I', packet, 4, rid)
+                struct.pack_into('<I', packet, 20, rid)
+                self.assertEqual(self.submit(bytes(packet)), 0)
+                result = self.take()
+                self.assertEqual(result[41], status)
+                if status == 0:
+                    active_revision = rid
+                self.assertEqual(struct.unpack_from('<I', result, 20)[0], active_revision)
+                self.assertEqual((self.begins, self.polls, self.closes), (0, 0, 0))
+
+    def test_each_reserved_or_unused_byte_rejects_without_changing_rule(self):
+        self.load()
+        for rid, offset in enumerate([54, 55, *range(57, 96)], 2):
+            with self.subTest(offset=offset):
+                self.assertEqual(self.submit(request(rid=rid, revision=2, **{str(offset): 1})), 0)
+                result = self.take()
+                self.assertEqual(result[41], 1)
+                self.assertEqual(struct.unpack_from('<I', result, 20)[0], 1)
+                self.assertEqual((self.begins, self.polls, self.closes), (0, 0, 0))
+        self.assertEqual(self.submit(request(kind=2, rid=100)), 0)
+        self.lib.txjob_step(self.state, 11)
+        self.assertEqual(self.take()[41:45], b'\x00\x01\x01\x50')
+
+    def test_inconsistent_driver_counts_fail_clear_data_and_allow_recovery(self):
+        self.load()
+        for index, (written, data) in enumerate(((2, b'\x50'), (1, b''),
+                                                (1, b'\x50\x51'), (1, bytes(32)))):
+            with self.subTest(written=written, received=len(data)):
+                self.written, self.data = written, data
+                self.assertEqual(self.submit(request(kind=2, rid=2 + index * 2)), 0)
+                self.lib.txjob_step(self.state, 11)
+                result = self.take()
+                self.assertEqual(result[41:76], b'\x05' + bytes(34))
+                self.written, self.data = 1, b'\x50'
+                self.assertEqual(self.submit(request(kind=2, rid=3 + index * 2)), 0)
+                self.lib.txjob_step(self.state, 11)
+                self.assertEqual(self.take()[41:45], b'\x00\x01\x01\x50')
+        self.assertEqual((self.begins, self.polls, self.closes), (8, 8, 8))
+
+    def test_deadline_boundary_and_clock_reversal_close_without_extra_poll(self):
+        self.load()
+        for rid, (now, status, polls) in enumerate(((109, 0, 1), (110, 4, 0),
+                                                   (111, 4, 0), (9, 5, 0)), 2):
+            with self.subTest(now=now):
+                before = (self.begins, self.polls, self.closes)
+                self.assertEqual(self.submit(request(kind=2, rid=rid), now=10), 0)
+                self.lib.txjob_step(self.state, now)
+                result = self.take()
+                self.assertEqual(result[41], status)
+                if status:
+                    self.assertEqual(result[43:76], bytes(33))
+                self.assertEqual((self.begins, self.polls, self.closes),
+                                 (before[0] + 1, before[1] + polls, before[2] + 1))
+        self.poll_status = 10
+        self.assertEqual(self.submit(request(kind=2, rid=6), now=10), 0)
+        self.lib.txjob_step(self.state, 50)
+        polls = self.polls
+        self.lib.txjob_step(self.state, 49)
+        self.assertEqual(self.take()[41], 5)
+        self.assertEqual(self.polls, polls)
+
+    def test_failed_acquisition_retains_ownership_until_cleanup_succeeds(self):
+        self.load()
+        self.begin_status, self.close_status = 5, -1
+        self.assertEqual(self.submit(request(kind=2, rid=2)), 0)
+        self.assertEqual((self.begins, self.polls, self.closes), (1, 0, 1))
+        self.assertEqual(self.submit(request(rid=3)), -1)
+        self.assertEqual(self.lib.txjob_take(self.state, c.create_string_buffer(96), 96), 1)
+        self.close_status = 0
+        self.lib.txjob_step(self.state, 11)
+        self.assertEqual(self.take()[41:76], b'\x05' + bytes(34))
+        self.assertEqual((self.begins, self.polls, self.closes), (1, 0, 2))
+        self.begin_status = 0
+        self.assertEqual(self.submit(request(kind=2, rid=3)), 0)
+        self.lib.txjob_step(self.state, 12)
+        self.assertEqual(self.take()[41:45], b'\x00\x01\x01\x50')
+        self.assertEqual((self.begins, self.polls, self.closes), (2, 1, 3))
 
     def query(self, rid=99, boot=0, generation=4, idle=True, now=20):
         from tools.transaction.client import query, status_result

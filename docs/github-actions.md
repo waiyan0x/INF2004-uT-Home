@@ -32,6 +32,17 @@ commands are also required and hashed by qualification; a zero compiler exit
 alone is insufficient. If dependency setup fails before logs exist, use the
 GitHub step log. A host-gate failure prevents target jobs from starting.
 
+## Reviewing test evidence
+
+The host job's **Submission test evidence** summary links the submitted commit's
+[requirement and test-case map](../tests/README.md#requirements-and-test-cases)
+and shows each suite's actual outcome. Failed and skipped checks remain visible.
+The `host-test-evidence-<run-id>` artifact preserves named test output and browser
+diagnostics even when a test fails; it is retained for 90 days. Host log capture
+keeps shell failure propagation enabled. Python totals count methods, not every
+parameter combination or C assertion. The guide lists the exact exhaustive field
+domains and separates host simulation, target compilation and physical evidence.
+
 ## Enable it on GitHub
 
 The workflow is included on the `system-integration` branch. Pushing a commit

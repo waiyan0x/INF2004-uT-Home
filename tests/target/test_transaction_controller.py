@@ -274,6 +274,21 @@ class ControllerTests(unittest.TestCase):
         self.assertFalse(self.controller.snapshot()['connected'])
         self.assertFalse(self.controller.snapshot()['can_execute'])
 
+    def test_five_second_expiry_boundary_uses_original_esp_completion(self):
+        self.start()
+        self.data = b'\0'
+        reply = self.controller.execute()
+        for age in (0, 4999, 5000, 5001):
+            with self.subTest(age_ms=age):
+                # The next query increments the simulated ESP clock by one ms.
+                self.now = reply['completed_ms'] + age - 1
+                self.controller.refresh()
+                display = self.controller.snapshot()['display']
+                self.assertEqual(display['age_ms'], age)
+                self.assertEqual(display['available'], age < 5000)
+                self.assertEqual(display['raw_hex'], '00' if age < 5000 else None)
+                self.assertEqual(self.begins, 1)
+
     def test_recovered_result_retains_original_completion_time_and_age(self):
         self.start()
         self.drop = 'after'
